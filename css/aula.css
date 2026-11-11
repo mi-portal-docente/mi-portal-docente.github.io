@@ -259,3 +259,147 @@ body.cl-modal-abierto { overflow: hidden; }
 .cl-pend-aviso { margin: 0 0 6px; font-size: 13.5px; color: #6b4600; }
 .cl-nota-v { margin: 8px 0; padding: 8px 12px; border-radius: 8px; background: #f3f4f5; font-size: 14px; } .cl-nota-v.pend { background: #fff4e0; border: 1px solid #f3c97a; }
 @media (max-width: 720px) { .cl-it { flex-wrap: wrap; } .cl-pend, .cl-est { order: 5; } }
+
+/* =====================================================================
+   Rediseño 2026-11: página única de asignatura con pestañas, Organización,
+   vista previa del alumno, actividades 3D, panel por bloques, portada.
+   ===================================================================== */
+body.scr-act #act { display: flex; }
+/* portada: la sesión arriba, sin pisar nada */
+.cov-band { flex-direction: column; gap: 10px; }
+.cov-top { position: absolute; top: 10px; right: 12px; left: 12px; display: flex; justify-content: flex-end; }
+.cov-band .cov-chip { position: static; }
+.cov-links { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
+.cov-links a { color: var(--gris); font-weight: 700; text-decoration: none; padding: 8px 14px; border: 1px solid var(--claro); border-radius: 10px; }
+.cov-links a:hover, .cov-links a:focus-visible { border-color: var(--rojo); color: var(--rojo); }
+.subj-h1 { margin: 0 0 4px; font-size: 30px; color: var(--tinta); }
+.bib-marca { display: inline-block; margin-left: 6px; color: #0f7a35; font-weight: 700; }
+.bib-grupo { margin-top: 26px; } .bib-gt { font-size: 18px; color: var(--gris); margin: 0 0 4px; border-bottom: 2px solid var(--claro); padding-bottom: 6px; }
+.bib-gt .muted { font-weight: 400; }
+/* foco visible en todo */
+a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--naranja); outline-offset: 2px; }
+
+/* ---------- página de la asignatura ---------- */
+#asig { background: var(--fondo); }
+.as-hero { background: var(--c, var(--rojo)); color: #fff; flex: none; }
+.as-hero-in { width: min(1180px, 100%); margin: 0 auto; box-sizing: border-box; padding: 20px 24px 12px; display: flex; gap: 16px; align-items: center; }
+.as-ic { font-size: 40px; line-height: 1; } .as-hero h1 { margin: 2px 0; font-size: clamp(22px, 3vw, 30px); line-height: 1.15; }
+.as-cod { font-size: 13px; letter-spacing: .05em; opacity: .9; text-transform: uppercase; }
+.as-quien { font-size: 14px; opacity: .95; } .as-fuera { background: rgba(0,0,0,.2); border-radius: 6px; padding: 1px 6px; }
+.as-tabs { width: min(1180px, 100%); margin: 0 auto; box-sizing: border-box; padding: 0 16px; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: thin; }
+.as-tabs a { flex: none; color: #fff; text-decoration: none; font-weight: 700; font-size: 15px; padding: 12px 16px 10px; border-bottom: 4px solid transparent; opacity: .85; white-space: nowrap; border-radius: 8px 8px 0 0; }
+.as-tabs a:hover { opacity: 1; background: rgba(255,255,255,.12); }
+.as-tabs a.on { opacity: 1; background: var(--fondo); color: var(--c, var(--rojo)); border-bottom-color: var(--fondo); }
+.as-tabs a:focus-visible { outline-color: #fff; outline-offset: -3px; }
+.as-panel { flex: 1 0 auto; outline: none; }
+.as-wrap { width: min(1180px, 100%); margin: 0 auto; box-sizing: border-box; padding: 20px 24px 48px; }
+.as-intro { margin-top: 0; } .as-sec { margin-top: 26px; } .as-h2 { font-size: 20px; margin: 0 0 4px; color: var(--tinta); }
+.as-vacio { text-align: center; background: #fff; border: 2px dashed var(--claro); border-radius: 16px; padding: 40px 20px; color: var(--gris); max-width: 640px; margin: 20px auto; }
+.as-vacio h2 { margin: 6px 0; color: var(--tinta); font-size: 22px; } .as-vacio-ic { font-size: 44px; }
+#asig .ap-grid { margin-top: 12px; }
+#asig .ap-card h3 { font-size: 22px; }
+.ap-go { margin-top: auto; color: var(--ap, var(--rojo)); font-weight: 700; }
+/* barra de curso (profesor) */
+.cl-cursobar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; font-size: 14px; color: var(--gris); }
+.cl-curso select { margin-left: 6px; }
+.cl-link { color: var(--rojo); font-weight: 700; text-decoration: none; } .cl-link:hover { text-decoration: underline; }
+/* Organización */
+.org-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.org-stat { background: #fff; border: 1px solid var(--claro); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; }
+.org-stat b { font-size: 24px; color: var(--tinta); } .org-stat span { font-size: 12.5px; color: var(--gris); }
+.org-stat.e-pub b { color: #0f7a35; } .org-stat.e-borr b { color: var(--gris); } .org-stat.e-prog b { color: #1d5fa8; } .org-stat.e-pend b { color: #a35a00; }
+.org-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.org-cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.org-box { background: #fff; border: 1px solid var(--claro); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.org-box h3 { margin: 0 0 8px; font-size: 16px; } .org-box h3 .pn-small { font-weight: 400; }
+.org-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; } .org-chips span { opacity: .7; }
+.org-tema h4 { margin: 14px 0 4px; font-size: 15px; color: var(--tinta); border-bottom: 1px solid var(--claro); padding-bottom: 4px; }
+.org-tema ul, .org-grupos { list-style: none; margin: 0; padding: 0; }
+.org-it { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid #f0f1f2; }
+.org-it.borr .cl-tx b { color: var(--gris); }
+.org-it .cl-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; } .org-it .cl-tx a { color: var(--tinta); text-decoration: none; } .org-it .cl-tx a:hover { color: var(--rojo); }
+.org-nota { font-size: 12.5px; color: #7a4a00; background: #fff8ea; border-radius: 6px; padding: 2px 6px; margin-top: 3px; align-self: flex-start; }
+.org-grupos li { display: flex; flex-direction: column; padding: 6px 0; border-bottom: 1px solid #f0f1f2; }
+/* Tablón: profesor (anuncios + vista previa) y alumno */
+.cl-tablon-prof { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; align-items: start; }
+.cl-misan summary { cursor: pointer; font-weight: 700; } .cl-misan-it { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-top: 1px solid #f0f1f2; font-size: 14px; }
+.cl-preview { border: 3px solid var(--gris); border-radius: 14px; background: #fff; overflow: hidden; }
+.cl-preview-h { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--gris); color: #fff; padding: 8px 12px; font-size: 14px; }
+.cl-preview-h select { margin-left: 4px; } .cl-preview-n { margin-left: auto; color: #fff; opacity: .85; }
+.cl-preview-t { display: inline-flex; background: rgba(255,255,255,.15); border-radius: 8px; padding: 2px; }
+.cl-preview-t button { font: inherit; font-weight: 700; font-size: 13px; color: #fff; background: none; border: 0; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+.cl-preview-t button.on { background: #fff; color: var(--gris); }
+.cl-preview-b { padding: 14px; background: var(--fondo); max-height: 70vh; overflow: auto; }
+.cl-prev-it { cursor: default; }
+.cl-grid-prev { grid-template-columns: 1fr; }
+.cl-stream { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 14px; align-items: start; }
+.cl-prox { background: #fff; border: 1px solid var(--claro); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+.cl-prox h3 { margin: 0 0 6px; font-size: 14px; } .cl-prox ul { margin: 0; padding: 0; list-style: none; } .cl-prox li { padding: 5px 0; border-top: 1px solid #f0f1f2; }
+/* Actividades de clase */
+.ac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+.ac-card { display: flex; gap: 14px; background: #fff; border: 1px solid var(--claro); border-top: 6px solid var(--ap, var(--rojo)); border-radius: 14px; padding: 18px; }
+.ac-card h3 { margin: 0 0 4px; font-size: 20px; } .ac-card p { margin: 0 0 8px; color: var(--gris); font-size: 14.5px; line-height: 1.45; }
+.ac-card-b { flex: 1; min-width: 0; } .ac-card-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.ac-est { margin-top: 8px; font-size: 13.5px; background: #f2fbfa; border: 1px solid #bfe6e2; border-radius: 8px; padding: 5px 8px; color: #0f5e66; }
+.ac-est a { color: inherit; font-weight: 700; }
+/* pantalla de una actividad */
+#act { background: var(--fondo); }
+.ac-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; min-height: 0; }
+.ac-vista { position: relative; min-height: 360px; background: #eef1f3; }
+.ac-gl, .ac-gl canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ac-tags { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ac-tag { position: absolute; transform: translate(-50%, -100%); background: var(--tinta); color: #fff; font-weight: 700; font-size: 12px; border-radius: 999px; padding: 2px 8px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.ac-tag.visto { background: #fff; color: var(--tinta); border: 1px solid var(--claro); }
+.ac-ayuda { position: absolute; left: 10px; bottom: 10px; background: rgba(255,255,255,.9); border-radius: 8px; padding: 4px 10px; font-size: 12.5px; color: var(--gris); }
+.ac-sin3d { padding: 30px; color: var(--gris); }
+.ac-lado { background: #fff; border-left: 1px solid var(--claro); padding: 18px 20px; overflow-y: auto; }
+.ac-lado h2 { margin: 0 0 8px; font-size: 22px; } .ac-lado p { line-height: 1.5; }
+.ac-info { padding-left: 0; list-style: none; color: var(--gris); font-size: 14px; } .ac-info li { padding: 2px 0; }
+.ac-small { font-size: 13px; color: var(--gris); }
+.ac-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.ac-prog { height: 8px; background: var(--claro); border-radius: 4px; overflow: hidden; } .ac-prog span { display: block; height: 100%; background: var(--naranja); transition: width .3s; }
+.ac-n { font-size: 13px; color: var(--gris); margin-top: 8px; } .ac-q { font-size: 20px; margin: 8px 0 10px; color: var(--tinta); }
+.ac-nums { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+.ac-num { font: inherit; font-weight: 700; font-size: 16px; padding: 9px 0; border-radius: 9px; border: 1px solid var(--claro); background: #fff; cursor: pointer; color: var(--tinta); }
+.ac-num:hover:not(:disabled) { border-color: var(--naranja); }
+.ac-ops { display: flex; flex-direction: column; gap: 8px; }
+.ac-op { font: inherit; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--claro); background: #fff; cursor: pointer; color: var(--tinta); }
+.ac-op:hover:not(:disabled) { border-color: var(--naranja); }
+.ac-num.ok, .ac-op.ok { background: #e7f7ec; border-color: #1fbf4a; } .ac-num.ko, .ac-op.ko { background: #fde8ea; border-color: var(--rojo); }
+.ac-fb { margin-top: 12px; padding: 10px 12px; border-radius: 10px; line-height: 1.45; font-size: 14.5px; } .ac-fb.ok { background: #e7f7ec; } .ac-fb.ko { background: #fde8ea; }
+.ac-nota { font-size: 18px; margin: 6px 0 10px; } .ac-nota b { color: var(--rojo); }
+.ac-repaso { padding-left: 18px; font-size: 14px; } .ac-repaso li.ok { color: #0f7a35; } .ac-repaso li.ko { color: #a3001a; }
+.ac-asig { margin-top: 12px; background: #fff8ea; border: 1px solid #f3c97a; border-radius: 10px; padding: 10px 12px; font-size: 14px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.ac-msg.ok { color: #0f7a35; font-weight: 700; } .ac-msg.ko { color: #a3001a; }
+/* ---------- panel del profesor por bloques ---------- */
+.pn-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 22px; align-items: start; }
+.pn-nav { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 14px; }
+.pn-g { display: flex; flex-direction: column; gap: 2px; }
+.pn-gt { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--gris); font-weight: 700; padding: 0 10px 4px; }
+.pn-nav a { text-decoration: none; color: var(--tinta); font-weight: 600; padding: 8px 10px; border-radius: 9px; display: flex; align-items: center; gap: 6px; font-size: 14.5px; }
+.pn-nav a:hover { background: #fff; }
+.pn-nav a.on { background: #fff; color: var(--rojo); box-shadow: inset 3px 0 0 var(--rojo); }
+.pn-nav .pn-n { margin-left: auto; }
+.pn-h1 { margin: 0; font-size: 24px; color: var(--tinta); } .pn-desc { margin: 4px 0 16px; color: var(--gris); }
+.pn-main { min-width: 0; }
+/* ---------- móvil ---------- */
+@media (max-width: 900px) {
+  .org-cols, .cl-tablon-prof, .cl-stream { grid-template-columns: 1fr; }
+  .ac-main { grid-template-columns: 1fr; grid-template-rows: 52vh auto; }
+  .ac-lado { border-left: 0; border-top: 1px solid var(--claro); }
+  .pn-layout { grid-template-columns: 1fr; }
+  .pn-nav { position: static; flex-direction: row; overflow-x: auto; gap: 6px; }
+  .pn-g { flex-direction: row; align-items: center; flex: none; } .pn-gt { display: none; }
+  .pn-nav a { white-space: nowrap; background: #fff; border: 1px solid var(--claro); }
+}
+@media (max-width: 600px) {
+  .as-hero-in { padding: 14px 14px 8px; } .as-ic { font-size: 30px; }
+  .as-tabs { padding: 0 6px; } .as-tabs a { font-size: 13.5px; padding: 10px 10px 8px; }
+  .as-wrap { padding: 14px 12px 40px; }
+  .ac-grid { grid-template-columns: 1fr; } .ac-card { flex-direction: column; gap: 6px; }
+  .scr-top { gap: 10px; padding: 0 10px; flex-wrap: wrap; min-height: 56px; }
+  .top-nav { margin-left: 0; }
+}
+/* <main> de las pantallas del portal (el estilo global de main es del laboratorio ESP32) */
+main.subj-wrap, main.pn-main { display: block; min-height: auto; }
+main.subj-wrap { flex: none; }
