@@ -7,7 +7,7 @@
 (function () {
   'use strict';
   var LS_KEY = 'portal.acceso';
-  var APP_SRC = 'js/app.js?v=ux20261111';
+  var APP_SRC = 'js/app.js?v=viv20261111';
 
   function cfg() { return window.PORTAL_ACCESO || {}; }
 
