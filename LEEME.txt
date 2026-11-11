@@ -1,0 +1,37 @@
+LECCIONES ESP32 PLUS (TA825) + KIT L3P10 — Salesianos Algeciras
+Módulo 3015 Equipos eléctricos y electrónicos · CFGB Informática y Comunicaciones
+Profesor: Pablo Mateos Lema
+
+CÓMO ABRIR
+- Dirección pública: https://mi-portal-docente.github.io/
+- Doble clic en index.html (funciona desde file://, sin servidor ni Internet).
+- También sirve en cualquier hosting estático (copiar la carpeta tal cual).
+- Al abrir se ve la PORTADA (centro, ciclo, asignatura, profesor) con el botón «Entrar».
+- «Entrar» lleva a ASIGNATURAS (tarjetas). La tarjeta «Equipos eléctricos y electrónicos» abre los 8 proyectos.
+- Direcciones (hash):
+    index.html#inicio       portada
+    index.html#asignaturas  listado de asignaturas
+    index.html#eee          Equipos eléctricos y electrónicos (guía general + 8 proyectos)
+    index.html#p3-2         enlace profundo: proyecto 3, paso 2 (abre directamente el paso)
+- En las páginas de la asignatura hay migas «Inicio › Asignaturas › …» y el nombre del profesor.
+
+AÑADIR UNA ASIGNATURA (para el futuro)
+- Editar tools/src/subjects.js (array SUBJECTS: id, codigo, nombre, profesor, icon, desc, active)
+  y recompilar js/app.js con esbuild. Hoy solo existe «eee»; se muestra además una tarjeta «Próximamente».
+
+ESTRUCTURA
+- index.html, css/, js/app.js (three.js incluido localmente), fonts/ (Decima Nova Pro)
+- img/ logo_salesianos_horizontal.png y logo_salesianos_algeciras_blanco.png (logos oficiales, copia local), pinout, favicon
+- codigo/P1_Semaforo ... P8_Ventilador/*.ino  -> sketches Arduino
+- renders/p<N>_paso<M>.png y p<N>_final.png -> imágenes 1600x900 para PowerPoint (52)
+- capturas/ -> capturas de la web (inicio.png = portada, asignaturas.png = listado, movil_*.png, web_*.png)
+
+LECCIONES
+1 Semáforo · 2 Timbre · 3 Farola · 4 Termómetro (LM35 + LCD I2C + zumbador)
+5 Aparcamiento (HC-SR04 + OLED + LEDs + zumbador) · 6 Barrera (IR + servo 180º + LCD)
+7 Riego (humedad + relé + bomba 5 V, práctica de mantenimiento) · 8 Ventilador (L298N + joystick + BMP280 + OLED)
+
+COMPILACIÓN (verificada con arduino-cli 1.6.0, core esp32 3.3.12, placa "ESP32 Dev Module")
+Las 8 lecciones compilan sin errores. Librerías: LiquidCrystal I2C 1.1.2, ESP32Servo 3.2.1,
+Adafruit SH110X 2.1.15, Adafruit GFX 1.13.0, Adafruit BMP280 3.0.0 (+ Unified Sensor, BusIO).
+P8 usa ledcAttach(): requiere core esp32 3.x.
