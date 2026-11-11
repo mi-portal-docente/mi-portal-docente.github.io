@@ -1,0 +1,69 @@
+{
+ "chip": "ESP32",
+ "core": "arduino-esp32 3.3.12",
+ "proyectos": [
+  {
+   "id": "p1",
+   "archivo": "p1.bin",
+   "direccion": 0,
+   "tam": 339968,
+   "sha256": "3f1055a4e75af018e79e45575fa69b5debccc2ffc7aab9ba091f3f78259ba172"
+  },
+  {
+   "id": "p2",
+   "archivo": "p2.bin",
+   "direccion": 0,
+   "tam": 348160,
+   "sha256": "0a2049f9b8032a914af0e088772fe2dae8f654c4e6b76ee2db035691f7b6a5b8"
+  },
+  {
+   "id": "p3",
+   "archivo": "p3.bin",
+   "direccion": 0,
+   "tam": 356352,
+   "sha256": "492b0526fd83370ffdd5745ec7b7dd05d692ad56a81a8e7a09f66bcd314052f3"
+  },
+  {
+   "id": "p4",
+   "archivo": "p4.bin",
+   "direccion": 0,
+   "tam": 380928,
+   "sha256": "af2a30e85d5a361e34aa9d6a24c90f75b0390acd69aeb48dae494b921988cf2b"
+  },
+  {
+   "id": "p5",
+   "archivo": "p5.bin",
+   "direccion": 0,
+   "tam": 385024,
+   "sha256": "7416aad58a0c8fa5dae846ff187a53e35e5d7e2317b1664180b748707d46b8ad"
+  },
+  {
+   "id": "p6",
+   "archivo": "p6.bin",
+   "direccion": 0,
+   "tam": 376832,
+   "sha256": "825402228af1e5348c7b9d1d954e8648b91ada9a63a01d25dd7859af61ffeb8f"
+  },
+  {
+   "id": "p7",
+   "archivo": "p7.bin",
+   "direccion": 0,
+   "tam": 348160,
+   "sha256": "d9dc4654a416c27bd5000a69af19ca61bfa743145d593e2c9d94225b695a081d"
+  },
+  {
+   "id": "p8",
+   "archivo": "p8.bin",
+   "direccion": 0,
+   "tam": 397312,
+   "sha256": "15597fba6a9004809a9d9986fcc603fea8ce5876a6d107691fbd4c3e41a1d19f"
+  }
+ ],
+ "micropython": {
+  "archivo": "ESP32_GENERIC-20260824-v1.29.0.bin",
+  "direccion": 4096,
+  "tam": 1790544,
+  "sha256": "e67ad6015a0a504c1fec9aa9bbf589d0432ed28e62546f4f8dd8a147f8bd95f6",
+  "version": "v1.29.0."
+ }
+}
