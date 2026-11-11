@@ -5,27 +5,45 @@ Profesor: Pablo Mateos Lema
 CÓMO ABRIR
 - Doble clic en index.html (funciona desde file://, sin servidor ni Internet).
 - También sirve en cualquier hosting estático (copiar la carpeta tal cual).
-ACCESO AL PORTAL (dos modos, se elige en js/config-acceso.js)
-- MODO HOJA DE GOOGLE (cuando ENDPOINT tiene la URL de Apps Script):
-  · La pantalla de entrada pide «Tu nombre (nombre e inicial del apellido)» y «Código de la asignatura».
-    El servidor (Apps Script ligado a una Hoja de Google del profesor) comprueba el código y devuelve
-    un token de sesión y las asignaturas que permite. El alumno solo ve esas asignaturas
-    (una fila con Asignatura «*» da acceso a todas: pensada para el profesor).
-  · La web envía un «latido» cada 60 s y al cambiar de página (POST text/plain, sin preflight CORS).
-    Respuestas: ok / expulsado / codigo_cambiado / caducada. Si no es ok, se cierra la sesión y vuelve
-    a la pantalla de entrada con un mensaje. «Salir» cierra la sesión en el servidor.
-  · Sin red: al entrar sale un mensaje claro; con la sesión abierta, un aviso «Sin conexión… Reintentando».
-  · Pestañas de la Hoja: Códigos (Asignatura | Nombre | Código | Activa), Conectados (quién está y dónde;
-    escribir NO en «Expulsar» lo saca) y Registro (entradas y salidas). Limpieza diaria automática.
-  · El script (Code.gs) y la guía del profesor NO están en este repositorio público.
-  · Para activarlo: pegar la URL /exec de la aplicación web entre las comillas de ENDPOINT.
-- MODO CÓDIGO DE CLASE (ENDPOINT vacío, respaldo):
+ACCESO AL PORTAL (dos modos; se elige solo según js/firebase-config.js)
+- MODO FIREBASE (cuando js/firebase-config.js tiene apiKey y projectId):
+  · Pantalla de entrada «Portal docente» con dos opciones:
+      «Soy alumno»: código de grupo (p. ej. FARO-472) + número de lista (1-40). Sesión ANÓNIMA de
+                    Firebase: no se pide ni se guarda nombre ni correo del alumno.
+      «Soy profesor»: «Iniciar sesión con Google» (ventana emergente; si el navegador la bloquea,
+                    se usa la redirección). Solo tiene rol de profesor el correo fijado en las reglas
+                    de Firestore (y los que añada a config/profesores).
+  · Panel del profesor (index.html#panel, solo visible para el profesor):
+      #panel/grupos      crear grupos (asignaturas, apartados, horario opcional), código aleatorio
+                         legible, «Reiniciar código», «Cerrar/Abrir acceso», «En grande» para proyectar.
+      #panel/conectados  grupo, nº, dónde está, desde cuándo, última señal (latido cada 60 s y al
+                         cambiar de página, como mucho cada 15 s), «Expulsar».
+      #panel/entregas    entregas de Circuitos (montaje + respuestas + comprobación) y de proyectos
+                         ESP32 (hecho + informe); filtros, abrir el montaje en el simulador en modo
+                         lectura (#eee/circuitos/revision), nota y comentario, exportar CSV (;).
+      #panel/limpieza    borrar sesiones antiguas y borrar entregas (de un grupo o de todos).
+  · El alumno ve «Entregado» y, cuando la hay, la nota y el comentario (solo los de su sesión).
+  · Validación EN EL SERVIDOR con reglas de Firestore (sin Cloud Functions; plan Spark gratuito):
+      codigos/{CÓDIGO}  el código es el ID del documento: se puede leer uno conociéndolo, NO listar.
+      sesiones/{uid}    {codigo, grupo, numero, pagina, desde, latido, revocada}. Solo se acepta si el
+                        código está activo, es de ese grupo y (si lo hay) dentro del horario.
+      entregas/{uid_grupo_nº_práctica}  solo con sesión válida; el alumno no puede ponerse nota ni
+                        leer entregas ajenas. Reiniciar código = borrar el documento viejo y crear
+                        otro: las sesiones con el viejo dejan de valer al instante. Expulsar = revocada.
+    Las reglas (comentadas) y sus pruebas NO están en este repositorio: tools/firebase/.
+  · Firebase va empaquetado en js/portal-fb.js (sin CDN). Se compila con: cd tools && npm run build
+  · Límites del plan gratuito a tener en cuenta: 100 cuentas anónimas nuevas por hora y por IP (todo
+    el instituto suele salir por una IP; la web reutiliza la sesión anónima de cada navegador y solo
+    crea otra al pulsar «Salir» o tras una expulsión) y 20 000 escrituras/50 000 lecturas al día.
+- MODO CÓDIGO DE CLASE (configuración de Firebase vacía; respaldo):
   · La web pide un «Código de clase». Si es correcto, entra y el navegador lo recuerda. «Salir» lo olvida.
     No distingue mayúsculas ni espacios. Solo se guardan hashes en js/acceso-config.js. Para cambiarlo:
       cd tools && node set-codigo.mjs "palabra-palabra-00" ["otro-codigo-12"]
     (regenera los hashes y sube «version»; no escribas el código en claro en el repositorio).
-- En ambos modos la pantalla de entrada es un filtro para el uso normal en clase: los archivos de una web
-  estática (GitHub Pages) se pueden descargar igualmente si alguien conoce sus rutas.
+- NOTA HONESTA SOBRE LO QUE PROTEGE: GitHub Pages sirve archivos estáticos y públicos. Quien conozca las
+  rutas puede descargar el HTML, el JavaScript, las imágenes y los .ino aunque no tenga código. El control
+  de acceso protege el USO del portal: quién entra y desde dónde, las entregas, las notas y el panel del
+  profesor (esos datos sí están protegidos por las reglas de Firestore).
 - La web incluye <meta name="robots" content="noindex, nofollow"> y un robots.txt
   que bloquea el rastreo, para que no la indexen los buscadores.
 - Al abrir (después de entrar) se ve la PORTADA (ciclo, asignatura, profesor) con el botón «Entrar».
@@ -61,11 +79,13 @@ LABORATORIO DE CIRCUITOS (apartado «Circuitos»)
 - 9 prácticas guiadas (objetivo, material, esquema, pasos con marca en el sitio exacto, comprobación automática,
   preguntas de cálculo, «Ver solución») + modo libre. Guardado automático en el navegador y exportar/importar .json.
 - Verificación automática: tools/circ_test.mjs (playwright-core + Chrome headless).
-- Verificación del acceso: tools/acceso_test.mjs (código de clase) y tools/hoja_test.mjs (Hoja de Google, con un
-  servidor de prueba local que ejecuta el mismo Code.gs).
+- Verificación del acceso: tools/acceso_test.mjs (código de clase), tools/firebase/test/reglas.test.mjs (reglas
+  de Firestore con el emulador, incluidos ataques) y tools/e2e/fb_e2e.mjs (flujo completo con los emuladores de
+  Auth + Firestore).
 
 ESTRUCTURA
-- index.html, css/, js/app.js (three.js incluido localmente), fonts/ (Decima Nova Pro)
+- index.html, css/, js/app.js (three.js incluido localmente), js/portal-fb.js (Firebase incluido localmente),
+  js/firebase-config.js, js/acceso.js, fonts/ (Decima Nova Pro)
 - img/ pinout de la ESP32 Plus y favicon
 - codigo/P1_Semaforo ... P8_Ventilador/*.ino  -> sketches Arduino
 - renders/p<N>_paso<M>.png y p<N>_final.png -> imágenes 1600x900 para PowerPoint (52)

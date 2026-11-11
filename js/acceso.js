@@ -1,11 +1,13 @@
 /* Acceso al portal.
-   - Si js/config-acceso.js tiene ENDPOINT (Apps Script + Hoja de Google): nombre + código de la
-     asignatura, validados en el servidor, con latido para ver quién está conectado.
-   - Si ENDPOINT está vacío: «código de clase» de siempre (solo hashes en js/acceso-config.js). */
+   - Si js/firebase-config.js tiene apiKey y projectId: control de acceso con Firebase
+     (profesor con Google; alumnos con código de grupo + número de lista, sin datos personales).
+     Lo hace js/portal-fb.js, que se carga desde aquí.
+   - Si la configuración de Firebase está vacía: «código de clase» de siempre
+     (solo hashes en js/acceso-config.js). */
 (function () {
   'use strict';
   var LS_KEY = 'portal.acceso';
-  var APP_SRC = 'js/app.js';
+  var APP_SRC = 'js/app.js?v=fb20261111';
 
   function cfg() { return window.PORTAL_ACCESO || {}; }
 
@@ -165,20 +167,16 @@
     });
   }
 
-  function mountSalir() {
-    if (document.getElementById('btn-salir')) return;
-    var b = document.createElement('button');
-    b.id = 'btn-salir';
-    b.type = 'button';
-    b.className = 'btn-salir';
-    b.textContent = 'Salir';
-    b.title = 'Cerrar sesión de esta clase';
-    b.addEventListener('click', function () {
-      if (HOJA) { salirHoja(); return; }
-      forget();
-      location.reload();
+  /* Modo código de clase: botón «Salir» dentro de las migas de cada pantalla. */
+  function modoCodigo() {
+    window.PORTAL = {
+      modo: 'codigo', rol: null, esProfesor: false,
+      chipHTML: function () { return '<span class="pchip"><button type="button" class="pchip-b" data-portal="salir" title="Olvidar el código de clase en este navegador">Salir</button></span>'; },
+      estadoEntrega: function () { return null; }
+    };
+    document.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('[data-portal="salir"]')) { forget(); location.reload(); }
     });
-    document.body.appendChild(b);
   }
 
   function loadApp() {
@@ -196,7 +194,6 @@
     var s = document.createElement('script');
     s.src = APP_SRC;
     s.dataset.portalApp = '1';
-    s.onload = function () { mountSalir(); };
     s.onerror = function () {
       document.body.insertAdjacentHTML('beforeend', '<p class="loading">No se ha podido cargar la aplicación.</p>');
     };
@@ -207,66 +204,7 @@
     loadApp();
   }
 
-  /* ===================== Modo Hoja de Google (Apps Script) ===================== */
-  var CONF = window.PORTAL_CONFIG || {};
-  var ENDPOINT = String(CONF.ENDPOINT || '').trim();
-  var HOJA = !!ENDPOINT;
-  var SES_KEY = 'portal.sesion';
-  var AVISO_KEY = 'portal.aviso';
-  var latidoMs = Math.max(5, Number(CONF.LATIDO_SEGUNDOS) || 60) * 1000;
-  var timer = null, ultimoEnvio = 0, ultimaPagina = '', enCurso = false, cerrando = false;
-
-  var AVISOS = {
-    expulsado: 'El profesor ha cerrado tu sesión.',
-    codigo_cambiado: 'El código de la asignatura ha cambiado. Pide el nuevo al profesor.',
-    caducada: 'Tu sesión ha terminado. Vuelve a entrar.',
-    salida: 'Has salido del portal.'
-  };
-  var ERRORES = {
-    codigo: 'El código no es correcto o la asignatura está cerrada. Compruébalo y vuelve a intentarlo.',
-    nombre: 'Escribe tu nombre y la inicial del apellido (de 2 a 40 letras, sin símbolos).',
-    red: 'No se puede conectar con el servidor. Comprueba la conexión a Internet y vuelve a intentarlo.',
-    ocupado: 'El servidor está ocupado. Espera unos segundos y vuelve a intentarlo.',
-    otro: 'No se ha podido entrar ahora mismo. Vuelve a intentarlo en un momento.'
-  };
-
-  function sesion() {
-    try {
-      var x = JSON.parse(localStorage.getItem(SES_KEY) || 'null');
-      return x && x.token && x.ep === ENDPOINT ? x : null;
-    } catch (e) { return null; }
-  }
-  function guardarSesion(x) { try { localStorage.setItem(SES_KEY, JSON.stringify(x)); } catch (e) {} }
-  function borrarSesion() { try { localStorage.removeItem(SES_KEY); } catch (e) {} }
-
-  function nombreValido(t) {
-    t = String(t || '').replace(/\s+/g, ' ').trim();
-    if (t.length < 2 || t.length > 40) return '';
-    try { if (!new RegExp("^[\\p{L}\\p{N}][\\p{L}\\p{M}\\p{N} .'’\\-]*$", 'u').test(t)) return ''; }
-    catch (e) { if (/[<>&"`=]/.test(t)) return ''; }
-    return t;
-  }
-
-  /* POST con text/plain: Apps Script no admite la consulta previa (preflight) de CORS. fetch sigue la redirección. */
-  function api(datos, ms) {
-    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, ms || 20000);
-    return fetch(ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(datos),
-      redirect: 'follow',
-      cache: 'no-store',
-      credentials: 'omit',
-      signal: ctrl ? ctrl.signal : undefined
-    }).then(function (r) {
-      if (!r.ok) throw new Error('http ' + r.status);
-      return r.json();
-    }).then(function (j) { clearTimeout(to); return j || {}; },
-      function (e) { clearTimeout(to); var err = new Error('red'); err.red = true; throw err; });
-  }
-
-  /* Texto legible del sitio donde está el alumno (lo que ve el profesor en «Apartado»). */
+  /* Etiqueta legible del sitio donde está el alumno (lo que ve el profesor en «Conectados»). */
   function etiquetaPagina() {
     var h = location.hash || '#inicio';
     var m, t;
@@ -278,180 +216,40 @@
     else if ((m = h.match(/^#eee\/circuitos(?:\/([\w-]+))?/))) {
       var v = m[1] || '';
       t = 'Circuitos · ' + (!v ? 'inicio' : v === 'libre' ? 'modo libre' : /^c\d+$/.test(v) ? 'práctica ' + v.slice(1) : v);
-    } else t = 'Otra página';
-    return (t + ' (' + h + ')').slice(0, 100);
+    } else if (/^#panel/.test(h)) t = 'Panel';
+    else t = 'Otra página';
+    return (t + ' (' + h.slice(0, 40) + ')').slice(0, 100);
   }
 
-  function gateHojaHTML(aviso) {
-    return (
-      '<div class="gate" id="gate" role="dialog" aria-labelledby="gate-title">' +
-        '<div class="gate-card">' +
-          '<h1 id="gate-title">Portal docente</h1>' +
-          (aviso ? '<p class="gate-note" id="gate-note" role="status"></p>' : '') +
-          '<form id="gate-form" autocomplete="off" novalidate>' +
-            '<label for="gate-name">Tu nombre (nombre e inicial del apellido)</label>' +
-            '<input id="gate-name" name="nombre" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Ej.: Ana G.">' +
-            '<label for="gate-code" class="gate-l2">Código de la asignatura</label>' +
-            '<input id="gate-code" name="codigo" type="text" inputmode="text" maxlength="60" autocapitalize="off" autocomplete="off" spellcheck="false">' +
-            '<button type="submit" class="gate-go">Entrar</button>' +
-            '<p class="gate-err" id="gate-err" role="alert" hidden></p>' +
-          '</form>' +
-          '<p class="gate-priv">Tu nombre lo ve solo el profesor para saber quién está conectado; se borra periódicamente.</p>' +
-        '</div>' +
-      '</div>'
-    );
+  /* ¿Hay configuración de Firebase? (js/firebase-config.js) */
+  function firebaseConfig() {
+    var c = window.PORTAL_FIREBASE;
+    return c && String(c.apiKey || '').trim() && String(c.projectId || '').trim() ? c : null;
   }
 
-  function showGateHoja() {
-    detenerLatido();
-    document.title = 'Portal docente';
-    document.body.classList.add('is-gate', 'gate-hoja');
-    document.body.classList.remove('is-unlocked');
-    var loading = document.querySelector('.loading');
-    if (loading) loading.remove();
-    var aviso = '';
-    try { aviso = sessionStorage.getItem(AVISO_KEY) || ''; sessionStorage.removeItem(AVISO_KEY); } catch (e) {}
-    if (!document.getElementById('gate')) document.body.insertAdjacentHTML('afterbegin', gateHojaHTML(aviso));
-    if (aviso) document.getElementById('gate-note').textContent = AVISOS[aviso] || '';
-    var form = document.getElementById('gate-form');
-    var nom = document.getElementById('gate-name');
-    var cod = document.getElementById('gate-code');
-    var err = document.getElementById('gate-err');
-    var btn = form.querySelector('.gate-go');
-    setTimeout(function () { nom.focus(); }, 0);
-    function fallo(k, campo) {
-      err.textContent = ERRORES[k] || ERRORES.otro;
-      err.hidden = false;
-      if (campo) { campo.focus(); campo.select(); }
-    }
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (form.classList.contains('busy')) return;
-      err.hidden = true;
-      var nombre = nombreValido(nom.value);
-      if (!nombre) return fallo('nombre', nom);
-      if (!cod.value.trim()) return fallo('codigo', cod);
-      form.classList.add('busy');
-      btn.textContent = 'Entrando…';
-      api({ accion: 'login', nombre: nombre, codigo: cod.value, pagina: etiquetaPagina() }).then(function (r) {
-        form.classList.remove('busy');
-        btn.textContent = 'Entrar';
-        if (r.ok && r.token) {
-          guardarSesion({ ep: ENDPOINT, token: r.token, nombre: r.nombre || nombre, asignaturas: r.asignaturas || [], sesion: r.sesion });
-          if (r.latido) latidoMs = Math.max(5000, Math.min(latidoMs, r.latido * 1000));
-          entrarHoja(false);
-        } else if (r.error === 'nombre') fallo('nombre', nom);
-        else if (r.error === 'codigo') fallo('codigo', cod);
-        else if (r.error === 'ocupado') fallo('ocupado');
-        else fallo('otro');
-      }).catch(function () {
-        form.classList.remove('busy');
-        btn.textContent = 'Entrar';
-        fallo('red');
-      });
-    });
+  function cargarFirebase() {
+    var s = document.createElement('script');
+    s.src = 'js/portal-fb.js?v=fb20261111';
+    s.onerror = function () {
+      document.body.insertAdjacentHTML('afterbegin', '<p class="loading">No se ha podido cargar el control de acceso. Comprueba la conexión y recarga la página.</p>');
+    };
+    document.body.appendChild(s);
   }
 
-  function entrarHoja(latidoYa) {
-    var s = sesion();
-    if (!s) { showGateHoja(); return; }
-    window.PORTAL_SESION = { nombre: s.nombre, asignaturas: s.asignaturas || [] };
-    loadApp();
-    ultimaPagina = location.hash;
-    iniciarLatido(latidoYa);
-  }
-
-  function banner(txt) {
-    var b = document.getElementById('portal-red');
-    if (!txt) { if (b) b.remove(); return; }
-    if (!b) {
-      b = document.createElement('div');
-      b.id = 'portal-red';
-      b.className = 'portal-red';
-      b.setAttribute('role', 'status');
-      document.body.appendChild(b);
-    }
-    b.textContent = txt;
-  }
-
-  function cerrarSesion(motivo) {
-    if (cerrando) return;
-    cerrando = true;
-    detenerLatido();
-    borrarSesion();
-    try { sessionStorage.setItem(AVISO_KEY, motivo); } catch (e) {}
-    location.reload();
-  }
-
-  function latido() {
-    var s = sesion();
-    if (!s) { cerrarSesion('caducada'); return Promise.resolve(); }
-    if (enCurso || cerrando) return Promise.resolve();
-    enCurso = true;
-    ultimoEnvio = Date.now();
-    ultimaPagina = location.hash;
-    return api({ accion: 'latido', token: s.token, pagina: etiquetaPagina() }, 25000).then(function (r) {
-      enCurso = false;
-      banner('');
-      if (r.estado === 'expulsado' || r.estado === 'codigo_cambiado' || r.estado === 'caducada') return cerrarSesion(r.estado);
-      if (r.estado === 'ok' && Array.isArray(r.asignaturas)) {
-        var antes = (s.asignaturas || []).join(',');
-        if (antes !== r.asignaturas.join(',')) {
-          s.asignaturas = r.asignaturas;
-          guardarSesion(s);
-          if (window.PORTAL_SESION) window.PORTAL_SESION.asignaturas = r.asignaturas;
-        }
-      }
-    }, function () {
-      enCurso = false;
-      banner('Sin conexión con el servidor del portal. Reintentando…');
-    });
-  }
-
-  function iniciarLatido(ya) {
-    detenerLatido();
-    timer = setInterval(function () {
-      var cambio = location.hash !== ultimaPagina;
-      if (Date.now() - ultimoEnvio >= latidoMs - 500 || (cambio && Date.now() - ultimoEnvio > 3000)) latido();
-    }, 1000);
-    window.addEventListener('hashchange', alCambiarPagina);
-    document.addEventListener('visibilitychange', alVolver);
-    if (!ya) latido();
-  }
-  function detenerLatido() {
-    if (timer) clearInterval(timer);
-    timer = null;
-    window.removeEventListener('hashchange', alCambiarPagina);
-    document.removeEventListener('visibilitychange', alVolver);
-  }
-  function alCambiarPagina() {
-    // al cambiar de página se avisa enseguida (con un mínimo de 3 s entre envíos)
-    if (Date.now() - ultimoEnvio > 3000) setTimeout(latido, 300);
-  }
-  function alVolver() { if (document.visibilityState === 'visible' && Date.now() - ultimoEnvio > 10000) latido(); }
-
-  function salirHoja() {
-    var s = sesion();
-    detenerLatido();
-    var fin = function () { cerrarSesion('salida'); };
-    if (!s) return fin();
-    api({ accion: 'logout', token: s.token }, 5000).then(fin, fin);
-  }
-
-  /* Para comprobaciones automáticas */
+  /* Para comprobaciones automáticas y para js/portal-fb.js */
   window.__portalAcceso = {
     normalize: normalizeCodigo,
     sha256pure: sha256hexSync,
     hashCodigo: hashCodigo,
     isUnlocked: isUnlocked,
     key: LS_KEY,
-    modo: HOJA ? 'hoja' : 'codigo',
-    latido: function () { return latido(); },
-    pagina: etiquetaPagina
+    modo: firebaseConfig() ? 'firebase' : 'codigo',
+    loadApp: loadApp,
+    pagina: etiquetaPagina,
+    fallback: function () { modoCodigo(); if (isUnlocked()) loadApp(); else showGate(); }
   };
 
   if (isRender()) loadApp();
-  else if (HOJA) { if (sesion()) entrarHoja(false); else showGateHoja(); }
-  else if (isUnlocked()) loadApp();
-  else showGate();
+  else if (firebaseConfig()) cargarFirebase();
+  else { modoCodigo(); if (isUnlocked()) loadApp(); else showGate(); }
 })();
