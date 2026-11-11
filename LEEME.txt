@@ -5,18 +5,30 @@ Profesor: Pablo Mateos Lema
 CÓMO ABRIR
 - Doble clic en index.html (funciona desde file://, sin servidor ni Internet).
 - También sirve en cualquier hosting estático (copiar la carpeta tal cual).
-- Antes de ver el contenido, la web pide un «Código de clase». Si es correcto,
-  entra y el navegador lo recuerda (no hay que escribirlo cada vez). El botón
-  «Salir» de la cabecera lo olvida. El código no distingue mayúsculas ni espacios.
-- Los códigos no se guardan en claro en estos archivos: solo su hash en
-  js/acceso-config.js. Para cambiarlos o añadir uno por grupo:
+ACCESO AL PORTAL (dos modos, se elige en js/config-acceso.js)
+- MODO HOJA DE GOOGLE (cuando ENDPOINT tiene la URL de Apps Script):
+  · La pantalla de entrada pide «Tu nombre (nombre e inicial del apellido)» y «Código de la asignatura».
+    El servidor (Apps Script ligado a una Hoja de Google del profesor) comprueba el código y devuelve
+    un token de sesión y las asignaturas que permite. El alumno solo ve esas asignaturas
+    (una fila con Asignatura «*» da acceso a todas: pensada para el profesor).
+  · La web envía un «latido» cada 60 s y al cambiar de página (POST text/plain, sin preflight CORS).
+    Respuestas: ok / expulsado / codigo_cambiado / caducada. Si no es ok, se cierra la sesión y vuelve
+    a la pantalla de entrada con un mensaje. «Salir» cierra la sesión en el servidor.
+  · Sin red: al entrar sale un mensaje claro; con la sesión abierta, un aviso «Sin conexión… Reintentando».
+  · Pestañas de la Hoja: Códigos (Asignatura | Nombre | Código | Activa), Conectados (quién está y dónde;
+    escribir NO en «Expulsar» lo saca) y Registro (entradas y salidas). Limpieza diaria automática.
+  · El script (Code.gs) y la guía del profesor NO están en este repositorio público.
+  · Para activarlo: pegar la URL /exec de la aplicación web entre las comillas de ENDPOINT.
+- MODO CÓDIGO DE CLASE (ENDPOINT vacío, respaldo):
+  · La web pide un «Código de clase». Si es correcto, entra y el navegador lo recuerda. «Salir» lo olvida.
+    No distingue mayúsculas ni espacios. Solo se guardan hashes en js/acceso-config.js. Para cambiarlo:
       cd tools && node set-codigo.mjs "palabra-palabra-00" ["otro-codigo-12"]
-  El script regenera los hashes y sube el campo «version», así los navegadores
-  que ya habían entrado tendrán que volver a introducirlo. No escribas el código
-  en claro en el repositorio.
+    (regenera los hashes y sube «version»; no escribas el código en claro en el repositorio).
+- En ambos modos la pantalla de entrada es un filtro para el uso normal en clase: los archivos de una web
+  estática (GitHub Pages) se pueden descargar igualmente si alguien conoce sus rutas.
 - La web incluye <meta name="robots" content="noindex, nofollow"> y un robots.txt
   que bloquea el rastreo, para que no la indexen los buscadores.
-- Al abrir (después del código) se ve la PORTADA (centro, ciclo, asignatura, profesor) con el botón «Entrar».
+- Al abrir (después de entrar) se ve la PORTADA (centro, ciclo, asignatura, profesor) con el botón «Entrar».
 - «Entrar» lleva a ASIGNATURAS (tarjetas). La tarjeta «Equipos eléctricos y electrónicos» abre sus APARTADOS:
   «ESP32» (los 8 proyectos de siempre) y «Circuitos» (laboratorio 3D de protoboard).
 - Direcciones (hash):
@@ -49,6 +61,8 @@ LABORATORIO DE CIRCUITOS (apartado «Circuitos»)
 - 9 prácticas guiadas (objetivo, material, esquema, pasos con marca en el sitio exacto, comprobación automática,
   preguntas de cálculo, «Ver solución») + modo libre. Guardado automático en el navegador y exportar/importar .json.
 - Verificación automática: tools/circ_test.mjs (playwright-core + Chrome headless).
+- Verificación del acceso: tools/acceso_test.mjs (código de clase) y tools/hoja_test.mjs (Hoja de Google, con un
+  servidor de prueba local que ejecuta el mismo Code.gs).
 
 ESTRUCTURA
 - index.html, css/, js/app.js (three.js incluido localmente), fonts/ (Decima Nova Pro)
