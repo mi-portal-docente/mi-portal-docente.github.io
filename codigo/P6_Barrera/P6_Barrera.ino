@@ -1,6 +1,6 @@
 /*
   PROYECTO 6 - BARRERA DE PARKING
-  Salesianos Algeciras · FPB Informática y Comunicaciones · Módulo 3015
+  CFGB Informática y Comunicaciones · Módulo 3015
   Placa: ACEBOTT ESP32 Plus (en Arduino IDE: "ESP32 Dev Module")
   Librerías: "ESP32Servo" (Kevin Harrington) y "LiquidCrystal I2C" (Frank de Brabander)
 

@@ -1,4 +1,4 @@
-LECCIONES ESP32 PLUS (TA825) + KIT L3P10 — Salesianos Algeciras
+LECCIONES ESP32 PLUS (TA825) + KIT L3P10
 Módulo 3015 Equipos eléctricos y electrónicos · CFGB Informática y Comunicaciones
 Profesor: Pablo Mateos Lema
 
@@ -28,7 +28,7 @@ ACCESO AL PORTAL (dos modos, se elige en js/config-acceso.js)
   estática (GitHub Pages) se pueden descargar igualmente si alguien conoce sus rutas.
 - La web incluye <meta name="robots" content="noindex, nofollow"> y un robots.txt
   que bloquea el rastreo, para que no la indexen los buscadores.
-- Al abrir (después de entrar) se ve la PORTADA (centro, ciclo, asignatura, profesor) con el botón «Entrar».
+- Al abrir (después de entrar) se ve la PORTADA (ciclo, asignatura, profesor) con el botón «Entrar».
 - «Entrar» lleva a ASIGNATURAS (tarjetas). La tarjeta «Equipos eléctricos y electrónicos» abre sus APARTADOS:
   «ESP32» (los 8 proyectos de siempre) y «Circuitos» (laboratorio 3D de protoboard).
 - Direcciones (hash):
@@ -50,7 +50,7 @@ AÑADIR UNA ASIGNATURA (para el futuro)
 
 LABORATORIO DE CIRCUITOS (apartado «Circuitos»)
 - Código propio en tools/src/circ/ (three.js local, sin conexión). Estilos: css/circuitos.css
-  (paleta azul petróleo / turquesa / ámbar, sin marca salesiana dentro del laboratorio).
+  (paleta azul petróleo / turquesa / ámbar).
 - Protoboard 3D (30 columnas, carriles + y −), arrastrar y soltar con encaje, girar (R), borrar (Supr),
   deshacer/rehacer (Ctrl+Z / Ctrl+Y), cables clic-a-clic con colores 0–9, vista desde arriba (T).
 - Componentes: pila 9 V, portapilas 2×AA y 4×AA, fuente regulable, resistencia (valor E12 y código de colores),
@@ -66,7 +66,7 @@ LABORATORIO DE CIRCUITOS (apartado «Circuitos»)
 
 ESTRUCTURA
 - index.html, css/, js/app.js (three.js incluido localmente), fonts/ (Decima Nova Pro)
-- img/ logo_salesianos_horizontal.png y logo_salesianos_algeciras_blanco.png (logos oficiales, copia local), pinout, favicon
+- img/ pinout de la ESP32 Plus y favicon
 - codigo/P1_Semaforo ... P8_Ventilador/*.ino  -> sketches Arduino
 - renders/p<N>_paso<M>.png y p<N>_final.png -> imágenes 1600x900 para PowerPoint (52)
 - capturas/ -> capturas de la web (inicio.png = portada, asignaturas.png = listado, movil_*.png, web_*.png, circuitos_*.png)

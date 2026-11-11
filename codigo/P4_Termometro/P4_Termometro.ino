@@ -1,6 +1,6 @@
 /*
   PROYECTO 4 - TERMÓMETRO CON ALARMA
-  Salesianos Algeciras · FPB Informática y Comunicaciones · Módulo 3015
+  CFGB Informática y Comunicaciones · Módulo 3015
   Placa: ACEBOTT ESP32 Plus (en Arduino IDE: "ESP32 Dev Module")
   Librería necesaria: "LiquidCrystal I2C" de Frank de Brabander
 
@@ -42,7 +42,7 @@ void setup() {
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0); lcd.print("Termometro ESP32");
-  lcd.setCursor(0, 1); lcd.print("Salesianos  Alg");
+  lcd.setCursor(0, 1); lcd.print("Portal docente  ");
   delay(1500);
   lcd.clear();
 }

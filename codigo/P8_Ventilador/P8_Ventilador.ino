@@ -1,6 +1,6 @@
 /*
   PROYECTO 8 - VENTILADOR INTELIGENTE (proyecto final)
-  Salesianos Algeciras · FPB Informática y Comunicaciones · Módulo 3015
+  CFGB Informática y Comunicaciones · Módulo 3015
   Placa: ACEBOTT ESP32 Plus (en Arduino IDE: "ESP32 Dev Module")
   Librerías: "Adafruit BMP280 Library", "Adafruit Unified Sensor",
              "Adafruit SH110X", "Adafruit GFX Library" (todas de Adafruit)

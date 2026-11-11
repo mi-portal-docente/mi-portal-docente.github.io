@@ -1,6 +1,6 @@
 /*
   PROYECTO 7 - RIEGO AUTOMÁTICO (+ práctica de mantenimiento)
-  Salesianos Algeciras · FPB Informática y Comunicaciones · Módulo 3015
+  CFGB Informática y Comunicaciones · Módulo 3015
   Placa: ACEBOTT ESP32 Plus (en Arduino IDE: "ESP32 Dev Module")
 
   CONEXIONES (interruptor de la placa en 5V; portapilas 6xAA en el jack DC):

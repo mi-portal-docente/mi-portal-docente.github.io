@@ -1,6 +1,6 @@
 /*
   PROYECTO 5 - SENSOR DE APARCAMIENTO
-  Salesianos Algeciras · FPB Informática y Comunicaciones · Módulo 3015
+  CFGB Informática y Comunicaciones · Módulo 3015
   Placa: ACEBOTT ESP32 Plus (en Arduino IDE: "ESP32 Dev Module")
   Librerías: "Adafruit SH110X" + "Adafruit GFX Library" (Adafruit)
 

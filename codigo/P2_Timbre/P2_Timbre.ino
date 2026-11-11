@@ -1,6 +1,6 @@
 /*
   PROYECTO 2 - TIMBRE CON MELODÍA
-  Salesianos Algeciras · FPB Informática y Comunicaciones · Módulo 3015
+  CFGB Informática y Comunicaciones · Módulo 3015
   Placa: ACEBOTT ESP32 Plus (en Arduino IDE: "ESP32 Dev Module")
 
   CONEXIONES (interruptor de la placa en 3.3V):
