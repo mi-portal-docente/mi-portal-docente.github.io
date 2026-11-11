@@ -5,7 +5,18 @@ Profesor: Pablo Mateos Lema
 CÓMO ABRIR
 - Doble clic en index.html (funciona desde file://, sin servidor ni Internet).
 - También sirve en cualquier hosting estático (copiar la carpeta tal cual).
-- Al abrir se ve la PORTADA (centro, ciclo, asignatura, profesor) con el botón «Entrar».
+- Antes de ver el contenido, la web pide un «Código de clase». Si es correcto,
+  entra y el navegador lo recuerda (no hay que escribirlo cada vez). El botón
+  «Salir» de la cabecera lo olvida. El código no distingue mayúsculas ni espacios.
+- Los códigos no se guardan en claro en estos archivos: solo su hash en
+  js/acceso-config.js. Para cambiarlos o añadir uno por grupo:
+      cd tools && node set-codigo.mjs "palabra-palabra-00" ["otro-codigo-12"]
+  El script regenera los hashes y sube el campo «version», así los navegadores
+  que ya habían entrado tendrán que volver a introducirlo. No escribas el código
+  en claro en el repositorio.
+- La web incluye <meta name="robots" content="noindex, nofollow"> y un robots.txt
+  que bloquea el rastreo, para que no la indexen los buscadores.
+- Al abrir (después del código) se ve la PORTADA (centro, ciclo, asignatura, profesor) con el botón «Entrar».
 - «Entrar» lleva a ASIGNATURAS (tarjetas). La tarjeta «Equipos eléctricos y electrónicos» abre sus APARTADOS:
   «ESP32» (los 8 proyectos de siempre) y «Circuitos» (laboratorio 3D de protoboard).
 - Direcciones (hash):

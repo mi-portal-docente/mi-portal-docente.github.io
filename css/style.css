@@ -199,3 +199,19 @@ a.subj:hover, a.subj:focus-visible { transform: translateY(-3px); box-shadow: 0 
   header .t1 { font-size: 17px; white-space: nowrap; }
   .scr-top .brand img { height: 28px; }
 }
+
+/* ---------- pantalla de código de clase ---------- */
+body.is-gate { overflow: hidden; background: var(--fondo); }
+.gate { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: var(--fondo); padding: 24px; }
+.gate-card { width: min(400px, 100%); background: #fff; border-radius: 16px; padding: 40px 32px 32px; box-shadow: 0 8px 30px rgba(0,0,0,.08); border: 1px solid var(--claro); text-align: center; }
+.gate-card h1 { margin: 0 0 28px; font-size: 22px; color: var(--gris); font-weight: 700; letter-spacing: .06em; }
+.gate-card label { display: block; text-align: left; font-size: 12.5px; font-weight: 700; color: var(--gris); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+.gate-card input { width: 100%; font: inherit; font-size: 18px; padding: 12px 14px; border: 1px solid var(--claro); border-radius: 10px; text-align: center; letter-spacing: .04em; color: var(--tinta); background: #fff; }
+.gate-card input:focus { outline: none; border-color: var(--gris); box-shadow: 0 0 0 3px rgba(81,98,111,.15); }
+.gate-go { margin-top: 18px; width: 100%; font: inherit; font-weight: 700; padding: 12px; border: none; border-radius: 10px; background: var(--gris); color: #fff; cursor: pointer; }
+.gate-go:hover, .gate-go:focus-visible { background: #3e4c56; }
+.gate form.busy .gate-go { opacity: .6; pointer-events: none; }
+.gate-err { color: var(--rojo); font-size: 14px; margin: 14px 0 0; }
+.btn-salir { position: fixed; top: 14px; right: 14px; z-index: 80; font: inherit; font-size: 13px; font-weight: 700; color: var(--gris); background: #fff; border: 1px solid var(--claro); border-radius: 8px; padding: 5px 10px; cursor: pointer; opacity: .85; letter-spacing: .02em; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.btn-salir:hover, .btn-salir:focus-visible { opacity: 1; border-color: var(--gris); }
+body.is-gate .btn-salir { display: none; }
