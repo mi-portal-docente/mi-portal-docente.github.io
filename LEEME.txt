@@ -3,28 +3,48 @@ Módulo 3015 Equipos eléctricos y electrónicos · CFGB Informática y Comunica
 Profesor: Pablo Mateos Lema
 
 CÓMO ABRIR
-- Dirección pública: https://mi-portal-docente.github.io/
 - Doble clic en index.html (funciona desde file://, sin servidor ni Internet).
 - También sirve en cualquier hosting estático (copiar la carpeta tal cual).
 - Al abrir se ve la PORTADA (centro, ciclo, asignatura, profesor) con el botón «Entrar».
-- «Entrar» lleva a ASIGNATURAS (tarjetas). La tarjeta «Equipos eléctricos y electrónicos» abre los 8 proyectos.
+- «Entrar» lleva a ASIGNATURAS (tarjetas). La tarjeta «Equipos eléctricos y electrónicos» abre sus APARTADOS:
+  «ESP32» (los 8 proyectos de siempre) y «Circuitos» (laboratorio 3D de protoboard).
 - Direcciones (hash):
     index.html#inicio       portada
     index.html#asignaturas  listado de asignaturas
-    index.html#eee          Equipos eléctricos y electrónicos (guía general + 8 proyectos)
-    index.html#p3-2         enlace profundo: proyecto 3, paso 2 (abre directamente el paso)
+    index.html#eee          Equipos eléctricos y electrónicos: elegir apartado (ESP32 / Circuitos)
+    index.html#eee/esp32    apartado ESP32 (guía general + 8 proyectos)
+    index.html#p3-2         enlace profundo: proyecto 3, paso 2 (sigue funcionando igual)
+    index.html#eee/circuitos         Laboratorio de Circuitos (portada con las prácticas)
+    index.html#eee/circuitos/c1..c9  práctica guiada 1..9
+    index.html#eee/circuitos/libre   modo libre
 - En las páginas de la asignatura hay migas «Inicio › Asignaturas › …» y el nombre del profesor.
 
 AÑADIR UNA ASIGNATURA (para el futuro)
 - Editar tools/src/subjects.js (array SUBJECTS: id, codigo, nombre, profesor, icon, desc, active)
   y recompilar js/app.js con esbuild. Hoy solo existe «eee»; se muestra además una tarjeta «Próximamente».
+- Apartados de una asignatura: tools/src/subjects.js, objeto APARTADOS (id, nombre, icon, color, desc, tags, active).
+- Recompilar: cd tools && npm run build   (esbuild; los .ino se cargan como texto)
+
+LABORATORIO DE CIRCUITOS (apartado «Circuitos»)
+- Código propio en tools/src/circ/ (three.js local, sin conexión). Estilos: css/circuitos.css
+  (paleta azul petróleo / turquesa / ámbar, sin marca salesiana dentro del laboratorio).
+- Protoboard 3D (30 columnas, carriles + y −), arrastrar y soltar con encaje, girar (R), borrar (Supr),
+  deshacer/rehacer (Ctrl+Z / Ctrl+Y), cables clic-a-clic con colores 0–9, vista desde arriba (T).
+- Componentes: pila 9 V, portapilas 2×AA y 4×AA, fuente regulable, resistencia (valor E12 y código de colores),
+  LED (4 colores, polaridad, se funde), bombilla, pulsador, interruptor, conmutador, potenciómetro, LDR,
+  zumbador, motor DC, condensador, diodo y polímetro (V, A, Ω) con puntas.
+- Simulación por análisis nodal modificado (MNA) en continua, LED/diodo por tramos, avisos de cortocircuito,
+  LED fundido, bombilla fundida, fusible del polímetro y resistencia que se calienta.
+- 9 prácticas guiadas (objetivo, material, esquema, pasos con marca en el sitio exacto, comprobación automática,
+  preguntas de cálculo, «Ver solución») + modo libre. Guardado automático en el navegador y exportar/importar .json.
+- Verificación automática: tools/circ_test.mjs (playwright-core + Chrome headless).
 
 ESTRUCTURA
 - index.html, css/, js/app.js (three.js incluido localmente), fonts/ (Decima Nova Pro)
 - img/ logo_salesianos_horizontal.png y logo_salesianos_algeciras_blanco.png (logos oficiales, copia local), pinout, favicon
 - codigo/P1_Semaforo ... P8_Ventilador/*.ino  -> sketches Arduino
 - renders/p<N>_paso<M>.png y p<N>_final.png -> imágenes 1600x900 para PowerPoint (52)
-- capturas/ -> capturas de la web (inicio.png = portada, asignaturas.png = listado, movil_*.png, web_*.png)
+- capturas/ -> capturas de la web (inicio.png = portada, asignaturas.png = listado, movil_*.png, web_*.png, circuitos_*.png)
 
 LECCIONES
 1 Semáforo · 2 Timbre · 3 Farola · 4 Termómetro (LM35 + LCD I2C + zumbador)
