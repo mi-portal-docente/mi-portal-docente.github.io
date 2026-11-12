@@ -1,0 +1,391 @@
+{
+  "formato": "superprofe-estructura/1",
+  "asignatura": {
+    "id": "eee",
+    "codigo": "3015",
+    "nombre": "Equipos eléctricos y electrónicos",
+    "curso": "2.º CFGB Informática y Comunicaciones",
+    "cursoEscolar": "2026/27"
+  },
+  "generado": "2026-11-12",
+  "origen": "SuperProfe (artefacto de Pablo Mateos). No editar a mano: se regenera desde SuperProfe.",
+  "privacidad": "Solo estructura docente. Sin datos del alumnado.",
+  "situaciones": [
+    {
+      "id": "eee_u14",
+      "nombre": "SA1 · Tablero eléctrico",
+      "temas": [
+        "T1",
+        "T2",
+        "T3",
+        "T4"
+      ],
+      "inicio": "2026-09-15",
+      "fin": "2026-12-04",
+      "evaluacion": "1.ª",
+      "productoFinal": "Tablero eléctrico con diferencial, dos circuitos (alumbrado y enchufe), tubo corrugado, cajas de empalme, colores normalizados y etiquetas. Comprobación de continuidad sin tensión; la prueba con tensión la hace solo el profesor.",
+      "tareas": [
+        {
+          "id": "eee_u14_s01",
+          "nombre": "SA1. Test previo al examen T3.",
+          "tipo": "Prueba",
+          "calificable": true,
+          "instrumento": "Test autocorregido",
+          "unidad": "T3",
+          "fecha": "2026-10-13",
+          "descripcion": "Test antes del examen del B1: componentes de un circuito y su simbología.",
+          "criterios": [
+            {
+              "codigo": "1.1",
+              "texto": "Se han identificado y clasificado los elementos y componentes tipo de un equipo eléctrico o electrónico"
+            },
+            {
+              "codigo": "2.1",
+              "texto": "Se ha reconocido la simbología de representación gráfica de los elementos y componentes de los equipos eléctricos y electrónicos"
+            }
+          ],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u14_s02",
+          "nombre": "SA1. Examen T3 Magnitudes y circuitos",
+          "tipo": "Prueba",
+          "calificable": true,
+          "instrumento": "Prueba escrita con guía de corrección",
+          "unidad": "T3",
+          "fecha": "2026-10-14",
+          "descripcion": "Prueba escrita: magnitudes y circuitos (unidades, ley de Ohm, serie, paralelo, mixto, potencia), interpretación de esquemas y secuencia de montaje, identificación de anclajes, herramientas y EPI, ubicación de elementos y normas de seguridad.",
+          "criterios": [
+            {
+              "codigo": "1.1",
+              "texto": "Se han identificado y clasificado los elementos y componentes tipo de un equipo eléctrico o electrónico"
+            },
+            {
+              "codigo": "2.1",
+              "texto": "Se ha reconocido la simbología de representación gráfica de los elementos y componentes de los equipos eléctricos y electrónicos"
+            },
+            {
+              "codigo": "2.2",
+              "texto": "Se ha interpretado el procedimiento y secuencia de montaje/conexión, a partir de esquemas o guías de montaje"
+            },
+            {
+              "codigo": "2.3",
+              "texto": "Se ha identificado cada uno de los elementos representados en el esquema con el elemento real"
+            },
+            {
+              "codigo": "2.5",
+              "texto": "Se ha definido el proceso y secuencia de montaje/conexión a partir del esquema o guía de montaje"
+            },
+            {
+              "codigo": "3.4",
+              "texto": "Se ha identificado la ubicación de los distintos elementos en el equipo"
+            }
+          ],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u14_s04",
+          "nombre": "SA1. Test previo al examen T4",
+          "tipo": "Prueba",
+          "calificable": true,
+          "instrumento": "Test autocorregido",
+          "unidad": "T4",
+          "fecha": "2026-11-09",
+          "descripcion": "Test del T4: elementos de conmutación y protección y su simbología.",
+          "criterios": [
+            {
+              "codigo": "1.1",
+              "texto": "Se han identificado y clasificado los elementos y componentes tipo de un equipo eléctrico o electrónico"
+            },
+            {
+              "codigo": "2.1",
+              "texto": "Se ha reconocido la simbología de representación gráfica de los elementos y componentes de los equipos eléctricos y electrónicos"
+            }
+          ],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u14_s05",
+          "nombre": "SA1. Examen T1-T2-T4 · Conmutación y protecciones",
+          "tipo": "Prueba",
+          "calificable": true,
+          "instrumento": "Prueba escrita con guía de corrección",
+          "unidad": "T1–T4",
+          "fecha": null,
+          "descripcion": "Prueba escrita: herramientas, anclajes y EPI; riesgos y medidas de prevención; tipos de conmutadores y pulsadores, polos y vías, protecciones y representación de circuitos con su simbología.",
+          "criterios": [
+            {
+              "codigo": "1.1",
+              "texto": "Se han identificado y clasificado los elementos y componentes tipo de un equipo eléctrico o electrónico"
+            },
+            {
+              "codigo": "2.1",
+              "texto": "Se ha reconocido la simbología de representación gráfica de los elementos y componentes de los equipos eléctricos y electrónicos"
+            },
+            {
+              "codigo": "1.2",
+              "texto": "Se han identificado y clasificado los anclajes y sujeciones tipo de un equipo eléctrico o electrónico en función de su aplicación, rigidez y estabilidad"
+            },
+            {
+              "codigo": "1.3",
+              "texto": "Se han identificado y clasificado las herramientas normalmente empleadas en el ensamblado de un equipo eléctrico o electrónico en función de su aplicación e idoneidad"
+            },
+            {
+              "codigo": "1.4",
+              "texto": "Se han identificado y clasificado los diferentes medios y equipos de seguridad personal en función de su aplicación y teniendo en cuenta las herramientas a utilizar"
+            },
+            {
+              "codigo": "3.9",
+              "texto": "Se han aplicado las medidas de prevención de riesgos laborales pertinentes"
+            },
+            {
+              "codigo": "4.4",
+              "texto": "Se han dispuesto y colocado las protecciones personales y de los elementos"
+            },
+            {
+              "codigo": "4.8",
+              "texto": "Se han observado las medidas de seguridad en la utilización de equipos y herramientas"
+            }
+          ],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u14_s03",
+          "nombre": "SA1. PROYECTO FINAL T1-T2-T3-T4 - Tablero eléctrico",
+          "tipo": "Proyecto",
+          "calificable": true,
+          "instrumento": "Rúbrica de 4 niveles",
+          "unidad": "T1–T4",
+          "fecha": "2026-11-06",
+          "descripcion": "Instalación visible sobre tablero de madera vertical: diferencial, cajas de empalme, tubo corrugado, caja de mecanismos, interruptor, enchufe y bombilla. Fase 0: presentar herramientas, sujeciones, cables, EPI y riesgos. Fases: esquema y materiales con cálculos, montaje y fijación, conexionado y etiquetado, comprobación de continuidad sin tensión e informe.",
+          "criterios": [
+            {
+              "codigo": "2.4",
+              "texto": "Se ha identificado el procedimiento y secuencia de montaje/conexión de los distintos elementos"
+            },
+            {
+              "codigo": "3.3",
+              "texto": "Se han preparado los elementos y materiales que se van a utilizar, siguiendo procedimientos normalizados"
+            },
+            {
+              "codigo": "3.5",
+              "texto": "Se han ensamblado los distintos componentes siguiendo procedimientos normalizados, aplicando las normas de seguridad de los mismos"
+            },
+            {
+              "codigo": "3.6",
+              "texto": "Se han fijado los componentes con los elementos de sujeción indicados en los esquemas o guías de montaje y aplicando el par de apriete o presión establecidos"
+            },
+            {
+              "codigo": "3.10",
+              "texto": "Se ha elaborado un informe recogiendo las actividades desarrolladas y resultados obtenidos"
+            },
+            {
+              "codigo": "4.5",
+              "texto": "Se han acondicionado los cables (pelar, estirar, ordenar) siguiendo procedimientos"
+            }
+          ],
+          "rubrica": null
+        }
+      ]
+    },
+    {
+      "id": "eee_u15",
+      "nombre": "SA2 · Smart Locker",
+      "temas": [
+        "T5",
+        "T6",
+        "T7"
+      ],
+      "inicio": "2026-11-09",
+      "fin": "2026-12-04",
+      "evaluacion": "1.ª",
+      "productoFinal": "Taquilla inteligente con Arduino montada en protoboard y placa.",
+      "tareas": [
+        {
+          "id": "eee_u15_s01",
+          "nombre": "SA2. Test previo al examen T5-T6",
+          "tipo": "Prueba",
+          "calificable": true,
+          "instrumento": "Test autocorregido",
+          "unidad": "T5",
+          "fecha": null,
+          "descripcion": "Test de componentes electrónicos (T5–T6): esquemas y guías de conexión.",
+          "criterios": [
+            {
+              "codigo": "1.1",
+              "texto": "Se han identificado y clasificado los elementos y componentes tipo de un equipo eléctrico o electrónico"
+            },
+            {
+              "codigo": "2.1",
+              "texto": "Se ha reconocido la simbología de representación gráfica de los elementos y componentes de los equipos eléctricos y electrónicos"
+            }
+          ],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_s02",
+          "nombre": "SA2. Examen T5-T6 : Componentes electrónicos",
+          "tipo": "Prueba",
+          "calificable": true,
+          "instrumento": "Prueba escrita con guía de corrección",
+          "unidad": "T5–T6",
+          "fecha": null,
+          "descripcion": "Prueba escrita de componentes pasivos y activos: seleccionar esquemas, guías de montaje y herramientas para una conexión.",
+          "criterios": [
+            {
+              "codigo": "1.1",
+              "texto": "Se han identificado y clasificado los elementos y componentes tipo de un equipo eléctrico o electrónico"
+            },
+            {
+              "codigo": "2.1",
+              "texto": "Se ha reconocido la simbología de representación gráfica de los elementos y componentes de los equipos eléctricos y electrónicos"
+            },
+            {
+              "codigo": "3.1",
+              "texto": "Se han seleccionado los esquemas y guías de montaje indicados para un modelo determinado"
+            },
+            {
+              "codigo": "4.1",
+              "texto": "Se han seleccionado los esquemas y guías de montaje indicados para un modelo determinado de conexión"
+            },
+            {
+              "codigo": "4.2",
+              "texto": "Se ha seleccionado las herramientas indicadas en los esquemas y guías de conexión"
+            }
+          ],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_p1",
+          "nombre": "SA2 · Práctica Tinkercad P1 · Resistencias y LED",
+          "tipo": "Práctica",
+          "calificable": false,
+          "instrumento": "—",
+          "unidad": "T5",
+          "fecha": null,
+          "descripcion": "Resistencias y LED: ley de Ohm en simulación. Práctica guiada en Tinkercad Circuits. No califica.",
+          "criterios": [],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_p2",
+          "nombre": "SA2 · Práctica Tinkercad P2 · Potenciómetro y LDR",
+          "tipo": "Práctica",
+          "calificable": false,
+          "instrumento": "—",
+          "unidad": "T5",
+          "fecha": null,
+          "descripcion": "Potenciómetro y LDR: regular la luz. Práctica guiada en Tinkercad Circuits. No califica.",
+          "criterios": [],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_p3",
+          "nombre": "SA2 · Práctica Tinkercad P3 · Condensador",
+          "tipo": "Práctica",
+          "calificable": false,
+          "instrumento": "—",
+          "unidad": "T5",
+          "fecha": null,
+          "descripcion": "Condensador: carga y descarga. Práctica guiada en Tinkercad Circuits. No califica.",
+          "criterios": [],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_p4",
+          "nombre": "SA2 · Práctica Tinkercad P4 · Diodo y LED",
+          "tipo": "Práctica",
+          "calificable": false,
+          "instrumento": "—",
+          "unidad": "T6",
+          "fecha": null,
+          "descripcion": "Diodo y LED: polaridad. Práctica guiada en Tinkercad Circuits. No califica.",
+          "criterios": [],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_p5",
+          "nombre": "SA2 · Práctica Tinkercad P5 · Transistor como interruptor",
+          "tipo": "Práctica",
+          "calificable": false,
+          "instrumento": "—",
+          "unidad": "T6",
+          "fecha": null,
+          "descripcion": "Transistor como interruptor. Práctica guiada en Tinkercad Circuits. No califica.",
+          "criterios": [],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_p6",
+          "nombre": "SA2 · Práctica Tinkercad P6 · Circuito combinado",
+          "tipo": "Práctica",
+          "calificable": false,
+          "instrumento": "—",
+          "unidad": "T7",
+          "fecha": null,
+          "descripcion": "Circuito combinado: luz automática con LDR y transistor. Práctica guiada en Tinkercad Circuits. No califica.",
+          "criterios": [],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_s04",
+          "nombre": "SA2. Examen práctico Tinkercad · Circuitos",
+          "tipo": "Prueba",
+          "calificable": true,
+          "instrumento": "Prueba práctica con rúbrica de 4 niveles",
+          "unidad": "T7",
+          "fecha": null,
+          "descripcion": "Prueba práctica en clase, individual: «Monta en Tinkercad un circuito que…». Entrega: enlace de Tinkercad, captura de la simulación funcionando y esquema.",
+          "criterios": [
+            {
+              "codigo": "3.1",
+              "texto": "Se han seleccionado los esquemas y guías de montaje indicados para un modelo determinado"
+            },
+            {
+              "codigo": "4.1",
+              "texto": "Se han seleccionado los esquemas y guías de montaje indicados para un modelo determinado de conexión"
+            }
+          ],
+          "rubrica": null
+        },
+        {
+          "id": "eee_u15_s03",
+          "nombre": "SA2. PROYECTO FINAL· Smart Locker",
+          "tipo": "Proyecto",
+          "calificable": true,
+          "instrumento": "Rúbrica de 4 niveles",
+          "unidad": "T5–T7",
+          "fecha": null,
+          "descripcion": "Taquilla con Arduino: montaje en protoboard y placa, conexión de componentes electrónicos.",
+          "criterios": [
+            {
+              "codigo": "3.3",
+              "texto": "Se han preparado los elementos y materiales que se van a utilizar, siguiendo procedimientos normalizados"
+            },
+            {
+              "codigo": "3.5",
+              "texto": "Se han ensamblado los distintos componentes siguiendo procedimientos normalizados, aplicando las normas de seguridad de los mismos"
+            },
+            {
+              "codigo": "3.7",
+              "texto": "Se ha aplicado técnicas de montaje de componentes y conectores electrónicos en placas de circuito impreso"
+            },
+            {
+              "codigo": "4.3",
+              "texto": "Se han dispuesto y colocado las piezas del conector y los cables"
+            },
+            {
+              "codigo": "4.6",
+              "texto": "Se han insertado las piezas del conector en el orden correcto y unido los cables de la forma establecida en el procedimiento"
+            },
+            {
+              "codigo": "4.7",
+              "texto": "Se ha realizado la conexión (soldadura, embornado, conector) según el procedimiento establecido"
+            }
+          ],
+          "rubrica": null
+        }
+      ]
+    }
+  ]
+}
