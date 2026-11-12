@@ -177,28 +177,24 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const pesos = pesosDe(g, asig); const cursoG = st.cursos.get(g.curso || '');
     const bar = `<div class="pn-bar"><label>Grupo <select data-ap-f="gGrupo">${[...ps.grupos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map((x) => opt(x.id, x.nombre + (st.cursos.get(x.curso || '') ? ' · ' + st.cursos.get(x.curso).nombre : ''), g.id)).join('')}</select></label>
       <label>Asignatura <select data-ap-f="gAsig">${(g.asignaturas || []).filter((x) => asignatura(x)).map((x) => opt(x, asignatura(x).corto, asig)).join('')}</select></label>
-      <span class="pn-grow"></span><button class="btn" data-ap="csvNotas">⬇ Exportar CSV</button></div>
-      <div class="pn-bar ap-pesos"><b>⚖️ Pesos:</b>${CATEGORIAS.map((c) => `<label>${esc(c.nombre)} <input type="number" min="0" max="100" step="5" data-peso="${c.id}" value="${esc(pesos[c.id])}" ${cursoG ? '' : 'disabled'}> %</label>`).join('')}${cursoG ? '<button class="btn small" data-ap="guardarPesos">💾 Guardar pesos</button>' : '<span class="pn-small">(asigna el grupo a un curso escolar para cambiar los pesos)</span>'}<span class="pn-msg" id="apPesosMsg"></span></div>`;
+      <span class="pn-grow"></span><button class="btn" data-ap="csvNotas">⬇ Exportar CSV</button></div>`;
     if (!A.listoG || !st.listo.items) return bar + '<p class="pn-small">Cargando…</p>';
     const t = tablaNotas(g, asig, pesos);
     if (!t) return bar + `<p class="pn-vacio">Todavía no hay tareas, proyectos ni exámenes de ${esc(asignatura(asig)?.corto || asig)} asignados a ${esc(g.nombre)}.</p>`;
-    return bar + `<p class="pn-small">Clic en una casilla para ver la entrega y calificar. <b>Negrita</b> = nota publicada · <i>cursiva</i> = sin publicar · 📥 entregado · ⏳ examen empezado · ⏰ con retraso. La media de cada categoría solo cuenta lo calificado; las categorías sin notas no cuentan.</p>
+    return bar + `<p class="pn-small">Clic en una casilla para ver la entrega y calificar. <b>Negrita</b> = nota publicada · <i>cursiva</i> = sin publicar · 📥 entregado · ⏳ examen empezado · ⏰ con retraso. Aquí solo se ve la nota de cada actividad: la calificación por criterios se calcula en SuperProfe y en QE.</p>
       <div class="ap-libro"><div class="ap-tabla-wrap" id="apTablaW">${t}</div><aside id="apDetalle" class="pn-det"></aside></div>`;
   }
   function tablaNotas(g, asig, pesos) {
     const cols = columnas(g, asig);
     if (!cols.length) return '';
-    const cats = CATEGORIAS.filter((c) => cols.some((x) => x.cat === c.id));
     const head = `<tr><th class="ap-n">Nº</th>${cols.map((c) => {
       const sinPub = c.lab ? 0 : [...A.notas.values()].filter((n) => n.item === c.k && !n.publicada && n.nota != null).length;
       return `<th class="ap-col cat-${esc(c.cat)}" data-col="${esc(c.k)}" title="${esc(c.titulo)}"><div class="ap-cth">${c.lab ? '🔬' : TIPOS[c.it.tipo]?.icon || ''} ${esc(c.titulo.length > 26 ? c.titulo.slice(0, 25) + '…' : c.titulo)}</div>
         ${c.lab ? '<div class="pn-small">laboratorio</div>' : `<div class="ap-cacts">${c.it.tipo === 'examen' ? '<button class="btn tiny" data-ap="autocorregir" title="Corregir automáticamente las entregas sin nota">⚡ Corregir</button>' : c.it.tipo === 'actividad' ? '<button class="btn tiny" data-ap="notasActividad" title="Poner como nota el resultado de la actividad a las entregas sin nota">⚡ Poner notas</button>' : ''}${sinPub ? `<button class="btn tiny" data-ap="publicarNotas" title="Publicar las notas a los alumnos">📢 Publicar ${sinPub}</button>` : ''}</div>`}</th>`;
-    }).join('')}${cats.map((c) => `<th class="ap-media">${esc(c.nombre)}<div class="pn-small">${esc(pesos[c.id])} %</div></th>`).join('')}<th class="ap-media fin">Final</th></tr>`;
+    }).join('')}</tr>`;
     const body = filas(g).map((n) => {
       const vals = cols.map((c) => ({ c, v: celda(g, c, n) }));
-      const { medias, final } = mediaPonderada(vals.map(({ c, v }) => ({ categoria: c.cat, nota: v.estado === 'nota' ? v.nota : null })), pesos);
-      return `<tr><th class="ap-n">${pad(n)}</th>${vals.map(({ c, v }) => `<td class="ap-c e-${v.estado} ${v.pub === false ? 'nopub' : ''} ${A.abierta && A.abierta.k === c.k && A.abierta.n === n ? 'sel' : ''}" data-celda="${esc(c.k)}" data-n="${n}" tabindex="0" title="${v.estado === 'nota' ? (v.pub ? 'Nota publicada' : 'Nota sin publicar') : v.estado === 'entregado' ? 'Entregado, sin nota' : v.estado === 'curso' ? 'Examen empezado' : 'Sin entrega'}">${v.estado === 'nota' ? esc(fmtNota(v.nota)) : v.estado === 'entregado' ? '📥' : v.estado === 'curso' ? '⏳' : '·'}${v.tarde ? '<sup>⏰</sup>' : ''}</td>`).join('')}
-        ${cats.map((c) => `<td class="ap-media">${esc(fmtNota(medias[c.id]))}</td>`).join('')}<td class="ap-media fin"><b>${esc(fmtNota(final))}</b></td></tr>`;
+      return `<tr><th class="ap-n">${pad(n)}</th>${vals.map(({ c, v }) => `<td class="ap-c e-${v.estado} ${v.pub === false ? 'nopub' : ''} ${A.abierta && A.abierta.k === c.k && A.abierta.n === n ? 'sel' : ''}" data-celda="${esc(c.k)}" data-n="${n}" tabindex="0" title="${v.estado === 'nota' ? (v.pub ? 'Nota publicada' : 'Nota sin publicar') : v.estado === 'entregado' ? 'Entregado, sin nota' : v.estado === 'curso' ? 'Examen empezado' : 'Sin entrega'}">${v.estado === 'nota' ? esc(fmtNota(v.nota)) : v.estado === 'entregado' ? '📥' : v.estado === 'curso' ? '⏳' : '·'}${v.tarde ? '<sup>⏰</sup>' : ''}</td>`).join('')}</tr>`;
     }).join('');
     return `<table class="pn-t ap-tabla"><thead>${head}</thead><tbody>${body}</tbody></table>`;
   }
@@ -312,12 +308,10 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     await enLotes(L.map((n) => ({ db, fn: (b) => b.update(doc(db, 'notas', n.id), { publicada: true }) })));
   }
   function exportarCSV() {
-    const g = grupoSel(); const asig = A.gAsig; const cols = columnas(g, asig); const pesos = pesosDe(g, asig);
-    const cats = CATEGORIAS.filter((c) => cols.some((x) => x.cat === c.id));
-    const filasCsv = [['Nº', ...cols.map((c) => c.titulo), ...cats.map((c) => `${c.nombre} (${pesos[c.id]} %)`), 'Nota final']];
+    const g = grupoSel(); const asig = A.gAsig; const cols = columnas(g, asig); const filasCsv = [['Nº', ...cols.map((c) => c.titulo)]];
     for (const n of filas(g)) {
-      const v = cols.map((c) => celda(g, c, n)); const { medias, final } = mediaPonderada(v.map((x, i) => ({ categoria: cols[i].cat, nota: x.estado === 'nota' ? x.nota : null })), pesos);
-      filasCsv.push([pad(n), ...v.map((x) => (x.estado === 'nota' ? fmtNota(x.nota) : x.estado === 'entregado' ? 'entregado' : '')), ...cats.map((c) => fmtNota(medias[c.id])), fmtNota(final)]);
+      const v = cols.map((c) => celda(g, c, n));
+      filasCsv.push([pad(n), ...v.map((x) => (x.estado === 'nota' ? fmtNota(x.nota) : x.estado === 'entregado' ? 'entregado' : ''))]);
     }
     const url = URL.createObjectURL(new Blob([csv(filasCsv)], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a');
     a.href = url; a.download = `notas-${g.nombre.replace(/[^\wºª-]+/g, '_')}-${asig}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);

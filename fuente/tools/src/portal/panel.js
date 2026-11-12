@@ -32,7 +32,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   const DESC = {
     cursos: 'Cada curso escolar eliges qué asignaturas impartes. El curso activo es el que ves en «Mis asignaturas».',
     grupos: 'Cada grupo tiene un código de clase que los alumnos usan para entrar (con su nº de lista y un PIN). Sin nombres.',
-    notas: 'Cuaderno por grupo y asignatura: tareas, cuestionarios, actividades y prácticas del laboratorio, con pesos por categoría.',
+    notas: 'Cuaderno por grupo y asignatura: tareas, cuestionarios, actividades y prácticas del laboratorio. Nota de cada actividad (la nota por criterios se calcula en SuperProfe y QE).',
     entregas: 'Prácticas entregadas desde los laboratorios 3D (ESP32, Circuitos y Vivienda): revisa el montaje y pon nota.',
     conectados: 'Quién está dentro ahora mismo y en qué página (solo grupo y nº).',
     ajustes: 'Tu cuenta, el PIN de los alumnos y la limpieza de datos al cerrar el curso.',
