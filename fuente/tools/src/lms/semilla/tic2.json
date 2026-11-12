@@ -1,0 +1,124 @@
+{
+ "formato": "portal-docente/classroom@1",
+ "asignatura": "tic2",
+ "clase": "TIC II 2º BACHILLERATO — 2º Bach - 2026/2027",
+ "cursoEscolar": "26/27",
+ "fuente": "Copia de solo lectura de «Trabajo de clase» de Google Classroom (contenido_TIC2_2627.md). Mismo orden de temas y elementos; los borradores siguen en borrador.",
+ "temas": [
+  {
+   "id": "sin-tema",
+   "nombre": "Sin tema",
+   "sinTema": true,
+   "items": [
+    {
+     "id": "sin-tema.01",
+     "tipo": "material",
+     "titulo": "Enlace para clases",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    }
+   ]
+  },
+  {
+   "id": "t01-presentacion-evaluacion-inicia",
+   "nombre": "Presentación // Evaluación inicial.",
+   "items": [
+    {
+     "id": "t01-presentacion-evaluacion-inicia.01",
+     "tipo": "tarea",
+     "titulo": "Evaluación inicial",
+     "estado": "publicado",
+     "fechaEntrega": "2026-09-25T14:00",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t01-presentacion-evaluacion-inicia.02",
+     "tipo": "material",
+     "titulo": "Presentación Asignatura",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    }
+   ]
+  },
+  {
+   "id": "t02-sa-1-sociedad-digital-y-el-mun",
+   "nombre": "SA 1. Sociedad digital y el mundo del sofware",
+   "items": [
+    {
+     "id": "t02-sa-1-sociedad-digital-y-el-mun.01",
+     "tipo": "material",
+     "titulo": "SA1. Presentaciones.",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t02-sa-1-sociedad-digital-y-el-mun.02",
+     "tipo": "tarea",
+     "titulo": "SA1. Actividad 1.",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-08T23:55",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t02-sa-1-sociedad-digital-y-el-mun.03",
+     "tipo": "tarea",
+     "titulo": "SA 1. Actividad 2",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-16T14:30",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t02-sa-1-sociedad-digital-y-el-mun.04",
+     "tipo": "tarea",
+     "titulo": "SA1. Actividad 3",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-22T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t02-sa-1-sociedad-digital-y-el-mun.05",
+     "tipo": "tarea",
+     "titulo": "SA 1. Actividad 4",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-29T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t02-sa-1-sociedad-digital-y-el-mun.06",
+     "tipo": "tarea",
+     "titulo": "SA1. Actividad 5 Semana del 26",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-30T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,76 @@
+{
+ "eee": {
+  "nota": "Extras del portal para EEE: instrucciones resumidas de los PDF de Pablo (sin el nombre del centro) y los PDF alojados en la web (materiales/eee/sa1).",
+  "completar": [
+   {
+    "tema": "SA 1- B1 (Tema 1,2,3,4)- Construimos nuestro tablero eléctrico.",
+    "titulo": "SA1 - Mi tablero eléctrico. Ejercicio 1 - Tema 1.",
+    "instrucciones": "Antes de montar el tablero tienes que conocer tus herramientas. **Individual.**\n\nEres vendedor de una empresa que vende herramientas profesionales. Tu trabajo: hacer el **catálogo de la empresa** con las herramientas del maletín del profesor (tienes la foto en el aula). De cada herramienta: foto, para qué sirve y qué riesgo tiene. Hazlo en Canva o en Google Docs y entrégalo en PDF.\n\n**Qué tiene tu catálogo** (cinco partes, en este orden):\n1. **Portada de tu empresa** (1 página): nombre de la empresa, logo (puedes hacerlo en Canva), una frase corta que la presente, y tu nombre y curso.\n2. **Marcas profesionales** (1 página): busca al menos 3 marcas que fabrican herramientas para profesionales; de cada una, logo y país; mira su catálogo en internet y copia el enlace.\n3. **Herramientas del maletín**: todas las herramientas de la foto del maletín (como mínimo); si quieres, añade otras del Tema 1. Busca cada una en el catálogo de una marca.\n4. **Ficha de cada herramienta** (1 ficha por herramienta, siempre con el mismo orden): foto de la herramienta y marca, nombre, para qué sirve (una o dos frases), riesgo al usarla y cómo evitar ese riesgo (por ejemplo gafas o guantes). Todas las fichas iguales: misma disposición y mismo tamaño de letra.\n5. **Índice y orden por familias** (1 página): agrupa por familias (destornilladores, llaves, alicates, corte y pelado, medida), pon un título a cada familia y, al principio, un índice con las familias y su página.\n\n**Dónde buscar:** el libro (Tema 1) y catálogos de marcas profesionales en internet (por ejemplo Knipex, Bahco o Stanley).\n**Idea clave:** estas herramientas son las que vas a usar en el tablero.\n\n**Cómo lo entregas:** catálogo descargado en PDF con el nombre EEE_Catalogo_TuNombre.pdf. Sube el enlace (Drive) en esta tarea.",
+    "enlacesAntes": [
+     {
+      "titulo": "Trabajo 1 · Catálogo de herramientas (PDF en el portal)",
+      "url": "materiales/eee/sa1/SA1_Trabajo1_catalogo_herramientas.pdf"
+     }
+    ],
+    "enlaces": []
+   },
+   {
+    "tema": "SA 1- B1 (Tema 1,2,3,4)- Construimos nuestro tablero eléctrico.",
+    "titulo": "SA1 - Mi tablero eléctrico. Ejercicio 2 - Tema 2.",
+    "instrucciones": "Qué cable, cómo se guía y cómo se conecta. **Individual.**\n\nTu trabajo: una **presentación** sobre los cables y todo lo que se usa con ellos, en Canva o Google Presentaciones, entregada en PDF. **Siempre con foto:** cada cosa que expliques lleva su foto. Al final dices qué vas a usar tú en tu tablero.\n\n**Seis partes** (una o dos diapositivas cada una):\n1. **Sección según los amperios** (1 diapositiva): tabla con columnas amperios · sección del cable (mm²) · dónde se usa, y filas 10 A, 16 A, 20 A y 25 A. Escribe de dónde sacas los datos.\n2. **Tipos de cable** (2 diapositivas): rígido y flexible; unipolar y manguera; apantallado y de cinta (plano); esmaltado (motores y bobinas); fibra óptica (no es de cobre, lleva datos con luz). En cada tipo: foto + qué es + dónde se usa.\n3. **Guiado: fundas y mallas** (1 diapositiva): tubos flexibles (macarrón), fundas trenzadas de poliéster, fundas termorretráctiles (qué pasa al darles calor) y tubo corrugado (el del tablero).\n4. **Fijación e identificación** (1 diapositiva): bridas, bases y tacos para bridas, e identificación con anillos, manguitos o etiquetas en los dos extremos.\n5. **Terminación y empalmes** (2 diapositivas): crimpado o engastado; terminales (puntera, ojal, horquilla y Faston); tenaza de crimpar; bornes, regletas y fichas de empalme; fundas o capuchones para proteger el empalme.\n6. **Lo que uso en mi tablero** (1 diapositiva): sección del cable del alumbrado (C1, 10 A) y del enchufe (C2, 16 A); ¿cable rígido o flexible? ¿por qué?; cómo guías los cables (tubo corrugado) y cómo empalmas dentro de las cajas.\n\n**Ejemplo:** en una casa, el circuito de las luces lleva un magnetotérmico de 10 A y cable de 1,5 mm²; el de los enchufes, 16 A y cable de 2,5 mm².\n**Idea clave:** si el cable es más fino de lo que toca, se calienta.\n\n**Cómo lo entregas:** presentación descargada en PDF con el nombre EEE_Cables_TuNombre.pdf. Sube el enlace en esta tarea.",
+    "enlacesAntes": [
+     {
+      "titulo": "Trabajo 2 · Los cables del tablero (PDF en el portal)",
+      "url": "materiales/eee/sa1/SA1_Trabajo2_cables.pdf"
+     }
+    ],
+    "enlaces": []
+   },
+   {
+    "tema": "SA 1- B1 (Tema 1,2,3,4)- Construimos nuestro tablero eléctrico.",
+    "titulo": "SA1 - Mi tablero eléctrico. Ejercicio 3 PREPARAMOS EL TABLERO",
+    "instrucciones": "Un manual de montaje, como los que trae un mueble. **En grupo** (el grupo del tablero).\n\nVuestro trabajo: una **presentación con las instrucciones para montar el tablero de la imagen de referencia** (cuadro con diferencial, C1 de 10 A para las luces y C2 de 16 A para el enchufe; 3 bombillas, 2 interruptores, 1 enchufe con tierra, 2 cajas de empalme y tubo corrugado). Usad **los diez títulos** de abajo, en el mismo orden. **Obligatorio:** cada apartado con imágenes y al menos un vídeo (enlace) que lo explique. En Canva o Google Presentaciones.\n\n**Preparación**\n1. **El tablero** (1 diapositiva): la imagen del tablero, qué hace cada parte (cuadro, C1 luces, C2 enchufe) y los miembros del grupo.\n2. **Materiales y precio** (1 o 2 diapositivas): tabla material · unidades o metros · precio de cada uno · total. Contad los metros de cable de cada color y sección, buscad los precios en una tienda de material eléctrico (con enlace) y poned el precio total del tablero.\n3. **Herramientas y protección**: cada herramienta con foto y cómo funciona, su riesgo y cómo se evita; gafas y guantes, y cuándo se ponen.\n4. **Preparar los cables**: cómo se cortan, se pelan y se eligen; colores de fase, neutro y tierra (¿por qué cada color?); ¿por qué hay dos fases? (C1 y C2: dos circuitos); sección del cable de C1 y de C2.\n5. **Tubo corrugado y sujeción**: cómo medís y cortáis el tubo, cómo lo fijáis (grapas o abrazaderas), cómo metéis los cables por dentro y cómo atornilláis cada pieza al tablero.\n\n**Montaje**\n6. **Cajas de empalme**: para qué sirven, qué fichas o regletas llevan y cuántas, cómo se colocan y empalman los cables, y cómo etiquetáis cada cable (C1-F, C1-N, C2-F, C2-N, T).\n7. **Conexiones**: cuadro (diferencial, C1 y C2); interruptor (qué cable entra y cuál sale); portalámparas (fase y neutro); enchufe (fase, neutro y tierra, y dónde va cada uno).\n8. **Paso a paso** (2 diapositivas): pasos numerados desde la madera vacía hasta el tablero terminado; en cada paso, qué se hace, con qué herramienta y qué riesgo hay; al final, comprobación con el polímetro, sin enchufar.\n9. **Dificultades**: al menos tres, y para cada una cómo la vais a evitar o resolver (tabla de dos columnas).\n10. **Conclusión antes de empezar**: qué habéis aprendido y qué vais a revisar antes de pedir al profesor que lo pruebe.\n\nSolo el profesor enchufa la manguera. Podéis ensayar el montaje y sacar la lista de materiales en el laboratorio 3D «Instalación de vivienda».\n\n**Cómo lo entregáis:** uno por grupo, presentación en PDF (EEE_Tablero_Instrucciones_Grupo.pdf, con el número o nombre del grupo); los vídeos, como enlace.",
+    "enlacesAntes": [
+     {
+      "titulo": "Trabajo 3 · Instrucciones de montaje (PDF en el portal)",
+      "url": "materiales/eee/sa1/SA1_Trabajo3_montaje_tablero.pdf"
+     }
+    ],
+    "enlaces": [
+     {
+      "titulo": "Imagen de referencia del tablero",
+      "url": "materiales/eee/sa1/tablero_referencia.png"
+     },
+     {
+      "titulo": "Laboratorio 3D · Instalación de vivienda (ejercicio guiado)",
+      "url": "#eee/vivienda/tablero"
+     }
+    ]
+   }
+  ],
+  "nuevos": [
+   {
+    "tema": "SA 1- B1 (Tema 1,2,3,4)- Construimos nuestro tablero eléctrico.",
+    "item": {
+     "tipo": "material",
+     "titulo": "Tablero eléctrico: imagen de referencia",
+     "id": "portal-referencia",
+     "real": true,
+     "instrucciones": "Así tiene que quedar el tablero: cuadro con diferencial (ID 30 mA) y magnetotérmicos C1 (10 A, alumbrado) y C2 (16 A, enchufe); 3 bombillas, 2 interruptores (el interruptor 1 enciende la bombilla 1 y el interruptor 2 las bombillas 2 y 3), 1 enchufe con tierra, 2 cajas de empalme (CE1 y CE2) y tubo corrugado (gris). La manguera de 3 hilos con clavija va al enchufe del aula: solo la enchufa el profesor.",
+     "enlaces": [
+      {
+       "titulo": "Imagen de referencia (PNG)",
+       "url": "materiales/eee/sa1/tablero_referencia.png"
+      },
+      {
+       "titulo": "Ensáyalo en el laboratorio 3D",
+       "url": "#eee/vivienda/tablero"
+      }
+     ],
+     "estado": "publicado",
+     "nuevo": true
+    }
+   }
+  ]
+ }
+}

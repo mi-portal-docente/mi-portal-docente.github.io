@@ -1,0 +1,353 @@
+{
+ "formato": "portal-docente/classroom@1",
+ "asignatura": "tic1",
+ "clase": "T.I.Cs 1BACH — 1º BACH - Curso 26/27",
+ "cursoEscolar": "26/27",
+ "fuente": "Copia de solo lectura de «Trabajo de clase» de Google Classroom (contenido_TIC1_2627.md). Mismo orden de temas y elementos; los borradores siguen en borrador.",
+ "temas": [
+  {
+   "id": "sin-tema",
+   "nombre": "Sin tema",
+   "sinTema": true,
+   "items": [
+    {
+     "id": "sin-tema.01",
+     "tipo": "material",
+     "titulo": "Enlace clases",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "sin-tema.02",
+     "tipo": "tarea",
+     "titulo": "Evaluacíon inicial",
+     "estado": "publicado",
+     "fechaEntrega": "2026-09-25T14:30",
+     "puntos": 100,
+     "enlaces": [
+      {
+       "titulo": "Evaluación TIC I: Ofimática e Inteligencia Artificial",
+       "url": "https://docs.google.com/forms/d/17FewSZFijjzI1K57iX5K-GaODt69DCfgOhKRKNHUb28/viewform",
+       "tipo": "Formularios de Google"
+      }
+     ],
+     "real": true
+    }
+   ]
+  },
+  {
+   "id": "t01-sda-1-mi-primer-dossier-academ",
+   "nombre": "SdA 1. Mi Primer Dossier Académico",
+   "items": [
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.01",
+     "tipo": "tarea",
+     "titulo": "Desafío 1 (DOCS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.02",
+     "tipo": "tarea",
+     "titulo": "Desafío 2 (DOCS)",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-02T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.03",
+     "tipo": "tarea",
+     "titulo": "Desafío 3 (DOCS)",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-08T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.04",
+     "tipo": "tarea",
+     "titulo": "Desafío 4 (DOCS)",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-09T14:30",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.05",
+     "tipo": "tarea",
+     "titulo": "Desafío 5 (DOCS)",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-15T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.06",
+     "tipo": "tarea",
+     "titulo": "Desafío 6 (DOCS)",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-16T23:50",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.07",
+     "tipo": "tarea",
+     "titulo": "Desafío 7 (DOCS)",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-25T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.08",
+     "tipo": "tarea",
+     "titulo": "Desafío 8 (DOCS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.09",
+     "tipo": "tarea",
+     "titulo": "Desafío 9 (DOCS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.10",
+     "tipo": "tarea",
+     "titulo": "Desafío 10 (DOCS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.11",
+     "tipo": "tarea",
+     "titulo": "Desafío 11 (DOCS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t01-sda-1-mi-primer-dossier-academ.12",
+     "tipo": "tarea",
+     "titulo": "Desafío Final DOCS Semana del 26",
+     "estado": "publicado",
+     "fechaEntrega": "2026-11-13T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    }
+   ]
+  },
+  {
+   "id": "t02-sda-2-vivir-en-la-sociedad-de-",
+   "nombre": "SdA 2. Vivir en la Sociedad de la Información",
+   "items": [
+    {
+     "id": "t02-sda-2-vivir-en-la-sociedad-de-.01",
+     "tipo": "material",
+     "titulo": "ESTRUCTURA del DEBATE",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t02-sda-2-vivir-en-la-sociedad-de-.02",
+     "tipo": "tarea",
+     "titulo": "Ficha para organización del Debate",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  },
+  {
+   "id": "t03-sda-3-los-datos-hablan-hoja-de",
+   "nombre": "SdA 3. Los datos hablan: Hoja de cálculo y análisis de la información",
+   "items": [
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.01",
+     "tipo": "tarea",
+     "titulo": "Desafío 1 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.02",
+     "tipo": "tarea",
+     "titulo": "Desafío 2 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.03",
+     "tipo": "tarea",
+     "titulo": "Desafío 3 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.04",
+     "tipo": "tarea",
+     "titulo": "Desafío 4 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.05",
+     "tipo": "tarea",
+     "titulo": "Desafío 5 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.06",
+     "tipo": "tarea",
+     "titulo": "Desafío 6 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.07",
+     "tipo": "tarea",
+     "titulo": "Desafío 7 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.08",
+     "tipo": "tarea",
+     "titulo": "Google Sheets. Ahora Te Toca a Ti. Bloque I",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.09",
+     "tipo": "tarea",
+     "titulo": "Desafío 8 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sda-3-los-datos-hablan-hoja-de.10",
+     "tipo": "tarea",
+     "titulo": "Desafío 9 (SHEETS)",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  },
+  {
+   "id": "t04-sda-4-anatomia-digital-como-fu",
+   "nombre": "SdA 4. Anatomía digital: cómo funciona realmente el mundo conectado",
+   "items": [
+    {
+     "id": "t04-sda-4-anatomia-digital-como-fu.01",
+     "tipo": "material",
+     "titulo": "Objetivo y desarrollo del proyecto",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t04-sda-4-anatomia-digital-como-fu.02",
+     "tipo": "material",
+     "titulo": "¿Cómo busco fuentes fiables de información?",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t04-sda-4-anatomia-digital-como-fu.03",
+     "tipo": "tarea",
+     "titulo": "Documento de Investigación",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sda-4-anatomia-digital-como-fu.04",
+     "tipo": "tarea",
+     "titulo": "Presentación sobre Trabajo de Investigación",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  }
+ ]
+}

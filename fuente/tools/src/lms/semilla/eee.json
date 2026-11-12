@@ -1,0 +1,784 @@
+{
+ "formato": "portal-docente/classroom@1",
+ "asignatura": "eee",
+ "clase": "Equipos Eléctricos y Electrónicos (EEE) 2ºCFGB 26/27",
+ "cursoEscolar": "26/27",
+ "fuente": "Copia de solo lectura de «Trabajo de clase» de Google Classroom (contenido_EEE_2627.md). Mismo orden de temas y elementos; los borradores siguen en borrador.",
+ "temas": [
+  {
+   "id": "sin-tema",
+   "nombre": "Sin tema",
+   "sinTema": true,
+   "items": [
+    {
+     "id": "sin-tema.01",
+     "tipo": "tarea",
+     "titulo": "Tarea sin título",
+     "estado": "borrador",
+     "enlaces": [
+      {
+       "titulo": "docs.google.com",
+       "url": "https://docs.google.com/forms/d/1xZ8XYo1ua-euAdfO6-c82gTwLiUmfnPOrcM56z7R8lY/viewform"
+      }
+     ],
+     "real": true
+    }
+   ]
+  },
+  {
+   "id": "t01-evaluacion-inicial",
+   "nombre": "Evaluación Inicial",
+   "items": [
+    {
+     "id": "t01-evaluacion-inicial.01",
+     "tipo": "tarea",
+     "titulo": "Evaluación Inicial",
+     "estado": "borrador",
+     "instrucciones": "- Realiza este examen en silencio y sin consultar la web, como cualquier otra prueba calificable.\n- Esta prueba no influye en la nota de la asignatura.\n- Trata de no dejar nada en blanco.",
+     "enlaces": [],
+     "real": true
+    }
+   ]
+  },
+  {
+   "id": "t02-sa-1-b1-tema-1-2-3-4-construim",
+   "nombre": "SA 1- B1 (Tema 1,2,3,4)- Construimos nuestro tablero eléctrico.",
+   "items": [
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.01",
+     "tipo": "material",
+     "titulo": "Acceso Clase tinkercad",
+     "estado": "publicado",
+     "enlaces": [
+      {
+       "titulo": "tinkercad.com",
+       "url": "https://www.tinkercad.com/joinclass/HYM4NFYQY"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.02",
+     "tipo": "material",
+     "titulo": "SA1- B1. Presentación / Libro",
+     "estado": "publicado",
+     "enlaces": [
+      {
+       "titulo": "2627_EEE_B1_T3_Presentacion_v1.pptx",
+       "url": "https://drive.google.com/file/d/1nLRtK3oP75IXiy3804CfCwkp8mzaBbCB/view?usp=classroom_web",
+       "tipo": "Microsoft PowerPoint"
+      },
+      {
+       "titulo": "0.Tema 4.Presentación.pdf",
+       "url": "https://drive.google.com/file/d/1keGDIZBhegs_IqLfWB1tq51q4e48FOQw/view?usp=classroom_web",
+       "tipo": "PDF"
+      },
+      {
+       "titulo": "EEE- T1 Libro.pdf",
+       "url": "https://drive.google.com/file/d/1EO5Eiao7zZAhFYUYife78dHdK-Ri8-Lq/view?usp=classroom_web",
+       "tipo": "PDF"
+      },
+      {
+       "titulo": "EEE- T2 Libro.pdf",
+       "url": "https://drive.google.com/file/d/1PSjPMkgv2PbRqap91GaDVg1ZMpbsxTbO/view?usp=classroom_web",
+       "tipo": "PDF"
+      },
+      {
+       "titulo": "EEE- T3 Libro.pdf",
+       "url": "https://drive.google.com/file/d/1aFoWrPKcPIdNWJzjJrjWPjBGbIWdEWlax/view?usp=classroom_web",
+       "tipo": "PDF"
+      },
+      {
+       "titulo": "EEE- T4 Libro.pdf",
+       "url": "https://drive.google.com/file/d/16AJIlnyLFwogvIETPwNe8k_BJmFwruOd/view?usp=classroom_web",
+       "tipo": "PDF"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.03",
+     "tipo": "material",
+     "titulo": "SA1- B1. TEMA 3 - Relación ejercicios circuitos. Magnitudes eléctricas y su medida",
+     "estado": "publicado",
+     "enlaces": [
+      {
+       "titulo": "EEE_B1_Ejercicios_v4.pdf",
+       "url": "https://drive.google.com/file/d/1BLPRYmTZ44eErC1cnPoTfqHL6qfzVtJS/view?usp=classroom_web",
+       "tipo": "PDF"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.04",
+     "tipo": "material",
+     "titulo": "SA1 - B1. Tema 3 y 4. Preguntas Teóricas.",
+     "estado": "publicado",
+     "enlaces": [
+      {
+       "titulo": "EEE_B1_Preguntas_v2.pdf",
+       "url": "https://drive.google.com/file/d/1-6fivVxYDya7bO6fHabXdGT7WPM0PFZ2/view?usp=classroom_web",
+       "tipo": "PDF"
+      },
+      {
+       "titulo": "EEE_B1_T4_Preguntas.pdf",
+       "url": "https://drive.google.com/file/d/14J1c26sazkGQzyEJiSCVKba_VjxvK00Q/view?usp=classroom_web",
+       "tipo": "PDF"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.05",
+     "tipo": "cuestionario",
+     "titulo": "SA1-Test 1, tema 3",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-13T14:30",
+     "puntos": 100,
+     "enlaces": [
+      {
+       "titulo": "Test 1: Magnitudes y Circuitos",
+       "url": "https://docs.google.com/forms/d/1l50Pc4xOCnpWqFioUm_KC5Mm4D9LJ7zo9MN1UbdWCug/viewform",
+       "tipo": "Formularios de Google"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.06",
+     "tipo": "tarea",
+     "titulo": "SA1 - Mi tablero eléctrico. Ejercicio 1 - Tema 1.",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-27T23:59",
+     "puntos": 100,
+     "enlaces": [
+      {
+       "titulo": "Trabajo 1 · Catálogo de herramientas (PDF en el portal)",
+       "url": "materiales/eee/sa1/SA1_Trabajo1_catalogo_herramientas.pdf"
+      },
+      {
+       "titulo": "EEE_SA1_Trabajo1_Catalogo_Presentacion.pdf",
+       "url": "https://drive.google.com/file/d/1yrvfed2WcyP7cpIv5b0CMgkZ52Y2LXW6/view?usp=classroom_web",
+       "tipo": "PDF"
+      }
+     ],
+     "real": true,
+     "instrucciones": "Antes de montar el tablero tienes que conocer tus herramientas. **Individual.**\n\nEres vendedor de una empresa que vende herramientas profesionales. Tu trabajo: hacer el **catálogo de la empresa** con las herramientas del maletín del profesor (tienes la foto en el aula). De cada herramienta: foto, para qué sirve y qué riesgo tiene. Hazlo en Canva o en Google Docs y entrégalo en PDF.\n\n**Qué tiene tu catálogo** (cinco partes, en este orden):\n1. **Portada de tu empresa** (1 página): nombre de la empresa, logo (puedes hacerlo en Canva), una frase corta que la presente, y tu nombre y curso.\n2. **Marcas profesionales** (1 página): busca al menos 3 marcas que fabrican herramientas para profesionales; de cada una, logo y país; mira su catálogo en internet y copia el enlace.\n3. **Herramientas del maletín**: todas las herramientas de la foto del maletín (como mínimo); si quieres, añade otras del Tema 1. Busca cada una en el catálogo de una marca.\n4. **Ficha de cada herramienta** (1 ficha por herramienta, siempre con el mismo orden): foto de la herramienta y marca, nombre, para qué sirve (una o dos frases), riesgo al usarla y cómo evitar ese riesgo (por ejemplo gafas o guantes). Todas las fichas iguales: misma disposición y mismo tamaño de letra.\n5. **Índice y orden por familias** (1 página): agrupa por familias (destornilladores, llaves, alicates, corte y pelado, medida), pon un título a cada familia y, al principio, un índice con las familias y su página.\n\n**Dónde buscar:** el libro (Tema 1) y catálogos de marcas profesionales en internet (por ejemplo Knipex, Bahco o Stanley).\n**Idea clave:** estas herramientas son las que vas a usar en el tablero.\n\n**Cómo lo entregas:** catálogo descargado en PDF con el nombre EEE_Catalogo_TuNombre.pdf. Sube el enlace (Drive) en esta tarea."
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.07",
+     "tipo": "tarea",
+     "titulo": "SA1 - Mi tablero eléctrico. Ejercicio 2 - Tema 2.",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-27T23:59",
+     "puntos": 100,
+     "enlaces": [
+      {
+       "titulo": "Trabajo 2 · Los cables del tablero (PDF en el portal)",
+       "url": "materiales/eee/sa1/SA1_Trabajo2_cables.pdf"
+      },
+      {
+       "titulo": "EEE_SA1_Trabajo2_Cables_Presentacion.pdf",
+       "url": "https://drive.google.com/file/d/1IWFhQ7p6uai6W_XNXwuHKGFNRjs0F8Yi/view?usp=classroom_web",
+       "tipo": "PDF"
+      }
+     ],
+     "real": true,
+     "instrucciones": "Qué cable, cómo se guía y cómo se conecta. **Individual.**\n\nTu trabajo: una **presentación** sobre los cables y todo lo que se usa con ellos, en Canva o Google Presentaciones, entregada en PDF. **Siempre con foto:** cada cosa que expliques lleva su foto. Al final dices qué vas a usar tú en tu tablero.\n\n**Seis partes** (una o dos diapositivas cada una):\n1. **Sección según los amperios** (1 diapositiva): tabla con columnas amperios · sección del cable (mm²) · dónde se usa, y filas 10 A, 16 A, 20 A y 25 A. Escribe de dónde sacas los datos.\n2. **Tipos de cable** (2 diapositivas): rígido y flexible; unipolar y manguera; apantallado y de cinta (plano); esmaltado (motores y bobinas); fibra óptica (no es de cobre, lleva datos con luz). En cada tipo: foto + qué es + dónde se usa.\n3. **Guiado: fundas y mallas** (1 diapositiva): tubos flexibles (macarrón), fundas trenzadas de poliéster, fundas termorretráctiles (qué pasa al darles calor) y tubo corrugado (el del tablero).\n4. **Fijación e identificación** (1 diapositiva): bridas, bases y tacos para bridas, e identificación con anillos, manguitos o etiquetas en los dos extremos.\n5. **Terminación y empalmes** (2 diapositivas): crimpado o engastado; terminales (puntera, ojal, horquilla y Faston); tenaza de crimpar; bornes, regletas y fichas de empalme; fundas o capuchones para proteger el empalme.\n6. **Lo que uso en mi tablero** (1 diapositiva): sección del cable del alumbrado (C1, 10 A) y del enchufe (C2, 16 A); ¿cable rígido o flexible? ¿por qué?; cómo guías los cables (tubo corrugado) y cómo empalmas dentro de las cajas.\n\n**Ejemplo:** en una casa, el circuito de las luces lleva un magnetotérmico de 10 A y cable de 1,5 mm²; el de los enchufes, 16 A y cable de 2,5 mm².\n**Idea clave:** si el cable es más fino de lo que toca, se calienta.\n\n**Cómo lo entregas:** presentación descargada en PDF con el nombre EEE_Cables_TuNombre.pdf. Sube el enlace en esta tarea."
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.08",
+     "tipo": "tarea",
+     "titulo": "SA1 - Mi tablero eléctrico. Ejercicio 3 PREPARAMOS EL TABLERO",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-30T14:30",
+     "puntos": 100,
+     "enlaces": [
+      {
+       "titulo": "Trabajo 3 · Instrucciones de montaje (PDF en el portal)",
+       "url": "materiales/eee/sa1/SA1_Trabajo3_montaje_tablero.pdf"
+      },
+      {
+       "titulo": "EEE_SA1_Trabajo3_Instrucciones_Presentacion.pdf",
+       "url": "https://drive.google.com/file/d/1D43ysiON70FwjPxvaGdjKebzPPFkegFM/view?usp=classroom_web",
+       "tipo": "PDF"
+      },
+      {
+       "titulo": "Imagen de referencia del tablero",
+       "url": "materiales/eee/sa1/tablero_referencia.png"
+      },
+      {
+       "titulo": "Laboratorio 3D · Instalación de vivienda (ejercicio guiado)",
+       "url": "#eee/vivienda/tablero"
+      }
+     ],
+     "real": true,
+     "instrucciones": "Un manual de montaje, como los que trae un mueble. **En grupo** (el grupo del tablero).\n\nVuestro trabajo: una **presentación con las instrucciones para montar el tablero de la imagen de referencia** (cuadro con diferencial, C1 de 10 A para las luces y C2 de 16 A para el enchufe; 3 bombillas, 2 interruptores, 1 enchufe con tierra, 2 cajas de empalme y tubo corrugado). Usad **los diez títulos** de abajo, en el mismo orden. **Obligatorio:** cada apartado con imágenes y al menos un vídeo (enlace) que lo explique. En Canva o Google Presentaciones.\n\n**Preparación**\n1. **El tablero** (1 diapositiva): la imagen del tablero, qué hace cada parte (cuadro, C1 luces, C2 enchufe) y los miembros del grupo.\n2. **Materiales y precio** (1 o 2 diapositivas): tabla material · unidades o metros · precio de cada uno · total. Contad los metros de cable de cada color y sección, buscad los precios en una tienda de material eléctrico (con enlace) y poned el precio total del tablero.\n3. **Herramientas y protección**: cada herramienta con foto y cómo funciona, su riesgo y cómo se evita; gafas y guantes, y cuándo se ponen.\n4. **Preparar los cables**: cómo se cortan, se pelan y se eligen; colores de fase, neutro y tierra (¿por qué cada color?); ¿por qué hay dos fases? (C1 y C2: dos circuitos); sección del cable de C1 y de C2.\n5. **Tubo corrugado y sujeción**: cómo medís y cortáis el tubo, cómo lo fijáis (grapas o abrazaderas), cómo metéis los cables por dentro y cómo atornilláis cada pieza al tablero.\n\n**Montaje**\n6. **Cajas de empalme**: para qué sirven, qué fichas o regletas llevan y cuántas, cómo se colocan y empalman los cables, y cómo etiquetáis cada cable (C1-F, C1-N, C2-F, C2-N, T).\n7. **Conexiones**: cuadro (diferencial, C1 y C2); interruptor (qué cable entra y cuál sale); portalámparas (fase y neutro); enchufe (fase, neutro y tierra, y dónde va cada uno).\n8. **Paso a paso** (2 diapositivas): pasos numerados desde la madera vacía hasta el tablero terminado; en cada paso, qué se hace, con qué herramienta y qué riesgo hay; al final, comprobación con el polímetro, sin enchufar.\n9. **Dificultades**: al menos tres, y para cada una cómo la vais a evitar o resolver (tabla de dos columnas).\n10. **Conclusión antes de empezar**: qué habéis aprendido y qué vais a revisar antes de pedir al profesor que lo pruebe.\n\nSolo el profesor enchufa la manguera. Podéis ensayar el montaje y sacar la lista de materiales en el laboratorio 3D «Instalación de vivienda».\n\n**Cómo lo entregáis:** uno por grupo, presentación en PDF (EEE_Tablero_Instrucciones_Grupo.pdf, con el número o nombre del grupo); los vídeos, como enlace."
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.09",
+     "tipo": "tarea",
+     "titulo": "B1. Ejercicio 5. Resistencias",
+     "estado": "publicado",
+     "puntos": 100,
+     "instrucciones": "Realiza en tu cuaderno una tabla con los valores de todas las resistencias.” - Adjuntos: “Ejercicios código de colores.docx” — Microsoft Word — https://drive.google.com/file/d/1BGdMSP2djjtyx50tNH0WJ4jKLGSOMEdn/view?usp=classroom_web&authuser=0; “Código de colores RESISTENCIAS.png",
+     "enlaces": [
+      {
+       "titulo": "Ejercicios código de colores.docx",
+       "url": "https://drive.google.com/file/d/1BGdMSP2djjtyx50tNH0WJ4jKLGSOMEdn/view?usp=classroom_web",
+       "tipo": "Microsoft Word"
+      },
+      {
+       "titulo": "Código de colores RESISTENCIAS.png",
+       "url": "https://drive.google.com/file/d/1RUJT5I2d-MDn5mcZEK-8ZV9TSTtYVzJm/view?usp=classroom_web",
+       "tipo": "Imagen"
+      }
+     ],
+     "real": true,
+     "nota": "En Classroom la fecha de entrega se veía solo con la hora (23:59): revisa el día."
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.10",
+     "tipo": "cuestionario",
+     "titulo": "B2. Cuestionario- Tema 4.",
+     "estado": "publicado",
+     "fechaEntrega": "2026-11-09T13:30",
+     "enlaces": [
+      {
+       "titulo": "Cuestionario B2. Tema 4",
+       "url": "https://docs.google.com/forms/d/13PxlqoOpM6LO0dbBof8b1igmrqUXA1CcUJ8s2nks-rQ/viewform",
+       "tipo": "Formularios de Google"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.11",
+     "tipo": "material",
+     "titulo": "B1. Prác_Infor_0. Tinkercad (Acceso)",
+     "estado": "publicado",
+     "enlaces": [
+      {
+       "titulo": "Join class - Tinkercad",
+       "url": "https://www.tinkercad.com/joinclass/6PV3JF1ES",
+       "tipo": "enlace web"
+      },
+      {
+       "titulo": "tinkercad.com",
+       "url": "https://www.tinkercad.com/joinclass/HYM4NFYQY"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.12",
+     "tipo": "tarea",
+     "titulo": "B1. Práctica 1. Tinkercad - Circuito 1",
+     "estado": "publicado",
+     "puntos": 100,
+     "instrucciones": "Práctica 1: Circuito en Serie y Protección con ResistenciasDiseña y simula en Tinkercad los siguientes montajes en serie utilizando una pila de botón de 3 V:\n1.1. Circuito simple conectando un LED directamente a la pila, sin resistencia de protección.\nObserva y anota qué le ocurre al componente.\n1.2. Circuito serie formado por la pila, una resistencia de protección una protoboard y un LED.\n1.3. Circuito serie compuesto por la pila, dos resistencias,una protoboard y dos LEDs consecutivos en la misma rama.\nCompara el brillo obtenido con el del apartado 1.2.",
+     "enlaces": [],
+     "real": true,
+     "nota": "En Classroom la fecha de entrega se veía solo con la hora (23:59): revisa el día."
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.13",
+     "tipo": "tarea",
+     "titulo": "B1. Práctica 1. Tinkercad - Circuito 2",
+     "estado": "publicado",
+     "puntos": 100,
+     "instrucciones": "Práctica 2: Circuito en ParaleloDiseña y simula en Tinkercad los siguientes montajes en paralelo alimentados con una pila de 3 V y una protoboard :\n2.1. Circuito con dos LEDs conectados directamente en paralelo a la pila, sin ninguna resistencia limitadora.\n2.2. Circuito en paralelo con dos LEDs que comparten una única resistencia de protección común conectada a la salida de la pila.\n2.3. Circuito con dos ramas en paralelo independientes, colocando una resistencia individual y un LED en cada rama.",
+     "enlaces": [],
+     "real": true,
+     "nota": "En Classroom la fecha de entrega se veía solo con la hora (23:59): revisa el día."
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.14",
+     "tipo": "tarea",
+     "titulo": "B1. Práctica 1.Tinkercad - Circuito 3",
+     "estado": "publicado",
+     "puntos": 100,
+     "instrucciones": "Práctica 3: Elementos de Control en Serie (Pulsador e Interruptor)Tomando como base el circuito básico protegido con resistencia, protoboard y LED de la Práctica 1:\n3.1. Añade un pulsador en serie para controlar el encendido del LED de forma momentánea.\n3.2. Sustituye el pulsador por un interruptor deslizante en serie para lograr un encendido y apagado de retención fija (biestable).",
+     "enlaces": [],
+     "real": true,
+     "nota": "En Classroom la fecha de entrega se veía solo con la hora (23:59): revisa el día."
+    },
+    {
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.15",
+     "tipo": "tarea",
+     "titulo": "B1. Práctica 1.Tinkercad - Circuito 4",
+     "estado": "publicado",
+     "puntos": 100,
+     "instrucciones": "Práctica 4: Control Combinado en Circuitos ParalelosDiseña y simula montajes combinados con dos ramas en paralelo (cada rama con su resistencia, protoboard y su LED correspondiente):\n4.1. Circuito en paralelo gobernado por un interruptor general que encienda o apague ambas ramas de manera simultánea.\n4.2. Circuito con control independiente en cada rama: una gobernada por un interruptor deslizante y la otra gobernada por un pulsador.\n4.3. Circuito con un interruptor maestro que corte la corriente general de todo el montaje, dejando una rama fija encendida y la segunda rama controlada además por un pulsador.",
+     "enlaces": [],
+     "real": true,
+     "nota": "En Classroom la fecha de entrega se veía solo con la hora (23:59): revisa el día."
+    },
+    {
+     "tipo": "material",
+     "titulo": "Tablero eléctrico: imagen de referencia",
+     "id": "t02-sa-1-b1-tema-1-2-3-4-construim.portal-referencia",
+     "real": true,
+     "instrucciones": "Así tiene que quedar el tablero: cuadro con diferencial (ID 30 mA) y magnetotérmicos C1 (10 A, alumbrado) y C2 (16 A, enchufe); 3 bombillas, 2 interruptores (el interruptor 1 enciende la bombilla 1 y el interruptor 2 las bombillas 2 y 3), 1 enchufe con tierra, 2 cajas de empalme (CE1 y CE2) y tubo corrugado (gris). La manguera de 3 hilos con clavija va al enchufe del aula: solo la enchufa el profesor.",
+     "enlaces": [
+      {
+       "titulo": "Imagen de referencia (PNG)",
+       "url": "materiales/eee/sa1/tablero_referencia.png"
+      },
+      {
+       "titulo": "Ensáyalo en el laboratorio 3D",
+       "url": "#eee/vivienda/tablero"
+      }
+     ],
+     "estado": "publicado",
+     "nuevo": true
+    }
+   ]
+  },
+  {
+   "id": "t03-bloque-2-conmutacion-y-compone",
+   "nombre": "BLOQUE 2. Conmutación y componentes.",
+   "items": [
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.01",
+     "tipo": "material",
+     "titulo": "B2. Tema 4,5 y 6: Presentación y Libro",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.02",
+     "tipo": "material",
+     "titulo": "B2. Preguntas Imprescindibles. Tema 4,5,6",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.03",
+     "tipo": "cuestionario",
+     "titulo": "B2. Cuestionario. Tema 5.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.04",
+     "tipo": "cuestionario",
+     "titulo": "B2. Cuestionario - Tema 6.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.05",
+     "tipo": "tarea",
+     "titulo": "Mi Chuletario de Simbología Electrónica",
+     "estado": "borrador",
+     "instrucciones": "¿Para que es esta tarea?.\nServirá como tu ‘chuletario’ personal de simbología.\nCrearás un documento digital editable donde recopilarás todos los símbolos y nombres de los componentes que vayamos viendo en clase.\nInstrucciones:1 :\nCrea una tabla( en un documento de Google Docs).\nInserta una tabla de 2 columnas y varias filas.\nEncabezado de las columnas:\nNombre del componente y Símbolo electrónico.2: Completa las filas con los símbolos que ya conocemos hasta ahora.\nInterruptor; Pulsador; Conmutador; Lámpara; Resistencia fija; Potenciómetro; Condensador (polarizado y no polarizado); Bobina o inductancia; Transformador3: Inserta las imágenes (puedes hacer captura de pantalla para insertarlas en el doc).",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.06",
+     "tipo": "tarea",
+     "titulo": "B2. Tarea 0. Detectives eléctricos(“Documento a mano”)",
+     "estado": "borrador",
+     "instrucciones": "Lee atentamente el tema 4 en tu libro.\nTodas las respuestas se encuentran en el libro, no hace falta usar internet. FASE 1: Comprensión e investigación (solo con el libro) A.\nElementos de conmutación¿Qué son los elementos de conmutación y para qué sirven?¿Cómo se clasifican los elementos de conmutación?¿Qué significa “modo de accionamiento”?¿Qué es un pulsador y cómo funciona?¿Qué diferencia hay entre un pulsador y un interruptor?¿Qué tipos de pulsadores existen según su montaje?¿Qué tipos de interruptores hay según su forma (palanca, deslizante, rotativo…)?¿Qué significan las siglas SPST, SPDT y DPDT?¿Qué indican el número de polos y vías de un conmutador?¿Qué características eléctricas se deben tener en cuenta (tensión y corriente de trabajo)?¿Por qué es importante conocer esas características antes de usar un elemento? B.\nCircuitos de conmutación¿Qué es un circuito básico de conmutación?¿Qué es un punto de luz simple y qué elemento lo controla?¿Cómo se conecta una lámpara conmutada para poder encenderla desde dos lugares distintos?¿Qué es un encendido alternativo de lámparas?¿Qué función tiene un interruptor de final de carrera?¿Cómo se puede invertir el sentido de giro de un motor? ¿Qué tipo de conmutador se usa? C.\nElementos de protección¿Por qué es necesario proteger los circuitos eléctricos?¿Qué tipos de sobrecorriente existen?¿Qué es un fusible y cómo funciona?¿Cómo se comprueba si un fusible está fundido?¿Qué es un fusible térmico y en qué aparatos se utiliza?¿Qué es una sobretensión y qué peligro tiene?¿Qué es un varistor y cómo actúa ante una sobretensión?¿Cómo se comprueba el estado de un varistor con un polímetro?FASE 2: Creación visual y exposiciónUna vez completado el resumen y comprendido el tema:\nCrea una presentación en Canva titulada ‘Elementos de Conmutación y Protecciones – [tu nombre o grupo]’con mínimo 15 diapositivas, que incluyan:\nDefiniciones y funciones; Símbolos eléctricos; Esquemas de conexión; Fotografías de cada componente (pueden ser del libro o buscadas online); Ejemplos de uso real.\nExposición oral en clase.\nExpón el trabajo con tu compañero (equipo de 2) (5–8 minutos).\nTodos los miembros del grupo deben participar.\nUsa vocabulario técnico y explica con claridad.\nEntrega:\nComparte el enlace de Canva (modo ‘ver’) o descarga el trabajo en PDF y súbelo aquí en Classroom.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.07",
+     "tipo": "tarea",
+     "titulo": "B2. Tarea 1. Detectives eléctricos(“Canva”)",
+     "estado": "borrador",
+     "instrucciones": "Canva realizado en la tarea 0 de este bloque 2.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.08",
+     "tipo": "tarea",
+     "titulo": "B2. Tarea 2. Preguntas imprescindibles del tema.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.09",
+     "tipo": "tarea",
+     "titulo": "B2. Tarea 3. - Resistencias 5 colores",
+     "estado": "borrador",
+     "instrucciones": "Resuelve las RESISTENCIAS mirando el código de colores adjunto.\nPosteriormente comprueba los resultados con la calculadora en la siguiente web:",
+     "enlaces": [
+      {
+       "titulo": "digikey.es",
+       "url": "https://www.digikey.es/es/resources/conversion-calculators/conversion-calculator-resistor-color-code?_gl=1*za355k*_up*MQ..&gclid=EAIaIQobChMIs-uepZu3kAMVbAYGAB28uh18EAAYASAAEgJkW_D_BwE&gclsrc=aw.ds&gbraid=0AAAAADrbLliLeNdRRL7bMoyDQMpJlGbtE"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.10",
+     "tipo": "tarea",
+     "titulo": "B2. Tarea 4. Preguntas imprescindibles del tema 5.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.11",
+     "tipo": "tarea",
+     "titulo": "B2. Tarea 5. - Condensadores e inductores.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.12",
+     "tipo": "tarea",
+     "titulo": "B2. Tarea 6. Preguntas imprescindibles del tema 6.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.13",
+     "tipo": "tarea",
+     "titulo": "B2. Tarea 7. Investigación electrodomésticos",
+     "estado": "borrador",
+     "instrucciones": "¿De que trata la tarea?.\nIdentificar y explicar los componentes electrónicos pasivos y activos, y los elementos de conmutación y protección en un dispositivo real.¿Como se hace?\nEn esta tarea vais a investigar y analizar un dispositivo que tengáis en casa, para conocer cómo funcionan sus componentes electrónicos y elementos de conmutación y protección.\nVamos a usar Google Docs para eso.\nTenéis que seguir los siguientes pasos:\nPaso 1: Elegid TRES dispositivo cotidianoElegid 3 dispositivo sencillo que uséis en casa o conozcáis bien (ejemplos: lámpara, regleta con interruptor, ventilador, tostadora, microondas o secador de pelo).\nPaso 2: Buscad imágenes e informaciónBuscad imágenes donde se vea el interior y el esquema eléctrico del dispositivo, usando Internet.\nPaso 3: Completad la plantilla de trabajo en Google DocsTenéis la plantilla que debéis completar con la información que busquéis y vuestro análisis.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.14",
+     "tipo": "tarea",
+     "titulo": "P2. Práctica 2. Tinkercad - Circuito 5",
+     "estado": "borrador",
+     "instrucciones": "Realiza un circuito electrónico en TINKERCAD con dos interruptores, un diodo verde y uno azul junto a sus respectivas resistencias.\nDebe hacer lo siguiente:\nEl primer interruptor debe encender la luz verdeEl segundo interruptor debe encender la verde y la azul",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.15",
+     "tipo": "tarea",
+     "titulo": "P2. Práctica 2. Tinkercad - Circuito 6",
+     "estado": "borrador",
+     "instrucciones": "Diseña un circuito que encienda un mismo LED AMARILLO accionado por tres interruptores distintos",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.16",
+     "tipo": "tarea",
+     "titulo": "P2. Práctica 2. Tinkercad - Circuito 7",
+     "estado": "borrador",
+     "instrucciones": "Realiza un circuito electrónico en TINKERCAD con tres interruptores, un diodo verde, uno rojo y uno azul, junto a sus respectivas resistencias.\nDebe hacer lo siguiente:\nEl primer interruptor debe encender la luz verde y rojaEl segundo interruptor debe encender la roja y la azulEl tercer interruptor debe apagar todo",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.17",
+     "tipo": "tarea",
+     "titulo": "B2. Práctica 2. TinkerCad - Circuito 8.",
+     "estado": "borrador",
+     "instrucciones": "Circuito consiste en Pulsador + condensador = luz retardadaComponentes: • 1 pila (Battery 9V) • 1 LED • 1 resistencia (220Ω o similar) • 1 pulsador (Button) • 1 condensador (100 µF)Objetivo: entender cómo un condensador almacena energía y retrasa el apagado del LED.\nPasos: 1. Crea un nuevo circuito. 2. Coloca la pila, el LED y la resistencia como en el circuito anterior. 3. Añade el pulsador en serie, entre la pila y la resistencia. 4. Coloca un condensador en paralelo con el LED (un pie del condensador junto al LED positivo, el otro al LED negativo). 5. Inicia la simulación. 6. Mantén pulsado el botón: el LED se enciende; suéltalo: el LED tarda un poco en apagarse (porque el condensador se descarga).",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t03-bloque-2-conmutacion-y-compone.18",
+     "tipo": "tarea",
+     "titulo": "B2. Práctica 2. TinkerCad - Circuito 9.",
+     "estado": "borrador",
+     "instrucciones": "Circuito:\nControl de brillo con potenciómetroComponentes: • 1 pila (Battery 9V) • 1 potenciómetro • 1 resistencia (220Ω) • 1 LEDObjetivo: aprender a variar la intensidad del LED cambiando la resistencia.\nPasos: 1. Crea un nuevo circuito. 2. Coloca la pila, una resistencia y un LED en serie. 3. Sustituye la resistencia por un potenciómetro (usa el componente ‘Potentiometer’). 4. Conecta los terminales laterales del potenciómetro a la pila y el central al LED. 5. Inicia la simulación. 6. Gira el mando del potenciómetro y observa cómo el brillo del LED cambia.\nConclusión: el potenciómetro controla la cantidad de corriente como un ‘volumen de luz’.",
+     "enlaces": [],
+     "real": true
+    }
+   ]
+  },
+  {
+   "id": "t04-bloque-3-motores-electrodomest",
+   "nombre": "BLOQUE 3. Motores & Electrodomésticos",
+   "items": [
+    {
+     "id": "t04-bloque-3-motores-electrodomest.01",
+     "tipo": "material",
+     "titulo": "B3. Presentación- Libro T8, T9.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t04-bloque-3-motores-electrodomest.02",
+     "tipo": "cuestionario",
+     "titulo": "B3. CUESTIONARIO Tema 8.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-bloque-3-motores-electrodomest.03",
+     "tipo": "cuestionario",
+     "titulo": "B3. CUESTIONARIO Tema 9.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-bloque-3-motores-electrodomest.04",
+     "tipo": "tarea",
+     "titulo": "B3. Preguntas imprescindibles. Tema 8",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-bloque-3-motores-electrodomest.05",
+     "tipo": "tarea",
+     "titulo": "B3. Preguntas imprescindibles Tema 9",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-bloque-3-motores-electrodomest.06",
+     "tipo": "tarea",
+     "titulo": "B3. Tarea 1. Motores",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-bloque-3-motores-electrodomest.07",
+     "tipo": "tarea",
+     "titulo": "B3. Tarea 2. Electrodomésticos",
+     "estado": "borrador",
+     "instrucciones": "Desarrolla un trabajo con GOOGLE SITES que contenga los siguientes puntos como mínimo:- Descripción y fotos del elemento- Partes fundamentales- Esquema de bloques de su circuito- Potencia y consumo de energía- Cómo se gestiona su recicladoReparto del trabajo: (reparto en clase)Basureros tecnológicos - Gestión de residuos - Impacto social y medio ambiental de la fabricación -",
+     "enlaces": [],
+     "real": true,
+     "nota": "Se quitaron nombres de alumnos de las instrucciones."
+    },
+    {
+     "id": "t04-bloque-3-motores-electrodomest.08",
+     "tipo": "tarea",
+     "titulo": "B3. Tarea 3. Compara, comprende y explica los motores eléctricos”",
+     "estado": "borrador",
+     "instrucciones": "Instrucciones:\nBúsqueda del vídeo:\nBusca en YouTube un vídeo corto y sencillo sobre cada tipo de motor:\nMotor de corriente continua (CC); Motor universal; Motor monofásico de inducción; Motor sin escobillas (brushless).\nAnálisis y comparación:\nObserva atentamente cada vídeo y compara la información con lo que aparece en el Tema 8 del libro.\nAnota las coincidencias y diferencias más importantes (por ejemplo: partes del motor, tipo de corriente, uso o aplicación en electrodomésticos).\nResume cada tipo de motor con tus propias palabras en una tabla o esquema.\nPreparación de la explicación:\nCon la información del libro y del vídeo, prepara una explicación breve (30–40 segundos) de cada tipo de motor, como si tú fueras el profesor.\nEnsáyala con tu compañero/a para practicar la expresión técnica.\nReto PARA superar el trabajo...\nSe corrige el siguiente día:\nEn parejas, cada alumno deberá decir una afirmación corta relacionada con alguno de los motores (por ejemplo: ‘Este motor no tiene escobillas y se controla electrónicamente’).\nSu compañero deberá responder indicando de qué motor se trata y por qué, justificando su respuesta delante del profesor.\nCada alumno será evaluado de forma individual, valorando la comprensión, el uso del vocabulario técnico y la claridad en la explicación.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t04-bloque-3-motores-electrodomest.09",
+     "tipo": "tarea",
+     "titulo": "B3. Tarea 4. Inventamos Electrodomésticos.",
+     "estado": "borrador",
+     "instrucciones": "¿Qué vamos hacer?\nCada alumno deberá inventar dos electrodomésticos nuevos, inspirados en los reales pero con funciones innovadoras o futuristas.\nPara cada invento deberás incluir:\nNombre del electrodoméstico.(Ejemplo:\nAquaDry 5000, CaféDrone, CleanBot X2…)Línea o categoría a la que pertenece.(Usa la clasificación vista en clase:\nDescripción general.\nExplica brevemente qué hace y qué problema soluciona.\nEjemplo: ‘El AquaDry 5000 seca la ropa con ultrasonidos, reduciendo el consumo energético.’Público objetivo.¿A quién está dirigido? (familias, estudiantes, personas mayores, deportistas, etc.)Funcionamiento técnico.\nDescribe cómo actúa paso a paso:¿Qué sensores o elementos intervienen?¿Cómo se activa y controla el proceso?¿Qué energía utiliza?\nComponentes utilizados (mínimo\n3)Elige elementos reales estudiados y explica su papel ( HAY QUE ASOCIAR CADA ELEMENTO A LA PREGUNTA IMPRESCINCINDIBLE DEL TEMA):\nFiltro de red; Blocapuertas; Timer / programador; Presostato; Termostato; Caudalímetro; Electroválvula; Elemento de caldeo → Motivo del diseño.\nExplica por qué lo has diseñado así:\n¿qué necesidad detectaste?\n¿qué mejora aporta respecto a los electrodomésticos actuales?\nEsquema o dibujo.\nRealiza un boceto o crea una imagen en Canva y la idea del electrodoméstico en una presentación CANVA.\nIndica visualmente dónde están los principales componentes.",
+     "enlaces": [],
+     "real": true
+    }
+   ]
+  },
+  {
+   "id": "t05-sa1-laboratorio-electrico-tron",
+   "nombre": "SA1. “LABORATORIO Eléctrico/tronico”..",
+   "items": [
+    {
+     "id": "t05-sa1-laboratorio-electrico-tron.01",
+     "tipo": "tarea",
+     "titulo": "PRÁCTICA LABORATORIO 1 — Uso del multímetro y comprobación de componentes",
+     "estado": "borrador",
+     "instrucciones": "Aprender a utilizar el multímetro:\nInstrucciones de la práctica..1. Tienes que :\nMedir continuidad con un multímetro.\nMedir resistencia (Ω).\nMedir tensión (V) en corriente continua.\nCómo saber la polaridad de un LED.\nTendrás que incorporar un tutorial con capturas de como se hace, ve anotando todo. 2. Mediciones obligatorias (multímetro en mano)Medición A — Tensión de una pilaMide la tensión real de una pila AA, AAA o una pila de 9V.\nAnota el resultado.\nHaz una foto del multímetro marcando la medida.\nMedición B — ContinuidadPrueba continuidad en:\nUn cableSi pita :hay continuidad.\nSi no : circuito abierto.\nFoto del multímetro + resultado.\nMedición C — ResistenciaMide la resistencia de una resistencia real ( Te la doy yo).\nFoto midiendo + valor obtenido.\nMedición D — Polaridad de un LEDUsa el multímetro para localizar el ánodo y el cátodo.\nLuego verifica conectando el LED brevemente a una pila (con resistencia si es posible).\nFoto del LED en prueba.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t05-sa1-laboratorio-electrico-tron.02",
+     "tipo": "tarea",
+     "titulo": "PRÁCTICA LABORATORIO 2 — Montaje de circuitos en serie y en paralelo",
+     "estado": "borrador",
+     "instrucciones": "Material necesario (Tenéis que venir a mi mesa): 1 pila (AA/AAA o 9V); 1 portapilas (si lo tienes); 1 protoboard; 2 LED; 2 resistencias (220 Ω – 330 Ω ideal); Cables macho–macho. 1. Antes de empezar (revisión)Tendrás que demostrar que sabes usar lo aprendido en la Práctica 1: Identificar la polaridad del LED; Seleccionar correctamente el rango de tensión (V DC); Medir continuidad en cables; Comprobar resistencias con el multímetro.\nEstas comprobaciones deben quedar anotadas en tu documento antes de montar los circuitos. 2. CIRCUITO 1— Montaje en SERIE.\nMontajeConecta la pila → resistencia(IMPORTANTE PARA NO QUEMAR EL LED) → LED 1 → LED 2 → vuelta a la pila.\nRespeta la polaridad de cada LED.\nUsa el protoboard para ordenar el circuito.\nTareas obligatoriasA.\nFoto del montaje completoEl circuito debe verse claramente. 3. CIRCUITO 2 — Montaje en PARALELO.\nObjetivoEntender cómo se reparten la corriente y la tensión cuando cada LED tiene ‘su propio camino’.\nMontaje:\nConecta la pila al protoboard.\nDesde positivo y negativo crea dos ramas, cada una con:resistencia y LEDQuedaría como:\nPila → (ramal A: resistencia + LED\n1)Pila → (ramal B: resistencia + LED\n2)Tareas obligatorias:A.\nFoto del montaje completoB.\nMedición de tensión en paraleloD.\nPreguntas de análisis.\nUtiliza la plantilla de la práctica 1.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t05-sa1-laboratorio-electrico-tron.03",
+     "tipo": "tarea",
+     "titulo": "PRÁCTICA LABORATORIO 3. Pulsador",
+     "estado": "borrador",
+     "instrucciones": "Material necesario (Tenéis que venir a mi mesa): 1 pila (AA/AAA o 9V); 1 protoboard; 2 LED; 2 resistencias (220 Ω – 330 Ω ideal); Cables macho–macho; Pulsador. 2. CIRCUITO 1— Montaje en SERIE.\nComprender cómo se comporta la corriente cuando varios elementos están uno detrás de otro, ‘en fila india’.\nMontajeConecta la pila →Pulsador → resistencia → LED 1 → LED 2 → vuelta a la pila.\nRespeta la polaridad de cada LED.\nUsa el protoboard para ordenar el circuito.\nTareas obligatoriasA.\nFoto del montaje completoEl circuito debe verse claramente. 3. CIRCUITO 2 — Montaje en PARALELO.\nObjetivoHay que realizar lo mismo que circuito uno pero en paralelo y con el pulsador.\nMontaje:\nConecta la pila al protoboard.\nDesde positivo y negativo crea dos ramas, cada una con:resistencia y LEDQuedaría como:\nPila →Pulsador → (ramal A: resistencia + LED 1) (ramal B: resistencia + LED\n2)Tareas obligatorias:A.\nFoto del montaje completoB.\nMedición de tensión en paralelo.\nUtiliza la plantilla de la práctica 1.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t05-sa1-laboratorio-electrico-tron.04",
+     "tipo": "tarea",
+     "titulo": "PRÁCTICA LABORATORIO 4 — Uso de potenciometro y condensador",
+     "estado": "borrador",
+     "instrucciones": "Material necesario (Tenéis que venir a mi mesa): 1 pila (AA/AAA o 9V); 1 protoboard; 2 LED; 2 resistencias (220 Ω – 330 Ω ideal); Cables macho–macho; Potenciometro; Condensador. 1. Antes de empezar (revisión)Tendrás que demostrar que sabes usar lo aprendido en la Práctica 1: Identificar la polaridad del LED; Seleccionar correctamente el rango de tensión (V DC); Medir continuidad en cables; Comprobar resistencias con el multímetro.\nEstas comprobaciones deben quedar anotadas en tu documento antes de montar los circuitos. 2. CIRCUITO 1— Montaje en SERIE.\nMontajeConecta:\nPila → Potenciómetro (terminal central como salida) → Resistencia → LED 1 → LED 2 → vuelta a la pila.A.\nFoto del montaje completoEl circuito debe verse claramente. 3. CIRCUITO 2 — PARALELO con CONDENSADOR (Efecto de retardo).\nObjetivoEntender cómo funciona un circuito en paralelo y observar un efecto real:\nEl condensador provoca un retardo al encender/apagar el LED.\nMontaje:\nConecta la pila al protoboard (líneas + y –).\nCrea dos ramas:\nUtiliza la plantilla de la práctica 1.",
+     "enlaces": [],
+     "real": true
+    }
+   ]
+  },
+  {
+   "id": "t06-sa2-laboratorio-de-programacio",
+   "nombre": "SA2. “LABORATORIO de programación”",
+   "items": [
+    {
+     "id": "t06-sa2-laboratorio-de-programacio.01",
+     "tipo": "tarea",
+     "titulo": "Práctica 0. Sensores y LED",
+     "estado": "borrador",
+     "instrucciones": "Vais a trabajar ESTA VEZ DE FORMA INDIVIDUAL utilizando el kit zumKIT Junior Advance. (CUIDADO CON EL MATERIAL!!!!!!!!!!).\nEl objetivo de esta práctica es IDENTICO A LAS DEMÁS, Pero esta vez tendréis que montar el kit, con un sensor de proximidad y un led de color.\nLa finalidad, es que cuando se acerque un objeto tendrá que encender la luz y sonar una canción (habrá que personalizar la canción). IGUAL QUE ANTERIORES:\nMemoria de la práctica (Google Docs).\nCada grupo deberá entregar un único documento en Google Docs que incluya:1.Título de la práctica2.Nombres de los componentes del grupo3.Foto clara del montaje realizado4.Explicación sencilla: a)Qué es? b)Cómo funciona c)Qué habéis aprendido en esta práctica.\nImportante: la explicación debe ser con vuestras palabras, clara y ordenada. IA ES SUSPENSO.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t06-sa2-laboratorio-de-programacio.02",
+     "tipo": "tarea",
+     "titulo": "Práctica 1 · Ruleta con zumKIT Junior Advance",
+     "estado": "borrador",
+     "instrucciones": "Vais a trabajar en grupos de 3 personas utilizando el kit zumKIT Junior Advance. (CUIDADO CON EL MATERIAL!!!!!!!!!!).\nEl objetivo de esta práctica es realizar un primer montaje y programación de ejemplo, creando una ruleta electrónica, para empezar a familiarizaros con el kit, las conexiones y el entorno de programación.\nQué tenéis que hacer??\nEntrad en la página oficial de la actividad: https://bitbloq.cc/actividades/ruleta_pruebas Seguid paso a paso el guion de la actividad:\nMontaje del circuitoConexión del kitProgramación en BitbloqCOMPROBACIÓN:\nEl montaje está bien conectadoEl programa funciona correctamenteLa ruleta responde como se esperaCuando funcione, ME TENEIS QUE LLAMAR PARA COMPROBARLO:\nTendréis que demostrar que funcionaExplicar brevemente:\nQué habéis conectadoQué hace el programaPara qué sirve cada parte principal.\nMemoria de la práctica (Google Docs).\nCada grupo deberá entregar un único documento en Google Docs que incluya:1.Título de la práctica2.Nombres de los componentes del grupo3.Foto clara del montaje realizado4.Explicación sencilla: a)Qué es la ruleta b)Cómo funciona c)Qué habéis aprendido en esta práctica.\nImportante: la explicación debe ser con vuestras palabras, clara y ordenada. IA ES SUSPENSO.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t06-sa2-laboratorio-de-programacio.03",
+     "tipo": "tarea",
+     "titulo": "Práctica 2 · TRINEO Junior Advance",
+     "estado": "borrador",
+     "instrucciones": "ais a trabajar en grupos de 3 personas utilizando el kit zumKIT Junior Advance. (CUIDADO CON EL MATERIAL!!!!!!!!!!).\nQué tenéis que hacer??********Lo mismo que la primera práctica pero con el ejemplo de TRINEO de la web. *****Seguid paso a paso el guion de la actividad:\nMontaje del circuitoConexión del kitProgramación en BitbloqCOMPROBACIÓN:\nEl montaje está bien conectadoEl programa funciona correctamenteLa ruleta responde como se esperaCuando funcione, ME TENEIS QUE LLAMAR PARA COMPROBARLO:\nTendréis que demostrar que funcionaExplicar brevemente:\nQué habéis conectadoQué hace el programaPara qué sirve cada parte principal.\nMemoria de la práctica (Google Docs).\nCada grupo deberá entregar un único documento en Google Docs que incluya:1.Título de la práctica2.Nombres de los componentes del grupo3.Foto clara del montaje realizado4.Explicación sencilla: a)Qué es? b)Cómo funciona c)Qué habéis aprendido en esta práctica.\nImportante: la explicación debe ser con vuestras palabras, clara y ordenada. IA ES SUSPENSO.",
+     "enlaces": [],
+     "real": true
+    }
+   ]
+  },
+  {
+   "id": "t07-sa3-proyecto-diseno-del-sistem",
+   "nombre": "SA3. Proyecto: Diseño del sistema eléctrico de una maqueta de extracción de crudo",
+   "items": [
+    {
+     "id": "t07-sa3-proyecto-diseno-del-sistem.01",
+     "tipo": "material",
+     "titulo": "PRESENTACION SA",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t07-sa3-proyecto-diseno-del-sistem.02",
+     "tipo": "tarea",
+     "titulo": "SA. PASO 0. Investigación de una máquina de bombeo.",
+     "estado": "borrador",
+     "instrucciones": "¿?\nQué haremos en este proyecto (SA)¿?.\nEn estas actividades vas a diseñar SOLO el sistema eléctrico que permitiría hacer funcionar una maqueta que simula la extracción de petróleo para la asignatura de proyecto.\nTu trabajo consistirá en:\nDiseñar un circuito eléctrico funcional usando Tinkercad; Hacer que un motor gire simulando el sistema de bombeo; Controlar el sistema con interruptores o pulsadores; Indicar con LEDs cuándo el sistema está en funcionamiento; Explicar cómo la parte eléctrica hace funcionar la parte mecánica.\nEn esta fase NO se monta el circuito real, solo se diseña, simula y justifica.\nMás adelante, se comprarán los materiales para construirlo físicamente.PASOS QUE TIENES QUE SEGUIR (UNO A UNO, cada actividad un paso..):\n\nPASO 0 — INVESTIGACIÓN PREVIA: ¿CÓMO FUNCIONA LA EXTRACCIÓN? (OBLIGATORIO).\nEste paso sirve para conectar la mecánica con la electricidad.\nAntes de usar Tinkercad, debes investigar cómo funciona una máquina real de extracción de crudo.\nQué tienes que buscar:\nCómo es una bomba de extracción de petróleo; Qué partes mecánicas intervienen; Cómo se transforma el giro de un motor en un movimiento de bombeo.\nEjemplos de mecanismos que debes identificar:\nSistema biela–manivela; Eje giratorio; Pistón; Varilla de bombeo; Poleas o engranajes. ¿Qué tienes que entregar?:\nUn pequeño apartado escrito en google docs donde expliques:\nQué mecanismo se usa para extraer el crudo; Qué tipo de movimiento produce (giro - subida y bajada); Cómo se podría representar ese movimiento en una maqueta.\nEn el documento hay que explicar paso a paso el funcionamiento del movimiento de la maquina para la extracción y posteriormente asociar la parte eléctrica con la mecánica. ES OBLIGATORIO Incluir imagenes, tiene que ser un manual.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t07-sa3-proyecto-diseno-del-sistem.03",
+     "tipo": "tarea",
+     "titulo": "SA. PASO 1: Funcionamiento eléctrico.",
+     "estado": "borrador",
+     "instrucciones": "Vas a diseñar y simular un sistema eléctrico completo que permita hacer funcionar un sistema de bombeo, como el utilizado en la extracción de crudo, utilizando únicamente los componentes eléctricos indicados.\nEl objetivo es que el sistema:\nFuncionamiento un motor que represente la bomba; Indicación visual si el sistema está funcionando o no.; Regulador de velocidad del motor.\nEste diseño se realizará en simulación, pero debe estar pensado para poder montarse más adelante de forma real. FUNCIONAMIENTO QUE DEBE CUMPLIR TU CIRCUITO:\nTu circuito debe cumplir exactamente las siguientes condiciones de funcionamiento:1) El sistema se alimenta mediante una pila, que suministra corriente a la protoboard.2)Un interruptor general permite encender y apagar todo el sistema.3)Cuando el sistema está encendido:\nEl motor gira, simulando el bombeo; Se enciende un LED verde, indicando que el sistema está en funcionamiento.4)Cuando el sistema está apagado:\nEl motor no gira; Se enciende un LED rojo, indicando que el sistema está detenido.5) El circuito debe incluir una resistencia para proteger los LEDs.6)El circuito debe incluir un potenciómetro que permita variar la velocidad del motor, simulando un mayor o menor caudal de bombeo.\nNo se permite que el motor esté conectado directamente sin control.¿Qué se entrega?.\nDocumento de texto, explicando paso a paso el montaje del circuito.\nEs decir, en cada paso de montaje del circuito habrá que hacer una captura de pantalla de TinkerCad pegarlo en Docs. y realizar la explicación.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t07-sa3-proyecto-diseno-del-sistem.04",
+     "tipo": "tarea",
+     "titulo": "SA. Paso 2: Proyecto: Mejora del sistema eléctrico de la bomba de extracción",
+     "estado": "borrador",
+     "instrucciones": "En esta fase del proyecto vas a mejorar el circuito eléctrico de la bomba de extracción de crudo que ya tienes diseñado en Tinkercad, incorporando elementos de control y protección propios de una instalación eléctrica real.\nHasta ahora, el motor de la bomba funcionaba de forma directa.\nEn una instalación real esto no es lo habitual, ya que los motores y sistemas de bombeo no se controlan directamente desde un interruptor, sino mediante elementos intermedios de control y seguridad.\nTu objetivo será rediseñar el circuito para que el motor funcione de forma más segura, controlada y realista. FUNCIONAMIENTO QUE DEBE TENER EL SISTEMA:\nTu circuito debe comportarse de la siguiente manera:a) La pila alimenta la protoboard y proporciona energía a todo el sistema.b) El interruptor general no alimenta directamente al motor, sino que:\nDa una orden de encendido al circuito de control.c) Esa orden de encendido activa un transistor NPN, que actúa como un interruptor electrónico.d) Cuando el transistor se activa:\nPermite el paso de corriente hacia el motor; El motor comienza a girar, simulando el sistema de bombeo de crudo.e) Cuando el motor está funcionando:\nSe enciende un LED verde, indicando que el sistema está en marcha.f) Cuando el sistema está apagado:\nEl motor no gira; El LED verde está apagado; El LED rojo indica que el sistema está detenido.g) El circuito debe incluir un potenciómetro que permita variar la velocidad del motor, simulando un mayor o menor caudal de bombeo.h) El circuito debe incluir un diodo colocado de forma adecuada para:\nProteger el transistor y el circuito cuando el motor se apaga; Evitar daños producidos por picos de tensión del motor.¿Qué se entrea¿?¿? :\nDocumento ‘tutorial’, como el PASO1.",
+     "enlaces": [],
+     "real": true
+    }
+   ]
+  },
+  {
+   "id": "t08-recuperacion-por-bloques",
+   "nombre": "RECUPERACIÓN POR BLOQUES",
+   "items": [
+    {
+     "id": "t08-recuperacion-por-bloques.01",
+     "tipo": "tarea",
+     "titulo": "Recuperación Bloque 1. 1er Trimestre.",
+     "estado": "borrador",
+     "instrucciones": "Entrega completa del archivo.\nEn clase, se proporcionará tiempo para que hagáis los ejercicios y lo entreguéis.\nPosteriormente habrá una prueba escrita.\nSí se detecta el uso de IA, la puntuación de la prueba será un 0. El examen sobre los ejercicios será el Lunes 15.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t08-recuperacion-por-bloques.02",
+     "tipo": "tarea",
+     "titulo": "Recuperación Bloque 2. 1er Trimestre.",
+     "estado": "borrador",
+     "instrucciones": "Entrega completa del archivo.\nEn clase, se proporcionará tiempo para que hagáis los ejercicios y lo entreguéis.\nPosteriormente habrá una prueba escrita.\nSí se detecta el uso de IA, la puntuación de la prueba será un 0. El examen sobre los ejercicios será el Lunes 15.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t08-recuperacion-por-bloques.03",
+     "tipo": "tarea",
+     "titulo": "Recuperación Bloque 3. 2 Trimestre.",
+     "estado": "borrador",
+     "instrucciones": "Sí se detecta IA la nota es 0.El examen sobre los ejercicios será el Miércoles 17.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t08-recuperacion-por-bloques.04",
+     "tipo": "tarea",
+     "titulo": "Recuperación Laboratorio Robótica",
+     "estado": "borrador",
+     "instrucciones": "Para recuperar de forma práctica habrá que volver a hacer cada práctica de robótica.\nCuando se termine cada práctica, se revisará el funcionamiento y habrá que hacer la memoria de cada una, igual que la práctica inicial.\nMisma rubrica para la corrección.",
+     "enlaces": [],
+     "real": true
+    },
+    {
+     "id": "t08-recuperacion-por-bloques.05",
+     "tipo": "tarea",
+     "titulo": "Recuperación Laboratorio de electrónica",
+     "estado": "borrador",
+     "instrucciones": "Para recuperar de forma práctica habrá que volver a hacer cada práctica del laboratorio de electrónica.\nCuando se termine cada práctica, se revisará el funcionamiento , y habrá que hacer la memoria de cada una, igual que la práctica inicial.\nMisma rubrica para la corrección.",
+     "enlaces": [],
+     "real": true
+    }
+   ]
+  }
+ ]
+}

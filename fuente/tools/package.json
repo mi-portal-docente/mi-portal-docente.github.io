@@ -1,0 +1,32 @@
+{
+  "name": "tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build:app && npm run build:portal && npm run build:placa",
+    "build:app": "esbuild src/main.js --bundle --minify --loader:.ino=text --outfile=../../js/app.js",
+    "build:portal": "esbuild src/portal/main.js --bundle --minify --format=iife --target=es2019 --legal-comments=linked --outfile=../../js/portal-fb.js",
+    "build:placa": "esbuild src/placa/main.js --bundle --minify --format=iife --target=es2020 --legal-comments=linked --outfile=../../js/placa.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "blockly": "^13.4.0",
+    "codemirror": "^6.0.2",
+    "esbuild": "^0.28.2",
+    "esptool-js": "^0.7.1",
+    "firebase": "^13.2.0",
+    "playwright-core": "^1.65.0",
+    "spark-md5": "^3.0.2",
+    "three": "^0.170.0"
+  }
+}

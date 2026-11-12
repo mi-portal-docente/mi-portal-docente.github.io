@@ -1,0 +1,304 @@
+{
+ "formato": "portal-docente/classroom@1",
+ "asignatura": "proy2",
+ "clase": "Proyecto 2º CFGB — 2ªCFGB 26/27",
+ "cursoEscolar": "26/27",
+ "fuente": "Copia de solo lectura de «Trabajo de clase» de Google Classroom (contenido_PROYECTO_2627.md). Mismo orden de temas y elementos; los borradores siguen en borrador.",
+ "temas": [
+  {
+   "id": "sin-tema",
+   "nombre": "Sin tema",
+   "sinTema": true,
+   "items": [
+    {
+     "id": "sin-tema.01",
+     "tipo": "material",
+     "titulo": "Enlace clases",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    }
+   ]
+  },
+  {
+   "id": "t01-evaluacion-inicial",
+   "nombre": "Evaluación Inicial",
+   "items": [
+    {
+     "id": "t01-evaluacion-inicial.01",
+     "tipo": "tarea",
+     "titulo": "Evaluación inicial.",
+     "estado": "publicado",
+     "fechaEntrega": "2026-09-25T12:00",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    }
+   ]
+  },
+  {
+   "id": "t02-sa-1-de-la-idea-al-proyecto",
+   "nombre": "SA 1. De la idea...al proyecto",
+   "items": [
+    {
+     "id": "t02-sa-1-de-la-idea-al-proyecto.01",
+     "tipo": "material",
+     "titulo": "Presentación SA1",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t02-sa-1-de-la-idea-al-proyecto.02",
+     "tipo": "tarea",
+     "titulo": "SA1. Tarea 1. Investigación: ¿Qué es un proyecto?",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-02T10:00",
+     "puntos": 100,
+     "enlaces": [
+      {
+       "titulo": "2627_PIAC_SA1_T0_Que_es_un_proyecto_v2.docx",
+       "url": "https://drive.google.com/file/d/1j5nmQHboSbszR1qini8OCh64O5pTCO2V/view?usp=classroom_web",
+       "tipo": "Microsoft Word"
+      }
+     ],
+     "real": true
+    },
+    {
+     "id": "t02-sa-1-de-la-idea-al-proyecto.03",
+     "tipo": "tarea",
+     "titulo": "SA1. Tarea 2. Detectives del cole: exploramos nuestro entorno y buscamos ideas de mejora",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-30T23:59",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t02-sa-1-de-la-idea-al-proyecto.04",
+     "tipo": "tarea",
+     "titulo": "SA1. Tarea 3. El comercial: busca información y normas",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega. En Classroom la entrega aparecía como fecha relativa («Mañana, 8:00»): pon el día exacto."
+    },
+    {
+     "id": "t02-sa-1-de-la-idea-al-proyecto.05",
+     "tipo": "tarea",
+     "titulo": "SA1. Tarea 4. Empresa espejo: copia una empresa, investiga, organiza y crea tu versión",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t02-sa-1-de-la-idea-al-proyecto.06",
+     "tipo": "tarea",
+     "titulo": "SA1. Tarea 5. Jefe por un día: Central de Servicios, planifica 2 semanas como gestor",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t02-sa-1-de-la-idea-al-proyecto.07",
+     "tipo": "tarea",
+     "titulo": "SA 1: Proyecto final. CREA TU EMPRESA DE CHIPS IA: TU SPIN-OFF TECNOLÓGICA”",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  },
+  {
+   "id": "t03-sa2-proyecto-para-expoeduca",
+   "nombre": "SA2. “Proyecto para Expoeduca\"",
+   "items": [
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.01",
+     "tipo": "tarea",
+     "titulo": "Propuesta Proyecto EXPOEDUCA",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.02",
+     "tipo": "material",
+     "titulo": "Presentación Proyecto.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.03",
+     "tipo": "tarea",
+     "titulo": "SA 2. Proyecto. Fase 1: DEL CRUDO A LA ENERGÍA. Investigación inicial del proyecto de la refinería",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.04",
+     "tipo": "tarea",
+     "titulo": "SA 2. Proyecto. Completar Fase 1",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.05",
+     "tipo": "tarea",
+     "titulo": "SA 2. Proyecto. Recuperación Fase 1: Volver hacer la tarea de la semana anterior.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.06",
+     "tipo": "tarea",
+     "titulo": "SA 2. Proyecto.Fase 2: PLANIFICACIÓN DE NUESTRO PROYECTO PETRÓLEO EN ACCIÓN",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.07",
+     "tipo": "tarea",
+     "titulo": "SA 2. Proyecto. Fase 3. ¡CONSTRUIMOS LA MAQUETA!",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.08",
+     "tipo": "tarea",
+     "titulo": "SA2. PROYECTO FINAL",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa2-proyecto-para-expoeduca.09",
+     "tipo": "tarea",
+     "titulo": "Folleto Informativo.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  },
+  {
+   "id": "t04-sa3-conoce-tu-empresa",
+   "nombre": "SA3. Conoce tu empresa",
+   "items": [
+    {
+     "id": "t04-sa3-conoce-tu-empresa.01",
+     "tipo": "tarea",
+     "titulo": "SA3.Tarea 1. Conoce tu empresa.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-conoce-tu-empresa.02",
+     "tipo": "tarea",
+     "titulo": "SA3. Tarea 2: Conoce tu empresa",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-conoce-tu-empresa.03",
+     "tipo": "tarea",
+     "titulo": "SA3. Ficha 3. Conoce tu empresa",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-conoce-tu-empresa.04",
+     "tipo": "tarea",
+     "titulo": "SA3. Tarea 4 - Conoce tu empresa",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-conoce-tu-empresa.05",
+     "tipo": "tarea",
+     "titulo": "SA3. Ficha 5 - Conoce tu empresa",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-conoce-tu-empresa.06",
+     "tipo": "tarea",
+     "titulo": "SA 3. PROYECTO FINAL - MI EMPRESA COMPETENCIA",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  },
+  {
+   "id": "t05-recuperacion",
+   "nombre": "RECUPERACIÓN",
+   "items": [
+    {
+     "id": "t05-recuperacion.01",
+     "tipo": "tarea",
+     "titulo": "Recuperación 2ª Evaluación SA2. Maqueta empresa electricidad.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  }
+ ]
+}

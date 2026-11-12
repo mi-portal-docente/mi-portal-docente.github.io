@@ -1,0 +1,332 @@
+{
+ "formato": "portal-docente/classroom@1",
+ "asignatura": "cdpc1",
+ "clase": "Creación digital y pensamiento computacional — 1ºBACH 2026/27",
+ "cursoEscolar": "26/27",
+ "fuente": "Copia de solo lectura de «Trabajo de clase» de Google Classroom (contenido_CDPC_2627.md). Mismo orden de temas y elementos; los borradores siguen en borrador.",
+ "temas": [
+  {
+   "id": "sin-tema",
+   "nombre": "Sin tema",
+   "sinTema": true,
+   "items": [
+    {
+     "id": "sin-tema.01",
+     "tipo": "material",
+     "titulo": "Enlace para clases",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    }
+   ]
+  },
+  {
+   "id": "t01-evaluacion-inicial-presentacio",
+   "nombre": "Evaluación Inicial - Presentación",
+   "items": [
+    {
+     "id": "t01-evaluacion-inicial-presentacio.01",
+     "tipo": "material",
+     "titulo": "Presentación",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t01-evaluacion-inicial-presentacio.02",
+     "tipo": "tarea",
+     "titulo": "Evaluación inicial.",
+     "estado": "publicado",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t01-evaluacion-inicial-presentacio.03",
+     "tipo": "tarea",
+     "titulo": "Conocimiento Previos",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  },
+  {
+   "id": "t02-sa-1-el-futuro-es-ia",
+   "nombre": "SA 1. El futuro es IA.",
+   "items": [
+    {
+     "id": "t02-sa-1-el-futuro-es-ia.01",
+     "tipo": "tarea",
+     "titulo": "SA1. Tarea 1: Investigación : ¿Qué es la Inteligencia Artificial?",
+     "estado": "publicado",
+     "fechaEntrega": "2026-10-05T23:55",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t02-sa-1-el-futuro-es-ia.02",
+     "tipo": "tarea",
+     "titulo": "SA1 : Tarea 2 - Keynote IA . Semana del 27",
+     "estado": "publicado",
+     "fechaEntrega": "2026-11-09T14:30",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos."
+    },
+    {
+     "id": "t02-sa-1-el-futuro-es-ia.03",
+     "tipo": "tarea",
+     "titulo": "SA1 : Tarea 3 – Ejercicio guiado de prompting: “Estructura de un buen prompt”",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t02-sa-1-el-futuro-es-ia.04",
+     "tipo": "tarea",
+     "titulo": "SA1 : Tarea 4 – Notion colaborativo: “Calendario vivo de exámenes y estudio”",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t02-sa-1-el-futuro-es-ia.05",
+     "tipo": "tarea",
+     "titulo": "SA1 : Tarea 5 – Crea y edita imágenes con Inteligencia Artificial",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t02-sa-1-el-futuro-es-ia.06",
+     "tipo": "tarea",
+     "titulo": "SA1 : Tarea 6 – Vídeo IA: “Un momento agradable en el cole”",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t02-sa-1-el-futuro-es-ia.07",
+     "tipo": "tarea",
+     "titulo": "SA1 : Proyecto Final. \" Nuestra serie del cole\".",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  },
+  {
+   "id": "t03-sa-2-ciberseguridad",
+   "nombre": "SA 2. CIBERSEGURIDAD",
+   "items": [
+    {
+     "id": "t03-sa-2-ciberseguridad.01",
+     "tipo": "material",
+     "titulo": "Curso Basico. CIBERSEGURIDAD",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t03-sa-2-ciberseguridad.02",
+     "tipo": "tarea",
+     "titulo": "Fase 1. Fundamentos. Tarea 1: ANÁLISIS DE CIBERATAQUE REAL",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa-2-ciberseguridad.03",
+     "tipo": "tarea",
+     "titulo": "Fase 1: Fundamentos. Tarea 2: Análisis CIA - Caso [A/B/C]",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa-2-ciberseguridad.04",
+     "tipo": "tarea",
+     "titulo": "Fase 1: Fundamentos. Tarea 3: Cuestionario Normativa",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa-2-ciberseguridad.05",
+     "tipo": "tarea",
+     "titulo": "FASE 1:TAREA 3. Contestar.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa-2-ciberseguridad.06",
+     "tipo": "tarea",
+     "titulo": "Fase 1: Fundamentos. Tarea 4. Ejercicios Criptografía Básica",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa-2-ciberseguridad.07",
+     "tipo": "tarea",
+     "titulo": "Fase 1: Fundamentos. Tarea 5: Práctica GPG/PGP",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t03-sa-2-ciberseguridad.08",
+     "tipo": "tarea",
+     "titulo": "Fase 1: Fundamentos. TAREA 6. \"Operación Sombrero Blanco\" — Simulación de Ciberataque por Ingeniería Social",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  },
+  {
+   "id": "t04-sa3-programacion",
+   "nombre": "SA3. PROGRAMACIÓN",
+   "items": [
+    {
+     "id": "t04-sa3-programacion.01",
+     "tipo": "tarea",
+     "titulo": "SA3. Proyecto Final 2",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-programacion.02",
+     "tipo": "tarea",
+     "titulo": "SA3. PRÁCTICA FINAL",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-programacion.03",
+     "tipo": "material",
+     "titulo": "SA3. PRESENTACIONES P5js",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces."
+    },
+    {
+     "id": "t04-sa3-programacion.04",
+     "tipo": "tarea",
+     "titulo": "SA3. Ejercicio 1.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-programacion.05",
+     "tipo": "tarea",
+     "titulo": "SA3. Ejercicio 2.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-programacion.06",
+     "tipo": "tarea",
+     "titulo": "SA3. Ejercicio 3.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-programacion.07",
+     "tipo": "tarea",
+     "titulo": "SA3. Ejercicio 4",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-programacion.08",
+     "tipo": "tarea",
+     "titulo": "SA3. Ejercicio 5.",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-programacion.09",
+     "tipo": "tarea",
+     "titulo": "SA3. Ejercicio 6",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    },
+    {
+     "id": "t04-sa3-programacion.10",
+     "tipo": "tarea",
+     "titulo": "Sa3. Ejercicio 7",
+     "estado": "borrador",
+     "enlaces": [],
+     "real": true,
+     "pendiente": true,
+     "nota": "Pendiente de completar: en la copia de Classroom no constan instrucciones, adjuntos/enlaces, puntos, fecha de entrega."
+    }
+   ]
+  }
+ ]
+}

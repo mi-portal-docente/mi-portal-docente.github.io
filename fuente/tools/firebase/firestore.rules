@@ -1,0 +1,551 @@
+rules_version = '2';
+
+// =====================================================================
+//  Reglas de seguridad de Firestore · Portal docente
+//
+//  Principios:
+//   · Cero datos personales de alumnos: el alumno entra de forma ANÓNIMA
+//     (Firebase Anonymous Auth) con un código de grupo y su número de
+//     lista (1-40). No se guarda ni nombre ni correo del alumno.
+//   · Solo hay un rol con privilegios: PROFESOR. Es una cuenta de Google
+//     con el correo verificado y que aparece aquí (PROFESOR_EMAIL) o en
+//     el documento config/profesores (campo emails: lista de correos).
+//   · El código de grupo se valida en el SERVIDOR (estas reglas), sin
+//     Cloud Functions: el código es el ID de un documento codigos/{codigo}
+//     que se puede LEER uno a uno (get) pero NO LISTAR. Quien no conoce
+//     el código no puede averiguarlo consultando la base de datos.
+//   · Reiniciar un código = borrar el documento viejo y crear uno nuevo.
+//     Todas las sesiones que usaban el viejo dejan de ser válidas al
+//     instante (no pueden enviar latidos ni entregas).
+//   · Todo lo que no está permitido expresamente, está prohibido.
+//
+//  Colecciones:
+//   config/profesores   {emails: [..]}                     solo profesor
+//   grupos/{id}         {nombre, asignaturas, apartados, codigo,
+//                        activo, horario, creado}           solo profesor
+//   codigos/{CODIGO}    {grupo, nombre, asignaturas, apartados,
+//                        activo, horario}                   get: cualquiera con sesión
+//                                                           list/escritura: profesor
+//   sesiones/{uid}      {codigo, grupo, numero, pagina,
+//                        desde, latido, revocada}           el propio alumno / profesor
+//   entregas/{uid_grupo_nº_práctica}
+//                       {uid, codigo, grupo, numero, practica, tipo,
+//                        titulo, fecha, datos, nota, comentario}
+//   --- aula virtual (biblioteca, cursos escolares, tareas y exámenes) ---
+//   cursos/{id}         {nombre, asignaturas, activo, pesos, creado}   solo profesor
+//   pines/{grupo_nº}    {h, creado}  hash del PIN privado del alumno   profesor; el alumno
+//                                    solo puede comprobar el suyo (get si coincide)
+//   items/{id}          tareas, materiales, proyectos y exámenes (SIN
+//                       respuestas correctas)                         profesor; alumno: los
+//                                                                     publicados para su grupo
+//   examenes/{id}       preguntas del examen (sin soluciones)         alumno: solo dentro de
+//                                                                     la ventana de tiempo
+//   claves/{id}         respuestas correctas                          SOLO profesor
+//   temas/{id}          temas del Trabajo de clase {curso, asig,
+//                       nombre, orden}                                profesor; alumno: leer
+//   anuncios/{id}       Tablón {curso, asig, texto, enlaces, grupos,
+//                       visible, fecha, pub}                          profesor; alumno: los
+//                                                                     publicados para su grupo
+//   trabajos/{item_grupo_nº}  entrega del alumno (texto, enlaces o
+//                       respuestas del examen)                        el alumno las suyas
+//   notas/{item_grupo_nº}     nota, rúbrica y comentario              profesor; el alumno
+//                                                                     solo las suyas publicadas
+//  El alumno se identifica SOLO por grupo + nº de lista + un PIN que
+//  elige él (se guarda su hash SHA-256, nunca el PIN). Sin nombres.
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------
+    //  Funciones de apoyo
+    // ---------------------------------------------------------------
+
+    function ruta(col, id) {
+      return /databases/$(database)/documents/$(col)/$(id);
+    }
+
+    // Correo del profesor propietario (se sustituye al desplegar con
+    // tools/firebase-setup.mjs). Es el único que puede cambiar la lista
+    // config/profesores.
+    function esPropietario() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() == 'PROFESOR_EMAIL';
+    }
+
+    // Profesor: cuenta de Google verificada y autorizada.
+    // Un usuario anónimo o con correo/contraseña NUNCA es profesor,
+    // aunque ponga ese correo: se exige el proveedor google.com.
+    function esProfesor() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true
+        && (
+          request.auth.token.email.lower() == 'PROFESOR_EMAIL'
+          || (exists(ruta('config', 'profesores'))
+              && request.auth.token.email.lower() in get(ruta('config', 'profesores')).data.emails)
+        );
+    }
+
+    // Alumno: sesión anónima de Firebase.
+    function esAnonimo() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    // ¿Está ahora mismo dentro del horario del grupo? (si lo tiene)
+    // horario = {dias: [1..7] (1 = lunes), desde: minutos, hasta: minutos,
+    //            offset: minutos respecto a UTC (60 en invierno, 120 en verano)}
+    function enHorario(c) {
+      return !('horario' in c) || c.horario == null || enHorarioMap(c.horario);
+    }
+    function enHorarioMap(h) {
+      let t = request.time + duration.value(h.offset, 'm');
+      let m = t.hours() * 60 + t.minutes();
+      return t.dayOfWeek() in h.dias && m >= h.desde && m < h.hasta;
+    }
+
+    // ¿El código existe, está activo, corresponde a ese grupo y estamos en horario?
+    function codigoVigente(codigo, grupo) {
+      return exists(ruta('codigos', codigo))
+        && get(ruta('codigos', codigo)).data.activo == true
+        && get(ruta('codigos', codigo)).data.grupo == grupo
+        && enHorario(get(ruta('codigos', codigo)).data);
+    }
+
+    // Sesión de alumno válida: existe, no está revocada (expulsado) y su
+    // código sigue vigente. Es lo que se exige para latidos y entregas.
+    function sesionValida() {
+      return esAnonimo()
+        && exists(ruta('sesiones', request.auth.uid))
+        && sesionOk(get(ruta('sesiones', request.auth.uid)).data);
+    }
+    function sesionOk(s) {
+      return s.revocada == false && codigoVigente(s.codigo, s.grupo);
+    }
+    function miSesion() {
+      return get(ruta('sesiones', request.auth.uid)).data;
+    }
+
+    // Formato del código de grupo: PALABRA-NÚMERO (p. ej. FARO-472).
+    function formatoCodigo(c) {
+      return c is string && c.matches('^[A-Z]{3,8}-[0-9]{2,4}$');
+    }
+
+    function listaCorta(l, n) { return l is list && l.size() <= n; }
+    function textoCorto(t, n) { return t is string && t.size() <= n; }
+
+    function horarioValido(h) {
+      return h == null || (
+        h is map
+        && h.keys().hasOnly(['dias', 'desde', 'hasta', 'offset'])
+        && h.keys().hasAll(['dias', 'desde', 'hasta', 'offset'])
+        && listaCorta(h.dias, 7)
+        && h.desde is int && h.hasta is int && h.offset is int
+        && h.desde >= 0 && h.hasta <= 1440 && h.desde < h.hasta
+        && h.offset >= -720 && h.offset <= 840
+      );
+    }
+
+    // ---------------------------------------------------------------
+    //  Identidad del alumno: grupo + nº de lista + PIN privado
+    // ---------------------------------------------------------------
+    function hashValido(h) { return h is string && h.matches('^[0-9a-f]{64}$'); }
+    function idAlumno(s) { return s.grupo + '_' + string(s.numero); }
+    // Al crear la sesión: si ese nº ya tiene PIN, el hash tiene que coincidir.
+    function pinCoincideOLibre(d) {
+      return !exists(ruta('pines', idAlumno(d)))
+        || get(ruta('pines', idAlumno(d))).data.h == d.pin;
+    }
+    function pinOk(s) {
+      return exists(ruta('pines', idAlumno(s)))
+        && get(ruta('pines', idAlumno(s))).data.h == s.pin;
+    }
+    // Alumno del aula virtual: sesión válida y PIN registrado y correcto.
+    function alumnoOk() { return sesionValida() && pinOk(miSesion()); }
+    function esNumero(x) { return x is int || x is float; }
+    function notaOk(n) { return n == null || (esNumero(n) && n >= 0 && n <= 10); }
+
+    // ---------------------------------------------------------------
+    //  config/profesores: lista de correos con rol de profesor
+    // ---------------------------------------------------------------
+    match /config/profesores {
+      allow get: if esProfesor();
+      allow create, update: if esPropietario()
+        && request.resource.data.keys().hasOnly(['emails'])
+        && listaCorta(request.resource.data.emails, 20);
+      allow delete: if esPropietario();
+    }
+    match /config/{otro} {
+      allow read, write: if false;
+    }
+
+    // ---------------------------------------------------------------
+    //  grupos: configuración de cada grupo (solo el profesor)
+    // ---------------------------------------------------------------
+    match /grupos/{grupoId} {
+      allow read: if esProfesor();
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor()
+        && grupoId.matches('^[A-Za-z0-9_-]{1,40}$')
+        && request.resource.data.keys().hasOnly(['nombre', 'asignaturas', 'apartados', 'codigo', 'activo', 'horario', 'creado', 'curso', 'alumnos'])
+        && (!('curso' in request.resource.data) || textoCorto(request.resource.data.curso, 40))
+        && (!('alumnos' in request.resource.data) || (request.resource.data.alumnos is int && request.resource.data.alumnos >= 1 && request.resource.data.alumnos <= 40))
+        && textoCorto(request.resource.data.nombre, 40)
+        && listaCorta(request.resource.data.asignaturas, 20)
+        && listaCorta(request.resource.data.apartados, 20)
+        && formatoCodigo(request.resource.data.codigo)
+        && request.resource.data.activo is bool
+        && horarioValido(request.resource.data.get('horario', null));
+    }
+
+    // ---------------------------------------------------------------
+    //  codigos: el ID del documento ES el código de grupo
+    //   · get (leer uno conociendo el código): cualquier usuario con
+    //     sesión de Firebase (también anónima) → así el alumno comprueba
+    //     su código antes de entrar.
+    //   · list (consultar/enumerar): SOLO el profesor. Un anónimo no
+    //     puede sacar la lista de códigos.
+    // ---------------------------------------------------------------
+    match /codigos/{codigo} {
+      allow get: if request.auth != null;
+      allow list: if esProfesor();
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor()
+        && formatoCodigo(codigo)
+        && request.resource.data.keys().hasOnly(['grupo', 'nombre', 'asignaturas', 'apartados', 'activo', 'horario', 'curso'])
+        && request.resource.data.grupo is string
+        && textoCorto(request.resource.data.nombre, 40)
+        && listaCorta(request.resource.data.asignaturas, 20)
+        && listaCorta(request.resource.data.apartados, 20)
+        && request.resource.data.activo is bool
+        && horarioValido(request.resource.data.get('horario', null));
+    }
+
+    // ---------------------------------------------------------------
+    //  sesiones/{uid}: quién está conectado (solo nº de lista y grupo)
+    // ---------------------------------------------------------------
+    match /sesiones/{uid} {
+      // Leer: el propio alumno su sesión; el profesor todas.
+      allow get: if (request.auth != null && request.auth.uid == uid) || esProfesor();
+      allow list: if esProfesor();
+
+      // Crear: el alumno anónimo, para sí mismo, con un código vigente.
+      // No puede escribirse ningún campo extra (p. ej. «rol»), ni
+      // marcarse como no revocado si ya existía (eso sería update).
+      allow create: if esAnonimo()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['codigo', 'grupo', 'numero', 'pagina', 'desde', 'latido', 'revocada', 'pin'])
+        && request.resource.data.keys().hasAll(['codigo', 'grupo', 'numero', 'pagina', 'desde', 'latido', 'revocada', 'pin'])
+        && hashValido(request.resource.data.pin)
+        && pinCoincideOLibre(request.resource.data)
+        && formatoCodigo(request.resource.data.codigo)
+        && request.resource.data.grupo is string
+        && request.resource.data.numero is int
+        && request.resource.data.numero >= 1 && request.resource.data.numero <= 40
+        && textoCorto(request.resource.data.pagina, 100)
+        && request.resource.data.desde == request.time
+        && request.resource.data.latido == request.time
+        && request.resource.data.revocada == false
+        && codigoVigente(request.resource.data.codigo, request.resource.data.grupo);
+
+      // Actualizar:
+      //  · el alumno: solo el latido (hora del servidor) y la página,
+      //    como mucho cada 5 s, si no está expulsado y su código sigue vigente;
+      //  · el profesor: solo puede EXPULSAR (revocada = true).
+      allow update: if (
+          esAnonimo()
+          && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pagina', 'latido'])
+          && request.resource.data.latido == request.time
+          && request.time > resource.data.latido + duration.value(5, 's')
+          && textoCorto(request.resource.data.pagina, 100)
+          && sesionOk(resource.data)
+        ) || (
+          esProfesor()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revocada'])
+          && request.resource.data.revocada == true
+        );
+
+      // Borrar: el alumno al salir (si no está expulsado; así una sesión
+      // expulsada queda visible para el profesor) y el profesor siempre.
+      allow delete: if (request.auth != null && request.auth.uid == uid && resource.data.revocada == false)
+        || esProfesor();
+    }
+
+    // ---------------------------------------------------------------
+    //  entregas/{uid}_{grupo}_{numero}_{practica}
+    //  (el ID incluye grupo y nº: si dos alumnos usan el mismo navegador
+    //   seguido, una entrega nunca pisa la de otro)
+    // ---------------------------------------------------------------
+    match /entregas/{entregaId} {
+      // Leer: el alumno SOLO las suyas (ligadas a su sesión anónima);
+      // el profesor todas. Un alumno no puede leer entregas ajenas
+      // ni consultarlas sin filtrar por su propio uid.
+      allow read: if (request.auth != null && resource.data.uid == request.auth.uid) || esProfesor();
+
+      // Crear o re-entregar (mientras no tenga nota): alumno con sesión válida.
+      // Grupo, nº y código se copian de su sesión: no puede entregar
+      // en nombre de otro número ni de otro grupo.
+      allow create: if sesionValida() && entregaAlumnoOk();
+      allow update: if (
+          sesionValida() && entregaAlumnoOk()
+          && resource.data.uid == request.auth.uid
+          && resource.data.nota == null
+        ) || (
+          // Calificar: el profesor solo toca nota, comentario y notaFecha.
+          esProfesor()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nota', 'comentario', 'notaFecha'])
+          && (request.resource.data.nota == null
+              || ((request.resource.data.nota is int || request.resource.data.nota is float)
+                  && request.resource.data.nota >= 0 && request.resource.data.nota <= 10))
+          && textoCorto(request.resource.data.comentario, 1000)
+        );
+      allow delete: if esProfesor();
+
+      function entregaAlumnoOk() {
+        let d = request.resource.data;
+        let s = miSesion();
+        return d.keys().hasOnly(['uid', 'codigo', 'grupo', 'numero', 'practica', 'tipo', 'titulo', 'fecha', 'datos', 'nota', 'comentario'])
+          && d.keys().hasAll(['uid', 'codigo', 'grupo', 'numero', 'practica', 'tipo', 'titulo', 'fecha', 'datos', 'nota', 'comentario'])
+          && d.uid == request.auth.uid
+          && entregaId == request.auth.uid + '_' + s.grupo + '_' + string(s.numero) + '_' + d.practica
+          && d.codigo == s.codigo
+          && d.grupo == s.grupo
+          && d.numero == s.numero
+          && d.practica is string && d.practica.matches('^(c[1-9]|p[1-8]|v[1-9])$')
+          && d.tipo in ['circuitos', 'esp32', 'vivienda']
+          && textoCorto(d.titulo, 120)
+          && d.fecha == request.time
+          && d.nota == null
+          && d.comentario == ''
+          && d.datos is map
+          && d.datos.keys().hasOnly(['montaje', 'respuestas', 'comprobacion', 'aciertos', 'informe', 'hecho', 'materiales'])
+          && (!('materiales' in d.datos) || textoCorto(d.datos.materiales, 20000))
+          && (!('montaje' in d.datos) || textoCorto(d.datos.montaje, 200000))
+          && (!('informe' in d.datos) || (d.datos.informe is map
+                && d.datos.informe.keys().hasOnly(['mediciones', 'problemas', 'conclusiones'])
+                && textoCorto(d.datos.informe.get('mediciones', ''), 3000)
+                && textoCorto(d.datos.informe.get('problemas', ''), 3000)
+                && textoCorto(d.datos.informe.get('conclusiones', ''), 3000)));
+      }
+    }
+
+    // ===============================================================
+    //  AULA VIRTUAL
+    // ===============================================================
+
+    // pines/{grupo_nº}: hash del PIN que eligió el alumno la primera vez.
+    //  · el profesor puede verlos (sin utilidad: es un hash) y BORRARLOS
+    //    (reiniciar el PIN de un nº de lista);
+    //  · el alumno solo puede hacer get del SUYO y solo si su sesión
+    //    tiene el mismo hash (así comprueba que su PIN está registrado);
+    //  · lo crea el alumno con sesión válida, para su propio nº, con el
+    //    mismo hash que puso en la sesión. No se puede modificar.
+    match /pines/{id} {
+      allow get: if esProfesor()
+        || (esAnonimo() && exists(ruta('sesiones', request.auth.uid))
+            && id == idAlumno(miSesion()) && resource.data.h == miSesion().pin);
+      allow list, delete: if esProfesor();
+      allow create: if sesionValida()
+        && id == idAlumno(miSesion())
+        && request.resource.data.keys().hasOnly(['h', 'creado'])
+        && request.resource.data.h == miSesion().pin
+        && request.resource.data.creado == request.time;
+    }
+
+    // cursos/{id}: curso escolar (2026/27…) con las asignaturas que se imparten.
+    match /cursos/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if esProfesor()
+        && id.matches('^[A-Za-z0-9_-]{1,40}$')
+        && request.resource.data.keys().hasOnly(['nombre', 'asignaturas', 'activo', 'pesos', 'creado'])
+        && textoCorto(request.resource.data.nombre, 30)
+        && listaCorta(request.resource.data.asignaturas, 20)
+        && request.resource.data.activo is bool
+        && (!('pesos' in request.resource.data) || request.resource.data.pesos is map);
+    }
+
+    // items/{id}: materiales, tareas, actividades, prácticas, proyectos y exámenes.
+    // «visible» = lista de grupos que lo ven (vacía si está sin publicar). El
+    // alumno solo puede consultar con where('visible', 'array-contains', grupo).
+    // Nunca contiene respuestas correctas (están en claves/{id}).
+    match /items/{id} {
+      allow read: if esProfesor()
+        || (alumnoOk() && miSesion().grupo in resource.data.visible);
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}$') && itemOk(request.resource.data);
+
+      function itemOk(d) {
+        return d.keys().hasOnly(['curso', 'asig', 'tema', 'unidad', 'tipo', 'titulo', 'texto', 'enlaces', 'fechaEntrega', 'puntos', 'rubrica',
+                                 'categoria', 'grupos', 'visible', 'publicado', 'pub', 'orden', 'origen', 'examen', 'opciones', 'pendiente', 'nota', 'actualizado'])
+          && d.keys().hasAll(['curso', 'asig', 'tipo', 'titulo', 'grupos', 'visible', 'publicado'])
+          && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
+          && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
+          && (!('unidad' in d) || textoCorto(d.unidad, 40))
+          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen']
+          && textoCorto(d.titulo, 150)
+          && (!('texto' in d) || textoCorto(d.texto, 20000))
+          && (!('enlaces' in d) || listaCorta(d.enlaces, 20))
+          && (!('rubrica' in d) || listaCorta(d.rubrica, 20))
+          && (!('opciones' in d) || d.opciones == null || listaCorta(d.opciones, 10))
+          && (!('puntos' in d) || d.puntos == null || (esNumero(d.puntos) && d.puntos > 0 && d.puntos <= 1000))
+          && (!('pub' in d) || d.pub == null || esNumero(d.pub))
+          && (!('nota' in d) || d.nota == null || textoCorto(d.nota, 2000))
+          && listaCorta(d.grupos, 40) && listaCorta(d.visible, 40)
+          && d.publicado is bool
+          && ((d.publicado == true && d.visible == d.grupos) || (d.publicado == false && d.visible.size() == 0));
+      }
+    }
+
+    // temas/{id}: temas del «Trabajo de clase» (nombre y orden). Los nombres no son
+    // datos personales: los lee cualquier alumno con sesión válida; los escribe el profesor.
+    match /temas/{id} {
+      allow read: if esProfesor() || alumnoOk();
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9_-]{4,40}$')
+        && request.resource.data.keys().hasOnly(['curso', 'asig', 'nombre', 'orden', 'origen'])
+        && request.resource.data.keys().hasAll(['curso', 'asig', 'nombre', 'orden'])
+        && textoCorto(request.resource.data.curso, 40) && textoCorto(request.resource.data.asig, 20)
+        && textoCorto(request.resource.data.nombre, 200) && request.resource.data.nombre.size() > 0
+        && esNumero(request.resource.data.orden);
+    }
+
+    // anuncios/{id}: «Tablón» de cada asignatura. Solo escribe el profesor;
+    // el alumno lee los publicados para su grupo (visible).
+    match /anuncios/{id} {
+      allow read: if esProfesor()
+        || (alumnoOk() && miSesion().grupo in resource.data.visible);
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}$')
+        && request.resource.data.keys().hasOnly(['curso', 'asig', 'texto', 'enlaces', 'grupos', 'visible', 'fecha', 'pub'])
+        && request.resource.data.keys().hasAll(['curso', 'asig', 'texto', 'grupos', 'visible', 'fecha'])
+        && textoCorto(request.resource.data.curso, 40) && textoCorto(request.resource.data.asig, 20)
+        && textoCorto(request.resource.data.texto, 5000)
+        && (!('enlaces' in request.resource.data) || listaCorta(request.resource.data.enlaces, 10))
+        && listaCorta(request.resource.data.grupos, 40) && listaCorta(request.resource.data.visible, 40)
+        && (request.resource.data.visible == request.resource.data.grupos || request.resource.data.visible.size() == 0)
+        && esNumero(request.resource.data.fecha)
+        && (!('pub' in request.resource.data) || request.resource.data.pub == null || esNumero(request.resource.data.pub));
+    }
+
+    // examenes/{id}: preguntas (sin soluciones). El alumno solo puede leerlas
+    // DENTRO de la ventana del examen y si está publicado para su grupo.
+    match /examenes/{id} {
+      allow get: if esProfesor()
+        || (alumnoOk()
+            && resource.data.publicado == true
+            && miSesion().grupo in resource.data.grupos
+            && request.time >= resource.data.desde
+            && request.time <= resource.data.hasta);
+      allow list, delete: if esProfesor();
+      allow create, update: if esProfesor()
+        && request.resource.data.keys().hasOnly(['grupos', 'publicado', 'desde', 'hasta', 'limiteMin', 'barajar', 'preguntas'])
+        && listaCorta(request.resource.data.grupos, 40)
+        && request.resource.data.publicado is bool
+        && request.resource.data.desde is timestamp && request.resource.data.hasta is timestamp
+        && request.resource.data.desde < request.resource.data.hasta
+        && (request.resource.data.limiteMin == null
+            || (request.resource.data.limiteMin is int && request.resource.data.limiteMin >= 1 && request.resource.data.limiteMin <= 600))
+        && request.resource.data.barajar is bool
+        && listaCorta(request.resource.data.preguntas, 100);
+    }
+
+    // claves/{id}: respuestas correctas de los exámenes. SOLO el profesor.
+    match /claves/{id} {
+      allow read, write: if esProfesor();
+    }
+
+    // trabajos/{item_grupo_nº}: lo que entrega el alumno.
+    //  · tareas/actividades/prácticas/proyectos: texto + enlaces; se puede
+    //    volver a entregar mientras el profesor no lo haya calificado;
+    //  · exámenes: se crea al EMPEZAR (hora del servidor), se guardan las
+    //    respuestas mientras dura y se entrega UNA sola vez, dentro de la
+    //    ventana y del tiempo límite (con 2 min de margen por la red).
+    //    El ID depende del grupo y del nº: cada nº solo tiene un intento.
+    match /trabajos/{id} {
+      allow read: if esProfesor()
+        || (alumnoOk() && resource.data.al == idAlumno(miSesion()));
+      allow delete: if esProfesor();
+      allow create: if alumnoOk() && trabajoBase(id)
+        && ((tipoTarea() && tareaOk())
+            || (tipoExamen()
+                && request.resource.data.estado == 'en_curso'
+                && request.resource.data.inicio == request.time
+                && request.resource.data.fecha == request.time
+                && request.resource.data.respuestas is map
+                && request.resource.data.respuestas.size() == 0
+                && enVentana()));
+      allow update: if alumnoOk() && trabajoBase(id)
+        && resource.data.al == request.resource.data.al
+        && resource.data.tipo == request.resource.data.tipo
+        && ((tipoTarea() && tareaOk() && !exists(ruta('notas', id)))
+            || (tipoExamen()
+                && resource.data.estado == 'en_curso'
+                && request.resource.data.estado in ['en_curso', 'entregado']
+                && request.resource.data.inicio == resource.data.inicio
+                && request.resource.data.fecha == request.time
+                && request.resource.data.respuestas is map
+                && request.resource.data.respuestas.size() <= 100
+                && request.time <= examen().hasta + duration.value(2, 'm')
+                && (examen().limiteMin == null
+                    || request.time <= resource.data.inicio + duration.value(examen().limiteMin + 2, 'm'))));
+
+      function item() { return get(ruta('items', request.resource.data.item)).data; }
+      function examen() { return get(ruta('examenes', request.resource.data.item)).data; }
+      function tipoTarea() {
+        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto'];
+      }
+      function tipoExamen() { return request.resource.data.tipo == 'examen' && item().tipo == 'examen'; }
+      function trabajoBase(id) {
+        let d = request.resource.data;
+        let s = miSesion();
+        return d.keys().hasOnly(['item', 'curso', 'asig', 'al', 'grupo', 'numero', 'uid', 'tipo', 'texto', 'enlaces', 'respuestas', 'inicio', 'fecha', 'estado'])
+          && d.item is string
+          && id == d.item + '_' + idAlumno(s)
+          && d.al == idAlumno(s) && d.grupo == s.grupo && d.numero == s.numero
+          && d.uid == request.auth.uid
+          && s.grupo in item().visible
+          && d.curso == item().curso && d.asig == item().asig;
+      }
+      function tareaOk() {
+        let d = request.resource.data;
+        return d.estado == 'entregado'
+          && d.fecha == request.time
+          && textoCorto(d.get('texto', ''), 10000)
+          && listaCorta(d.get('enlaces', []), 10)
+          && !('respuestas' in d) && !('inicio' in d);
+      }
+      function enVentana() {
+        return examen().publicado == true
+          && request.time >= examen().desde
+          && request.time <= examen().hasta;
+      }
+    }
+
+    // notas/{item_grupo_nº}: calificación (nota 0-10, rúbrica, comentario).
+    // La escribe solo el profesor. El alumno solo ve las suyas y solo si
+    // están publicadas (publicada == true).
+    match /notas/{id} {
+      allow read: if esProfesor()
+        || (alumnoOk() && resource.data.al == idAlumno(miSesion()) && resource.data.publicada == true);
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor()
+        && request.resource.data.keys().hasOnly(['item', 'curso', 'asig', 'al', 'grupo', 'numero', 'nota', 'puntos', 'max', 'detalle', 'comentario', 'publicada', 'fecha'])
+        && request.resource.data.keys().hasAll(['item', 'al', 'grupo', 'numero', 'nota', 'publicada'])
+        && request.resource.data.al == request.resource.data.grupo + '_' + string(request.resource.data.numero)
+        && id == request.resource.data.item + '_' + request.resource.data.al
+        && notaOk(request.resource.data.nota)
+        && textoCorto(request.resource.data.get('comentario', ''), 2000)
+        && request.resource.data.publicada is bool
+        && (!('detalle' in request.resource.data) || request.resource.data.detalle is map);
+    }
+
+    // Cualquier otra ruta: prohibida.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

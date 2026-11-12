@@ -1,0 +1,14 @@
+{
+  "name": "portal-firebase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:reglas": "node prepara-reglas.mjs profe@test.es && firebase emulators:exec --only firestore \"node --test --test-concurrency=1 test/reglas.test.mjs test/aula.test.mjs\"",
+    "emuladores": "firebase emulators:start --only auth,firestore --project demo-portal"
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.2.0",
+    "firebase-tools": "^15.35.0"
+  }
+}

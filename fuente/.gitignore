@@ -1,0 +1,9 @@
+# Nunca subir dependencias, claves ni archivos generados con datos personales
+node_modules/
+.env
+.env.*
+*.desplegar
+*.para-pegar.txt
+*.log
+.firebaserc
+capturas/
