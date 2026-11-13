@@ -5,6 +5,7 @@
 import { doc, writeBatch, Timestamp } from 'firebase/firestore';
 import { esc } from './util.js';
 import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
+import { criterioValido } from '../lms/elemento.js';
 import { categoriaDe, idItem, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, TIPOS_ENTREGA, enlaceValido } from '../lms/modelo.js';
 
 export const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -62,7 +63,7 @@ export function crearEditor({ db, aula, gruposDe }) {
         categoria: categoriaDe(tipo), grupos: gruposDe(curso, asig).map((g) => g.id), publicado: false, estado: 'publicar', pub: null,
         orden: enTema.length ? Math.min(...enTema.map((x) => x.orden ?? 0)) - 1000 : 1000, origen: null, examen: tipo === 'examen' ? { desde: Date.now(), hasta: Date.now() + 864e5, limiteMin: 30, barajar: true } : null };
       // relleno previo (p. ej. «Asignar como tarea» de una actividad de clase)
-      for (const k of ['titulo', 'texto', 'enlaces', 'puntos', 'estado']) if (nuevo[k] !== undefined) E.edit[k] = nuevo[k];
+      for (const k of ['titulo', 'texto', 'enlaces', 'puntos', 'estado', 'criterio', 'contenido', 'rubrica', 'categoria', 'fechaEntrega']) if (nuevo[k] !== undefined) E.edit[k] = nuevo[k];
       E.preguntas = [];
     }
     montar();
@@ -75,7 +76,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     const entregable = TIPOS_ENTREGA.includes(e.tipo) || e.tipo === 'examen';
     const temas = temasDe(e.curso, e.asig);
     return `<form id="apItemForm" class="pn-form ap-form cl-form" autocomplete="off">
-    <header class="cl-dlg-h"><span class="cl-dlg-ic">${TIPOS[e.tipo]?.icon || '📄'}</span><h3>${e.id ? 'Editar' : 'Crear'}: ${esc(TIPOS[e.tipo]?.nombre || e.tipo)}</h3><span class="pn-small">${esc(a?.corto || e.asig)}</span><span class="pn-grow"></span><button class="btn" type="button" data-ed="cancelar" aria-label="Cerrar">✕</button></header>
+    <header class="cl-dlg-h"><span class="cl-dlg-ic">${TIPOS[e.tipo]?.icon || '📄'}</span><h3>${e.id ? 'Editar' : 'Crear'}: ${esc(TIPOS[e.tipo]?.nombre || e.tipo)}</h3><span class="pn-small">${esc(a?.corto || e.asig)}</span><span class="pn-grow"></span>${e.id ? '<button class="btn small" type="button" data-ed="exportar" title="Exportar este elemento en JSON (lo guardado)">⬇ JSON</button>' : ''}<button class="btn" type="button" data-ed="cancelar" aria-label="Cerrar">✕</button></header>
     <div class="cl-dlg-b"><div class="cl-dlg-main">
       <label class="pn-f">Tipo<select name="tipo">${TIPOS_EDITOR.map((t) => opt(t, `${TIPOS[t].icon} ${TIPOS[t].nombre}`, e.tipo)).join('')}</select></label>
       <label class="pn-f">${e.tipo === 'pregunta' ? 'Pregunta' : 'Título'}<input name="titulo" maxlength="150" required value="${esc(e.titulo)}"></label>
@@ -103,6 +104,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       ${entregable ? `<label class="pn-f">Puntos<input type="number" name="puntos" min="1" max="1000" step="0.5" placeholder="Sin calificar" value="${e.puntos ?? ''}"></label>` : ''}
       ${entregable && e.tipo !== 'examen' ? `<label class="pn-f">Fecha de entrega<input type="datetime-local" name="fechaEntrega" value="${esc(aLocal(e.fechaEntrega))}"></label>` : ''}
       <label class="pn-f">Tema<select name="tema">${opt('', 'Sin tema', e.tema || '')}${temas.map((t) => opt(t.id, t.nombre, e.tema || '')).join('')}</select></label>
+      ${entregable && e.tipo !== 'examen' ? `<label class="pn-f">Criterio (opcional)<input name="criterio" maxlength="60" placeholder="p. ej. eee_c1_1" value="${esc(e.criterio || '')}"></label>` : ''}
       ${entregable ? `<label class="pn-f">Categoría en el cuaderno<select name="categoria">${CATEGORIAS.map((c) => opt(c.id, c.nombre, e.categoria || categoriaDe(e.tipo))).join('')}</select></label>` : ''}
       <fieldset class="pn-f cl-estado"><legend>Estado</legend>
         <label class="pn-chk"><input type="radio" name="estado" value="publicar" ${e.estado === 'publicar' ? 'checked' : ''}> Publicar ahora</label>
@@ -117,6 +119,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (!E.preguntas.length) return '<p class="pn-small">Sin preguntas todavía.</p>';
     return E.preguntas.map((q, i) => `<div class="ap-q" data-qi="${i}"><div class="ap-qh"><b>${i + 1}.</b> ${q.tipo === 'test' ? 'Test' : q.tipo === 'vf' ? 'Verdadero / falso' : 'Respuesta corta'}
         <label>Puntos <input type="number" class="ap-qp" data-qf="puntos" min="0.25" max="100" step="0.25" value="${esc(q.puntos ?? 1)}"></label>
+        <label class="ap-qc">Criterio <input type="text" data-qf="criterio" maxlength="60" value="${esc(q.criterio || '')}" placeholder="p. ej. eee_c1_1" title="Criterio de evaluación (opcional)"></label>
         <span class="pn-grow"></span><button type="button" class="btn small" data-ed="qUp" ${i ? '' : 'disabled'} aria-label="Subir">↑</button><button type="button" class="btn small" data-ed="qDown" ${i < E.preguntas.length - 1 ? '' : 'disabled'} aria-label="Bajar">↓</button><button type="button" class="btn small pn-peligro" data-ed="qDel" aria-label="Quitar">🗑</button></div>
       <textarea data-qf="enunciado" rows="2" maxlength="2000" placeholder="Enunciado de la pregunta">${esc(q.enunciado)}</textarea>
       ${q.tipo === 'test' ? `<div class="ap-ops">${q.opciones.map((o, j) => `<label class="ap-op"><input type="radio" name="corr_${esc(q.id)}" data-qf="correcta" value="${j}" ${Number(q.correcta) === j ? 'checked' : ''} title="Respuesta correcta"><input type="text" data-qf="op" data-j="${j}" maxlength="500" value="${esc(o)}" placeholder="Opción ${j + 1}"></label>`).join('')}
@@ -130,6 +133,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       const q = E.preguntas[+el.dataset.qi]; if (!q) return;
       q.enunciado = el.querySelector('[data-qf=enunciado]').value.slice(0, 2000);
       q.puntos = Math.max(0.25, Math.min(100, Number(String(el.querySelector('[data-qf=puntos]').value).replace(',', '.')) || 1));
+      const qc = el.querySelector('[data-qf=criterio]'); if (qc) { const v = qc.value.trim().slice(0, 60); if (v) q.criterio = v; else delete q.criterio; }
       if (q.tipo === 'test') { q.opciones = [...el.querySelectorAll('[data-qf=op]')].map((x) => x.value.slice(0, 500)); const c = el.querySelector('[data-qf=correcta]:checked'); q.correcta = c ? Number(c.value) : 0; }
       if (q.tipo === 'vf') q.correcta = el.querySelector('[data-qf=correcta]').value === 'true';
       if (q.tipo === 'corta') q.correcta = el.querySelector('[data-qf=aceptadas]').value.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 20);
@@ -147,6 +151,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (f.elements.fechaEntrega) e.fechaEntrega = deLocal(fd.get('fechaEntrega'));
     if (f.elements.rubrica) e.rubrica = leeRubrica(fd.get('rubrica'));
     if (f.elements.categoria) e.categoria = String(fd.get('categoria'));
+    if (f.elements.criterio) e.criterio = String(fd.get('criterio') || '').trim().slice(0, 60) || null;
     if (f.elements.opciones) e.opciones = String(fd.get('opciones') || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 10).map((s) => s.slice(0, 300));
     if (f.elements.desde) e.examen = { desde: deLocal(fd.get('desde')), hasta: deLocal(fd.get('hasta')), limiteMin: parseInt(fd.get('limiteMin'), 10) || null, barajar: !!fd.get('barajar'), n: E.preguntas.length };
   }
@@ -158,6 +163,8 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (publicado && !e.grupos.length) return err('Para publicarlo, marca al menos un grupo en «Para».');
     if (e.estado === 'programar' && !(e.pub > Date.now())) return err('La fecha de publicación programada tiene que ser futura.');
     const esEx = e.tipo === 'examen';
+    if (e.criterio && !criterioValido(e.criterio)) return err('El criterio solo puede llevar letras, números, «_», «.» o «-» (sin espacios), p. ej. eee_c1_1.');
+    for (const [i, q] of (esEx ? E.preguntas : []).entries()) if (q.criterio && !criterioValido(q.criterio)) return err(`Pregunta ${i + 1}: el criterio solo puede llevar letras, números, «_», «.» o «-» (sin espacios).`);
     if (esEx) {
       const x = e.examen || {};
       if (!x.desde || !x.hasta || !(x.desde < x.hasta)) return err('El cuestionario tiene que abrirse antes de cerrarse.');
@@ -177,11 +184,13 @@ export function crearEditor({ db, aula, gruposDe }) {
       orden: e.orden ?? 1000, origen: e.origen || null, pendiente: !!e.pendiente && !e.texto.replace(PEND, '').trim() && !e.enlaces.length, nota: e.nota || null,
       examen: esEx ? { desde: e.examen.desde, hasta: e.examen.hasta, limiteMin: e.examen.limiteMin, n: E.preguntas.length } : null, actualizado: Date.now() };
     if (e.unidad) data.unidad = e.unidad;
+    if (e.criterio && entregable && !esEx) data.criterio = e.criterio;
+    if (e.contenido) data.contenido = e.contenido;
     try {
       const b = writeBatch(db);
       b.set(doc(db, 'items', id), data);
       if (esEx) {
-        const qs = E.preguntas.map((q) => ({ id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos, ...(q.tipo === 'test' ? { opciones: q.opciones } : {}) }));
+        const qs = E.preguntas.map((q) => ({ id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.tipo === 'test' ? { opciones: q.opciones } : {}) }));
         b.set(doc(db, 'examenes', id), { grupos: e.grupos, publicado, desde: Timestamp.fromMillis(e.examen.desde), hasta: Timestamp.fromMillis(e.examen.hasta), limiteMin: e.examen.limiteMin, barajar: e.examen.barajar, preguntas: qs });
         b.set(doc(db, 'claves', id), { respuestas: Object.fromEntries(E.preguntas.map((q) => [q.id, q.correcta])) });
       } else if (e.id && st.items.get(e.id)?.tipo === 'examen') { b.delete(doc(db, 'examenes', id)); b.delete(doc(db, 'claves', id)); }
@@ -194,6 +203,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     const b = ev.target.closest('[data-ed]'); if (!b) return;
     const acc = b.dataset.ed;
     if (acc === 'cancelar') return cerrar();
+    if (acc === 'exportar') { const it = st.items.get(E.edit?.id); if (it) api.exportar?.(it); return; }
     if (acc === 'adj') {
       const f = b.form; const u = f.adjU.value.trim(); const t = f.adjT.value.trim();
       if (!enlaceValido(u)) { f.adjU.setCustomValidity('Pega un enlace que empiece por https:// (o materiales/…)'); f.adjU.reportValidity(); f.adjU.setCustomValidity(''); return; }
@@ -222,5 +232,6 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (t.name === 'pub') { const r = t.form.querySelector('input[name=estado][value=programar]'); if (r) r.checked = true; }
   }
   function onSubmit(ev) { if (ev.target.id === 'apItemForm') { ev.preventDefault(); guardar(ev.target); } }
-  return { abrir, cerrar, abierto: () => !!E.el, set alGuardar(f) { E.alGuardar = f; } };
+  const api = { abrir, cerrar, abierto: () => !!E.el, set alGuardar(f) { E.alGuardar = f; }, exportar: null };
+  return api;
 }

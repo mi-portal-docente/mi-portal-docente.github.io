@@ -1,0 +1,15 @@
+/* Novedades de la rama grok-plataforma (importar/exportar JSON, exámenes, analítica, motores…).
+   Usa las variables del diseño iOS (css/ios.css): claro y oscuro salen solos. */
+
+/* ---------- Importar / exportar JSON ---------- */
+.js-ta { width: 100%; font-family: var(--mono); font-size: 13px; line-height: 1.45; min-height: 12em; border-radius: var(--r-sm); border: 1px solid var(--sep2); background: var(--card2); color: var(--tinta); padding: 10px 12px; resize: vertical; box-sizing: border-box; }
+.js-err:not(:empty) { margin: 10px 0; padding: 10px 14px; border-radius: var(--r-sm); background: var(--rojo-tint); color: var(--tinta); font-size: 14px; }
+.js-err ul { margin: 6px 0 0; padding-left: 20px; }
+.js-err code { font-size: 12px; background: var(--fill); padding: 1px 5px; border-radius: 5px; }
+.js-prev { border: 1px solid var(--sep); border-radius: var(--r); padding: 12px 14px; margin: 10px 0; background: var(--card); }
+.js-prev-h { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+.js-prev-l, .js-prev-q { margin: 6px 0; padding-left: 22px; font-size: 14px; }
+.js-tq { display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; color: var(--gris); background: var(--fill); border-radius: 6px; padding: 1px 6px; margin-right: 4px; }
+.ap-qc { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gris); }
+.ap-qc input { width: 9.5em; }
+.au-crit { display: inline-block; font-size: 11px; color: var(--gris); background: var(--fill2); border-radius: 6px; padding: 0 6px; margin-left: 6px; }

@@ -420,7 +420,8 @@ service cloud.firestore {
 
       function itemOk(d) {
         return d.keys().hasOnly(['curso', 'asig', 'tema', 'unidad', 'tipo', 'titulo', 'texto', 'enlaces', 'fechaEntrega', 'puntos', 'rubrica',
-                                 'categoria', 'grupos', 'visible', 'publicado', 'pub', 'orden', 'origen', 'examen', 'opciones', 'pendiente', 'nota', 'actualizado'])
+                                 'categoria', 'grupos', 'visible', 'publicado', 'pub', 'orden', 'origen', 'examen', 'opciones', 'pendiente', 'nota', 'actualizado',
+                                 'criterio'])
           && d.keys().hasAll(['curso', 'asig', 'tipo', 'titulo', 'grupos', 'visible', 'publicado'])
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
@@ -434,6 +435,7 @@ service cloud.firestore {
           && (!('puntos' in d) || d.puntos == null || (esNumero(d.puntos) && d.puntos > 0 && d.puntos <= 1000))
           && (!('pub' in d) || d.pub == null || esNumero(d.pub))
           && (!('nota' in d) || d.nota == null || textoCorto(d.nota, 2000))
+          && (!('criterio' in d) || d.criterio == null || textoCorto(d.criterio, 60))
           && listaCorta(d.grupos, 40) && listaCorta(d.visible, 40)
           && d.publicado is bool
           && ((d.publicado == true && d.visible == d.grupos) || (d.publicado == false && d.visible.size() == 0));

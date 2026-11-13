@@ -9,6 +9,7 @@ import { asignatura, TIPOS, SEMILLAS, itemDeSemilla } from '../lms/biblioteca.js
 import { idItem, ordenEntre, leeEnlaces, categoriaDe, tipoAdjunto, urlSegura, fmtNota } from '../lms/modelo.js';
 import { crearEditor, estadoPub, fFecha, PEND_T } from './aula-editor.js';
 import { textoHTML } from './aula-vistas.js';
+import { crearJson } from './aula-json.js';
 
 const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const nombreTipo = (tipo) => TIPOS[tipo]?.nombre || tipo;
@@ -40,6 +41,8 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const C = { el: null, asig: null, vista: 'trabajo', filtro: null, drag: null, crear: false, modal: null, orgF: 'todo', verGrupo: null, verTab: 'tablon' };
   const gruposDe = (cursoId, asig) => [...st.grupos.values()].filter((g) => (!asig || (g.asignaturas || []).includes(asig)) && (g.curso ? g.curso === cursoId : true)).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const editor = prof ? crearEditor({ db, aula, gruposDe }) : null;
+  const json = prof ? crearJson({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal(), gruposDe }) : null;
+  if (editor) editor.exportar = (it) => json.exportar(it);
   const curso = () => st.cursos.get(st.cursoSel) || null;
   const ahora = () => Date.now();
 
@@ -96,7 +99,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const bar = prof ? `<div class="cl-bar"><div class="cl-crear"><button class="btn primary cl-crear-b" data-cl="crear" aria-haspopup="true" aria-expanded="${C.crear}">＋ Crear</button>
         ${C.crear ? `<div class="cl-crear-m" role="menu">${[['tarea', 'Tarea'], ['examen', 'Tarea de cuestionario'], ['pregunta', 'Pregunta'], ['material', 'Material']].map(([t, n]) => `<button role="menuitem" data-cl="nuevo" data-tipo="${t}"><span>${icono(t)}</span>${n}</button>`).join('')}
           <hr><button role="menuitem" data-cl="reutilizar"><span>♻️</span>Reutilizar publicación</button><button role="menuitem" data-cl="nuevoTema"><span>🗂</span>Tema</button></div>` : ''}</div>
-        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><span class="pn-grow"></span>
+        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">📥 Importar JSON</button><span class="pn-grow"></span>
         <span class="pn-small">${E.items.length} elementos · ${E.items.filter((i) => i.publicado).length} publicados · ${E.items.filter((i) => !i.publicado).length} borradores</span></div>` : '';
     if (!E.items.length && !E.temas.length) return bar + (prof
       ? `<div class="cl-vacio"><p>Aquí aparecerá el trabajo de clase de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}.</p><p>Pulsa <b>⬇ Importar de Classroom</b> para cargar los temas y elementos que tenías en Classroom, o <b>＋ Crear</b> para empezar.</p></div>`
@@ -136,7 +139,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
         <details class="cl-mas"><summary class="btn tiny" aria-label="Más acciones">⋮</summary><div class="cl-menu">
           <button data-cl="editar">✏️ Editar</button><button data-cl="renombrar">🔤 Cambiar el título</button>
           <label>Mover a <select data-cl-mover>${opt('', 'Sin tema', it.tema || '')}${temas.map((t) => opt(t.id, t.nombre, it.tema || '')).join('')}</select></label>
-          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="borrar" class="pn-peligro">🗑 Borrar</button></div></details></span></div>`;
+          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="exportarJSON">⬇ Exportar JSON</button><button data-cl="borrar" class="pn-peligro">🗑 Borrar</button></div></details></span></div>`;
   }
 
   // ---- Organización (solo profesor): la visión completa de la asignatura, con borradores, pendientes y notas privadas
@@ -149,7 +152,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const anuncios = [...st.anuncios.values()].filter((x) => x.asig === C.asig && x.curso === st.cursoSel).length;
     const filtroOk = (it) => C.orgF === 'todo' || (C.orgF === 'pend' ? it.pendiente : k(it) === C.orgF);
     const stat = (v, t, f) => `<div class="org-stat ${f ? 'e-' + f : ''}"><b>${v}</b><span>${t}</span></div>`;
-    const acciones = `<div class="org-acts"><a class="btn primary" href="#asig/${esc(C.asig)}/trabajo">📚 Editar el trabajo de clase</a><button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="reutilizar">♻️ Copiar de otro curso</button><a class="btn" href="#asig/${esc(C.asig)}/tablon">👁 Ver como alumno</a></div>`;
+    const acciones = `<div class="org-acts"><a class="btn primary" href="#asig/${esc(C.asig)}/trabajo">📚 Editar el trabajo de clase</a><button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">📥 Importar JSON</button><button class="btn" data-cl="reutilizar">♻️ Copiar de otro curso</button><a class="btn" href="#asig/${esc(C.asig)}/tablon">👁 Ver como alumno</a></div>`;
     const grupos = `<section class="org-box"><h3>👥 Grupos de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}</h3>${gs.length ? `<ul class="org-grupos">${gs.map((g) => `<li><b>${esc(g.nombre)}</b><span class="pn-small">Código <code>${esc(g.codigo || '—')}</code> · ${Number(g.alumnos || 0)} alumnos</span></li>`).join('')}</ul>` : '<p class="pn-small">Todavía no hay grupos con esta asignatura.</p>'}<a class="cl-link" href="#panel/grupos">Gestionar grupos y códigos →</a></section>`;
     const fila = (it) => { const e = estadoPub(it, ahoraT); return `<li class="org-it ${e.k}" data-item="${esc(it.id)}"><span class="cl-ic t-${esc(it.tipo)}" aria-hidden="true">${icono(it.tipo)}</span>
       <span class="cl-tx"><a href="#trabajo/${esc(it.id)}"><b>${esc(it.titulo)}</b></a><span class="cl-meta">${esc(nombreTipo(it.tipo))}${metaItem(it) ? ' · ' + esc(metaItem(it)) : ''}</span>${it.nota ? `<span class="org-nota">🔒 Nota privada: ${esc(it.nota)}</span>` : ''}</span>
@@ -478,6 +481,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'nuevoTema') { pintar(); return nuevoTema(); }
       if (acc === 'reutilizar') { pintar(); return reutilizar(); }
       if (acc === 'importar') return importar();
+      if (acc === 'importarJSON') return json.importar({ curso: st.cursoSel, asig: C.asig, tema: C.filtro || null, temas: temasAsig(C.asig, []) });
       if (acc === 'temaUp' || acc === 'temaDown') { const L = temasAsig(C.asig, []); const i = L.findIndex((x) => x.id === t.id); return moverTema(t.id, acc === 'temaUp' ? L[i - 1]?.id : L[i + 2]?.id || null); }
       if (acc === 'temaRen' && t) return renombrarTema(t);
       if (acc === 'temaDel' && t) return borrarTema(t);
@@ -488,6 +492,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'editar') return editor.abrir(it);
       if (acc === 'renombrar') return renombrar(it);
       if (acc === 'duplicar') return copiar(it, { titulo: it.titulo + ' (copia)' });
+      if (acc === 'exportarJSON') { b.closest('details')?.removeAttribute('open'); return json.exportar(it); }
       if (acc === 'borrar') return borrar(it);
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || e?.message || 'error') + ').'); }
   }
@@ -507,5 +512,5 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     catch (e) { msg.textContent = '❌ No se ha podido publicar (' + (e?.code || 'error') + ').'; msg.className = 'pn-msg ko'; }
   }
   window.addEventListener('portal-aula', () => { if (C.el?.isConnected && !C.drag) pintar(); });
-  return { render, pintar, importar, reutilizar, importarSemilla, editar: (id) => { const it = st.items.get(id); if (it && editor) editor.abrir(it); }, editor, adjuntosHTML, datosAlumno, get vista() { return C.vista; } };
+  return { render, pintar, importar, reutilizar, importarSemilla, json, editar: (id) => { const it = st.items.get(id); if (it && editor) editor.abrir(it); }, editor, adjuntosHTML, datosAlumno, get vista() { return C.vista; } };
 }
