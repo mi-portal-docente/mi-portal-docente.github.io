@@ -109,7 +109,7 @@ function gateHTML() {
   for (let i = 1; i <= 40; i++) opts += `<option value="${i}">${pad(i)}</option>`;
   return `<div class="gate fb" id="gate" role="dialog" aria-labelledby="gate-title">
     <div class="gate-card">
-      <h1 id="gate-title">Super Profe Pablo</h1>
+      <h1 id="gate-title">SuperProfe · Alumnos</h1>
       <p class="gate-note" id="gate-note" role="status" hidden></p>
       <p class="gate-loading" id="gate-loading">Comprobando la sesión…</p>
       <div class="gate-body" id="gate-body" hidden>
@@ -139,7 +139,7 @@ function gateHTML() {
 }
 
 function mostrarGate({ cargando = false, aviso = '', error = '', pestaña = 'alumno' } = {}) {
-  document.title = 'Super Profe Pablo';
+  document.title = 'SuperProfe · Alumnos';
   document.body.classList.add('is-gate');
   document.body.classList.remove('is-unlocked');
   document.querySelector('.loading')?.remove();

@@ -11,7 +11,7 @@ const filtro = { etapa: '', curso: '', q: '' };
 export const PROFESOR = 'Pablo Mateos Lema';
 const nav = (k) => (typeof window !== 'undefined' && window.PORTAL?.navHTML ? window.PORTAL.navHTML(k) : '');
 function cabecera(titulo, crumbs, chip, k = '') {
-  return `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">Super Profe Pablo</a><div class="scr-ttl">${esc(titulo)}</div>${nav(k)}</header>
+  return `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">SuperProfe · Alumnos</a><div class="scr-ttl">${esc(titulo)}</div>${nav(k)}</header>
   <nav class="crumbs static" aria-label="Estás en"><div>${crumbs}</div><div class="prof">${chip}</div></nav>`;
 }
 export function tarjetaAsig(a, { marca = '', href = null, alumno = false } = {}) {
