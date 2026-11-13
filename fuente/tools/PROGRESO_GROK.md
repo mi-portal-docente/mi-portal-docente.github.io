@@ -548,7 +548,8 @@ para el profesor (que ya podía leer cada uno). Pruebas: 120/120.
 - Navegación: «Calendario» siempre visible (fija, como en main) y «Mis trabajos» para el alumno.
 - Los componentes nuevos (hoja de cálculo, visor PDF / 3D, modelo 3D) usan los tokens de cristal de `ios.css`
   (`--glass`, `--glass-fuerte`, `--glass-borde`, `--glass-osc`, `--blur`, `--sh1`).
-- Caché: `cri4-gp14-20261113` (por encima de cri3).
+- Segunda fusión: main dac3d77 (fondo de malla en CSS, sin foto de aula: `aula.webp` eliminada). Caché final:
+  `cri5-gp14-20261113` (por encima de cri4).
 
 ## Resumen de las fases 9–14
 
@@ -562,3 +563,15 @@ para el profesor (que ya podía leer cada uno). Pruebas: 120/120.
 | 14 · Copia, limpieza y rendimiento | a468571 | hecha |
 
 Reglas para pegar (sin desplegar): `/workspace/portal-acceso/firestore.rules.para-pegar.txt` (fuera del repositorio).
+
+## Estado final (13/11/2026)
+
+- Rama `grok-plataforma` subida; main sin tocar. Fases 9–14 hechas; nada pendiente de las fases pedidas.
+- Arreglos de la regresión: la caja de entrega de los laboratorios TIC sin «entregar» ahora tiene `actualizar()`
+  (error de consola «p.actualizar is not a function»); el ejemplo de la copia del curso va como `text` (no es un
+  formato importable); E2E fase 7 espera a la lectura del polímetro (con el cristal la simulación tarda más en headless).
+- Pruebas: `plataforma_test.mjs` 41/41 · reglas 120/120 · E2E plataforma 1–14 y fb_e2e en verde (las que fallan
+  de forma intermitente por tiempos en headless se han repetido solas: ver el informe final).
+- Límites conocidos: el STL subido es de 600 KB como máximo (para más, enlace); la hoja tiene 100 × 26 celdas; la
+  actividad interactiva lleva las soluciones en el navegador (es práctica, no examen); el cristal (backdrop-filter)
+  pesa más en ordenadores lentos y en headless.
