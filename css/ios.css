@@ -2,8 +2,9 @@
    SuperProfe · Alumnos · capa de diseño «iOS» (2026-11)
    Va la última: re-estiliza todas las pantallas sin tocar su funcionamiento.
    - Tipografía del sistema, fondos agrupados (#f2f2f7), tarjetas de 12–20 px.
-   - Cristal (backdrop-filter) en barras, pestañas, hojas y menús, con relleno sólido si no hay soporte
-     y cristal ligero en ordenadores modestos (html.glass-lite, Chromebook).
+   - Cristal en todo el portal (cri1-20261113): fondo fotográfico suave, paneles translúcidos, borde interior claro y desenfoque
+     en contenedores (no en cada fila). Relleno sólido si no hay backdrop-filter o prefers-reduced-transparency;
+     cristal ligero en ordenadores modestos (html.glass-lite, Chromebook).
    - Iconos de línea (Lucide) en lugar de emoji: .ic / .ic-e (ver src/ui/iconos.js).
    - Modo oscuro (data-theme en <html>, elegido con el botón de tema; «Automático» sigue al sistema) en las pantallas del portal; los laboratorios 3D
      conservan su banco de trabajo claro para que los colores de cables y piezas se vean fieles.
@@ -15,15 +16,22 @@
   --rojo: #DC001B; --acc: #DC001B; --acc-t: #c40018; --acc-tint: rgba(220, 0, 27, .09); --acc-ring: rgba(220, 0, 27, .28);
   --naranja: #F39900;
   /* paleta tipo iOS */
-  --fondo: #f2f2f7; --card: #ffffff; --card2: #f7f7fa; --tinta: #1d1d1f; --gris: #6e6e73; --gris2: #8e8e93;
+  --fondo: #f5f5f7; --card: rgba(255, 255, 255, .62); --card2: rgba(255, 255, 255, .48); --tinta: #1d1d1f; --gris: #5c5c60; --gris2: #8e8e93;
   --claro: #d8d8de; --sep: rgba(60, 60, 67, .16); --sep2: rgba(60, 60, 67, .24); --fill: rgba(118, 118, 128, .12); --fill2: rgba(118, 118, 128, .08);
   --verde: #248a3d; --verde-tint: rgba(52, 199, 89, .14); --azul: #0a66d8; --azul-tint: rgba(0, 122, 255, .10); --ambar-tint: rgba(255, 149, 0, .14); --ambar-t: #9a5200; --rojo-tint: rgba(255, 59, 48, .10);
-  --glass: rgba(255, 255, 255, .72); --glass-fuerte: rgba(255, 255, 255, .86); --glass-borde: rgba(255, 255, 255, .6); --glass-osc: rgba(28, 28, 30, .78);
-  --blur: saturate(180%) blur(20px); --blur-lab: saturate(160%) blur(14px);
+  --glass: rgba(255, 255, 255, .50); --glass-fuerte: rgba(255, 255, 255, .66); --glass-borde: rgba(255, 255, 255, .82); --glass-osc: rgba(28, 28, 30, .78);
+  --glass-hilite: inset 0 1px 1px rgba(255, 255, 255, .95), inset 0 0 0 .5px rgba(255, 255, 255, .45);
+  --blur: saturate(180%) blur(24px); --blur-lab: saturate(160%) blur(14px);
+  /* Malla abstracta (sin foto): 3 manchas suaves, rojo de acento, azul y verde azulado, sobre un blanco roto. */
+  --fondo-malla: radial-gradient(ellipse 90% 70% at 0% -8%, rgba(220, 0, 27, .20), transparent 62%),
+    radial-gradient(ellipse 80% 60% at 100% 0%, rgba(0, 122, 255, .18), transparent 58%),
+    radial-gradient(ellipse 80% 70% at 88% 108%, rgba(20, 184, 166, .18), transparent 60%);
+  --fondo-velo: var(--fondo-malla);
+  --fondo-blur: 72px;
   --r-xs: 8px; --r-sm: 10px; --r: 14px; --r-lg: 20px; --r-xl: 26px;
-  --sh1: 0 1px 2px rgba(0, 0, 0, .04), 0 2px 10px rgba(0, 0, 0, .04);
-  --sh2: 0 2px 6px rgba(0, 0, 0, .05), 0 12px 32px rgba(0, 0, 0, .08);
-  --sh3: 0 10px 30px rgba(0, 0, 0, .12), 0 30px 80px rgba(0, 0, 0, .18);
+  --sh1: var(--glass-hilite), 0 1px 2px rgba(20, 24, 40, .06), 0 10px 28px rgba(20, 24, 40, .10);
+  --sh2: var(--glass-hilite), 0 4px 10px rgba(20, 24, 40, .07), 0 18px 40px rgba(20, 24, 40, .12);
+  --sh3: var(--glass-hilite), 0 12px 32px rgba(20, 24, 40, .14), 0 32px 80px rgba(20, 24, 40, .18);
   --t-rapida: .18s cubic-bezier(.25, .1, .25, 1);
   color-scheme: light;
 }
@@ -73,11 +81,16 @@ html.glass-lite .stepbar, html.glass-lite .vtitle, html.glass-lite .vtools butto
 html.glass-lite .vv-status, html.glass-lite .vv-barra button, html.glass-lite .vv-opt, html.glass-lite .vm-sub, html.glass-lite .ac-ayuda, html.glass-lite .aj-volver, html.glass-lite .aj-hud > span {
   -webkit-backdrop-filter: none; backdrop-filter: none; --glass: var(--glass-fuerte); }
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  :root { --glass: #f9f9fb; --glass-fuerte: #fff; --glass-osc: #2c2c2e; }
+  :root { --glass: #f5f5f8; --glass-fuerte: #fff; --glass-osc: #2c2c2e; --card: #fff; --card2: #f7f7fa; --fondo-blur: 0px; }
+  html[data-theme="dark"] { --glass: #1c1c1e; --glass-fuerte: #2c2c2e; --glass-osc: #2c2c2e; --card: #1c1c1e; --card2: #2c2c2e; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  :root { --glass: #f9f9fb; --glass-fuerte: #fff; --glass-osc: #2c2c2e; }
+  :root { --glass: #f5f5f8; --glass-fuerte: #fff; --glass-osc: #2c2c2e; --card: #fff; --card2: #f7f7fa; --fondo-blur: 0px; --fondo-velo: none; --fondo-malla: none; }
+  html[data-theme="dark"] { --glass: #1c1c1e; --glass-fuerte: #2c2c2e; --glass-osc: #2c2c2e; --card: #1c1c1e; --card2: #2c2c2e; --fondo-velo: none; --fondo-malla: none; }
   * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  body.scr-subjects #subjects::before, body.scr-asig #asig::before, body.scr-aula #aula::before,
+  body.scr-panelprof #panelprof::before, body.scr-biblio #biblio::before, body.scr-act:has(.labg) #act::before,
+  .gate::before, #cover::before { content: none !important; }
 }
 
 /* ---------- botones ---------- */
@@ -119,7 +132,7 @@ textarea { min-height: 80px; line-height: 1.45; }
 /* ---------- tarjetas agrupadas ---------- */
 .pn-card, .au-sec, .org-box, .ap-unidad, .cl-anuncio-f, .cl-post, .cl-prox, .pn-det, .pn-grupo, .au-texto, .au-form, .bib-prog, .ac-card, .ap-card, .subj,
 .pn-vacio, .as-vacio, .cl-vacio, .org-stat, .au-facts div, .au-q, .cl-h, .au-mia, .ac-lado, .esp-entrega, .pl-prog, .placa-cta, .cl-dlg-main, .bib-hits li {
-  background: var(--card); border: 0; border-radius: var(--r); box-shadow: var(--sh1); }
+  background: var(--card); border: .5px solid var(--glass-borde); border-radius: var(--r); box-shadow: var(--sh1); }
 .pn-vacio, .as-vacio, .cl-vacio { box-shadow: none; border: 1.5px dashed var(--claro); background: transparent; }
 .ap-q { background: var(--card); border: 1px solid var(--sep); border-radius: var(--r-sm); }
 .pn-card h3, .org-box h3, .au-sec h3, .au-h h3 { font-size: 17px; font-weight: 600; }
@@ -128,18 +141,31 @@ textarea { min-height: 80px; line-height: 1.45; }
 .screen { background: var(--fondo); }
 #aula .scr-top { background: var(--glass); }
 .bib-lib { background: var(--card2); }
-.scr-top, header.top { position: sticky; top: 0; z-index: 30; min-height: 56px; height: auto; padding: 0 20px; gap: 16px; background: var(--glass); border-bottom: .5px solid var(--sep2); }
-.brand, header .brand, .scr-top .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--tinta) !important; font-size: 16px; font-weight: 650; letter-spacing: -.01em; text-transform: none; }
+.scr-top, header.top { position: sticky; top: 0; z-index: 30; height: auto; padding: 0 20px; gap: 16px; background: var(--glass); border-bottom: .5px solid var(--sep2); }
+header.top { min-height: 56px; display: flex; align-items: center; }
+/* Barra del portal: más alta y en rejilla fija, para que el título o el estado activo no desplacen la navegación. */
+.scr-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 11.5rem;
+  align-items: center;
+  min-height: 64px;
+  flex-wrap: nowrap;
+  column-gap: 16px;
+  row-gap: 0;
+}
+.brand, header .brand, .scr-top .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--tinta) !important; font-size: 16px; font-weight: 650; letter-spacing: -.01em; text-transform: none; white-space: nowrap; }
+.scr-top .brand { font-size: 18px; }
 .brand::before, .cov-brand::before, .gate-card h1::before {
   content: ''; width: 30px; height: 30px; border-radius: 8px; flex: none; box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .1), 0 1px 3px rgba(220, 0, 27, .3);
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z'/%3E%3Cpath d='M22 10v6'/%3E%3Cpath d='M6 12.5V16a6 3 0 0 0 12 0v-3.5'/%3E%3C/svg%3E") center / 19px no-repeat, linear-gradient(160deg, #f0283c, #c40018); }
-.scr-ttl { border-left: 0; padding-left: 0; color: var(--gris); font-size: 14px; letter-spacing: 0; font-weight: 500; }
+.scr-ttl { border-left: 0; padding-left: 0; color: var(--gris); font-size: 14px; letter-spacing: 0; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scr-ttl::before { content: '›'; margin-right: 12px; color: var(--gris2); }
-.top-nav { gap: 4px; }
-.top-nav-a, .navb { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 0 !important; color: var(--tinta); font-weight: 500; font-size: 14px; background: transparent; }
+.top-nav { display: flex; flex-wrap: nowrap; gap: 4px; margin-left: 0; justify-self: end; }
+.top-nav-a, .navb { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 0 !important; color: var(--tinta); font-weight: 600; font-size: 14px; background: transparent; white-space: nowrap; box-sizing: border-box; }
 .top-nav-a:hover, .top-nav-a:focus-visible, .navb:hover { background: var(--fill); color: var(--tinta); }
 .top-nav-a.on { background: var(--acc-tint); color: var(--acc-t); font-weight: 600; }
-.crumbs { background: transparent; border-bottom: 0; padding: 10px 20px 4px; font-size: 13px; color: var(--gris); }
+.scr-end, .au-chip, .pn-who, .top-nav + .au-chip, .top-nav + .pn-who { margin-left: 0; justify-self: end; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; }
+.crumbs { background: transparent; border-bottom: 0; padding: 10px 20px 4px; font-size: 13px; color: var(--gris); min-height: 36px; box-sizing: border-box; }
 .crumbs a { color: var(--acc-t); font-weight: 500; }
 .pchip-who { background: var(--fill); border: 0; color: var(--tinta); font-weight: 600; padding: 3px 10px; }
 .pchip.prof .pchip-who { background: var(--ambar-tint); color: var(--ambar-t); }
@@ -148,7 +174,7 @@ textarea { min-height: 80px; line-height: 1.45; }
 .btn-salir { background: var(--glass); border: .5px solid var(--sep2); border-radius: 999px; padding: 6px 14px; color: var(--tinta); opacity: 1; box-shadow: var(--sh1); }
 
 /* ---------- entrada (código de grupo / profesor) ---------- */
-.gate { background: linear-gradient(180deg, rgba(242, 242, 247, .55), rgba(242, 242, 247, .9)), url('../img/fotos/eee.webp') center / cover no-repeat, var(--fondo); }
+.gate { background-color: var(--fondo); isolation: isolate; }
 .gate-card { background: var(--glass-fuerte); border: .5px solid var(--glass-borde); border-radius: var(--r-xl); box-shadow: var(--sh3); padding: 34px 30px 26px; }
 .gate-card h1 { display: flex; flex-direction: column; align-items: center; gap: 14px; font-size: 26px; font-weight: 700; color: var(--tinta); letter-spacing: -.02em; margin: 0 0 22px; }
 .gate-card h1::before { width: 60px; height: 60px; border-radius: 15px; background-size: 36px, auto; }
@@ -167,10 +193,10 @@ textarea { min-height: 80px; line-height: 1.45; }
 .gate-priv, .gate-pin-ayuda { color: var(--gris); }
 
 /* ---------- portada ---------- */
-#cover { background: linear-gradient(180deg, rgba(10, 12, 16, .30), rgba(10, 12, 16, .62)), url('../img/fotos/circuitos.webp') center / cover no-repeat, #1c1c1e; }
+#cover { background-color: var(--fondo); isolation: isolate; }
 .cov-band { background: transparent; padding: 18px 22px; align-items: flex-start; }
-.cov-brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; font-size: 17px; font-weight: 650; letter-spacing: -.01em; text-transform: none; text-shadow: 0 1px 8px rgba(0, 0, 0, .3); }
-.cov-band .top-nav-a { color: #fff; background: rgba(255, 255, 255, .14); }
+.cov-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--tinta); font-size: 17px; font-weight: 650; letter-spacing: -.01em; text-transform: none; text-shadow: none; }
+.cov-band .top-nav-a { color: var(--tinta); background: var(--fill); }
 .cov-band .pchip-who { background: rgba(255, 255, 255, .85); }
 .cov-band .pchip-b { background: rgba(255, 255, 255, .85); border-color: transparent; }
 .cov-body { flex: none; margin: auto; width: min(560px, calc(100% - 32px)); background: var(--glass-fuerte); border: .5px solid var(--glass-borde); border-radius: 28px; box-shadow: var(--sh3); padding: 40px 36px 34px; }
@@ -184,8 +210,8 @@ textarea { min-height: 80px; line-height: 1.45; }
 .btn-enter:hover, .btn-enter:focus-visible { background: var(--acc); filter: brightness(.94); transform: none; }
 .cov-links a { border: 0; background: var(--fill); color: var(--tinta); border-radius: 999px; font-weight: 500; font-size: 14px; padding: 8px 14px; display: inline-flex; gap: 6px; align-items: center; }
 .cov-links a:hover, .cov-links a:focus-visible { background: rgba(118, 118, 128, .2); color: var(--tinta); }
-.cov-foot { background: transparent; color: rgba(255, 255, 255, .82); font-size: 12.5px; letter-spacing: 0; }
-.cov-foot a { color: #fff; }
+.cov-foot { background: transparent; color: var(--gris); font-size: 12.5px; letter-spacing: 0; }
+.cov-foot a { color: var(--acc-t); }
 
 /* ---------- asignaturas y biblioteca ---------- */
 .subj-wrap { padding-top: 22px; }
@@ -631,9 +657,15 @@ pre.code { background: #1c1c1e; }
   .scr-top, header.top { padding: 0 14px; }
   .as-tabs { max-width: calc(100% - 28px); margin-left: 14px; overflow-x: auto; }
 }
+@media (max-width: 720px) {
+  .scr-top { flex-wrap: nowrap; grid-template-columns: auto minmax(0, 1fr) minmax(0, auto) auto; column-gap: 10px; }
+  .top-nav { min-width: 0; overflow-x: auto; overflow-y: hidden; }
+}
 @media (max-width: 600px) {
   body { font-size: 15px; }
-  .scr-top { min-height: 52px; gap: 8px; }
+  .scr-top { min-height: 60px; gap: 8px; column-gap: 8px; grid-template-columns: auto minmax(0, 1fr); }
+  html.con-sesion .scr-top .top-nav { justify-self: stretch; min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  html.con-sesion .scr-top .top-nav::-webkit-scrollbar { display: none; }
   .subj-h1, .pn-h1 { font-size: 28px; }
   .as-hero-in { padding: 12px 14px 10px; gap: 12px; }
   .as-foto, .as-ic { width: 56px; height: 56px; border-radius: 14px; }
@@ -657,13 +689,20 @@ pre.code { background: #1c1c1e; }
 html[data-theme="dark"] {
     color-scheme: dark;
     --acc: #e5162d; --acc-t: #ff6b6b; --acc-tint: rgba(255, 69, 58, .16); --acc-ring: rgba(255, 105, 97, .45);
-    --fondo: #000; --card: #1c1c1e; --card2: #2c2c2e; --tinta: #f5f5f7; --gris: #a1a1a6; --gris2: #8e8e93;
+    --fondo: #0a0a0c; --card: rgba(44, 44, 46, .55); --card2: rgba(58, 58, 60, .42); --tinta: #f5f5f7; --gris: #c7c7cc; --gris2: #8e8e93;
     --claro: #3a3a3c; --sep: rgba(84, 84, 88, .55); --sep2: rgba(84, 84, 88, .75); --fill: rgba(118, 118, 128, .24); --fill2: rgba(118, 118, 128, .14);
     --verde: #30d158; --verde-tint: rgba(48, 209, 88, .16); --azul: #64a8ff; --azul-tint: rgba(10, 132, 255, .18); --ambar-tint: rgba(255, 159, 10, .18); --ambar-t: #ffb340; --rojo-tint: rgba(255, 69, 58, .16);
-    --glass: rgba(28, 28, 30, .72); --glass-fuerte: rgba(36, 36, 38, .82); --glass-borde: rgba(255, 255, 255, .08); --glass-osc: rgba(44, 44, 46, .86);
-    --sh1: 0 0 0 .5px rgba(255, 255, 255, .06); --sh2: 0 0 0 .5px rgba(255, 255, 255, .08), 0 12px 32px rgba(0, 0, 0, .5); --sh3: 0 0 0 .5px rgba(255, 255, 255, .1), 0 30px 80px rgba(0, 0, 0, .6);
+    --glass: rgba(22, 22, 24, .48); --glass-fuerte: rgba(36, 36, 38, .62); --glass-borde: rgba(255, 255, 255, .18); --glass-osc: rgba(44, 44, 46, .86);
+    --glass-hilite: inset 0 1px 1px rgba(255, 255, 255, .18), inset 0 0 0 .5px rgba(255, 255, 255, .08);
+    --fondo-malla: radial-gradient(ellipse 90% 70% at 0% -8%, rgba(220, 0, 27, .32), transparent 62%),
+      radial-gradient(ellipse 80% 60% at 100% 0%, rgba(10, 132, 255, .28), transparent 58%),
+      radial-gradient(ellipse 80% 70% at 88% 108%, rgba(20, 184, 166, .26), transparent 60%);
+    --fondo-velo: var(--fondo-malla);
+    --sh1: var(--glass-hilite), 0 1px 2px rgba(0, 0, 0, .35);
+    --sh2: var(--glass-hilite), 0 12px 32px rgba(0, 0, 0, .5);
+    --sh3: var(--glass-hilite), 0 30px 80px rgba(0, 0, 0, .6);
   }
-html[data-theme="dark"] .gate { background: linear-gradient(180deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .85)), url('../img/fotos/eee.webp') center / cover no-repeat, #000; }
+html[data-theme="dark"] .gate { background-color: var(--fondo); }
 html[data-theme="dark"] .gate-tabs button.on,
 html[data-theme="dark"] .bib-chip.on,
 html[data-theme="dark"] .as-tabs a.on,
@@ -712,7 +751,8 @@ html[data-theme="dark"] .overlay {
     --fondo: #f2f2f7; --card: #fff; --card2: #f7f7fa; --tinta: #1d1d1f; --gris: #6e6e73; --gris2: #8e8e93;
     --claro: #d8d8de; --sep: rgba(60, 60, 67, .16); --sep2: rgba(60, 60, 67, .24); --fill: rgba(118, 118, 128, .12); --fill2: rgba(118, 118, 128, .08);
     --verde: #248a3d; --verde-tint: rgba(52, 199, 89, .14); --azul: #0a66d8; --azul-tint: rgba(0, 122, 255, .10); --ambar-tint: rgba(255, 149, 0, .14); --ambar-t: #9a5200; --rojo-tint: rgba(255, 59, 48, .10);
-    --glass: rgba(255, 255, 255, .72); --glass-fuerte: rgba(255, 255, 255, .86); --glass-borde: rgba(255, 255, 255, .6); --glass-osc: rgba(28, 28, 30, .78);
+    --glass: rgba(255, 255, 255, .86); --glass-fuerte: #fff; --glass-borde: rgba(255, 255, 255, .7); --glass-osc: rgba(28, 28, 30, .78);
+    --glass-hilite: inset 0 1px 0 rgba(255, 255, 255, .8);
     --sh1: 0 1px 2px rgba(0, 0, 0, .04), 0 2px 10px rgba(0, 0, 0, .04); --sh2: 0 2px 6px rgba(0, 0, 0, .05), 0 12px 32px rgba(0, 0, 0, .08); --sh3: 0 10px 30px rgba(0, 0, 0, .12), 0 30px 80px rgba(0, 0, 0, .18);
     color: var(--tinta);
   }
@@ -830,7 +870,7 @@ body:not(.is-unlocked) .ses-caja, body.is-gate .ses-caja { display: none; }
 /* móvil con sesión: la marca se queda en el icono para que quepan la navegación, la sesión y el tema en una fila */
 @media (max-width: 600px) {
   html.con-sesion .scr-top .brand { font-size: 0; gap: 0; }
-  html.con-sesion .scr-top .scr-ttl, html.con-sesion .pn-who { display: none; }
+  html.con-sesion .scr-top .scr-ttl, html.con-sesion .pn-who, html.con-sesion .au-chip, html.con-sesion .scr-end { display: none; }
 }
 /* Curso y Biblioteca: tarjeta + acción debajo (añadir al curso / quitar del curso) */
 .cur-celda { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -843,3 +883,199 @@ body:not(.is-unlocked) .ses-caja, body.is-gate .ses-caja { display: none; }
 .bib-kpi b { color: var(--tinta); font-size: 17px; margin-right: 2px; }
 .cur-msg:empty { display: none; }
 .as-fuera + .btn { margin-left: 6px; vertical-align: middle; }
+
+/* =====================================================================================
+   Cristal en todo el portal (cri4-20261113)
+   Fondo abstracto: malla CSS de 3 manchas suaves (estilo iOS/macOS), sin foto.
+   El desenfoque de backdrop-filter va en contenedores (barras, pestañas, tarjetas,
+   listas, menús), nunca en cada fila. Las pantallas del portal son position:fixed
+   sobre el laboratorio ESP32: el fondo opaco de la pantalla no se puede quitar.
+   ===================================================================================== */
+
+/* Base opaca (oculta el lab) + manchas desenfocadas para dar profundidad al cristal. */
+body.scr-subjects #subjects,
+body.scr-asig #asig,
+body.scr-aula #aula,
+body.scr-panelprof #panelprof,
+body.scr-biblio #biblio,
+body.scr-act:has(.labg) #act,
+.gate, #cover {
+  background-color: var(--fondo);
+  isolation: isolate;
+}
+body.scr-subjects #subjects::before,
+body.scr-asig #asig::before,
+body.scr-aula #aula::before,
+body.scr-panelprof #panelprof::before,
+body.scr-biblio #biblio::before,
+body.scr-act:has(.labg) #act::before,
+.gate::before, #cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--fondo-malla);
+  filter: blur(var(--fondo-blur));
+  transform: scale(1.2);
+  transform-origin: center;
+}
+body.scr-subjects #subjects > *,
+body.scr-asig #asig > *,
+body.scr-aula #aula > *,
+body.scr-panelprof #panelprof > *,
+body.scr-biblio #biblio > *,
+body.scr-act:has(.labg) #act > *,
+.gate > *, #cover > * { position: relative; z-index: 1; }
+body.scr-subjects #subjects > .scr-top,
+body.scr-asig #asig > .scr-top,
+body.scr-aula #aula > .scr-top,
+body.scr-panelprof #panelprof > .scr-top,
+body.scr-biblio #biblio > .scr-top,
+body.scr-act:has(.labg) #act > .scr-top { position: sticky; top: 0; z-index: 6; }
+.bib-lib { background: transparent; }
+
+html.glass-lite { --fondo-blur: 0px; --card: rgba(255, 255, 255, .92); --glass: rgba(255, 255, 255, .92); --glass-fuerte: rgba(255, 255, 255, .96); }
+html.glass-lite[data-theme="dark"] { --card: rgba(28, 28, 30, .94); --glass: rgba(28, 28, 30, .94); --glass-fuerte: rgba(36, 36, 38, .96); }
+html.glass-lite body.scr-subjects #subjects::before,
+html.glass-lite body.scr-asig #asig::before,
+html.glass-lite body.scr-aula #aula::before,
+html.glass-lite body.scr-panelprof #panelprof::before,
+html.glass-lite body.scr-biblio #biblio::before,
+html.glass-lite body.scr-act:has(.labg) #act::before,
+html.glass-lite .gate::before,
+html.glass-lite #cover::before { filter: none; transform: none; }
+
+/* Portada */
+.cov-body { background: var(--glass-fuerte); border: .5px solid var(--glass-borde); box-shadow: var(--sh3); }
+html[data-theme="dark"] .cov-body { background: rgba(18, 18, 22, .55); }
+.cov-links a {
+  background: rgba(255, 255, 255, .28);
+  border: .5px solid rgba(255, 255, 255, .45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  color: var(--tinta);
+}
+html[data-theme="dark"] .cov-links a {
+  background: rgba(255, 255, 255, .10);
+  border-color: rgba(255, 255, 255, .18);
+  color: #f5f5f7;
+}
+.btn-enter { border-radius: 999px; }
+
+/* Entrada */
+.gate-card { border: .5px solid var(--glass-borde); box-shadow: var(--sh3); }
+.gate-tabs { -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); background: rgba(118, 118, 128, .14); }
+.gate-google { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
+
+/* Barra superior claramente esmerilada */
+body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .scr-top {
+  background: var(--glass);
+  border-bottom: .5px solid var(--glass-borde);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .9), 0 8px 24px rgba(20, 24, 40, .06);
+}
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .scr-top {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .14), 0 8px 24px rgba(0, 0, 0, .35);
+}
+
+/* Pestañas de la asignatura: cápsula de cristal */
+.as-tabs {
+  background: rgba(255, 255, 255, .38);
+  border: .5px solid var(--glass-borde);
+  box-shadow: var(--sh1);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+html[data-theme="dark"] .as-tabs { background: rgba(44, 44, 46, .42); }
+.as-tabs a.on { background: rgba(255, 255, 255, .86); box-shadow: 0 2px 8px rgba(20, 24, 40, .10); }
+html[data-theme="dark"] .as-tabs a.on { background: rgba(120, 120, 128, .55); }
+
+/* Columna de temas */
+.cl-lado {
+  background: var(--glass);
+  border: .5px solid var(--glass-borde);
+  border-radius: var(--r);
+  box-shadow: var(--sh1);
+  padding: 8px 6px;
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+
+/* Listas: el cristal es el contenedor; las filas se quedan claras, sin blur */
+.cl-items {
+  background: var(--glass);
+  border: .5px solid var(--glass-borde);
+  box-shadow: var(--sh1);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+.cl-it, .org-it, .bib-hits li, .pn-row td, .au-t td, .pn-t td, .tbl td {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(255, 255, 255, .28);
+}
+html[data-theme="dark"] .cl-it,
+html[data-theme="dark"] .org-it,
+html[data-theme="dark"] .bib-hits li { background: rgba(255, 255, 255, .04); }
+a.cl-it:hover, .cl-it:hover { background: rgba(255, 255, 255, .48); }
+
+/* Tarjetas y paneles: translúcidos CON desenfoque (pocas por pantalla, no cada fila) */
+.subj, .ap-card, .ac-card, .pn-kpi, .org-stat, .pn-card, .au-sec, .org-box, .pn-g, .pn-grupo, .cl-dlg, .tbl, .au-t, .pn-t {
+  background: var(--card);
+  border: .5px solid var(--glass-borde);
+  box-shadow: var(--sh1);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+.pn-g { background: var(--glass); }
+.tbl th, .au-t th, .pn-t th { background: transparent !important; }
+
+/* Botones secundarios: pastillas de cristal, como las de la portada */
+body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio, .scr-cover, .is-gate) .btn:not(.primary):not(.pn-peligro),
+body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .pchip-b,
+body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .btn-salir {
+  background: rgba(255, 255, 255, .38);
+  border: .5px solid var(--glass-borde);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), 0 1px 3px rgba(20, 24, 40, .06);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .btn:not(.primary):not(.pn-peligro):hover,
+body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .pchip-b:hover {
+  background: rgba(255, 255, 255, .58);
+  border-color: var(--glass-borde);
+}
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio, .scr-cover, .is-gate) .btn:not(.primary):not(.pn-peligro),
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .pchip-b,
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .btn-salir {
+  background: rgba(255, 255, 255, .10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 1px 3px rgba(0, 0, 0, .35);
+}
+
+/* Campos: un poco más opacos para leer y escribir con contraste AA */
+body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio, .is-gate) :is(input[type=text], input[type=search], input[type=password], input[type=number], input[type=email], input[type=url], input[type=time], input[type=date], input[type=datetime-local], select, textarea) {
+  background-color: rgba(255, 255, 255, .88) !important;
+}
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio, .is-gate) :is(input[type=text], input[type=search], input[type=password], input[type=number], input[type=email], input[type=url], input[type=time], input[type=date], input[type=datetime-local], select, textarea) {
+  background-color: rgba(44, 44, 46, .88) !important;
+}
+
+.cl-dlg { background: var(--glass-fuerte); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: .5px solid var(--glass-borde); }
+.bib-chips, .gate-tabs, .pn-tabs a, .pi-tabs, .tabs, .cx-tabs, .vv-tabs {
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+
+html.glass-lite .cl-items, html.glass-lite .pn-g, html.glass-lite .as-tabs, html.glass-lite .bib-chips,
+html.glass-lite .cl-dlg, html.glass-lite .gate-tabs, html.glass-lite .cov-links a,
+html.glass-lite .subj, html.glass-lite .ap-card, html.glass-lite .pn-card, html.glass-lite .cl-lado,
+html.glass-lite body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .btn:not(.primary) {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+
+/* Laboratorios 3D: solo barras y paneles laterales (el banco de trabajo sigue opaco). */
+.cx-top, .vv-top, header.top, .lesson-strip, .stepbar, .vtitle, .cx-tools, .cx-insp, .cx-wbar, .vv-vis-top, .ac-ayuda, .aj-volver {
+  border: .5px solid var(--glass-borde);
+}

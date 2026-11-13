@@ -44,7 +44,7 @@ export const FOTOS_PORTAL = {
   "a": "Electronicspices",
   "l": "CC BY-SA 4.0",
   "lu": "https://creativecommons.org/licenses/by-sa/4.0",
-  "uso": "Asignatura Equipos eléctricos y electrónicos · portada"
+  "uso": "Asignatura Equipos eléctricos y electrónicos"
  },
  "esp32": {
   "f": "img/fotos/esp32.webp",

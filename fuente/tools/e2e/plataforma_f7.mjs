@@ -25,10 +25,12 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await pg.click('#cxSim'); await pg.waitForTimeout(300);
   await pg.evaluate(() => { const L = window.__circ; L.model.wires = L.model.wires.filter((w) => w.id !== 'w1' && w.id !== 'w2'); });
   await pg.click('#cxSim'); await medir(pg, '·)))', 'h:tp3', 'h:c10'); await pg.waitForTimeout(700);
+  await pg.waitForFunction(() => window.__circ.lastSim?.res?.M1?.meter?.beep === true, null, { timeout: 8000 }).catch(() => {}); // la simulación puede tardar (cristal en headless)
   r = await lectura(pg);
   ok('continuidad sin pila en un cable bueno: pita', r.m?.beep === true && /pita/.test(r.m.text), JSON.stringify(r.m));
   await shot(pg, 'f7_continuidad');
   await medir(pg, '·)))', 'h:c10', 'h:c14'); await pg.waitForTimeout(600);
+  await pg.waitForFunction(() => window.__circ.lastSim?.res?.M1?.meter?.text === 'OL', null, { timeout: 8000 }).catch(() => {});
   r = await lectura(pg);
   ok('continuidad en la resistencia averiada: OL (no pita)', r.m?.text === 'OL', JSON.stringify(r.m));
   await pg.click('#cxSim');

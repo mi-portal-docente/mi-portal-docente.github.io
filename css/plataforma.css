@@ -413,11 +413,11 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 
 /* ---- Fase 13 · hoja de cálculo, visor de PDF y visor 3D */
 .hj-wrap { display: grid; gap: 10px; }
-.hj-barra { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm); background: var(--fill); border: 1px solid var(--sep); }
+.hj-barra { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm); background: var(--glass, var(--fill)); border: .5px solid var(--glass-borde, var(--sep)); box-shadow: var(--sh1, none); }
 .hj-ref { min-width: 3.2em; font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; padding: 2px 6px; border-radius: 6px; background: var(--card); }
 .hj-fxi { font-style: italic; color: var(--gris); font-weight: 600; }
 .hj-fx { flex: 1; border: 0; background: transparent; font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px; outline: none; }
-.hj-scroll { overflow: auto; max-height: 60vh; border: 1px solid var(--sep); border-radius: var(--r-sm); background: var(--card); }
+.hj-scroll { overflow: auto; max-height: 60vh; border: .5px solid var(--glass-borde, var(--sep)); border-radius: var(--r-sm); background: var(--glass-fuerte, var(--card)); box-shadow: var(--sh1, none); }
 .hj-scroll.ro { max-height: 50vh; }
 .hj-t { border-collapse: collapse; font-size: 13px; }
 .hj-t th { position: sticky; top: 0; background: var(--fill); color: var(--gris); font-weight: 600; min-width: 2.4em; padding: 3px 6px; border: 1px solid var(--sep); z-index: 1; }
@@ -430,7 +430,7 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 .hj-c.n, .hj-t td.n, .hj-piv .n { text-align: right; font-variant-numeric: tabular-nums; }
 .hj-c.err { color: #d70015; }
 .hj-herr { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
-.hj-det { border: 1px solid var(--sep); border-radius: var(--r-sm); padding: 6px 10px; background: var(--card); }
+.hj-det { border: .5px solid var(--glass-borde, var(--sep)); border-radius: var(--r-sm); padding: 6px 10px; background: var(--glass, var(--card)); box-shadow: var(--sh1, none); }
 .hj-det summary { cursor: pointer; display: flex; gap: 6px; align-items: center; font-weight: 600; font-size: 14px; }
 .hj-retos { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 .hj-retos li { display: flex; gap: 8px; align-items: flex-start; padding: 6px 10px; border-radius: var(--r-sm); background: var(--fill); }
@@ -439,11 +439,11 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 .hj-ley { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; } .hj-ley i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; }
 .hj-piv { border-collapse: collapse; min-width: 260px; } .hj-piv th, .hj-piv td { border: 1px solid var(--sep); padding: 4px 8px; } .hj-piv thead th, .hj-piv tfoot th { background: var(--fill); }
 .hj-fxl code { font-size: 12px; }
-.m3 { border: 1px dashed var(--sep); border-radius: var(--r-sm); padding: 8px 10px; display: grid; gap: 6px; }
+.m3 { border: .5px dashed var(--glass-borde, var(--sep)); border-radius: var(--r-sm); padding: 8px 10px; display: grid; gap: 6px; background: var(--glass, transparent); }
 .m3-h { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; } .m3-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 body.vp-abierto { overflow: hidden; }
 .vp, .v3 { position: fixed; inset: 0; z-index: 10050; display: flex; flex-direction: column; background: rgba(28, 28, 30, .94); color: #fff; }
-.vp-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; padding-top: max(8px, env(safe-area-inset-top)); background: rgba(44, 44, 46, .85); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border-bottom: 1px solid rgba(255,255,255,.08); flex-wrap: wrap; }
+.vp-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; padding-top: max(8px, env(safe-area-inset-top)); background: var(--glass-osc, rgba(44, 44, 46, .85)); backdrop-filter: var(--blur, blur(20px) saturate(1.6)); -webkit-backdrop-filter: var(--blur, blur(20px) saturate(1.6)); border-bottom: 1px solid rgba(255,255,255,.08); flex-wrap: wrap; }
 .vp-tit { flex: 1; min-width: 8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
 .vp-grp { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 10px; background: rgba(255,255,255,.08); }
 .vp-b { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 0; background: transparent; color: #fff; cursor: pointer; text-decoration: none; }
@@ -457,3 +457,26 @@ body.vp-abierto { overflow: hidden; }
 .v3-lienzo { flex: 1; position: relative; min-height: 0; background: radial-gradient(circle at 50% 35%, #3a3a3c, #1c1c1e); } .v3-lienzo canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .v3-med { font-size: 13px; opacity: .8; font-variant-numeric: tabular-nums; } .v3-ayuda { margin: 0; padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); font-size: 12px; opacity: .7; text-align: center; }
 @media (max-width: 600px) { .vp-tit { order: -1; flex-basis: calc(100% - 50px); } .hj-t td { min-width: 72px; } }
+/* =====================================================================================
+   Cristal (cri1-20261113). Cambios aditivos, al final, para cruzar mejor con grok-plataforma.
+   El desenfoque va en contenedores (diálogo en directo, tarjetas grandes), no en cada fila.
+   ===================================================================================== */
+.xp, .lg-card, .p5-izq, .p5-der, .cb-panel, .ifl section, .lb-ent, .js-prev, .pi-tarea, .pi-entrada,
+.pi-eval, .pi-resumen, .pi-conf, .pi-col, .ca-prox a, .lg-ic {
+  background: var(--card, rgba(255, 255, 255, .72));
+  border: .5px solid var(--glass-borde, rgba(255, 255, 255, .68));
+  box-shadow: var(--sh1, 0 1px 2px rgba(20, 24, 40, .06));
+}
+.dir-al, .xp, .p5-izq, .p5-der, .cb-panel {
+  -webkit-backdrop-filter: var(--blur, saturate(180%) blur(22px));
+  backdrop-filter: var(--blur, saturate(180%) blur(22px));
+  background: var(--glass-fuerte, var(--card));
+}
+.ca-grid, .pi-tablero { background: var(--glass); border: .5px solid var(--glass-borde, transparent); box-shadow: var(--sh1); }
+.dir-al { border: .5px solid var(--glass-borde, rgba(255, 255, 255, .68)); }
+html.glass-lite .dir-al, html.glass-lite .xp, html.glass-lite .p5-izq, html.glass-lite .p5-der, html.glass-lite .cb-panel {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .dir-al, .xp, .p5-izq, .p5-der, .cb-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card, #fff); }
+}
