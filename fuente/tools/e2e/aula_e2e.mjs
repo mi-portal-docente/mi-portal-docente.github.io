@@ -562,11 +562,87 @@ await P.pg.waitForSelector('.au-prev');
 ok('vista previa del profesor: preguntas con soluciones', /=SUMA\(\)/.test(await P.pg.textContent('.au-prev .ok')));
 await P.pg.goto(BASE + '#asignaturas');
 await P.pg.waitForSelector('#subjects .bib-card');
-ok('profesor: «Mis asignaturas · 2026/27» solo con las del curso', /Mis asignaturas · 2026\/27/.test(await P.pg.textContent('#subjects h1')) && (await P.pg.$$('#subjects .bib-card')).length === 2);
+ok('profesor: «Curso 2026/27» solo con las del curso', /Curso 2026\/27/.test(await P.pg.textContent('#subjects h1')) && (await P.pg.$$('#subjects .bib-card')).length === 2);
 await P.pg.screenshot({ path: SHOTS + 'aula_asignaturas_profesor.png' });
 await A.pg.goto(BASE + '#asig/tic1/trabajo');
 await A.pg.waitForSelector('#asTrabajo .cl-it');
 await A.pg.screenshot({ path: SHOTS + 'aula_alumno_trabajo.png' });
+
+// ================================================================ 9. Curso (este año) y Biblioteca (todas, también otros años)
+// un curso anterior archivado, para ver «También en 2025/26» en la Biblioteca
+const val = (v) => Array.isArray(v) ? { arrayValue: { values: v.map(val) } } : typeof v === 'boolean' ? { booleanValue: v } : typeof v === 'number' ? { integerValue: String(v) } : typeof v === 'object' ? { mapValue: { fields: {} } } : { stringValue: v };
+const cursoAnt = { nombre: '2025/26', asignaturas: ['tic1', 'tic2', 'cdpc1'], activo: false, pesos: {}, creado: 1 };
+await fetch(`${REST}/cursos/c2025-26`, { method: 'PATCH', headers: { ...owner.headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(cursoAnt).map(([k, v]) => [k, val(v)])) }) });
+const cursoDoc = async () => { const L = (await (await fetch(`${REST}/cursos`, owner)).json()).documents || []; const d = L.find((x) => x.fields?.activo?.booleanValue); return { id: d?.name.split('/').pop(), asigs: (d?.fields?.asignaturas?.arrayValue?.values || []).map((v) => v.stringValue) }; };
+const asigsDe = async (col, id) => ((await (await fetch(`${REST}/${col}/${id}`, owner)).json()).fields?.asignaturas?.arrayValue?.values || []).map((v) => v.stringValue);
+await P.pg.goto(BASE + '#asignaturas');
+await P.pg.waitForSelector('#subjects [data-cur=quitar]');
+ok('nombre nuevo: «Curso» en el menú (en lugar de «Mis asignaturas»)', /Curso/.test(await P.pg.textContent('#subjects .top-nav a[href="#asignaturas"]')) && !/Mis asignaturas/.test(await P.pg.textContent('#subjects')));
+ok('Curso: título «Curso 2026/27», migas «Inicio › Curso» y «Quitar del curso» en cada asignatura', /Curso 2026\/27/.test(await P.pg.textContent('#subjects h1')) && /Inicio › Curso/.test(await P.pg.textContent('#subjects .crumbs')) && (await P.pg.$$('#subjects [data-cur=quitar]')).length === 2);
+await P.pg.click('#sesBtn'); await P.pg.waitForSelector('#sesMenu:not([hidden])');
+ok('menú de la sesión: enlaces a Curso y Biblioteca', !!(await P.pg.$('#sesMenu a[href="#asignaturas"]')) && !!(await P.pg.$('#sesMenu a[href="#biblioteca"]')));
+await P.pg.keyboard.press('Escape');
+await P.pg.screenshot({ path: SHOTS + 'curso_profesor_claro.png' });
+await P.pg.evaluate(() => window.portalTema?.elegir('dark')); await P.pg.waitForTimeout(300);
+await P.pg.screenshot({ path: SHOTS + 'curso_profesor_oscuro.png' });
+await P.pg.goto(BASE + '#biblioteca');
+await P.pg.waitForSelector('#bibRes [data-cur=añadir]');
+await P.pg.waitForFunction(() => /También en 2025\/26/.test(document.querySelector('#bibRes')?.textContent || ''), null, { timeout: 15000 });
+ok('Biblioteca: las 5 asignaturas (este curso y anteriores), 2 «En el curso 2026/27» (con «Quitar del curso») y 3 «Añadir al curso»', (await P.pg.$$('#bibRes .bib-card')).length === 5 && (await P.pg.$$('#bibRes [data-cur=quitar]')).length === 2 && (await P.pg.$$('#bibRes .bib-marca:not(.bib-arch)')).length === 2 && (await P.pg.$$('#bibRes [data-cur=añadir]')).length === 3);
+ok('Biblioteca: archivo de otros años («También en 2025/26»)', (await P.pg.$$('#bibRes .bib-arch')).length === 3);
+await P.pg.screenshot({ path: SHOTS + 'biblioteca_profesor_oscuro.png', fullPage: true });
+await P.pg.evaluate(() => window.portalTema?.elegir('light')); await P.pg.waitForTimeout(300);
+await P.pg.screenshot({ path: SHOTS + 'biblioteca_profesor_claro.png', fullPage: true });
+// añadir T.I.Cs 2º Bach al curso
+await P.pg.click('#bibRes [data-cur=añadir][data-asig=tic2]');
+await P.pg.waitForFunction(() => document.querySelectorAll('#bibRes [data-cur=quitar]').length === 3, null, { timeout: 15000 });
+let cd = await cursoDoc();
+ok('«Añadir al curso» guarda la asignatura en el curso activo', cd.asigs.includes('tic2') && cd.asigs.length === 3, cd.asigs.join());
+ok('Biblioteca: aviso y contador tras añadir', /añadida al curso 2026\/27/.test(await P.pg.textContent('#bibResumen')) && /3\s*en el curso/.test(await P.pg.textContent('#bibResumen')));
+await P.pg.screenshot({ path: SHOTS + 'biblioteca_anadida.png' });
+await P.pg.goto(BASE + '#asignaturas');
+await P.pg.waitForFunction(() => document.querySelectorAll('#subjects .bib-card').length === 3, null, { timeout: 15000 });
+ok('Curso: aparece la asignatura añadida (3)', true);
+// quitar T.I.Cs 1º Bach (la tiene el grupo 1º Bach A): no se borra nada, el grupo deja de verla
+let dlg = ''; P.pg.once('dialog', (d) => { dlg = d.message(); });
+await P.pg.click('#subjects [data-cur=quitar][data-asig=tic1]');
+await P.pg.waitForFunction(() => document.querySelectorAll('#subjects .bib-card').length === 2, null, { timeout: 15000 });
+ok('«Quitar del curso» pide confirmación, explica que no se borra nada y avisa del grupo', /No se borra nada/.test(dlg) && /1º Bach A/.test(dlg), dlg.split('\n')[0]);
+cd = await cursoDoc();
+ok('el curso ya no tiene T.I.Cs 1º Bach; el grupo y su código tampoco', !cd.asigs.includes('tic1') && !(await asigsDe('grupos', GA.id)).includes('tic1') && !(await asigsDe('codigos', GA.codigo)).includes('tic1'));
+ok('quitar del curso no borra el contenido (la tarea sigue)', (await fetch(`${REST}/items/${ID_E}`, owner)).status === 200);
+await P.pg.screenshot({ path: SHOTS + 'curso_quitada.png' });
+await P.pg.goto(BASE + '#biblioteca');
+await P.pg.waitForSelector('#bibRes [data-cur=añadir][data-asig=tic1]');
+ok('la asignatura quitada sigue en la Biblioteca, con «Añadir al curso»', (await P.pg.$$('#bibRes .bib-card')).length === 5);
+// el alumno de 1º Bach A deja de verla (sus asignaturas son las del curso)
+await A.pg.goto(BASE + '#asignaturas'); await A.pg.reload();
+await A.pg.waitForSelector('#subjects .subj-h1');
+ok('alumno: el menú dice «Curso» y ya no ve la asignatura quitada', /Curso/.test(await A.pg.textContent('#subjects .top-nav')) && !(await A.pg.$('#subjects a[href="#asig/tic1"]')));
+await A.pg.screenshot({ path: SHOTS + 'curso_alumno.png' });
+// página de la asignatura fuera del curso: botón «Añadir al curso»
+await P.pg.goto(BASE + '#asig/tic1/organizacion');
+await P.pg.waitForSelector('#asig [data-cur=añadir]');
+ok('asignatura fuera del curso: migas desde la Biblioteca y «Añadir al curso»', /Biblioteca/.test(await P.pg.textContent('#asig .crumbs')));
+await P.pg.click('#asig [data-cur=añadir]');
+await P.pg.waitForFunction(() => !document.querySelector('#asig [data-cur=añadir]') && /Inicio › Curso/.test(document.querySelector('#asig .crumbs')?.textContent || ''), null, { timeout: 15000 });
+cd = await cursoDoc();
+ok('vuelve a estar en el curso (desde su página)', cd.asigs.includes('tic1'));
+// el grupo se vuelve a marcar en Panel → Grupos (aquí, directamente) para dejarlo como estaba
+for (const [col, id] of [['grupos', GA.id], ['codigos', GA.codigo]]) await fetch(`${REST}/${col}/${id}?updateMask.fieldPaths=asignaturas`, { method: 'PATCH', headers: { ...owner.headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { asignaturas: val(['tic1']) } }) });
+// móvil
+const M = await contexto('profesor-movil', { width: 390, height: 844 });
+await M.pg.goto(BASE);
+await loginGoogle(M.pg, 'profe@test.es');
+await M.pg.waitForSelector('#pnGrupoForm', { timeout: 30000 });
+await M.pg.goto(BASE + '#asignaturas');
+await M.pg.waitForFunction(() => document.querySelectorAll('#subjects [data-cur=quitar]').length === 3, null, { timeout: 20000 });
+ok('móvil: Curso con 3 asignaturas y sus botones', true);
+await M.pg.screenshot({ path: SHOTS + 'curso_movil.png' });
+await M.pg.goto(BASE + '#biblioteca');
+await M.pg.waitForSelector('#bibRes [data-cur=quitar]');
+await M.pg.screenshot({ path: SHOTS + 'biblioteca_movil.png' });
+await M.ctx.close();
 } catch (e) {
   console.log('EXCEPCIÓN:', e.message.split('\n').slice(0, 4).join(' | '));
   ok('sin excepciones', false, e.message.split('\n')[0]);

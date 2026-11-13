@@ -1,6 +1,7 @@
 // Pantallas estáticas de la biblioteca (funcionan también sin Firebase, con el código de clase):
 // catálogo del profesor (agrupado por curso, con filtros y búsqueda) y el programa de cada asignatura.
-// Cada asignatura tiene UNA sola página (#asig/<id>/<pestaña>), se llegue desde aquí o desde «Mis asignaturas».
+// Cada asignatura tiene UNA sola página (#asig/<id>/<pestaña>), se llegue desde aquí o desde el «Curso».
+// Biblioteca = todas las asignaturas trabajadas (de este curso y de otros años); Curso = las de este curso escolar.
 import { BIBLIOTECA, asignatura, TIPOS, ETAPAS, cuentaItems } from './biblioteca.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -14,10 +15,10 @@ function cabecera(titulo, crumbs, chip, k = '') {
   return `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">SuperProfe · Alumnos</a><div class="scr-ttl">${esc(titulo)}</div>${nav(k)}</header>
   <nav class="crumbs static" aria-label="Estás en"><div>${crumbs}</div><div class="prof">${chip}</div></nav>`;
 }
-export function tarjetaAsig(a, { marca = '', href = null, alumno = false } = {}) {
+export function tarjetaAsig(a, { marca = '', archivo = '', href = null, alumno = false } = {}) {
   return `<a class="subj bib-card${a.foto ? ' con-foto' : ''}" href="${href || enlaceAsig(a.id)}" style="--c:${a.color};border-top-color:${a.color}">${a.foto ? `<div class="subj-foto"><img src="${a.foto}" alt="" loading="lazy" decoding="async"></div>` : `<div class="subj-ic" aria-hidden="true">${a.icon}</div>`}
     <div class="subj-cod">${esc(a.etapa)} · ${esc(a.curso)}${a.codigo ? ' · Módulo ' + esc(a.codigo) : ''}</div><h3>${esc(a.nombre)}</h3>
-    <p>${esc(a.desc)}</p><div class="bib-meta">${alumno ? `Profesor: ${esc(PROFESOR)}` : `${a.unidades.length} unidades · ${cuentaItems(a)} elementos`}${marca ? ` <span class="bib-marca">✔ ${esc(marca)}</span>` : ''}</div><span class="subj-go">Entrar <span aria-hidden="true">→</span></span></a>`;
+    <p>${esc(a.desc)}</p><div class="bib-meta">${alumno ? `Profesor: ${esc(PROFESOR)}` : `${a.unidades.length} unidades · ${cuentaItems(a)} elementos`}${marca ? ` <span class="bib-marca">✔ ${esc(marca)}</span>` : ''}${archivo ? ` <span class="bib-marca bib-arch">${esc(archivo)}</span>` : ''}</div><span class="subj-go">Entrar <span aria-hidden="true">→</span></span></a>`;
 }
 
 // ---------------------------------------------------------------- catálogo
@@ -25,7 +26,8 @@ export function bibliotecaHTML({ chip = '', esProfesor = false, enCurso = null }
   const cursos = [...new Set(BIBLIOTECA.map((a) => a.curso))];
   return cabecera('Biblioteca de asignaturas', '<a href="#inicio">Inicio</a> › <span aria-current="page">Biblioteca</span>', chip, 'biblio') + `
   <main class="subj-wrap bib"><h1 class="subj-h1">🗂 Biblioteca de asignaturas</h1>
-  <p class="muted">Tu catálogo: todas las asignaturas con sus situaciones de aprendizaje, tareas, prácticas, proyectos y cuestionarios (tal y como estaban en Classroom). ${esProfesor ? `Cada curso escolar eliges en <a href="#panel/cursos">Panel → Cursos escolares</a> cuáles impartes${enCurso ? ` (ahora, ${esc(enCurso.curso)})` : ''}. Al abrir una asignatura verás su <b>Organización</b>.` : ''}</p>
+  <p class="muted">Tu archivo: <b>todas las asignaturas que has trabajado</b>, de este curso y de los anteriores, con sus situaciones de aprendizaje, tareas, prácticas, proyectos y cuestionarios (tal y como estaban en Classroom). ${esProfesor ? (enCurso ? `Las marcadas «En el curso ${esc(enCurso.curso)}» son las que impartes este año y aparecen en <a href="#asignaturas">Curso</a>; pulsa <b>Añadir al curso</b> para sumar otra. Nada de la Biblioteca se borra al quitarla del curso.` : `Todavía no has creado el curso escolar: hazlo en <a href="#panel/cursos">Panel → Cursos escolares</a> para elegir las que impartes.`) + ' Al abrir una asignatura verás su <b>Organización</b>.' : ''}</p>
+  <div id="bibResumen" class="bib-resumen">${resumenHTML(enCurso)}</div>
   <div class="bib-filtros" role="search">
     <div class="bib-chips" role="group" aria-label="Etapa">${['', ...ETAPAS].map((e) => `<button type="button" class="bib-chip ${filtro.etapa === e ? 'on' : ''}" data-bib-etapa="${esc(e)}">${e ? esc(e) : 'Todas'}</button>`).join('')}</div>
     <label>Curso <select id="bibCurso"><option value="">Todos</option>${cursos.map((c) => `<option ${filtro.curso === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
@@ -37,12 +39,18 @@ export function bibliotecaHTML({ chip = '', esProfesor = false, enCurso = null }
 function resultadosHTML(enCurso) {
   const q = norm(filtro.q.trim());
   const asigs = BIBLIOTECA.filter((a) => (!filtro.etapa || a.etapa === filtro.etapa) && (!filtro.curso || a.curso === filtro.curso));
-  const marca = (a) => (enCurso && enCurso.asignaturas.includes(a.id) ? `Impartes en ${enCurso.curso}` : '');
+  const en = (a) => !!(enCurso && enCurso.asignaturas.includes(a.id));
+  const celda = (a) => {
+    const archivo = enCurso?.otros?.[a.id]?.length ? `También en ${enCurso.otros[a.id].join(', ')}` : '';
+    const card = tarjetaAsig(a, { marca: en(a) ? `En el curso ${enCurso.curso}` : '', archivo, href: `#asig/${a.id}/organizacion` });
+    if (!enCurso) return card;
+    return `<div class="cur-celda">${card}<div class="cur-acc">${en(a) ? `<button type="button" class="btn small" data-cur="quitar" data-asig="${esc(a.id)}">➖ Quitar del curso</button>` : `<button type="button" class="btn small primary" data-cur="añadir" data-asig="${esc(a.id)}">➕ Añadir al curso</button>`}</div></div>`;
+  };
   const vacio = '<div class="as-vacio"><div class="as-vacio-ic" aria-hidden="true">🔍</div><h2>Sin resultados</h2><p>No hay asignaturas con esos filtros. Pulsa «Quitar filtros».</p></div>';
   if (!q) {
     if (!asigs.length) return vacio;
     const grupos = [...new Set(asigs.map((a) => `${a.etapa} · ${a.curso}`))];
-    return grupos.map((g) => { const L = asigs.filter((a) => `${a.etapa} · ${a.curso}` === g); return `<section class="bib-grupo"><h2 class="bib-gt">${esc(g)} <span class="muted small">${L.length} asignatura${L.length === 1 ? '' : 's'}</span></h2><div class="subj-grid">${L.map((a) => tarjetaAsig(a, { marca: marca(a), href: `#asig/${a.id}/organizacion` })).join('')}</div></section>`; }).join('');
+    return grupos.map((g) => { const L = asigs.filter((a) => `${a.etapa} · ${a.curso}` === g); return `<section class="bib-grupo"><h2 class="bib-gt">${esc(g)} <span class="muted small">${L.length} asignatura${L.length === 1 ? '' : 's'}</span></h2><div class="subj-grid">${L.map(celda).join('')}</div></section>`; }).join('');
   }
   const hits = [];
   for (const a of asigs) {
@@ -55,8 +63,21 @@ function resultadosHTML(enCurso) {
   if (!hits.length) return `<div class="as-vacio"><div class="as-vacio-ic" aria-hidden="true">🔍</div><h2>Sin resultados</h2><p>Nada coincide con «${esc(filtro.q)}».</p></div>`;
   return `<p class="muted small">${hits.length} resultado${hits.length === 1 ? '' : 's'}</p><ul class="bib-hits">${hits.slice(0, 200).map((h) => `<li><a href="#asig/${h.a.id}/organizacion">${h.a.icon} ${esc(h.a.corto)}</a>${h.u ? ` › ${esc(h.u.titulo)}` : ''}${h.it ? ` › <b>${TIPOS[h.it.tipo]?.icon || ''} ${esc(h.it.titulo)}</b> <span class="muted small">(${esc(TIPOS[h.it.tipo]?.nombre || h.it.tipo)})</span>` : ''}</li>`).join('')}</ul>`;
 }
+function resumenHTML(enCurso) {
+  if (!enCurso) return '';
+  const n = enCurso.asignaturas.filter((id) => BIBLIOTECA.some((a) => a.id === id)).length;
+  return `<span class="bib-kpi"><b>${BIBLIOTECA.length}</b> en la Biblioteca</span><span class="bib-kpi"><b>${n}</b> en el curso ${esc(enCurso.curso)}</span><span class="cur-msg muted small" aria-live="polite"></span>`;
+}
+let cursoActual = null;
+// Datos del curso nuevos (al añadir o quitar): se repintan los resultados sin tocar los filtros.
+export function refrescarBiblioteca(root, enCurso) {
+  cursoActual = enCurso; if (!root) return;
+  const r = root.querySelector('#bibRes'); if (r) r.innerHTML = resultadosHTML(enCurso);
+  const k = root.querySelector('#bibResumen'); if (k) { const m = k.querySelector('.cur-msg')?.textContent || ''; k.innerHTML = resumenHTML(enCurso); const n = k.querySelector('.cur-msg'); if (n) n.textContent = m; }
+}
 export function enlazarBiblioteca(root, enCurso) {
-  const pinta = () => { const r = root.querySelector('#bibRes'); if (r) r.innerHTML = resultadosHTML(enCurso); };
+  cursoActual = enCurso;
+  const pinta = () => { const r = root.querySelector('#bibRes'); if (r) r.innerHTML = resultadosHTML(cursoActual); };
   root.querySelectorAll('[data-bib-etapa]').forEach((b) => b.addEventListener('click', () => { filtro.etapa = b.dataset.bibEtapa; root.querySelectorAll('[data-bib-etapa]').forEach((x) => x.classList.toggle('on', x === b)); pinta(); }));
   root.querySelector('#bibCurso')?.addEventListener('change', (e) => { filtro.curso = e.target.value; pinta(); });
   root.querySelector('#bibQ')?.addEventListener('input', (e) => { filtro.q = e.target.value; pinta(); });

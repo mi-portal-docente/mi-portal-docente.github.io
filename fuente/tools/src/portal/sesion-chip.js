@@ -8,6 +8,8 @@ const P = {
   users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
   panel: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
   escudo: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  'folder-open': '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
   libro: '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
 };
 const ic = (n) => `<svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${P[n]}</svg>`;
@@ -38,7 +40,9 @@ export function montarChipSesion(datos) {
         <div><div class="ses-nom">${esc(titulo)}</div><div class="ses-sub">${esc(sub)}</div>
         <div class="ses-est"><i class="ses-on"></i>Sesión iniciada${datos.desde ? ' · desde las ' + hora(datos.desde) : ''}</div></div></div>
       <div class="ses-rol" role="presentation">${ic(esProf ? 'escudo' : 'libro')}<span>${esProf ? 'Profesor · cuenta de Google autorizada' : 'Alumno · sin nombre ni correo: solo grupo y nº'}</span></div>
-      ${esProf ? `<a role="menuitem" tabindex="-1" href="#panel">${ic('panel')}<span>Panel del profesor</span></a>
+      <a role="menuitem" tabindex="-1" href="#asignaturas">${ic('calendar')}<span>Curso${esProf ? ' · asignaturas de este año' : ''}</span></a>
+      ${esProf ? `<a role="menuitem" tabindex="-1" href="#biblioteca">${ic('folder-open')}<span>Biblioteca · todas las asignaturas</span></a>
+      <a role="menuitem" tabindex="-1" href="#panel">${ic('panel')}<span>Panel del profesor</span></a>
       <a role="menuitem" tabindex="-1" href="#panel/usuarios">${ic('users')}<span>Usuarios y conectados</span></a>` : ''}
       <button type="button" role="menuitem" tabindex="-1" class="ses-salir" id="sesSalir">${ic('log-out')}<span>Cerrar sesión</span></button>
     </div>`;

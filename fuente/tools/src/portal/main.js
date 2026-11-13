@@ -2,7 +2,7 @@
 //  · Profesor: inicio de sesión con Google (rol comprobado por las reglas de Firestore).
 //  · Alumno: código de grupo + número de lista, con sesión ANÓNIMA (sin nombre ni correo).
 import { onAuthStateChanged, signInAnonymously, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, deleteUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, deleteDoc, updateDoc, onSnapshot, serverTimestamp, collection, query, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, updateDoc, onSnapshot, serverTimestamp, collection, query, where, writeBatch } from 'firebase/firestore';
 import { iniciarFirebase } from './fb.js';
 import { normalizaCodigo, formatoCodigo } from './codigos.js';
 import { crearPanel } from './panel.js';
@@ -59,11 +59,12 @@ const PORTAL = window.PORTAL = {
     if (rol === 'profesor') return `<span class="pchip prof"><span class="pchip-who">Profesor</span><button type="button" class="pchip-b" data-portal="salir">Salir</button></span>`;
     return '';
   },
-  // Entradas del encabezado, iguales en todas las pantallas. Alumno: sus asignaturas. Profesor: + Biblioteca y Panel.
+  // Entradas del encabezado, iguales en todas las pantallas. Alumno: su Curso. Profesor: + Biblioteca y Panel.
+  // «Curso» = las asignaturas del curso escolar activo; «Biblioteca» = todas las asignaturas trabajadas (archivo).
   navHTML(activa = '') {
     const a = (href, k, t) => `<a class="top-nav-a ${activa === k ? 'on' : ''}" href="${href}" ${activa === k ? 'aria-current="page"' : ''}>${t}</a>`;
-    if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📚 Mis asignaturas')}</nav>`;
-    return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📚 Mis asignaturas')}${a('#biblioteca', 'biblio', '🗂 Biblioteca')}${a('#panel', 'panel', '⚙️ Panel del profesor')}</nav>`;
+    if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}</nav>`;
+    return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${a('#biblioteca', 'biblio', '🗂 Biblioteca')}${a('#panel', 'panel', '⚙️ Panel del profesor')}</nav>`;
   },
   estadoEntrega(practica) { return entregas.get(practica) || null; },
   entregar,
@@ -100,8 +101,37 @@ const PORTAL = window.PORTAL = {
     importar(asig) { clase?.importar(asig); },
     reutilizar(asig) { clase?.reutilizar(asig); },
     renderItem(el, id) { if (vistas) vistas.renderItem(el, id); },
-    // Profesor: asignaturas del curso escolar activo (null si aún no hay curso).
-    asignaturasCurso() { const c = aula && rol === 'profesor' ? aula.cursoActivo() : null; return c ? { curso: c.nombre, asignaturas: (c.asignaturas || []).slice() } : null; },
+    // Profesor: asignaturas del curso escolar activo (null si aún no hay curso) y, de cada asignatura,
+    // los otros cursos escolares en los que estuvo (para el archivo de la Biblioteca).
+    asignaturasCurso() {
+      const c = aula && rol === 'profesor' ? aula.cursoActivo() : null; if (!c) return null;
+      const otros = {};
+      for (const x of aula.st.cursos.values()) if (x.id !== c.id) for (const id of x.asignaturas || []) (otros[id] ||= []).push(x.nombre);
+      for (const k in otros) otros[k].sort().reverse();
+      return { id: c.id, curso: c.nombre, asignaturas: (c.asignaturas || []).slice(), otros };
+    },
+    // Añadir o quitar una asignatura del Curso (curso escolar activo). Nunca borra nada: el contenido sigue
+    // en la Biblioteca. Al quitarla, los grupos de ese curso dejan de verla (también en su código de acceso).
+    gruposConAsignatura(asig) { const c = aula?.cursoActivo(); return c ? [...aula.st.grupos.values()].filter((g) => g.curso === c.id && (g.asignaturas || []).includes(asig)) : []; },
+    async cursoAsignatura(asig, accion) {
+      if (rol !== 'profesor' || !aula) throw new Error('no-profesor');
+      const c = aula.cursoActivo(); if (!c) throw new Error('sin-curso');
+      const L = (c.asignaturas || []).filter((x) => x !== asig);
+      const b = writeBatch(fb.db);
+      if (accion === 'añadir') {
+        if ((c.asignaturas || []).includes(asig)) return;
+        if (L.length >= 20) throw new Error('demasiadas');
+        b.update(doc(fb.db, 'cursos', c.id), { asignaturas: [...L, asig] });
+      } else {
+        b.update(doc(fb.db, 'cursos', c.id), { asignaturas: L });
+        for (const g of this.gruposConAsignatura(asig)) {
+          const asignaturas = g.asignaturas.filter((x) => x !== asig);
+          b.update(doc(fb.db, 'grupos', g.id), { asignaturas });
+          if (g.codigo) b.update(doc(fb.db, 'codigos', g.codigo), { asignaturas });
+        }
+      }
+      await b.commit();
+    },
   },
   pagina: () => (ACC.pagina ? ACC.pagina() : location.hash),
 };

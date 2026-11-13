@@ -50,12 +50,12 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const c = A.cursoEdit ? st.cursos.get(A.cursoEdit) : null;
     const asigs = c ? c.asignaturas : [];
     const form = `<section class="pn-card"><h3>${c ? 'Editar curso escolar' : 'Nuevo curso escolar'}</h3>
-      <p class="pn-small">Cada curso eliges qué asignaturas de la biblioteca impartes. Los grupos, las tareas y los exámenes van dentro del curso escolar: el curso que viene no tendrás que duplicar nada, solo copiar.</p>
+      <p class="pn-small">Cada curso eliges qué asignaturas de la Biblioteca impartes (también puedes hacerlo con «Añadir al curso» en la Biblioteca y «Quitar del curso» en Curso). Los grupos, las tareas y los exámenes van dentro del curso escolar: el curso que viene no tendrás que duplicar nada, solo copiar.</p>
       <form id="apCursoForm" class="pn-form" autocomplete="off">
         <label class="pn-f">Curso escolar<input name="nombre" maxlength="20" required placeholder="2026/27" value="${esc(c?.nombre || (st.cursos.size ? '' : cursoSugerido()))}" ${c ? 'readonly' : ''}></label>
         ${ETAPAS.map((e) => `<fieldset class="pn-f"><legend>${esc(e)}</legend>${BIBLIOTECA.filter((a) => a.etapa === e).map((a) => `<label class="pn-chk"><input type="checkbox" name="asig" value="${esc(a.id)}" ${asigs.includes(a.id) ? 'checked' : ''}> ${a.icon} ${esc(a.corto)} <span class="pn-small">· ${esc(a.nombre)}</span></label>`).join('')}</fieldset>`).join('')}
         ${c ? '' : `<label class="pn-f">Copiar el contenido de otro curso (como borrador)<select name="copiar">${opt('', 'No copiar nada', '')}${cursos().map((x) => opt(x.id, x.nombre, '')).join('')}</select></label>`}
-        <label class="pn-chk"><input type="checkbox" name="activo" ${!c || c.activo ? 'checked' : ''}> Es el curso activo (el que ven el panel y la portada)</label>
+        <label class="pn-chk"><input type="checkbox" name="activo" ${!c || c.activo ? 'checked' : ''}> Es el curso activo (el que aparece en «Curso», el panel y la portada)</label>
         <div class="pn-acts"><button class="btn primary" type="submit">${c ? '💾 Guardar' : '➕ Crear curso escolar'}</button>${c ? '<button class="btn" type="button" data-ap="cursoCancelar">Cancelar</button>' : ''}<span class="pn-msg" id="apCursoMsg">${esc(A.msg)}</span></div>
       </form></section>`;
     const lista = cursos().map((x) => {
@@ -63,7 +63,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       return `<article class="pn-grupo ${x.activo ? '' : 'off'}" data-curso="${esc(x.id)}"><div class="pn-gh"><h3>📅 ${esc(x.nombre)}</h3><span class="pn-est ${x.activo ? 'si' : 'no'}">${x.activo ? 'Curso activo' : 'Archivado'}</span></div>
         <div class="ap-chips">${(x.asignaturas || []).map((id) => { const a = asignatura(id); return `<span class="ap-chip" style="--c:${a?.color || '#888'}">${a?.icon || ''} ${esc(a?.corto || id)}</span>`; }).join('') || '<span class="pn-small">Sin asignaturas</span>'}</div>
         <div class="pn-small">👥 ${nG} grupo${nG === 1 ? '' : 's'}${x.id === st.cursoSel ? ` · 📚 ${st.items.size} elemento${st.items.size === 1 ? '' : 's'}` : ''}</div>
-        <div class="pn-acts">${x.activo ? '' : '<button class="btn" data-ap="cursoActivar">▶ Hacer activo</button>'}<button class="btn" data-ap="cursoEditar">✏️ Asignaturas</button><a class="btn" href="#asignaturas" data-ap="cursoVer">📚 Ver sus asignaturas</a><button class="btn pn-peligro" data-ap="cursoBorrar">🗑 Borrar</button></div></article>`;
+        <div class="pn-acts">${x.activo ? '' : '<button class="btn" data-ap="cursoActivar">▶ Hacer activo</button>'}<button class="btn" data-ap="cursoEditar">✏️ Asignaturas</button><a class="btn" href="#asignaturas" data-ap="cursoVer">📅 Ver en Curso</a><button class="btn pn-peligro" data-ap="cursoBorrar">🗑 Borrar</button></div></article>`;
     }).join('');
     return form + `<div class="pn-grupos">${lista || '<p class="pn-vacio">Todavía no hay cursos escolares. Crea el primero arriba.</p>'}</div>`;
   }

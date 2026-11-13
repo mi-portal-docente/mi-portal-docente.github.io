@@ -47,18 +47,22 @@ ACCESO AL PORTAL (dos modos; se elige solo según js/firebase-config.js)
 - La web incluye <meta name="robots" content="noindex, nofollow"> y un robots.txt
   que bloquea el rastreo, para que no la indexen los buscadores.
 - Al abrir (después de entrar) se ve la PORTADA (ciclo, asignatura, profesor) con el botón «Entrar».
-- «Entrar» lleva a ASIGNATURAS (tarjetas). La tarjeta «Equipos eléctricos y electrónicos» abre sus APARTADOS:
+- «Entrar» lleva a CURSO: las asignaturas de este curso escolar (tarjetas). El profesor tiene además la
+  BIBLIOTECA (#biblioteca): todas las asignaturas trabajadas, también de otros años, con «Añadir al curso»;
+  en Curso, «Quitar del curso» la saca de este año (y de sus grupos) sin borrar nada.
+  La tarjeta «Equipos eléctricos y electrónicos» abre sus APARTADOS:
   «ESP32» (los 8 proyectos de siempre) y «Circuitos» (laboratorio 3D de protoboard).
 - Direcciones (hash):
     index.html#inicio       portada
-    index.html#asignaturas  listado de asignaturas
+    index.html#asignaturas  Curso: asignaturas de este curso escolar
+    index.html#biblioteca   Biblioteca: todas las asignaturas (solo el profesor)
     index.html#eee          Equipos eléctricos y electrónicos: elegir apartado (ESP32 / Circuitos)
     index.html#eee/esp32    apartado ESP32 (guía general + 8 proyectos)
     index.html#p3-2         enlace profundo: proyecto 3, paso 2 (sigue funcionando igual)
     index.html#eee/circuitos         Laboratorio de Circuitos (portada con las prácticas)
     index.html#eee/circuitos/c1..c9  práctica guiada 1..9
     index.html#eee/circuitos/libre   modo libre
-- En las páginas de la asignatura hay migas «Inicio › Asignaturas › …» y el nombre del profesor.
+- En las páginas de la asignatura hay migas «Inicio › Curso › …» (o «Inicio › Biblioteca › …» si no está en el curso) y el nombre del profesor.
 
 AÑADIR UNA ASIGNATURA (para el futuro)
 - Editar tools/src/subjects.js (array SUBJECTS: id, codigo, nombre, profesor, icon, desc, active)

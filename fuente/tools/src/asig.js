@@ -1,4 +1,4 @@
-// Página única de cada asignatura (#asig/<id>/<pestaña>), igual se llegue desde «Mis asignaturas» o desde
+// Página única de cada asignatura (#asig/<id>/<pestaña>), igual se llegue desde el «Curso» o desde
 // la Biblioteca. Una sola barra de pestañas, como Classroom:
 //   Organización (solo profesor) · Trabajo de clase · Tablón (del alumno) · Laboratorio · Actividades de clase
 // Sin Firebase (modo código de clase) no hay aula: Programa · Laboratorio · Actividades de clase.
@@ -24,9 +24,9 @@ export const pestañaPorDefecto = () => { const P = portal(); if (!P?.aula?.acti
 export function asigHTML(id, tab, { cabecera, chip, enCurso = true }) {
   const a = asignatura(id); const P = portal(); const prof = !!P?.esProfesor; const ses = window.PORTAL_SESION;
   const T = pestañas(); const nombreTab = T.find((t) => t[0] === tab)?.[2] || '';
-  const origen = prof && !enCurso ? '<a href="#biblioteca">Biblioteca</a>' : `<a href="#asignaturas">${prof ? 'Mis asignaturas' : 'Asignaturas'}</a>`;
+  const origen = prof && !enCurso ? '<a href="#biblioteca">Biblioteca</a>' : '<a href="#asignaturas">Curso</a>';
   const crumbs = `<nav class="crumbs static" aria-label="Estás en"><div><a href="#inicio">Inicio</a> › ${origen} › <a href="#asig/${esc(id)}">${esc(a.corto)}</a> › <span aria-current="page">${esc(nombreTab)}</span></div><div class="prof">${chip}</div></nav>`;
-  const quien = prof ? `Profesor: <b>${PROFESOR}</b>${enCurso ? '' : ' · <span class="as-fuera">No está en tu curso activo (vista de la biblioteca)</span>'}` : ses?.grupo ? `${esc(ses.grupo)} · nº ${String(ses.numero).padStart(2, '0')} · Profesor: <b>${PROFESOR}</b>` : `Profesor: <b>${PROFESOR}</b>`;
+  const quien = prof ? `Profesor: <b>${PROFESOR}</b>${enCurso ? '' : ` · <span class="as-fuera">No está en el Curso de este año (vista de la Biblioteca)</span> <button type="button" class="btn small" data-cur="añadir" data-asig="${esc(id)}">➕ Añadir al curso</button><span class="cur-msg muted small" aria-live="polite"></span>`}` : ses?.grupo ? `${esc(ses.grupo)} · nº ${String(ses.numero).padStart(2, '0')} · Profesor: <b>${PROFESOR}</b>` : `Profesor: <b>${PROFESOR}</b>`;
   return `${cabecera}${crumbs}
   <div class="as-hero" style="--c:${a.color}"><div class="as-hero-in">${a.foto ? `<img class="as-foto" src="${a.foto}" alt="" decoding="async">` : `<span class="as-ic" aria-hidden="true">${a.icon}</span>`}<div><div class="as-cod">${esc(a.etapa)} · ${esc(a.curso)}${a.codigo ? ' · Módulo ' + esc(a.codigo) : ''}</div><h1>${esc(a.nombre)}</h1><div class="as-quien">${quien}</div></div></div>
     <nav class="as-tabs" role="tablist" aria-label="Secciones de la asignatura">${T.map(([k, ic, t]) => `<a role="tab" id="tab-${k}" href="#asig/${esc(id)}/${k}" aria-selected="${k === tab}" aria-controls="asPanel" tabindex="${k === tab ? 0 : -1}" class="${k === tab ? 'on' : ''}"><span aria-hidden="true">${ic}</span> ${esc(t)}</a>`).join('')}</nav></div>

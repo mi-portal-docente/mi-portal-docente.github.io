@@ -7,7 +7,7 @@ import { LESSONS } from './lessons.js';
 import { MODULO, RA, SOFTWARE_STEPS, LIBS, TOOLS_BASE, SAFETY_BASE, BOARD_GUIDE, WIRE_TYPES, BOARD_URL } from './common.js';
 import { boardDesc, boardShort, COLOR_NAME } from './describe.js';
 import { BIBLIOTECA, asignatura } from './lms/biblioteca.js';
-import { bibliotecaHTML, enlazarBiblioteca, tarjetaAsig } from './lms/vistas-biblio.js';
+import { bibliotecaHTML, enlazarBiblioteca, refrescarBiblioteca, tarjetaAsig } from './lms/vistas-biblio.js';
 import { asigHTML, pestañas, pestañaPorDefecto } from './asig.js';
 import { Actividad3D } from './act/motor.js';
 import { actividad, enlaceActividad } from './act/registro.js';
@@ -245,7 +245,7 @@ function espEntregaHTML(L) {
 function brandHTML() {
   return `<a href="#inicio" class="brand" title="Inicio">SuperProfe · Alumnos</a>`;
 }
-// Navegación del encabezado, igual en todas las pantallas (alumno: sus asignaturas; profesor: + Biblioteca y Panel).
+// Navegación del encabezado, igual en todas las pantallas (alumno: su Curso; profesor: + Biblioteca y Panel).
 const topNav = (k = '') => portal()?.navHTML?.(k) || `<nav class="top-nav" aria-label="Principal"><a class="top-nav-a ${k === 'asig' ? 'on' : ''}" href="#asignaturas" ${k === 'asig' ? 'aria-current="page"' : ''}>📚 Asignaturas</a></nav>`;
 const cabecera = (titulo, k = '') => `<header class="scr-top">${brandHTML()}<div class="scr-ttl">${esc(titulo)}</div>${topNav(k)}</header>`;
 function coverHTML() {
@@ -256,10 +256,10 @@ function coverHTML() {
     <div class="cov-ciclo">Bachillerato y CFGB · Informática y Comunicaciones</div>
     <div class="cov-sep"></div>
     <h1 class="cov-asig">Aula virtual</h1>
-    <div class="cov-mod">${alumno ? `${esc(ses?.grupo || '')} · nº ${String(ses?.numero || '').padStart(2, '0')} · ${esc(mias.map(a => a.corto).join(' · '))}` : prof ? `${mias.length} asignatura${mias.length === 1 ? '' : 's'} en tu curso · ${BIBLIOTECA.length} en la biblioteca` : `${BIBLIOTECA.length} asignaturas · trabajo de clase, laboratorios y actividades 3D`}</div>
+    <div class="cov-mod">${alumno ? `${esc(ses?.grupo || '')} · nº ${String(ses?.numero || '').padStart(2, '0')} · ${esc(mias.map(a => a.corto).join(' · '))}` : prof ? `${mias.length} asignatura${mias.length === 1 ? '' : 's'} en el Curso${cursoProf() ? ' ' + esc(cursoProf().curso) : ''} · ${BIBLIOTECA.length} en la Biblioteca` : `${BIBLIOTECA.length} asignaturas · trabajo de clase, laboratorios y actividades 3D`}</div>
     <div class="cov-prof">Profesor: <b>${esc(SUBJ.profesor)}</b></div>
-    <a class="btn-enter" href="#asignaturas">${alumno ? 'Entrar a mis asignaturas' : prof ? 'Mis asignaturas' : 'Entrar'} <span aria-hidden="true">→</span></a>
-    ${prof ? '<div class="cov-links"><a href="#biblioteca">🗂 Biblioteca de asignaturas</a><a href="#panel">⚙️ Panel del profesor</a></div>' : ''}
+    <a class="btn-enter" href="#asignaturas">${alumno ? 'Entrar al curso' : prof ? 'Curso' + (cursoProf() ? ' ' + esc(cursoProf().curso) : '') : 'Entrar'} <span aria-hidden="true">→</span></a>
+    ${prof ? '<div class="cov-links"><a href="#biblioteca">🗂 Biblioteca: todas las asignaturas</a><a href="#panel">⚙️ Panel del profesor</a></div>' : ''}
   </main>
   <div class="cov-foot">Trabajo de clase · Tablón · Laboratorios 3D · Actividades de clase<span class="cov-cred"> · <a href="#eee/vivienda/creditos">Créditos de las fotos</a></span></div>`;
 }
@@ -272,15 +272,46 @@ function misAsignaturas() {
   if (c) return BIBLIOTECA.filter(a => c.asignaturas.includes(a.id));
   return BIBLIOTECA;
 }
+function cursoProf() { return portal()?.esProfesor ? portal()?.aula?.asignaturasCurso?.() || null : null; }
+// «Curso»: las asignaturas que se imparten este curso escolar (alumno: las de su grupo).
+// Las demás siguen en la Biblioteca; «Quitar del curso» no borra nada.
 function subjectsHTML() {
   const P = portal(); const prof = !!P?.esProfesor; const alumno = P?.rol === 'alumno';
-  const c = prof ? P.aula?.asignaturasCurso?.() : null; const lista = misAsignaturas();
-  const titulo = alumno ? 'Tus asignaturas' : c ? `Mis asignaturas · ${c.curso}` : 'Asignaturas';
-  return `${cabecera(alumno ? 'Aula virtual' : 'Mis asignaturas', 'asig')}
-  <nav class="crumbs static" aria-label="Estás en"><div><a href="#inicio">Inicio</a> › <span aria-current="page">${prof ? 'Mis asignaturas' : 'Asignaturas'}</span></div><div class="prof">${chip()}</div></nav>
-  <main class="subj-wrap"><h1 class="subj-h1">${esc(titulo)}</h1><p class="muted">${alumno ? 'Elige una asignatura: verás su tablón, el trabajo de clase, los laboratorios y las actividades.' : prof && !c ? 'Todavía no has creado el curso escolar: hazlo en el <a href="#panel/cursos">Panel → Cursos escolares</a> y elige las asignaturas que impartes. Mientras, se muestran todas.' : prof ? `Las asignaturas que impartes en ${esc(c.curso)}. Las demás están en la <a href="#biblioteca">Biblioteca</a>.` : 'Elige una asignatura.'}</p>
-  ${lista.length ? '' : '<p class="muted subj-none">Tu código todavía no da acceso a ninguna asignatura publicada.</p>'}
-  <div class="subj-grid">${lista.map(a => tarjetaAsig(a, { alumno: !prof })).join('')}</div></main>`;
+  const c = cursoProf(); const lista = misAsignaturas();
+  const titulo = alumno ? 'Tus asignaturas del curso' : c ? `Curso ${c.curso}` : prof ? 'Curso' : 'Asignaturas';
+  const ayuda = alumno ? 'Elige una asignatura: verás su tablón, el trabajo de clase, los laboratorios y las actividades.'
+    : prof && !c ? 'Todavía no has creado el curso escolar: hazlo en el <a href="#panel/cursos">Panel → Cursos escolares</a>. Mientras, se muestran todas las asignaturas de la Biblioteca.'
+    : prof ? `Las asignaturas que impartes este curso escolar (${esc(c.curso)}). La <a href="#biblioteca">Biblioteca</a> guarda todas las que has trabajado, también las de otros años: desde allí puedes <b>añadir</b> una al curso. <b>Quitar del curso</b> no borra nada; la asignatura sigue en la Biblioteca.`
+    : 'Elige una asignatura.';
+  const vacio = prof && c ? `<div class="as-vacio cur-vacio"><div class="as-vacio-ic" aria-hidden="true">📅</div><h2>El curso ${esc(c.curso)} no tiene asignaturas</h2><p>Añádelas desde la Biblioteca.</p><a class="btn primary" href="#biblioteca">🗂 Ir a la Biblioteca</a></div>`
+    : '<p class="muted subj-none">Tu grupo todavía no tiene asignaturas en este curso. Avísale al profesor.</p>';
+  const celda = (a) => prof && c ? `<div class="cur-celda">${tarjetaAsig(a)}<div class="cur-acc"><button type="button" class="btn small" data-cur="quitar" data-asig="${esc(a.id)}">➖ Quitar del curso</button></div></div>` : tarjetaAsig(a, { alumno: !prof });
+  return `${cabecera(alumno ? 'Aula virtual' : 'Curso', 'asig')}
+  <nav class="crumbs static" aria-label="Estás en"><div><a href="#inicio">Inicio</a> › <span aria-current="page">Curso</span></div><div class="prof">${chip()}</div></nav>
+  <main class="subj-wrap"><h1 class="subj-h1">${esc(titulo)}</h1><p class="muted">${ayuda}</p>
+  ${lista.length ? '' : vacio}
+  <div class="subj-grid">${lista.map(celda).join('')}</div><p class="muted small cur-msg" id="curMsg" aria-live="polite"></p></main>`;
+}
+// Añadir / quitar del Curso (botones de la Biblioteca, del Curso y de la página de la asignatura).
+async function accionCurso(b) {
+  const P = portal(); const c = cursoProf(); const id = b.dataset.asig; const a = asignatura(id); if (!P?.esProfesor || !a) return;
+  const decir = (t) => { document.querySelectorAll('.cur-msg').forEach((m) => { m.textContent = t; }); };
+  if (!c) { location.hash = '#panel/cursos'; return; }
+  if (b.dataset.cur === 'quitar') {
+    const G = P.aula.gruposConAsignatura?.(id) || [];
+    const txt = `¿Quitar «${a.nombre}» del curso ${c.curso}?\n\nNo se borra nada: la asignatura y todo su contenido siguen en la Biblioteca y puedes volver a añadirla cuando quieras.`
+      + (G.length ? `\n\nLos grupos ${G.map((g) => g.nombre).join(', ')} dejarán de verla. Si la vuelves a añadir, márcala otra vez en Panel → Grupos.` : '');
+    if (!confirm(txt)) return;
+  }
+  b.disabled = true; decir('Guardando…');
+  try {
+    await P.aula.cursoAsignatura(id, b.dataset.cur === 'quitar' ? 'quitar' : 'añadir');
+    if (curScreen === 'asig' && asigActual) pintarAsig(asigActual);
+    decir(b.dataset.cur === 'quitar' ? `✔ «${a.corto}» quitada del curso ${c.curso}. Sigue en la Biblioteca.` : `✔ «${a.corto}» añadida al curso ${c.curso}.`);
+  } catch (e) {
+    b.disabled = false;
+    decir(e?.message === 'demasiadas' ? 'Un curso puede tener como mucho 20 asignaturas.' : '❌ No se ha podido guardar (' + (e?.code || e?.message || 'error') + ').');
+  }
 }
 function setCrumbs() {
   const L = state.lesson;
@@ -298,7 +329,7 @@ function showScreen(name, arg) {
   document.body.classList.toggle('scr-asig', name === 'asig' || name === 'bibasig');
   document.body.classList.toggle('scr-aula', name === 'aula');
   if (curScreen !== name) portal()?.alCambiarPantalla?.(name);
-  if (name === 'biblio') { const c = portal()?.aula?.asignaturasCurso?.() || null; $('#biblio').innerHTML = bibliotecaHTML({ chip: chip(), esProfesor: !!portal()?.esProfesor, enCurso: c }); enlazarBiblioteca($('#biblio'), c); }
+  if (name === 'biblio') { const c = cursoProf(); $('#biblio').innerHTML = bibliotecaHTML({ chip: chip(), esProfesor: !!portal()?.esProfesor, enCurso: c }); enlazarBiblioteca($('#biblio'), c); }
   if (name === 'asig') pintarAsig(arg);
   if (name !== 'act' && act) { act.destruir(); act = null; }
   // el visor ESP32 se pausa cuando no está a la vista
@@ -318,7 +349,7 @@ let asigActual = null;
 function pintarAsig({ id, tab }) {
   const enCurso = misAsignaturas().some(a => a.id === id);
   const el = $('#asig'); const misma = asigActual && asigActual.id === id;
-  el.innerHTML = asigHTML(id, tab, { cabecera: cabecera(asignatura(id).corto, 'asig'), chip: chip(), enCurso });
+  el.innerHTML = asigHTML(id, tab, { cabecera: cabecera(asignatura(id).corto, enCurso || !portal()?.esProfesor ? 'asig' : 'biblio'), chip: chip(), enCurso });
   asigActual = { id, tab };
   const A = portal()?.aula;
   if (tab === 'organizacion') A?.renderVista?.($('#asOrg'), id, 'organizacion');
@@ -562,7 +593,8 @@ else {
   };
   // El curso escolar del profesor llega después de cargar: refrescar la lista de asignaturas si está a la vista.
   window.addEventListener('portal-aula', () => {
-    if (curScreen === 'subjects') $('#subjects').innerHTML = subjectsHTML();
+    if (curScreen === 'subjects') { const m = $('#curMsg')?.textContent || ''; $('#subjects').innerHTML = subjectsHTML(); if ($('#curMsg')) $('#curMsg').textContent = m; }
+    if (curScreen === 'biblio') refrescarBiblioteca($('#biblio'), cursoProf());
     if (curScreen === 'cover') $('#cover').innerHTML = coverHTML();
     // estado de las actividades asignadas (entregada, nota…)
     if (curScreen === 'asig' && asigActual?.tab === 'actividades') pintarAsig(asigActual);
@@ -575,6 +607,7 @@ else {
     i = e.key === 'Home' ? 0 : e.key === 'End' ? L.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + L.length) % L.length;
     e.preventDefault(); L[i].focus(); location.hash = L[i].getAttribute('href');
   });
+  document.addEventListener('click', (e) => { const b = e.target.closest?.('[data-cur]'); if (b) { e.preventDefault(); accionCurso(b); } });
   document.addEventListener('click', (e) => {
     const b = e.target.closest?.('[data-asignar]'); if (!b || !asigActual) return;
     const def = actividad(asigActual.id, b.dataset.asignar); if (def) portal()?.aula?.asignarActividad?.({ asig: def.asig, titulo: def.titulo, texto: `${def.desc}\n\nAbre la actividad, complétala y pulsa **📤 Entregar este resultado** al final. Puedes repetirla y entregar de nuevo hasta que la califique.`, enlace: enlaceActividad(def), tituloEnlace: `${def.icon} ${def.titulo} (actividad 3D)` });

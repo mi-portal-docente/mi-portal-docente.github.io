@@ -832,3 +832,14 @@ body:not(.is-unlocked) .ses-caja, body.is-gate .ses-caja { display: none; }
   html.con-sesion .scr-top .brand { font-size: 0; gap: 0; }
   html.con-sesion .scr-top .scr-ttl, html.con-sesion .pn-who { display: none; }
 }
+/* Curso y Biblioteca: tarjeta + acción debajo (añadir al curso / quitar del curso) */
+.cur-celda { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cur-celda > .subj { flex: 1; }
+.cur-acc { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-height: 32px; padding: 0 4px; }
+.bib-meta .bib-arch { display: block; margin: 4px 0 0; color: var(--gris); font-weight: 600; }
+.bib-resumen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 10px 0 4px; }
+.bib-resumen:empty { display: none; }
+.bib-kpi { font-size: 14px; color: var(--gris, #6e6e73); }
+.bib-kpi b { color: var(--tinta); font-size: 17px; margin-right: 2px; }
+.cur-msg:empty { display: none; }
+.as-fuera + .btn { margin-left: 6px; vertical-align: middle; }

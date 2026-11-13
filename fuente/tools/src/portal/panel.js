@@ -30,7 +30,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   const ALIAS = { limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas', usuarios: 'conectados' };
   const AULA = ['cursos', 'notas'];
   const DESC = {
-    cursos: 'Cada curso escolar eliges qué asignaturas impartes. El curso activo es el que ves en «Mis asignaturas».',
+    cursos: 'Cada curso escolar eliges qué asignaturas impartes. El curso activo es el que ves en «Curso»; la «Biblioteca» guarda todas las asignaturas, también las de otros años.',
     grupos: 'Cada grupo tiene un código de clase que los alumnos usan para entrar (con su nº de lista y un PIN). Sin nombres.',
     notas: 'Cuaderno por grupo y asignatura: tareas, cuestionarios, actividades y prácticas del laboratorio. Nota de cada actividad (la nota por criterios se calcula en SuperProfe y QE).',
     entregas: 'Prácticas entregadas desde los laboratorios 3D (ESP32, Circuitos y Vivienda): revisa el montaje y pon nota.',
@@ -113,7 +113,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       <section class="pn-sec"><h3 class="pn-h3">Usuarios por grupo</h3><div class="pn-bar" id="pnUsuBar"></div><div id="pnUsu"></div></section>`;
     if (st.sub === 'entregas') B.innerHTML = `<div class="pn-bar" id="pnFiltros"></div><div class="pn-ent"><div id="pnTabla" class="pn-tabla"></div><aside id="pnDetalle" class="pn-det"></aside></div>`;
     if (st.sub === 'ajustes') B.innerHTML = `<section class="pn-card"><h3>Tu cuenta</h3><p>Has entrado como profesor con Google: <b>${esc(email || '')}</b>. Solo esta cuenta puede gestionar el portal.</p>
-      <div class="pn-acts"><a class="btn" href="#biblioteca">🗂 Biblioteca de asignaturas</a><a class="btn" href="#panel/cursos">📅 Cursos escolares</a><button class="btn" data-portal="salir">Cerrar sesión</button></div></section><div id="pnLimp"></div><div id="apLimp"></div>`;
+      <div class="pn-acts"><a class="btn" href="#asignaturas">📅 Curso</a><a class="btn" href="#biblioteca">🗂 Biblioteca de asignaturas</a><a class="btn" href="#panel/cursos">📅 Cursos escolares</a><button class="btn" data-portal="salir">Cerrar sesión</button></div></section><div id="pnLimp"></div><div id="apLimp"></div>`;
     if (AULA.includes(st.sub)) { ap.render(B, st.sub, st.extra); pintarTabs(); return; }
     ap.fuera();
     pintarDatos(); if (st.sub === 'entregas') pintarDetalle();
