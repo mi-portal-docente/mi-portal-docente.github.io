@@ -7,6 +7,8 @@ import { esc } from './util.js';
 import { ic } from './ico.js';
 import { leeEnlaces, urlSegura, idTrabajo, fmtNota } from '../lms/modelo.js';
 import { estadoTrabajo, editable, anulable, ESTADOS_TRABAJO, idVersion, horaCorta, elegirBorrador } from '../lms/entrega.js';
+import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
+import { rellenarImagenes } from './doc-editor.js';
 
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const idCom = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
@@ -40,7 +42,6 @@ export function montarEntrega(nodo, it, ctx) {
   function base(v) {
     const d = { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: ctx.uid(), tipo: 'tarea', texto: v.texto, enlaces: v.enlaces, fecha: serverTimestamp(), guardado: Date.now() };
     if (v.doc != null) d.doc = v.doc;
-    if (ctx.registro) d.registro = ctx.registro();
     return d;
   }
   function indicador() {
@@ -65,7 +66,10 @@ export function montarEntrega(nodo, it, ctx) {
     try {
       await escribir({ ...base(v), estado: 'borrador' });
       S.sucio = false; S.ultimo = Date.now(); borrarLocal();
-      if (S.tr) S.tr = { ...S.tr, estado: 'borrador', ...v };
+      const tenia = !!S.tr;
+      S.tr = { ...(S.tr || {}), estado: 'borrador', ...v, guardado: S.ultimo };
+      if (!tenia) { const w = nodo.querySelector('.en-coms-w'); if (w) w.outerHTML = comsWrapHTML(); escucharComentarios(); }
+      ctx.editor?.alGuardar?.();
     } catch (e) {
       S.error = e?.code === 'permission-denied' ? 'No se ha podido guardar: puede que ya esté calificado o que tu sesión haya caducado.' : 'Sin conexión: se guarda en este ordenador y se enviará al volver.';
     } finally { S.enVuelo = false; indicador(); }
@@ -77,6 +81,8 @@ export function montarEntrega(nodo, it, ctx) {
   async function entregar(btn) {
     const v = valores(); const msg = nodo.querySelector('#enMsg');
     if (!v.texto.trim() && !v.enlaces.length && !(v.doc && String(v.doc).replace(/<[^>]*>/g, '').trim())) { msg.textContent = 'Escribe una respuesta o añade un enlace.'; msg.className = 'au-msg ko'; return; }
+    const cont = it.contenido || {};
+    if (v.doc != null && (cont.palabrasMin || cont.palabrasMax)) { const np = contarPalabras(v.doc); if ((cont.palabrasMin && np < cont.palabrasMin) || (cont.palabrasMax && np > cont.palabrasMax)) { if (!confirm(`Tu documento tiene ${np} palabras y se piden ${cont.palabrasMin ? 'al menos ' + cont.palabrasMin : ''}${cont.palabrasMin && cont.palabrasMax ? ' y ' : ''}${cont.palabrasMax ? 'como mucho ' + cont.palabrasMax : ''}. ¿Entregar igualmente?`)) return; } }
     btn.disabled = true; msg.textContent = 'Entregando…'; msg.className = 'au-msg';
     const n = (S.tr?.nEntregas || 0) + 1;
     try {
@@ -84,6 +90,7 @@ export function montarEntrega(nodo, it, ctx) {
       await escribir({ ...base(v), estado: 'entregado', entregadoEn: Date.now(), nEntregas: n });
       S.sucio = false; S.ultimo = Date.now(); borrarLocal();
       S.tr = { ...(S.tr || {}), ...v, estado: 'entregado', nEntregas: n, fecha: Date.now() };
+      ctx.editor?.alGuardar?.();
       // Copia para el historial (solo la ve el profesor). Si falla, la entrega ya está hecha.
       const ver = { trabajo: tid, item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, n, texto: v.texto, enlaces: v.enlaces, fecha: serverTimestamp() };
       if (v.doc != null) ver.doc = v.doc;
@@ -109,9 +116,10 @@ export function montarEntrega(nodo, it, ctx) {
     let p = document.getElementById('enImprimir'); if (!p) { p = document.createElement('div'); p.id = 'enImprimir'; document.body.appendChild(p); }
     const n = S.nota;
     p.innerHTML = `<h1>${esc(it.titulo)}</h1><p class="en-pmeta">${esc(ses.grupo)} · nº ${esc(ses.numero)} · ${esc(ESTADOS_TRABAJO[estado()].t)}${S.tr?.fecha ? ' · ' + esc(fFecha(S.tr.fecha)) : ''}${n && n.nota != null ? ' · Nota: ' + esc(fmtNota(n.nota)) : ''}</p>
-      ${v.doc ? `<div class="en-pdoc">${v.doc}</div>` : ''}${v.texto && !v.doc ? `<div class="en-ptexto">${ctx.textoHTML(v.texto)}</div>` : ''}
+      ${v.doc ? `<div class="en-pdoc">${limpiarDoc(v.doc)}</div>` : ''}${v.texto && !v.doc ? `<div class="en-ptexto">${ctx.textoHTML(v.texto)}</div>` : ''}
       ${(v.enlaces || []).length ? `<h2>Enlaces</h2><ul>${v.enlaces.map((u) => `<li>${esc(u)}</li>`).join('')}</ul>` : ''}`;
     document.body.classList.add('en-imprimiendo');
+    rellenarImagenes(p, db, tid);
     const fin = () => { document.body.classList.remove('en-imprimiendo'); window.removeEventListener('afterprint', fin); };
     window.addEventListener('afterprint', fin);
     window.print(); setTimeout(fin, 1500);
@@ -134,6 +142,16 @@ export function montarEntrega(nodo, it, ctx) {
     catch (e) { alert('No se ha podido enviar el comentario.'); } finally { b.disabled = false; }
   }
 
+  function comsWrapHTML() {
+    const tr = S.tr;
+    return `<details class="en-coms-w" ${S.coms.length ? 'open' : ''}><summary>${ic('message-square')} Comentarios privados con el profesor</summary><div id="enComs" class="en-coms">${tr ? comsHTML() : '<p class="au-small">Podrás escribir al profesor cuando guardes o entregues el trabajo.</p>'}</div>
+      ${tr ? `<form id="enComF" class="en-comf" onsubmit="return false"><textarea maxlength="2000" rows="2" placeholder="Escribe una duda o un comentario (solo lo ve tu profesor)"></textarea><button type="button" class="btn small" data-en="comentar">${ic('send')} Enviar</button></form>` : ''}</details>`;
+  }
+  // El trabajo tiene que existir antes de subir imágenes (las reglas comprueban que es suyo).
+  async function asegurar() {
+    for (let i = 0; i < 100 && S.enVuelo; i++) await new Promise((r) => setTimeout(r, 100));
+    if (S.tr) return true; S.sucio = true; await guardarBorrador('imagen'); if (!S.tr) throw new Error('guarda primero el borrador (revisa la conexión)'); return true; }
+
   // ------------------------------------------------------------ pintar
   function pintar() {
     const e = estado(); const ed = editable(e); const tr = S.tr; const n = S.nota;
@@ -154,10 +172,10 @@ export function montarEntrega(nodo, it, ctx) {
     if (anulable(e)) h += `<button type="button" class="btn" data-en="anular">${ic('ban')} Anular la entrega</button>`;
     h += `<button type="button" class="btn" data-en="imprimir" title="Imprimir o guardar como PDF">${ic('printer')} Imprimir / PDF</button><span class="au-msg" id="enMsg"></span></div>`;
     h += `<p class="au-small">${ed ? 'Se guarda solo mientras escribes. Puedes guardar sin entregar y seguir otro día desde cualquier ordenador con tu nº y tu PIN.' : e === 'entregado' ? 'Puedes anular la entrega para cambiarla mientras el profesor no la califique.' : ''}</p></form>`;
-    h += `<details class="en-coms-w" ${S.coms.length ? 'open' : ''}><summary>${ic('message-square')} Comentarios privados con el profesor</summary><div id="enComs" class="en-coms">${tr ? comsHTML() : '<p class="au-small">Podrás escribir al profesor cuando guardes o entregues el trabajo.</p>'}</div>
-      ${tr ? `<form id="enComF" class="en-comf" onsubmit="return false"><textarea maxlength="2000" rows="2" placeholder="Escribe una duda o un comentario (solo lo ve tu profesor)"></textarea><button type="button" class="btn small" data-en="comentar">${ic('send')} Enviar</button></form>` : ''}</details>`;
+    h += comsWrapHTML();
     nodo.innerHTML = h;
-    if (ctx.editor && ed) ctx.editor.enlazar(nodo.querySelector('#enForm'), alCambiar);
+    if (ctx.editor && ed) ctx.editor.enlazar(nodo.querySelector('#enForm'), alCambiar, { asegurar });
+    else if (ctx.editor) ctx.editor.enlazarLectura?.(nodo.querySelector('#enForm'));
     indicador(); escucharComentarios();
     if (S.sucio && ed) { clearTimeout(S.tDeb); S.tDeb = setTimeout(() => guardarBorrador('local'), 1500); }
   }

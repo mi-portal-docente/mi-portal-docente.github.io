@@ -305,3 +305,34 @@ describe('Fase 10 · vista de corrección', () => {
     await assertSucceeds(getDoc(doc(anon('a7'), 'notas/itemT01_g1_7')));
   });
 });
+
+describe('Fase 11 · documento: imágenes y registro informativo', () => {
+  const ITEM_D = { curso: 'c2627', asig: 'eee', tipo: 'documento', titulo: 'Doc', texto: '', enlaces: [], grupos: ['g1'], visible: ['g1'], publicado: true, contenido: { plantilla: '<h2>A</h2>' } };
+  const img = (o = {}) => ({ data: 'data:image/jpeg;base64,' + 'A'.repeat(1000), w: 100, h: 80, fecha: serverTimestamp(), ...o });
+  test('el alumno guarda un documento (tipo documento) con su HTML', async () => {
+    await sembrar(async (db) => setDoc(doc(db, 'items/itemD01'), ITEM_D));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemD01_g1_7'), tarea('a7', { item: 'itemD01', estado: 'borrador', doc: '<h2>A</h2><p>Hola</p>', texto: 'A Hola' })));
+  });
+  test('imágenes: máx. 3 huecos (img1–img3), ~300 KB, solo el dueño y el profesor', async () => {
+    await sembrar(async (db) => { await setDoc(doc(db, 'items/itemD01'), ITEM_D); await setDoc(doc(db, 'trabajos/itemD01_g1_7'), { ...tarea('a7', { item: 'itemD01', estado: 'borrador' }), fecha: 1 }); });
+    const r = (n, u = 'a7') => doc(anon(u), `trabajos/itemD01_g1_7/imagenes/${n}`);
+    await assertSucceeds(setDoc(r('img1'), img()));
+    await assertSucceeds(setDoc(r('img3'), img()));
+    await assertFails(setDoc(r('img4'), img()), 'no hay cuarto hueco');
+    await assertFails(setDoc(r('img2'), img({ data: 'data:image/jpeg;base64,' + 'A'.repeat(420000) })), 'demasiado grande');
+    await assertFails(setDoc(r('img2'), img({ data: 'javascript:alert(1)' })));
+    await assertFails(setDoc(r('img2', 'a9'), img()), 'otro alumno');
+    await assertFails(getDoc(r('img1', 'a9')));
+    await assertSucceeds(getDoc(r('img1')));
+    await assertSucceeds(getDoc(doc(profe(), 'trabajos/itemD01_g1_7/imagenes/img1')));
+    await assertSucceeds(deleteDoc(r('img3')));
+  });
+  test('registro de edición: el alumno lo suma pero no lo lee; el profesor sí', async () => {
+    const reg = (o = {}) => ({ item: 'itemD01', al: 'g1_7', grupo: 'g1', numero: 7, seg: 42, pegados: [{ t: 1, n: 500 }], fecha: serverTimestamp(), ...o });
+    await assertSucceeds(setDoc(doc(anon('a7'), 'registros/itemD01_g1_7'), reg()));
+    await assertFails(getDoc(doc(anon('a7'), 'registros/itemD01_g1_7')));
+    await assertFails(setDoc(doc(anon('a9'), 'registros/itemD01_g1_7'), reg()), 'otro alumno');
+    await assertFails(setDoc(doc(anon('a7'), 'registros/itemD01_g1_7'), reg({ nota: 10 })));
+    await assertSucceeds(getDoc(doc(profe(), 'registros/itemD01_g1_7')));
+  });
+});

@@ -440,3 +440,27 @@ bloqueado hasta que el profesor ponga la nota nueva o lo vuelva a devolver.
 **Pruebas**: `plataforma_test.mjs` 31/31 · reglas 113/113 · E2E fase 10: 14/14 · `fb_e2e` 59/59 y `aula_e2e`
 116/116 tras la fase 9.
 **Capturas**: `f10_correccion`, `f10_alumno_nota`.
+
+## Fase 11 · Editor de documentos (13/11/2026)
+
+**Hecho** (`src/portal/doc-editor.js`, `src/lms/doc-html.js`, `src/lms/docx.js`, motor `documento`)
+- Nuevo tipo de tarea **Documento**: editor con títulos (H2/H3), negrita, cursiva, subrayado, listas, tablas,
+  enlaces, imágenes y bloques de código; deshacer/rehacer; contador de palabras; guardado automático (el de la
+  fase 9: borrador, versiones, entregar/anular, comentarios).
+- **Plantilla del profesor** (en el editor del elemento) que el alumno encuentra al empezar; mínimo/máximo de
+  palabras (aviso antes de entregar) y nº de imágenes permitidas (0–3).
+- Todo el HTML pasa por una **lista blanca** (al pegar, al guardar, al mostrar, al imprimir y al corregir): fuera
+  scripts, `on*`, `javascript:`, estilos y etiquetas desconocidas.
+- **Imágenes**: se comprimen en el navegador a JPEG ≤ 300 KB, máximo 3 por trabajo, en la subcolección
+  `trabajos/{id}/imagenes/img1..img3` (sin Storage). Para archivos grandes, enlace.
+- **PDF** con Imprimir (formato e imágenes) y **.docx**: exportador propio (ZIP + WordprocessingML) en
+  `src/lms/docx.js`, **sin librería nueva** (la librería `docx` pesa >1 MB); comprobado abriéndolo con LibreOffice.
+  Lo descargan el alumno y el profesor (vista de corrección).
+- **Registro de edición** solo para el profesor (`registros/{id}`): minutos editando y pegados grandes (≥ 200
+  caracteres, con hora y longitud). Es solo informativo: no penaliza nada.
+
+**Reglas**: nuevas `trabajos/{id}/imagenes/{img}` (img1–img3, data:image ≤ ~400 KB, dueño o profesor) y
+`registros/{id}` (el alumno crea/actualiza el suyo, solo el profesor lo lee). `documento` añadido a los tipos.
+**Formato JSON**: sección «Documento» en `FORMATO_IMPORTAR.md` (`plantilla`, `palabrasMin`, `palabrasMax`, `imagenes`).
+**Pruebas**: `plataforma_test.mjs` 34/34 · reglas 116/116 · E2E fase 11: 17/17.
+**Capturas**: `f11_plantilla_profesor`, `f11_editor_alumno`, `f11_correccion_documento`.

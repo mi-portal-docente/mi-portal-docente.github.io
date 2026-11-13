@@ -390,3 +390,31 @@ test('fase 10: rúbrica con niveles, descriptores y criterios «clase» (no punt
   assert.deepEqual(J.errores, []); assert.ok(J.elementos[0].rubrica[1].clase); assert.equal(J.elementos[0].rubrica[0].niveles[3], 'd');
   assert.deepEqual(exportarElemento(J.elementos[0]).rubrica[1], { criterio: 'Exposición', clase: true });
 });
+
+// ---------------------------------------------------------------- fase 11 · documento
+import * as DH from './src/lms/doc-html.js';
+import { docx, crc32 } from './src/lms/docx.js';
+import './src/lms/motores/documento.js';
+test('fase 11: el documento se limpia con lista blanca (sin scripts, eventos ni javascript:)', () => {
+  const l = DH.limpiarDoc('<h1 onclick="x()">T</h1><div>Hola <b>mundo</b><script>alert(1)</script></div><a href="javascript:alert(1)">m</a><a href="https://ej.es">b</a><img src=x onerror=alert(1)><img data-img="img2" src="data:image/png;base64,AAA"><img data-img="img9"><style>p{}</style><svg><script>x</script></svg><iframe src="https://x"></iframe>fin');
+  assert.equal(l, '<h2>T</h2><p>Hola <strong>mundo</strong></p>m<a href="https://ej.es">b</a><img data-img="img2">fin');
+  assert.equal(DH.limpiarDoc('<img src="data:image/png;base64,AAAA">'), '', 'el alumno no incrusta imágenes en el HTML');
+  assert.equal(DH.limpiarDoc('<img src="data:image/png;base64,AAAA">', { plantilla: true }), '<img src="data:image/png;base64,AAAA">');
+  assert.equal(DH.contarPalabras('<p>Uno dos</p><ul><li>tres</li></ul><table><tr><td>cuatro</td></tr></table>'), 4);
+  assert.deepEqual(DH.imagenesDe('<img data-img="img1"><p>x</p><img data-img="img3">'), ['img1', 'img3']);
+  assert.ok(DH.docVacio('<p> </p><h2></h2>') && !DH.docVacio('<p>x</p>'));
+});
+test('fase 11: .docx válido (ZIP con CRC, XML, títulos, listas, tablas, enlaces e imagen)', () => {
+  assert.equal(crc32(new TextEncoder().encode('123456789')), 0xcbf43926);
+  const px = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const b = docx('<h2>Intro</h2><p>Hola <strong>mundo</strong> y <a href="https://ej.es">enlace</a></p><ul><li>uno</li></ul><table><tr><th>A</th></tr><tr><td>1</td></tr></table><pre>x &lt; 1</pre><img data-img="img1">', { titulo: 'Informe', imagenes: { img1: { data: 'data:image/png;base64,' + px, w: 10, h: 10 } } });
+  const s = new TextDecoder('latin1').decode(b);
+  assert.equal(b[0], 0x50); assert.equal(b[1], 0x4b);
+  for (const n of ['[Content_Types].xml', 'word/document.xml', 'word/styles.xml', 'word/numbering.xml', 'word/media/imagen1.png']) assert.ok(s.includes(n), n);
+  assert.match(s, /Heading2/); assert.match(s, /w:numId w:val="1"/); assert.match(s, /<w:tbl>/); assert.match(s, /TargetMode="External"/); assert.match(s, /x &lt; 1/);
+});
+test('fase 11: motor «documento» (plantilla limpia y límites de palabras)', async () => {
+  const { motor } = await import('./src/lms/elemento.js');
+  const e = []; const o = motor('documento').validar({ plantilla: '<h2>A</h2><script>x</script>', palabrasMin: 10, palabrasMax: 5 }, (r, t) => e.push(r));
+  assert.equal(o.plantilla, '<h2>A</h2>'); assert.deepEqual(e, ['palabrasMax']);
+});

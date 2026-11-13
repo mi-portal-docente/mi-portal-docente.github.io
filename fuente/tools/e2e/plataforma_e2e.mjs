@@ -4,21 +4,22 @@
 import { chromium } from 'playwright-core';
 import { SHOTS } from '../rutas.mjs';
 
-const BASE = process.env.PORTAL_BASE || 'http://127.0.0.1:8765/index.html';
+const FS = process.env.E2E_FS_PORT || '8080'; const AU = process.env.E2E_AUTH_PORT || '9099';
+const BASE = process.env.PORTAL_BASE || `http://127.0.0.1:${process.env.E2E_HTTP_PORT || '8765'}/index.html`;
 const PROJ = 'demo-portal';
-const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:9099',firestoreHost:'127.0.0.1',firestorePort:8080};`;
+const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:${AU}',firestoreHost:'127.0.0.1',firestorePort:${FS}};`;
 const FASES = (process.env.FASES || '1,2,3,4,5,6,7,8,9,10,11,12,13,14').split(',').map(Number);
 const results = []; const errores = [];
 export const ok = (name, cond, info = '') => { results.push({ name, ok: !!cond, info }); console.log((cond ? 'OK  ' : 'FAIL') + ' ' + name + (info ? ' · ' + info : '')); };
 const benigno = (t) => /favicon|WebGL|GPU stall|swiftshader|GroupMarkerNotSet|Failed to load resource/i.test(t);
-const REST = `http://127.0.0.1:8080/v1/projects/${PROJ}/databases/(default)/documents`;
+const REST = `http://127.0.0.1:${FS}/v1/projects/${PROJ}/databases/(default)/documents`;
 const owner = { headers: { Authorization: 'Bearer owner' } };
 const PROMPT = [];
 const shot = (pg, n) => pg.screenshot({ path: SHOTS + n + '.png' });
 const docREST = async (ruta) => (await fetch(`${REST}/${ruta}`, owner)).json();
 
-await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${PROJ}/databases/(default)/documents`, { method: 'DELETE' });
-await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PROJ}/accounts`, { method: 'DELETE' });
+await fetch(`http://127.0.0.1:${FS}/emulator/v1/projects/${PROJ}/databases/(default)/documents`, { method: 'DELETE' });
+await fetch(`http://127.0.0.1:${AU}/emulator/v1/projects/${PROJ}/accounts`, { method: 'DELETE' });
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 async function contexto(nombre, viewport = { width: 1440, height: 900 }) {
   const ctx = await b.newContext({ viewport, acceptDownloads: true });

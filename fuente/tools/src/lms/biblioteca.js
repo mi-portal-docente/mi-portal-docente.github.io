@@ -27,6 +27,7 @@ export const TIPOS = {
   averia: { nombre: 'Encuentra la avería', icon: '🔧', cat: 'practicas' },
   recuperacion: { nombre: 'Recuperación', icon: '🔁', cat: 'tareas' },
   piac: { nombre: 'Proyecto en equipo (PIAC)', icon: '👥', cat: 'proyectos' },
+  documento: { nombre: 'Documento', icon: '📃', cat: 'tareas' },
 };
 export const CATEGORIAS = [
   { id: 'examenes', nombre: 'Exámenes y cuestionarios', peso: 40 },

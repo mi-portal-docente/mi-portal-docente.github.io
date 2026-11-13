@@ -3,7 +3,7 @@
 import { CATEGORIAS, TIPOS } from './biblioteca.js';
 import { TIPOS_PREGUNTA } from './preguntas.js';
 
-export const TIPOS_ENTREGA = ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'recuperacion'];
+export const TIPOS_ENTREGA = ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'recuperacion', 'documento'];
 export const categoriaDe = (tipo) => (TIPOS[tipo] && TIPOS[tipo].cat) || null;
 export const redondea = (x, d = 2) => Math.round(x * 10 ** d) / 10 ** d;
 export const fmtNota = (n) => (n == null || Number.isNaN(n) ? '' : String(redondea(n)).replace('.', ','));

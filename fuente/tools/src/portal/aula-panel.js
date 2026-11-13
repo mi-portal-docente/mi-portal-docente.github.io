@@ -14,6 +14,7 @@ import { motor } from '../lms/elemento.js';
 import { estadoTrabajo, cuentaComoEntrega, ordenarVersiones, ESTADOS_TRABAJO } from '../lms/entrega.js';
 import { estadoChipHTML } from './entrega-ui.js';
 import { crearCorreccion } from './correccion-ui.js';
+import { limpiarDoc } from '../lms/doc-html.js';
 
 // Elementos que entregan «Aciertos: a/t» (actividades de clase y motores entregables: explicación, laboratorios…)
 const conResultado = (t) => t === 'actividad' || !!motor(t)?.entregable;
@@ -293,7 +294,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   function versionesHTML(id) {
     const L = A.vers?.get(id); if (L == null) return '<p class="pn-small">Cargando…</p>';
     if (!L.length) return '<p class="pn-small">Sin versiones guardadas (las entregas anteriores a esta función no tienen historial).</p>';
-    return L.map((v) => `<details class="ap-ver"><summary>${v.n}.ª entrega · ${fFecha(v.fecha)}</summary>${v.doc ? `<div class="doc-ver">${v.doc}</div>` : textoHTML(v.texto || '')}${(v.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}</details>`).join('');
+    return L.map((v) => `<details class="ap-ver"><summary>${v.n}.ª entrega · ${fFecha(v.fecha)}</summary>${v.doc ? `<div class="doc-ver">${limpiarDoc(v.doc)}</div>` : textoHTML(v.texto || '')}${(v.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}</details>`).join('');
   }
   const idComP = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
   async function comentarProf(id, texto) { await setDoc(doc(db, 'trabajos', id, 'comentarios', idComP()), { autor: 'profesor', texto: texto.slice(0, 2000), fecha: serverTimestamp() }); }

@@ -463,7 +463,7 @@ service cloud.firestore {
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
           && (!('unidad' in d) || textoCorto(d.unidad, 40))
-          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac']
+          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac', 'documento']
           && textoCorto(d.titulo, 150)
           && (!('texto' in d) || textoCorto(d.texto, 20000))
           && (!('enlaces' in d) || listaCorta(d.enlaces, 20))
@@ -660,7 +660,7 @@ service cloud.firestore {
       function item() { return get(ruta('items', request.resource.data.item)).data; }
       function examen() { return get(ruta('examenes', request.resource.data.item)).data; }
       function tipoTarea() {
-        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion'];
+        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'documento'];
       }
       function tipoExamen() { return request.resource.data.tipo == 'examen' && item().tipo == 'examen'; }
       function trabajoBase(id) {
@@ -702,6 +702,20 @@ service cloud.firestore {
               || (duenoTrabajo() && request.resource.data.autor == 'alumno' && request.resource.data.numero == miSesion().numero));
         allow delete: if esProfesor();
       }
+
+      // Imágenes del documento del alumno (fase 11): máx. 3 (img1…img3), comprimidas a ~300 KB en el navegador
+      // y guardadas como data:image/…;base64 (sin Firebase Storage). Las lee el profesor y el alumno dueño.
+      match /imagenes/{img} {
+        function duenoT() { return alumnoOk() && get(ruta('trabajos', id)).data.al == idAlumno(miSesion()); }
+        allow read: if esProfesor() || duenoT();
+        allow create, update: if img.matches('^img[1-3]$') && duenoT()
+          && request.resource.data.keys().hasOnly(['data', 'w', 'h', 'fecha'])
+          && request.resource.data.data is string && request.resource.data.data.size() <= 410000
+          && request.resource.data.data.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$')
+          && request.resource.data.w is int && request.resource.data.h is int
+          && request.resource.data.fecha == request.time;
+        allow delete: if esProfesor() || (img.matches('^img[1-3]$') && duenoT());
+      }
       function enVentana() {
         return examen().publicado == true
           && request.time >= examen().desde
@@ -726,6 +740,20 @@ service cloud.firestore {
           && textoCorto(d.get('texto', ''), 10000) && textoCorto(d.get('doc', ''), 300000)
           && listaCorta(d.get('enlaces', []), 10) && d.fecha == request.time;
       }
+    }
+
+    // registros/{trabajo}: registro informativo del documento (fase 11): tiempo editando y pegados grandes
+    // (tamaño y hora). El alumno lo va sumando pero NO lo lee; solo lo ve el profesor. No cambia la nota.
+    match /registros/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if alumnoOk()
+        && request.resource.data.keys().hasOnly(['item', 'al', 'grupo', 'numero', 'seg', 'pegados', 'fecha'])
+        && request.resource.data.al == idAlumno(miSesion())
+        && request.resource.data.grupo == miSesion().grupo && request.resource.data.numero == miSesion().numero
+        && id == request.resource.data.item + '_' + request.resource.data.al
+        && esNumero(request.resource.data.seg) && request.resource.data.seg >= 0
+        && listaCorta(request.resource.data.get('pegados', []), 300)
+        && request.resource.data.fecha == request.time;
     }
 
     // notas/{item_grupo_nº}: calificación (nota 0-10, rúbrica, comentario).

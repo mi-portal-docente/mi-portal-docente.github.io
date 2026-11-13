@@ -353,3 +353,24 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 .co-rap-x { border: 0; background: none; color: var(--sec, #8e8e93); cursor: pointer; padding: 2px; display: inline-flex; }
 .co-rap-x .ic { width: 12px; height: 12px; }
 .co-reg { margin-top: 10px; }
+
+/* ---------- Fase 11 · editor de documentos ---------- */
+.dc-wrap { border: 1px solid var(--sep, rgba(60,60,67,.2)); border-radius: 12px; background: var(--card, #fff); overflow: hidden; margin: 6px 0 10px; }
+.dc-barra { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px; border-bottom: 1px solid var(--sep, rgba(60,60,67,.15)); background: var(--fill, #f7f7f9); position: sticky; top: 0; z-index: 2; }
+.dc-b { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
+.dc-b:hover, .dc-b:focus-visible { background: rgba(0,122,255,.12); outline: none; }
+.dc-b .ic { width: 18px; height: 18px; }
+.dc-sep { width: 1px; margin: 6px 4px; background: var(--sep, rgba(60,60,67,.2)); }
+.dc-ed { min-height: 280px; max-height: 70vh; overflow: auto; padding: 14px 18px; line-height: 1.6; outline: none; font-size: 1rem; }
+.dc-ed:focus { box-shadow: inset 0 0 0 2px rgba(0,122,255,.35); }
+.dc-ro { min-height: 0; max-height: none; }
+.dc-ed h2 { font-size: 1.35rem; margin: .8em 0 .3em; } .dc-ed h3 { font-size: 1.12rem; margin: .7em 0 .25em; }
+.dc-ed table, .doc-ver table, .co-doc table { border-collapse: collapse; margin: 8px 0; }
+.dc-ed td, .dc-ed th, .doc-ver td, .doc-ver th, .co-doc td, .co-doc th { border: 1px solid #b9b9c0; padding: 4px 8px; min-width: 60px; }
+.dc-ed th, .doc-ver th, .co-doc th { background: var(--fill, #f2f2f7); }
+.dc-ed pre, .doc-ver pre, .co-doc pre { background: #1e1e24; color: #f4f4f6; padding: 10px 12px; border-radius: 8px; overflow: auto; font: .88rem/1.45 ui-monospace, Menlo, Consolas, monospace; }
+.dc-ed img, .doc-ver img, .co-doc img { max-width: 100%; height: auto; border-radius: 6px; }
+.dc-ed a, .doc-ver a { color: var(--acc, #007aff); }
+.dc-pie { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-top: 1px solid var(--sep, rgba(60,60,67,.12)); font-size: .85rem; flex-wrap: wrap; }
+.dc-fuera { color: #c0271d; font-weight: 600; } .dc-dentro { color: #1d7a37; }
+.dc-pl .dc-ed { min-height: 160px; }

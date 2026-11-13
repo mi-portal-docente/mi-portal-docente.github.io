@@ -7,4 +7,5 @@ import './ciber.js';
 import './bloques.js';
 import './averia.js';
 import './piac.js';
+import './documento.js';
 export { motor, motores } from '../elemento.js';

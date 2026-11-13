@@ -8,6 +8,8 @@ import { notaRubrica, fmtNota, redondea, idTrabajo, urlSegura, NIVELES, puntosNi
 import { estadoTrabajo, cuentaComoEntrega } from '../lms/entrega.js';
 import { estadoChipHTML } from './entrega-ui.js';
 import { leerResultado } from '../act/resultado.js';
+import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
+import { rellenarImagenes, descargarDocx, imagenesParaDocx } from './doc-editor.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -41,15 +43,19 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     if (tr.estado === 'borrador') h += '<p class="pn-small">Es un borrador: el alumno todavía no lo ha entregado.</p>';
     const r = leerResultado(tr.texto); if (r) h += `<div class="pn-inf ap-act">${ic('puzzle')} Resultado de la actividad: <b>${r.aciertos}/${r.total}</b> aciertos → nota sugerida <b>${esc(fmtNota(r.nota))}</b></div>`;
     if (window.PORTAL_VISTA_TRABAJO) { const extra = window.PORTAL_VISTA_TRABAJO(C.it, tr); if (extra) h += extra; }
-    if (tr.doc) h += `<div class="co-doc doc-ver">${tr.doc}</div>`;
+    if (tr.doc) h += `<div class="co-doc doc-ver">${limpiarDoc(tr.doc)}</div><div class="pn-acts"><span class="pn-small">${contarPalabras(tr.doc)} palabras</span><span class="pn-grow"></span><button type="button" class="btn small" data-co="docx">${ic('file-down')} Descargar .docx</button></div>`;
     else h += `<div class="co-texto">${tr.texto ? textoHTML(tr.texto) : '<span class="pn-small">(sin texto)</span>'}</div>`;
     h += (tr.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('');
-    if (tr.registro && (tr.registro.min || tr.registro.pegados?.length)) h += registroHTML(tr.registro);
+    if (C.it.tipo === 'documento') h += registroHTML(ids(C.n));
     return h;
   }
-  function registroHTML(r) {
-    const P = r.pegados || [];
-    return `<details class="co-reg"><summary>${ic('info')} Registro de edición (solo informativo)</summary><p class="pn-small">Tiempo editando: <b>${esc(r.min || 0)} min</b> · ${P.length} pegado${P.length === 1 ? '' : 's'} grande${P.length === 1 ? '' : 's'}.</p>${P.length ? `<ul class="pn-small">${P.slice(-20).map((p) => `<li>${esc(fFecha(p.t))}: ${esc(p.n)} caracteres</li>`).join('')}</ul>` : ''}<p class="pn-small">No cambia la nota ni anula nada: sirve para hablarlo con el alumno si hace falta.</p></details>`;
+  // Registro informativo del documento (fase 11): registros/{trabajo}. Solo lo lee el profesor.
+  const REG = new Map();
+  function registroHTML(id) {
+    if (!REG.has(id)) { REG.set(id, undefined); getDoc(doc(db, 'registros', id)).then((d) => { REG.set(id, d.exists() ? d.data() : null); const T = $('#coTrabajo'); if (T && ids(C.n) === id) { T.innerHTML = trabajoHTML(A.trabajos.get(id), A.notas.get(id)); rellenarImagenes(T, db, id); } }).catch(() => REG.set(id, null)); }
+    const r = REG.get(id); if (r === undefined) return '';
+    const P = r?.pegados || []; const min = Math.round((r?.seg || 0) / 60);
+    return `<details class="co-reg"><summary>${ic('info')} Registro de edición (solo informativo)</summary><p class="pn-small">Tiempo editando: <b>${esc(min)} min</b> · ${P.length} pegado${P.length === 1 ? '' : 's'} grande${P.length === 1 ? '' : 's'} (${esc(200)} caracteres o más).</p>${P.length ? `<ul class="pn-small">${P.slice(-30).map((p) => `<li>${esc(fFecha(p.t))}: ${esc(p.n)} caracteres</li>`).join('')}</ul>` : ''}<p class="pn-small">No cambia la nota ni anula nada: sirve para hablarlo con el alumno si hace falta.</p></details>`;
   }
   function valorCriterio(i, det) { if (C.sel[i] !== undefined) return C.sel[i]; return det['r' + i]; }
   function rubricaHTML(nt) {
@@ -89,8 +95,8 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
   }
   function pintar(B, forzar) {
     const clave = `${C.it.id}|${C.g.id}|${C.n}`;
-    if (!forzar && C.clave === clave && $('#coForm')) { const T = $('#coTrabajo'); if (T) { const id = ids(C.n); T.innerHTML = trabajoHTML(A.trabajos.get(id), A.notas.get(id)); } return; }
-    C.clave = clave; B.innerHTML = html();
+    if (!forzar && C.clave === clave && $('#coForm')) { const T = $('#coTrabajo'); if (T) { const id = ids(C.n); T.innerHTML = trabajoHTML(A.trabajos.get(id), A.notas.get(id)); rellenarImagenes(T, db, id); } return; }
+    C.clave = clave; B.innerHTML = html(); rellenarImagenes($('#coTrabajo'), db, ids(C.n));
   }
   function ir(d) { const L = lista(); const i = L.indexOf(C.n); const j = i < 0 ? 0 : i + d; if (j >= 0 && j < L.length) { C.n = L[j]; C.sel = {}; pintarTodo(true); } }
   function recalc() {
@@ -146,6 +152,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     else if (a === 'nuevoRap') { const t = String($('#coCom')?.value || '').trim(); if (!t) return true; if (!C.rapidos.includes(t)) { C.rapidos.push(t.slice(0, 300)); guardarRapidos(); } $('#coRapidos').innerHTML = rapidosHTML(); }
     else if (a === 'publicarTodas') publicarTodas();
     else if (a === 'devolver') devolver();
+    else if (a === 'docx') { const id = ids(C.n); const tr = A.trabajos.get(id); if (tr?.doc) imagenesParaDocx(db, id, tr.doc).then((im) => descargarDocx(tr.doc, { titulo: C.it.titulo, meta: `${C.g.nombre} · nº ${C.n}`, imagenes: im, nombre: `${C.it.titulo} - nº ${pad(C.n)}` })); }
     else return false;
     return true;
   }

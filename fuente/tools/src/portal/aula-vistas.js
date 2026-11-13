@@ -11,6 +11,7 @@ import { crearModoExamen } from './modo-examen.js';
 import { montarExplicacion } from './explicacion-ui.js';
 import { montarPiac } from './piac-ui.js';
 import { montarEntrega } from './entrega-ui.js';
+import { crearEditorDoc } from './doc-editor.js';
 import { estadoTrabajo, ESTADOS_TRABAJO } from '../lms/entrega.js';
 
 // Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
@@ -149,7 +150,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       motorM = { id, nodo, api, nota: !!st.notas.get(id) };
     }
     const nE = el.querySelector('#auEntregaM');
-    if (nE && rol === 'alumno') entM = { id, nodo: nE, api: montarEntrega(nE, it, { db, ses, uid, al, trabajo: st.trabajos.get(id), nota: st.notas.get(id), textoHTML, ...(window.PORTAL_EDITOR_DOC && it.doc !== false ? window.PORTAL_EDITOR_DOC(it) : {}) }) };
+    if (nE && rol === 'alumno') entM = { id, nodo: nE, api: montarEntrega(nE, it, { db, ses, uid, al, trabajo: st.trabajos.get(id), nota: st.notas.get(id), textoHTML, ...(it.tipo === 'documento' ? { editor: crearEditorDoc(it, { db, ses }) } : {}) }) };
   }
   function repintar() {
     if (!actual || !actual.el.isConnected) return;

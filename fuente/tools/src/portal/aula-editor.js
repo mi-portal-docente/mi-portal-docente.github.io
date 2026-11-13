@@ -12,13 +12,14 @@ import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta } from '
 import { categoriaDe, idItem, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, TIPOS_ENTREGA, enlaceValido, visibleAlDe } from '../lms/modelo.js';
 import { rubricaPlantillaTexto } from '../lms/rubrica.js';
 import { completarPiac } from '../lms/motores/piac.js';
+import { plantillaHTML, leerPlantilla, accionPlantilla } from './doc-editor.js';
 
 export const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const aLocal = (t) => { if (!t) return ''; const d = new Date(t); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 const deLocal = (v) => (v ? new Date(v).getTime() : null);
 const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
 export const TIPOS_CREAR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario'];
-const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac'];
+const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac', 'documento'];
 const entregableDe = (t) => TIPOS_ENTREGA.includes(t) || t === 'examen' || !!motor(t)?.entregable;
 export const PEND = 'Contenido pendiente de subir.';
 export const PEND_T = 'Pendiente de completar';
@@ -97,7 +98,8 @@ export function crearEditor({ db, aula, gruposDe }) {
         <div class="cl-adj-add"><input name="adjT" maxlength="120" placeholder="Título (opcional)"><input name="adjU" maxlength="500" placeholder="https://… (Drive, Docs, YouTube, cualquier web) o materiales/…">
           <button type="button" class="btn small" data-ed="adj">➕ Añadir</button></div>
         <p class="pn-small">Google Drive, Documentos, Presentaciones, Formularios, YouTube o cualquier enlace. Los PDF e imágenes que estén en la web van con la ruta <code>materiales/…</code>. (Para subir archivos al portal haría falta el plan de pago de Firebase: usa Drive y pega el enlace.)</p></fieldset>
-      ${M ? `<fieldset class="pn-f ap-motor"><legend>${esc(M.nombre || TIPOS[e.tipo]?.nombre || e.tipo)} · contenido (JSON)</legend>
+      ${M?.documento ? `<fieldset class="pn-f ap-motor"><legend>${ic('file-text')} Documento · plantilla de partida (opcional)</legend>${plantillaHTML(e.contenidoTxt ? (() => { try { return JSON.parse(e.contenidoTxt); } catch (x) { return e.contenido || {}; } })() : e.contenido || M.ejemplo || {})}<p class="pn-small">El alumno empieza con esta plantilla y escribe en el portal: títulos, listas, tablas, enlaces, imágenes y código. Se guarda solo; puede imprimirlo o descargarlo en .docx.</p></fieldset>` : ''}
+      ${M && !M.documento ? `<fieldset class="pn-f ap-motor"><legend>${esc(M.nombre || TIPOS[e.tipo]?.nombre || e.tipo)} · contenido (JSON)</legend>
         <textarea name="contenido" class="js-ta" rows="14" spellcheck="false" maxlength="400000">${esc(e.contenidoTxt ?? JSON.stringify(e.contenido || M.ejemplo || {}, null, 2))}</textarea>
         <div class="pn-acts"><button type="button" class="btn small" data-ed="ejemplo">Poner el ejemplo</button><span class="pn-small">Formato y ejemplos en «FORMATO_IMPORTAR.md». Se comprueba al guardar.</span></div>
         ${M.entregable ? '<p class="pn-small">Al terminar, el alumno entrega su resultado («Aciertos: a/t»); en el cuaderno, «Poner notas» lo pasa a nota sobre 10.</p>' : ''}</fieldset>` : ''}
@@ -181,6 +183,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (f.elements.rubrica) e.rubrica = leeRubrica(fd.get('rubrica'));
     if (f.elements.categoria) e.categoria = String(fd.get('categoria'));
     if (f.elements.contenido) e.contenidoTxt = String(fd.get('contenido') || '');
+    if (f.querySelector('#dcPlantilla')) e.contenidoTxt = JSON.stringify(leerPlantilla(f));
     if (f.elements.para) e.para = [...new Set(String(fd.get('para') || '').split(/[,;\s]+/).filter(Boolean).map(Number))].filter((n) => Number.isInteger(n) && n >= 1 && n <= 99).slice(0, 40);
     if (f.elements.criterio) e.criterio = String(fd.get('criterio') || '').trim().slice(0, 60) || null;
     if (f.elements.opciones) e.opciones = String(fd.get('opciones') || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 10).map((s) => s.slice(0, 300));
@@ -244,6 +247,7 @@ export function crearEditor({ db, aula, gruposDe }) {
   }
   function onClick(ev) {
     if (ev.target === E.el) { if (confirm('¿Cerrar sin guardar?')) cerrar(); return; }
+    const bp = ev.target.closest('[data-dp]'); if (bp) { ev.preventDefault(); accionPlantilla(bp); return; }
     const b = ev.target.closest('[data-ed]'); if (!b) return;
     const acc = b.dataset.ed;
     if (acc === 'cancelar') return cerrar();

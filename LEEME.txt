@@ -104,3 +104,7 @@ COMPILACIÓN (verificada con arduino-cli 1.6.0, core esp32 3.3.12, placa "ESP32 
 Las 8 lecciones compilan sin errores. Librerías: LiquidCrystal I2C 1.1.2, ESP32Servo 3.2.1,
 Adafruit SH110X 2.1.15, Adafruit GFX 1.13.0, Adafruit BMP280 3.0.0 (+ Unified Sensor, BusIO).
 P8 usa ledcAttach(): requiere core esp32 3.x.
+
+LIBRERÍAS DE TERCEROS (aula virtual · solo MIT, BSD o Apache)
+- Firebase JS SDK (Apache-2.0), three.js (MIT), iconos Lucide (ISC, equivalente a MIT).
+- Exportación .docx del editor de documentos: código propio (sin librería).

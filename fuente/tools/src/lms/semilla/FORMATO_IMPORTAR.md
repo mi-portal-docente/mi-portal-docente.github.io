@@ -51,11 +51,12 @@ Cada fila de `rubrica` puede llevar `niveles`: los descriptores de los 4 niveles
 profesor en clase: aparece en la rúbrica pero **no puntúa** en la corrección (no lleva `puntos`).
 
 ```json
-"rubrica": [
-  { "criterio": "Contenido", "puntos": 6, "niveles": ["Incompleto", "Lo básico", "Completo", "Completo y ampliado"] },
-  { "criterio": "Presentación", "puntos": 4 },
-  { "criterio": "Exposición oral", "clase": true }
-]
+{ "tipo": "tarea", "titulo": "Informe del proyecto", "puntos": 10,
+  "rubrica": [
+    { "criterio": "Contenido", "puntos": 6, "niveles": ["Incompleto", "Lo básico", "Completo", "Completo y ampliado"] },
+    { "criterio": "Presentación", "puntos": 4 },
+    { "criterio": "Exposición oral", "clase": true }
+  ] }
 ```
 En el editor, una línea por criterio: `Contenido | 6 | Incompleto; Lo básico; Completo; Completo y ampliado`,
 `Presentación | 4` o `Exposición oral | clase`.
@@ -362,4 +363,20 @@ la página del elemento («Equipos»: una línea «Nombre: 1, 4, 7» por equipo 
   "contenido": { "instrucciones": "Organizad el proyecto en el tablero y escribid el diario cada sesión.",
     "equipos": [ { "id": "e1", "nombre": "Equipo 1", "miembros": [1, 2, 3] },
                  { "id": "e2", "nombre": "Equipo 2", "miembros": [4, 5, 6] } ] } }
+```
+
+## Documento (`"tipo": "documento"`)
+
+El alumno escribe un documento con formato en el portal (títulos, negrita, cursiva, listas, tablas, enlaces, hasta
+3 imágenes y bloques de código), con guardado automático, contador de palabras, imprimir / PDF y descarga en .docx.
+`contenido` es opcional: `plantilla` (HTML sencillo de partida: `<h2>`, `<h3>`, `<p>`, `<ul>`, `<ol>`, `<table>`,
+`<pre>`, `<a href="https://…">`…; lo demás se quita), `palabrasMin`, `palabrasMax` (aviso al entregar, no bloquea)
+e `imagenes` (`false` para no dejar subir imágenes).
+
+```json
+{ "tipo": "documento", "titulo": "Informe: el circuito de mi casa", "puntos": 10,
+  "texto": "Describe el circuito eléctrico de una habitación de tu casa.",
+  "contenido": { "plantilla": "<h2>Introducción</h2><p></p><h2>Esquema y componentes</h2><table><thead><tr><th>Componente</th><th>Función</th></tr></thead><tbody><tr><td></td><td></td></tr></tbody></table><h2>Conclusión</h2><p></p>",
+    "palabrasMin": 150, "palabrasMax": 800 },
+  "rubrica": [ { "criterio": "Contenido", "puntos": 6 }, { "criterio": "Presentación", "puntos": 4 } ] }
 ```
