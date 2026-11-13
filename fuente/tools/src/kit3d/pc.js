@@ -74,7 +74,8 @@ function aspa(r0, r1, ancho, giro) {
   const s = new THREE.Shape(); s.moveTo(r0, -ancho * 0.35);
   s.quadraticCurveTo((r0 + r1) / 2, -ancho * 0.75, r1, -ancho * 0.25); s.quadraticCurveTo(r1 * 1.02, ancho * 0.4, r1 * 0.9, ancho * 0.6);
   s.quadraticCurveTo((r0 + r1) / 2, ancho * 0.25, r0, ancho * 0.35); s.lineTo(r0, -ancho * 0.35);
-  const g = new THREE.ExtrudeGeometry(s, { depth: 0.05, bevelEnabled: false, curveSegments: 6 });
+  const g = new THREE.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2, curveSegments: Q().baja ? 8 : 20 });
+  { const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i) / (ancho * 0.62); p.setZ(i, p.getZ(i) + 0.14 * ancho * (1 - Math.min(1, y * y))); } } // combado del perfil (como un ala)
   g.rotateX(Math.PI / 2); g.rotateX(giro); // aspa en el plano xz, inclinada sobre su eje radial
   // curvatura: barre la punta hacia atrás
   const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i); const a = 0.35 * ((x - r0) / (r1 - r0)) ** 2; p.setX(i, x * Math.cos(a) - z * Math.sin(a)); p.setZ(i, x * Math.sin(a) + z * Math.cos(a)); }
@@ -140,8 +141,14 @@ export function placaBase() {
   // zócalo LGA: cuerpo, placa de carga con ventana, palanca y campo de contactos
   L.box(4.6, 0.32, 4.6, NEGRO(), -3, top, -5);
   for (const [w, d, x, z] of [[4.8, 0.55, -3, -7.1], [4.8, 0.55, -3, -2.9], [0.55, 3.7, -5.1, -5], [0.55, 3.7, -0.9, -5]]) L.box(w, 0.12, d, ACERO(), x, top + 0.32, z);
-  L.add(new THREE.CylinderGeometry(0.07, 0.07, 5.2, 8), ACERO(), -0.3, top + 0.25, -5, Math.PI / 2, 0, 0);
-  L.add(new THREE.CylinderGeometry(0.07, 0.07, 1.0, 8), ACERO(), 0.2, top + 0.25, -2.4, 0, 0, Math.PI / 2);
+  // palanca de cierre: varilla de acero gruesa con leva en la bisagra, codo con mango y gancho de retención
+  L.add(new THREE.CylinderGeometry(0.12, 0.12, 5.4, 12), ACERO(), -0.32, top + 0.36, -5, Math.PI / 2, 0, 0);
+  L.add(new THREE.CylinderGeometry(0.2, 0.2, 0.5, 14), ACERO(), -0.32, top + 0.36, -7.5, Math.PI / 2, 0, 0); // leva
+  L.add(new THREE.TorusGeometry(0.3, 0.12, 8, 12, Math.PI / 2), ACERO(), -0.02, top + 0.36, -2.3, Math.PI / 2, 0, Math.PI);
+  L.add(new THREE.CylinderGeometry(0.12, 0.12, 0.9, 12), ACERO(), 0.42, top + 0.36, -2.0, 0, 0, Math.PI / 2);
+  L.add(new THREE.CylinderGeometry(0.2, 0.2, 0.75, 14), NEGRO(), 0.62, top + 0.36, -2.0, 0, 0, Math.PI / 2); // mango de plástico
+  L.box(0.5, 0.55, 0.22, ACERO(), 0.1, top, -2.45); L.box(0.5, 0.1, 0.45, ACERO(), 0.1, top + 0.5, -2.3); // gancho que la retiene
+  L.cil(0.22, 0.14, ACERO(), -5.4, top + 0.44, -7.35, 12); L.cil(0.22, 0.14, ACERO(), -0.75, top + 0.44, -2.65, 12); // tornillos de la placa de carga
   pegatina(g, 3.6, 3.6, tex('lgaPines', 256, 256, (c) => { c.fillStyle = '#2c2a24'; c.fillRect(0, 0, 256, 256); for (let i = 0; i < 48; i++) for (let j = 0; j < 48; j++) { if (i > 17 && i < 30 && j > 17 && j < 30) continue; c.fillStyle = (i + j) % 2 ? '#c9a24f' : '#b38f43'; c.fillRect(i * 5.33 + 1.3, j * 5.33 + 1.3, 2.6, 2.6); } }), -3, top + 0.33, -5, { metal: 0.6, rough: 0.35 });
   // disipadores de los VRM (aletas) y condensadores sólidos
   for (const [x, z, w, d, rot] of [[-4.5, -10.2, 9.5, 1.9, 0], [-11.2, -5.0, 1.9, 7.5, 1]]) {
@@ -240,6 +247,30 @@ export function tarjetaGrafica() {
   return g;
 }
 
+// ---------------------------------------------------------------- conectores de la fuente (Molex Mini-Fit Jr. 4,2 mm y SATA)
+function trenzaTex() { // funda trenzada de PET: hilos cruzados en diagonal
+  return tex('trenzaCol', 128, 128, (c) => { c.fillStyle = '#121315'; c.fillRect(0, 0, 128, 128); c.lineWidth = 5;
+    for (let i = -8; i < 16; i++) { c.strokeStyle = i % 2 ? '#2b2d32' : '#3a3d43'; c.beginPath(); c.moveTo(i * 16, 0); c.lineTo(i * 16 + 128, 128); c.stroke(); c.strokeStyle = i % 2 ? '#25272b' : '#33363b'; c.beginPath(); c.moveTo(i * 16 + 128, 0); c.lineTo(i * 16, 128); c.stroke(); } }, { rep: [3, 40] });
+}
+const HILOS = { atx: ['#f2c400', '#d42a2a', '#ff8a00', '#141414', '#141414', '#f2c400'], eps: ['#f2c400', '#141414'], pcie: ['#f2c400', '#141414'], sata: ['#f2c400', '#141414', '#d42a2a', '#ff8a00'] };
+// Conector en el eje +X (el cable entra por x = 0). Carcasa de nailon con cavidades cuadradas de 4,2 mm,
+// pestaña de enganche con su leva, ranuras de codificación y los hilos de colores saliendo por detrás.
+function conectorPSU(tipo, rCable) {
+  const g = new THREE.Group(); const L = new Lote(g); const N = NEGRO(), oro = ORO();
+  const D = { atx: [12, 2, 5.3, 1.0, 1.0], eps: [4, 2, 1.85, 1.0, 1.0], pcie: [4, 2, 1.85, 1.0, 1.0], sata: [15, 1, 2.4, 0.55, 0.6] }[tipo];
+  const [cols, filas, ancho, alto, largo] = D; const l = tipo === 'sata' ? 1.2 : 1.4;
+  L.add(new THREE.ExtrudeGeometry(rectRedondo(ancho, alto, 0.06), { depth: l, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 }).rotateY(Math.PI / 2), N, 0.5, alto / 2, 0);
+  if (tipo === 'sata') { L.box(l, alto * 0.5, 0.25, N, 0.5 + l / 2, alto * 0.25, ancho / 2 - 0.2); L.box(0.2, 0.08, ancho * 0.8, oro, 0.5 + l - 0.05, alto * 0.45, 0); }
+  else { // pestaña de enganche (encima) y cavidades con terminal
+    L.box(0.9, 0.12, 0.4, N, 0.5 + l * 0.55, alto + 0.0, 0); L.box(0.22, 0.26, 0.4, N, 0.5 + l * 0.9, alto, 0); L.box(0.5, 0.14, 0.32, N, 0.5 + l * 0.25, alto + 0.08, 0);
+    pegatina(g, ancho * 0.96, alto * 0.94, tex(`psuCav|${cols}|${filas}`, 256, Math.round(256 * filas / cols) || 64, (c, w, h) => { c.fillStyle = '#17181b'; c.fillRect(0, 0, w, h); const px = w / cols, py = h / filas; for (let i = 0; i < cols; i++) for (let j = 0; j < filas; j++) { const x = i * px, y = j * py; c.fillStyle = '#030303'; if ((i + j) % 2) c.fillRect(x + px * 0.12, y + py * 0.12, px * 0.76, py * 0.76); else { c.beginPath(); c.moveTo(x + px * 0.12, y + py * 0.3); c.lineTo(x + px * 0.3, y + py * 0.12); c.lineTo(x + px * 0.88, y + py * 0.12); c.lineTo(x + px * 0.88, y + py * 0.88); c.lineTo(x + px * 0.12, y + py * 0.88); c.fill(); } c.fillStyle = '#c9a75a'; c.fillRect(x + px * 0.38, y + py * 0.36, px * 0.24, py * 0.28); } }), 0.5 + l + 0.035, alto / 2, 0, { cara: 'x+', metal: 0.3 });
+  }
+  // hilos de colores (18 AWG) desde la funda hasta la carcasa
+  const H = HILOS[tipo]; const nh = tipo === 'atx' ? 6 : tipo === 'sata' ? 4 : 4;
+  for (let i = 0; i < nh; i++) { const z = -ancho * 0.38 + (ancho * 0.76 * i) / Math.max(1, nh - 1), y = alto * (i % 2 ? 0.3 : 0.7);
+    L.add(new THREE.CylinderGeometry(0.075, 0.075, 0.6, 8), pbr(new THREE.Color(H[i % H.length]).getHex(), { roughness: 0.4, clearcoat: 0.3 }), 0.2, y, z * 0.85, 0, 0, Math.PI / 2); }
+  L.fin(); g.userData.h = alto; void rCable; return g;
+}
 // ---------------------------------------------------------------- fuente de alimentación ATX (15 × 8,6 × 14 cm)
 export function fuenteAlimentacion() {
   const g = new THREE.Group(); const L = new Lote(g);
@@ -255,15 +286,18 @@ export function fuenteAlimentacion() {
   // haz de cables con malla y conectores (24 pines, EPS 8 pines, SATA)
   const mallaC = pbr(0x1a1b1e, { roughness: 0.75, normalMap: tex('trenza', 64, 64, (c) => { c.fillStyle = 'rgb(128,128,255)'; c.fillRect(0, 0, 64, 64); for (let i = 0; i < 8; i++) { c.fillStyle = 'rgb(170,128,230)'; c.fillRect(0, i * 8, 64, 3); c.fillStyle = 'rgb(90,128,230)'; c.fillRect(0, i * 8 + 4, 64, 3); } }, { rep: [1, 30], datos: true }) });
   const cables = [
-    { r: 0.65, pts: [[3.5, 3.0, 6.9], [3.8, 2.8, 10], [6, 1.0, 14.5], [10, 0.7, 15.5]], fin: [5.4, 1.4, 1.1, 'atx'] },
-    { r: 0.4, pts: [[0.5, 3.0, 6.9], [0.5, 2.5, 10], [-1.5, 0.5, 15], [-5, 0.45, 16.5]], fin: [2.2, 1.2, 1.1, 'eps'] },
-    { r: 0.3, pts: [[-3.5, 3.0, 6.9], [-3.8, 2.4, 9.5], [-7, 0.35, 12.5], [-10.5, 0.35, 12.5]], fin: [2.4, 0.7, 0.6, 'sata'] },
+    { r: 0.65, pts: [[3.5, 3.0, 6.9], [3.8, 2.8, 10], [6, 1.0, 14.5], [10, 0.7, 15.5]], tipo: 'atx' },
+    { r: 0.4, pts: [[0.5, 3.0, 6.9], [0.5, 2.5, 10], [-1.5, 0.5, 15], [-5, 0.45, 16.5]], tipo: 'eps' },
+    { r: 0.36, pts: [[2.0, 3.0, 6.9], [2.2, 2.0, 10.5], [1.0, 0.5, 13], [-0.5, 0.45, 13.4]], tipo: 'pcie' },
+    { r: 0.3, pts: [[-3.5, 3.0, 6.9], [-3.8, 2.4, 9.5], [-7, 0.35, 12.5], [-10.5, 0.35, 12.5]], tipo: 'sata' },
   ];
+  const funda = pbr(0x18191c, { roughness: 0.7, map: trenzaTex(), normalMap: tex('trenza', 64, 64, (c) => { c.fillStyle = 'rgb(128,128,255)'; c.fillRect(0, 0, 64, 64); for (let i = 0; i < 8; i++) { c.fillStyle = 'rgb(170,128,230)'; c.fillRect(0, i * 8, 64, 3); c.fillStyle = 'rgb(90,128,230)'; c.fillRect(0, i * 8 + 4, 64, 3); } }, { rep: [1, 30], datos: true }), normalScale: new THREE.Vector2(0.6, 0.6) });
   for (const c of cables) {
     const cur = new THREE.CatmullRomCurve3(c.pts.map((p) => new THREE.Vector3(...p)));
-    malla(new THREE.TubeGeometry(cur, Q().baja ? 20 : 40, c.r, 10), mallaC, g);
-    const P = cur.getPoint(1), T = cur.getTangent(1); const [w, h, d] = c.fin;
-    L.add(CUBO, NEGRO(), P.x + T.x * w / 2, Math.max(h / 2, P.y), P.z + T.z * w / 2, 0, -Math.atan2(T.z, T.x), 0, [w, h, d]);
+    malla(new THREE.TubeGeometry(cur, Q().baja ? 20 : 48, c.r, Q().baja ? 10 : 16), funda, g); // funda trenzada
+    const P = cur.getPoint(1), T = cur.getTangent(1).setY(0).normalize();
+    const k = conectorPSU(c.tipo, c.r); k.position.copy(P); k.position.y = Math.max(P.y, k.userData.h / 2); k.rotation.y = -Math.atan2(T.z, T.x); g.add(k);
+    const k0 = cur.getPoint(0); malla(new THREE.CylinderGeometry(c.r * 1.12, c.r * 1.12, 0.7, 16), pbr(0x0b0b0c, { roughness: 0.25, clearcoat: 0.6 }), g, k0.x, k0.y, k0.z + 0.35).rotation.x = Math.PI / 2; // termorretráctil
   }
   L.add(new THREE.CylinderGeometry(1.0, 1.1, 0.5, 16), pbr(0x111214, { roughness: 0.6 }), 0, 3.0, 7.0, Math.PI / 2, 0, 0); // pasacables
   L.fin();

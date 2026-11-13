@@ -607,3 +607,9 @@ ahora `E2E_FS_PORT` / `E2E_AUTH_PORT` (como `plataforma_e2e`): la inestabilidad 
 llegaba) venía de compartir los emuladores 8080/9099 con otro árbol que borraba los datos a la vez. `pantallaDe()` de
 las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en una rejilla sobre la pieza).
 `circ_test`: la portada tiene 12 prácticas + 2 tarjetas libres (modo libre y avería); la prueba esperaba 13.
+
+## Realismo 3D · fase 2 (13/11/2026, rama grok-3d)
+- Vivienda: base Schuko con fondo rotulado (16 A 250 V~), obturadores, alvéolos y clips curvos de tierra; teclas basculantes con lomo; rótulo de características en el lateral del mecanismo; Wago 221 con palanca de perfil real (bisagra, pestaña estriada) y ranura de prueba delante; cables del tablero con el rotulado H07V-K continuo (aislTex compartido) y puntas de cobre con hebras retorcidas.
+- Vivienda real (casa3d + nuevo viv/casaDeco.js): sol con sombras, suelos con textura (tarima, gres, baldosa), rodapiés, muebles modelados (cama, sofá, mesa con sillas, bañera, lavabo con espejo, inodoro, cocina con encimera, fregadero, placa y frigorífico), puerta con marco; mecanismos y bases como placas reales orientadas a su pared (pegarPared), plafón con portalámparas y bombilla, cuadro empotrado con ventana y aparamenta DIN, tubo corrugado con estrías.
+- Actividades: polímetro compartido en kit3d/polimetro.js (Circuitos y kit); rótulo «POLÍMETRO DIGITAL» ya no queda tapado por la pantalla; clavijas banana con funda en el multímetro del kit; hebras de cobre en hélice (paso 16 mm); rollos de cable con espiras (surcos, vueltas sueltas, film).
+- Anatomía del PC: fundas trenzadas con termorretráctil y conectores reales (24 pines, EPS 8, PCIe y SATA con cavidades, pestaña y hilos de colores), aspas combadas y suaves, palanca del zócalo visible (leva, codo, mango y gancho), CPU mostrada ×1,6.

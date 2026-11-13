@@ -115,7 +115,7 @@ const anatomiaPC = {
   intro: 'En el banco tienes las piezas de un ordenador desmontado. Supera los dos niveles: reconoce cada pieza y di para qué sirve.',
   mesa: { w: 170, d: 96 },
   objetos: [
-    P('placa', 'Placa base', -48, -18, PC.placaBase), P('cpu', 'Procesador (CPU)', -12, -26, PC.procesador), P('disipador', 'Disipador con ventilador', 8, -26, PC.disipadorCPU),
+    P('placa', 'Placa base', -48, -18, PC.placaBase), P('cpu', 'Procesador (CPU)', -12, -26, () => { const c = PC.procesador(); c.scale.setScalar(1.6); return c; }), P('disipador', 'Disipador con ventilador', 8, -26, PC.disipadorCPU),
     P('ram', 'Memoria RAM', -12, -8, PC.memoriaRAM), P('gpu', 'Tarjeta gráfica', 40, -24, PC.tarjetaGrafica), P('fuente', 'Fuente de alimentación', 60, 14, PC.fuenteAlimentacion),
     P('ssd', 'Disco SSD', -50, 22, PC.discoSSD), P('hdd', 'Disco duro (HDD)', -24, 24, PC.discoDuro), P('m2', 'SSD M.2 NVMe', 8, 6, PC.m2),
   ],
