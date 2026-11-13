@@ -31,7 +31,7 @@ export class PaginaLab {
     const nodo = document.createElement('div'); main.appendChild(nodo);
     if (as) { const a = document.createElement('p'); a.className = 'lg-tarea'; a.innerHTML = `${ic('clipboard-list')} Este reto es una tarea de clase: <b>${esc(as.titulo)}</b>${as.fechaEntrega ? ` · entrega hasta ${esc(new Date(as.fechaEntrega).toLocaleDateString('es-ES'))}` : ''}.`; main.insertBefore(a, nodo); }
     this.ctl = def.abrir(nodo, reto, { rol: opts.esProfesor ? 'profesor' : 'alumno', titulo: reto ? `${def.titulo} · ${reto.titulo}` : def.titulo,
-      entregar: as ? (texto) => opts.entregar(as.itemId, texto) : null, entregadoTexto: as?.texto || '', nota: as?.nota || null });
+      tarea: asId, entregar: as ? (texto) => opts.entregar(as.itemId, texto) : null, entregadoTexto: as?.texto || '', nota: as?.nota || null });
   }
   portada(main, base) {
     const d = this.def; const prof = !!this.opts.esProfesor;

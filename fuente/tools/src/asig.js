@@ -13,7 +13,7 @@ const portal = () => window.PORTAL || null;
 export const PROFESOR = 'Pablo Mateos Lema';
 
 // Laboratorios 3D de cada asignatura (registro: APARTADOS en subjects.js). Para añadir uno, se añade allí.
-export const laboratoriosDe = (asig) => (APARTADOS[asig] || []).map((a) => ({ ...a, href: `#${asig}/${a.id}` }));
+export const laboratoriosDe = (asig) => (APARTADOS[asig] || []).map((a) => ({ ...a, href: a.enlace || `#${asig}/${a.id}` }));
 
 export function pestañas() {
   const P = portal(); const aula = !!P?.aula?.activa?.(); const prof = !!P?.esProfesor;

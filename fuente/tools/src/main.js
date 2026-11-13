@@ -14,6 +14,11 @@ import { actividad, enlaceActividad } from './act/registro.js';
 import { instalarIconos, ic } from './ui/iconos.js';
 import { LABS, PaginaLab } from './labs/pagina.js';
 import './labs/p5-lab.js';
+import './labs/tic-labs.js';
+import { montarWeb } from './labs/web-ui.js';
+import { montarInfo } from './labs/info-ui.js';
+import { montarCiber } from './labs/ciber-ui.js';
+import { montarBloques } from './labs/bloques-ui.js';
 import { montarP5 } from './labs/p5-ui.js';
 import { calidad } from './kit3d/base.js';
 
@@ -387,9 +392,16 @@ function abrirLab(asig, id, sub) {
 // Elementos de Trabajo de clase con laboratorio propio (se montan en la página del elemento)
 const notaTxt = (n) => (n && n.nota != null ? String(n.nota).replace('.', ',') : null);
 window.PORTAL_MOTORES = Object.assign(window.PORTAL_MOTORES || {}, {
-  p5: (nodo, it, op) => { const c = montarP5(nodo, it.contenido?.retos || [], { clave: `p5it:${it.id}`, titulo: it.titulo, rol: op.rol, entregar: op.entregar, entregadoTexto: op.trabajo?.texto || '', nota: notaTxt(op.nota) });
-    return { actualizar: (o) => c.actualizar({ entregadoTexto: o.trabajo?.texto || '', nota: notaTxt(o.nota) }), destruir: c.destruir }; },
+  p5: motorItem((n, it, cx) => montarP5(n, it.contenido?.retos || [], cx)),
+  web: motorItem((n, it, cx) => montarWeb(n, it.contenido?.retos || [], cx)),
+  info: motorItem((n, it, cx) => montarInfo(n, it.contenido, cx)),
+  ciber: motorItem((n, it, cx) => montarCiber(n, it.contenido, cx)),
+  bloques: motorItem((n, it, cx) => montarBloques(n, it.contenido, cx)),
 });
+function motorItem(montar) {
+  return (nodo, it, op) => { const c = montar(nodo, it, { clave: `${it.tipo}it:${it.id}`, tarea: it.id, titulo: it.titulo, rol: op.rol, entregar: op.entregar, entregadoTexto: op.trabajo?.texto || '', nota: notaTxt(op.nota) });
+    return { actualizar: (o) => c.actualizar?.({ entregadoTexto: o.trabajo?.texto || '', nota: notaTxt(o.nota) }), destruir: () => c.destruir?.() }; };
+}
 
 const TAB_NAMES = [['pasos', 'Paso a paso'], ['ficha', 'Ficha'], ['material', 'Material'], ['software', 'Preparar PC'], ['esquema', 'Esquema'], ['codigo', 'Código'], ['prueba', 'Prueba'], ['reto', 'Reto']];
 

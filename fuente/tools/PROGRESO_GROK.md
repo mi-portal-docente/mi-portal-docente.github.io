@@ -228,3 +228,48 @@ pero el navegador puede ejecutarlo en el mismo proceso; «Parar» lo corta solo 
 respondiendo. Los errores que se producen dentro de p5.js (no en el código del alumno) llegan sin detalle
 por estar aislados y se explican de forma genérica. Las comprobaciones de píxel se miden medio segundo
 después de arrancar (sirven para dibujos fijos, no para animaciones).
+
+## Fase 6 · Laboratorios de TIC I y TIC II — HECHA (mínimo sólido)
+
+**Qué hay** (TIC I → Laboratorio; TIC II tiene los mismos menos Anatomía del PC). Todos se usan como práctica
+libre y, desde la tarjeta de cada reto, «Asignar como tarea» (el alumno entrega desde el laboratorio y el
+resultado «Aciertos: a/t» llega al cuaderno). Además, cada motor es un **tipo de elemento importable en JSON**
+para que el profesorado cree sus propios retos (formatos y ejemplos en `FORMATO_IMPORTAR.md`).
+* **Anatomía del PC** (3D): actividad del motor de Actividades 3D con piezas nuevas del kit (`src/kit3d/pc.js`:
+  placa base, CPU, disipador, RAM, gráfica, fuente, SSD, HDD, M.2) y dos niveles (reconocer y para qué sirve).
+  Sale en Laboratorio y en Actividades de clase; se asigna como cualquier actividad 3D.
+* **Representación de la información** (`info`): conversor decimal ↔ binario ↔ hexadecimal ↔ ASCII con los 8
+  bits a la vista, y preguntas de conversión y de **tamaño de archivo** (imagen, audio, texto, vídeo) que se
+  corrigen solas (1 K = 1024 por defecto, configurable). En una tarea, cada pregunta se comprueba una vez.
+* **Ciberseguridad** (`ciber`): bandeja de correos (fiable / phishing, con explicación; enlace visible sin
+  ser clicable), **medidor de contraseñas** (nivel, bits aproximados y consejos; la contraseña **no se guarda
+  ni se envía**, solo cuenta si se alcanzó el nivel) y **red de una pyme** (diagrama con equipos y riesgos;
+  se responde la medida en cada equipo marcado). En una tarea cuenta la primera respuesta.
+* **Editor web en vivo** (`web`): HTML + CSS con vista previa **aislada sin scripts** (`sandbox="allow-same-origin"`
+  + CSP `script-src 'none'`), retos con comprobaciones de selector/texto, **estilo calculado** (p. ej. color
+  rojo valga como `red`, `#f00` o `rgb`) y código. Modo libre.
+* **Retos por bloques** (`bloques`): Blockly 11.2.2 (en `vendor/blockly/`, Apache-2.0, se carga solo al abrir)
+  con bloques propios en castellano (avanzar, girar, repetir N veces, repetir hasta la meta, si hay camino /
+  si no) y un robot en una cuadrícula animada. Niveles en JSON (mapa, bloques disponibles, máximo de bloques).
+  El programa se interpreta (no se evalúa JavaScript).
+* Página común de laboratorios (fase 5) reutilizada; caja «Entregar» común (`src/labs/comun.js`).
+* Iconos: solo Lucide (añadidos al generador: globe, blocks, binary, shield…, fish, router, cctv, cloud, bot…).
+
+**Archivos**: `src/lms/motores/{web,info,ciber,bloques}.js`, `src/labs/{comun,web-ui,info-ui,ciber-ui,bloques-ui,tic-labs}.js`,
+`src/kit3d/pc.js`, `src/act/{registro,juego}.js` (actividad y escena «pc»), `src/subjects.js`, `src/asig.js`
+(tarjetas con `enlace`), `src/main.js`, `src/ui/iconos-datos.js` + `iconos-gen.mjs`, `lms/biblioteca.js`,
+`aula-editor.js`, `css/plataforma.css`, `vendor/blockly/`, `FORMATO_IMPORTAR.md`, reglas y pruebas. Caché `gp6-20261113`.
+`e2e/aula_e2e.mjs`: la comprobación «Laboratorio sin laboratorios → Próximamente» pasa de TIC I (que ya
+tiene) a Proyectos II.
+
+**Reglas (cambian, sin desplegar)**: tipos `web`, `info`, `ciber` y `bloques` en `items` y en las entregas de
+tipo tarea. Regenerado el `para-pegar`.
+
+**Pruebas**: `plataforma_test.mjs` 25/25 · reglas 97/97 · E2E fases 5+6: 39/39.
+
+**Capturas**: `f6_laboratorios_tic`, `f6_anatomia_pc`, `f6_informacion`, `f6_phishing`, `f6_contrasena`, `f6_red`,
+`f6_red_movil`, `f6_web`, `f6_bloques`, `f6_alumno_info`.
+
+**Dudas / pendiente**: Blockly no es del todo accesible con teclado/lector (es la librería pedida); el resto
+sí. El «tamaño de vídeo» es sin compresión (cálculo teórico). La Anatomía del PC es un ejemplo mínimo de 8
+retos; para más niveles hay que añadirlos en `registro.js` (las actividades 3D aún no se importan en JSON).

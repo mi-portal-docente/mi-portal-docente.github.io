@@ -136,3 +136,21 @@ describe('Fase 5 · laboratorio p5.js', () => {
   });
 });
 
+describe('Fase 6 · laboratorios de TIC (web, info, ciber, bloques)', () => {
+  const C = { web: { retos: [{ id: 'r1', titulo: 'T', enunciado: 'x', html: '', css: '', pistas: [], comprobaciones: [{ tipo: 'selector', selector: 'h1', min: 1, mensaje: '' }] }] },
+    info: { preguntas: [{ tipo: 'conversion', de: 'dec', a: 'bin', valor: '13', enunciado: '', explicacion: '' }] },
+    ciber: { contrasena: { minimo: 'fuerte' } },
+    bloques: { niveles: [{ id: 'n1', titulo: 'N', enunciado: '', mapa: ['#####', '#S.G#', '#####'], direccion: 'E', bloques: ['avanzar'], maxBloques: null }] } };
+  test('el profesor guarda los cuatro tipos y el alumno entrega cada uno como tarea', async () => {
+    for (const [t, contenido] of Object.entries(C)) {
+      const it = { ...ITEM_T, tipo: t, titulo: t, contenido };
+      await assertSucceeds(setDoc(doc(profe(), `items/item${t}01`), it));
+      await sembrar((db) => setDoc(doc(db, `items/item${t}01`), it));
+      await assertSucceeds(setDoc(doc(anon('a7'), `trabajos/item${t}01_g1_7`), tarea('a7', { item: `item${t}01`, texto: `${t}. Aciertos: 1/1`, enlaces: [] })));
+    }
+  });
+  test('ataque: tipo inventado → denegado', async () => {
+    await assertFails(setDoc(doc(profe(), 'items/itemZZ01'), { ...ITEM_T, tipo: 'virus', titulo: 'x', contenido: {} }));
+  });
+});
+

@@ -28,6 +28,19 @@ export const APARTADOS = {
       tags: ['Ejercicio guiado: el tablero de la SA1', 'Modo libre', 'Averías y lista de materiales'],
     },
   ],
+  tic1: [
+    { id: 'anatomia', nombre: 'Anatomía del PC', lucide: 'cpu', color: '#1f6feb', active: true, enlace: '#asig/tic1/actividades/anatomia-pc', desc: 'Juego 3D: reconoce las piezas de un ordenador y para qué sirve cada una.', tags: ['3D', 'Hardware'] },
+    { id: 'info', nombre: 'Representación de la información', lucide: 'binary', color: '#1f6feb', active: true, desc: 'Conversor decimal, binario, hexadecimal y ASCII, y retos de tamaño de archivos.', tags: ['Conversor', 'Se corrige solo'] },
+    { id: 'ciber', nombre: 'Ciberseguridad', lucide: 'shield-check', color: '#b42318', active: true, desc: 'Bandeja de phishing, medidor de contraseñas y la red de una pyme con sus riesgos.', tags: ['Phishing', 'Contraseñas', 'Red'] },
+    { id: 'web', nombre: 'Editor web en vivo', lucide: 'globe', color: '#0f766e', active: true, desc: 'HTML y CSS con vista previa aislada y retos comprobados.', tags: ['HTML', 'CSS', 'Modo libre'] },
+    { id: 'bloques', nombre: 'Retos por bloques', lucide: 'blocks', color: '#7a4cc2', active: true, desc: 'Programa al robot con bloques (Blockly) por niveles.', tags: ['Blockly', 'Por niveles'] },
+  ],
+  tic2: [
+    { id: 'info', nombre: 'Representación de la información', lucide: 'binary', color: '#1f6feb', active: true, desc: 'Conversor decimal, binario, hexadecimal y ASCII, y retos de tamaño de archivos.', tags: ['Conversor', 'Se corrige solo'] },
+    { id: 'ciber', nombre: 'Ciberseguridad', lucide: 'shield-check', color: '#b42318', active: true, desc: 'Bandeja de phishing, medidor de contraseñas y la red de una pyme con sus riesgos.', tags: ['Phishing', 'Contraseñas', 'Red'] },
+    { id: 'web', nombre: 'Editor web en vivo', lucide: 'globe', color: '#0f766e', active: true, desc: 'HTML y CSS con vista previa aislada y retos comprobados.', tags: ['HTML', 'CSS', 'Modo libre'] },
+    { id: 'bloques', nombre: 'Retos por bloques', lucide: 'blocks', color: '#7a4cc2', active: true, desc: 'Programa al robot con bloques (Blockly) por niveles.', tags: ['Blockly', 'Por niveles'] },
+  ],
   cdpc1: [
     {
       id: 'p5', nombre: 'Laboratorio p5.js', lucide: 'palette', color: '#6b3fa0', active: true,

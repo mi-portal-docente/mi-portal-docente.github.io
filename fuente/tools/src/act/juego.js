@@ -55,7 +55,7 @@ export class Juego3D extends Actividad3D {
     const V = this.vit = new THREE.Vector3(W / 2 - 22, 0, D / 2 - 20); this.vistas.vitrina = { p: [V.x - 20, 30, V.z + 40], t: [V.x, 6, V.z] };
     malla(new THREE.CylinderGeometry(13, 14, 1.6, 48), pbr(0x2b2e33, { roughness: 0.4, clearcoat: 0.6 }), s, V.x, 0.8, V.z);
     this.plato = new THREE.Group(); this.plato.position.set(V.x, 1.7, V.z); s.add(this.plato);
-    if (this.def.escena === 'cables') this.mesaCables(); else this.maletin();
+    if (this.def.escena === 'cables') this.mesaCables(); else if (this.def.escena === 'pc') { this.vistas.mesa = { p: [0, 92, 84], t: [0, 0, -2] }; } else this.maletin();
     // objetos (cada uno con materiales propios para poder resaltarlo)
     for (const o of this.def.objetos) {
       const g = new THREE.Group(); o.crear(g); g.position.set(o.x, o.y || 0, o.z); g.rotation.y = o.rot || 0; g.userData.objId = o.id; s.add(g);

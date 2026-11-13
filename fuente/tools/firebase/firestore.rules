@@ -436,7 +436,7 @@ service cloud.firestore {
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
           && (!('unidad' in d) || textoCorto(d.unidad, 40))
-          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5']
+          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques']
           && textoCorto(d.titulo, 150)
           && (!('texto' in d) || textoCorto(d.texto, 20000))
           && (!('enlaces' in d) || listaCorta(d.enlaces, 20))
@@ -615,7 +615,7 @@ service cloud.firestore {
       function item() { return get(ruta('items', request.resource.data.item)).data; }
       function examen() { return get(ruta('examenes', request.resource.data.item)).data; }
       function tipoTarea() {
-        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5'];
+        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques'];
       }
       function tipoExamen() { return request.resource.data.tipo == 'examen' && item().tipo == 'examen'; }
       function trabajoBase(id) {

@@ -241,3 +241,44 @@ test('Fase 5 · p5.js: comprobaciones y errores en castellano', async () => {
   assert.match(traducirError('TypeError: fil is not a function'), /«fil» no es una función/);
   assert.match(traducirError('Algo raro'), /^Error: Algo raro/);
 });
+
+test('Fase 6 · TIC: validar y comprobar los motores web, info, ciber y bloques', async () => {
+  await import('./src/lms/motores/index.js');
+  const { motor } = await import('./src/lms/elemento.js');
+  const { anidada } = await import('./src/lms/motores/comun.js');
+  for (const t of ['web', 'info', 'ciber', 'bloques']) {
+    const r = validarElemento({ tipo: t, titulo: 'X', contenido: motor(t).ejemplo });
+    assert.deepEqual(r.errores, [], t); assert.equal(anidada(r.el.contenido), false, t + ' sin listas anidadas');
+    assert.deepEqual(validarElemento(exportarElemento({ tipo: t, titulo: 'X', contenido: r.el.contenido, puntos: 10 })).errores, [], t + ' exportar/importar');
+  }
+  // info
+  const I = await import('./src/lms/motores/info.js');
+  assert.equal(I.convertir('13', 'dec', 'bin'), '1101'); assert.equal(I.convertir('FF', 'hex', 'dec'), '255'); assert.equal(I.convertir('Hi', 'ascii', 'hex'), '48 69'); assert.equal(I.convertir('72 105', 'dec', 'ascii'), 'Hi');
+  assert.equal(I.respuestaCorrecta('00001101', '1101', 'bin'), true); assert.equal(I.respuestaCorrecta('ff', 'FF', 'hex'), true);
+  const img = { tipo: 'tamano', archivo: { tipo: 'imagen', ancho: 800, alto: 600, bits: 24 }, unidad: 'KB', base: 1024, tolerancia: 1 };
+  assert.equal(I.correctaInfo(img, '1406,25'), true); assert.equal(I.correctaInfo(img, '1440'), false);
+  assert.equal(I.correctaInfo({ ...img, unidad: 'KB', base: 1000 }, '1440'), true);
+  assert.equal(I.correctaInfo({ tipo: 'tamano', archivo: { tipo: 'audio', segundos: 10, hz: 44100, bits: 16, canales: 2 }, unidad: 'B', base: 1024, tolerancia: 1 }, '1764000'), true);
+  assert.match(validarElemento({ tipo: 'info', titulo: 'X', contenido: { preguntas: [{ tipo: 'conversion', de: 'bin', a: 'dec', valor: '102' }] } }).errores[0].texto, /no es un número binario/);
+  // ciber
+  const C = await import('./src/lms/motores/ciber.js');
+  assert.equal(C.fuerzaContrasena('1234').nivel, 0); assert.equal(C.fuerzaContrasena('password2024').nivel <= 1, true);
+  assert.equal(C.fuerzaContrasena('Pato-Azul-Salta-Muro-8!').nivel >= 3, true);
+  assert.match(validarElemento({ tipo: 'ciber', titulo: 'X', contenido: {} }).errores[0].texto, /al menos una parte/);
+  assert.match(validarElemento({ tipo: 'ciber', titulo: 'X', contenido: { red: { nodos: [{ id: 'a', nombre: 'A', tipo: 'pc', x: 1, y: 1 }, { id: 'b', nombre: 'B', tipo: 'pc', x: 2, y: 2 }], enlaces: [{ a: 'a', b: 'z' }] } } }).errores.map((e) => e.texto).join(' '), /ids de nodos que existan.*riesgo|riesgo.*ids de nodos/);
+  // bloques
+  const B = await import('./src/lms/motores/bloques.js');
+  const nv = B.validarBloques({ niveles: [{ titulo: 'E', mapa: ['######', '#S...#', '####.#', '####G#', '######'], bloques: ['avanzar', 'girar', 'repetir'], maxBloques: 5 }] }, () => {}).niveles[0];
+  const bien = [{ op: 'repetir', n: 3, cuerpo: [{ op: 'avanzar' }] }, { op: 'girar', lado: 'der' }, { op: 'repetir', n: 2, cuerpo: [{ op: 'avanzar' }] }];
+  const r1 = B.ejecutar(nv, bien); assert.equal(r1.meta, true); assert.equal(r1.bloques, 5); assert.equal(B.superado(nv, r1), true);
+  const r2 = B.ejecutar(nv, [{ op: 'repetir', n: 5, cuerpo: [{ op: 'avanzar' }] }]); assert.match(r2.error, /chocado/);
+  const r3 = B.ejecutar(nv, [{ op: 'mientras', cuerpo: [{ op: 'si', dir: 'delante', cuerpo: [{ op: 'avanzar' }], sino: [{ op: 'girar', lado: 'der' }] }] }]); assert.equal(r3.meta, true);
+  assert.match(B.ejecutar(nv, [{ op: 'mientras', cuerpo: [{ op: 'girar', lado: 'izq' }] }]).error || 'no termina', /no termina|pasos/);
+  const errs = []; B.validarBloques({ niveles: [{ titulo: 'x', mapa: ['#S#', '#.'] }] }, (r, t) => errs.push(r + ' ' + t));
+  assert.match(errs.join('\n'), /mismo largo/); assert.match(errs.join('\n'), /exactamente una «S»/);
+  // web
+  const W = await import('./src/lms/motores/web.js');
+  assert.equal(W.evaluarWeb({ tipo: 'codigo', en: 'css', contiene: 'COLOR' }, { html: '', css: 'h1{color:red}' }), true);
+  assert.equal(W.evaluarWeb({ tipo: 'selector', selector: 'h1', min: 1, texto: 'mi web' }, {}, { n: 1, textos: ['Mi web'] }), true);
+  assert.equal(W.evaluarWeb({ tipo: 'estilo', selector: 'h1', propiedad: 'color', valor: 'red' }, {}, { n: 1, coincide: false }), false);
+});

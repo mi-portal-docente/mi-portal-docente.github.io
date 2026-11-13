@@ -205,3 +205,89 @@ programa se ejecuta sin errores y cumple todas sus comprobaciones. Al entregar s
 Los retos de ejemplo del **Laboratorio p5.js** (CDPC → Laboratorio) también se pueden asignar como tarea
 desde su tarjeta («Asignar como tarea»): se crea una tarea de tipo «actividad» con el enlace al reto
 (`#cdpc1/p5/<id>`) y el alumno entrega desde el propio laboratorio.
+
+## Editor web en vivo (`"tipo": "web"`, TIC)
+
+Retos de HTML y CSS (1–20). Cada reto: `titulo`, `enunciado`, `html` y `css` iniciales, `pistas` y
+`comprobaciones` (al menos una). La vista previa está aislada (no ejecuta scripts).
+
+* `{"tipo": "selector", "selector": "ul li", "min": 3}` · hay al menos `min` elementos (por defecto 1);
+  con `"texto": "Mi web"`, alguno contiene ese texto.
+* `{"tipo": "estilo", "selector": "h1", "propiedad": "color", "valor": "#ff0000"}` · se compara el estilo
+  calculado (vale `"red"`, `"#f00"` o `"rgb(255,0,0)"`; también `"text-align": "center"`, `"font-size": "24px"`…).
+* `{"tipo": "codigo", "en": "css", "contiene": "flex"}` · o `"regex"`; `"en"`: `"html"` o `"css"`.
+
+```json
+{ "formato": "superprofe/elemento@1", "tipo": "web", "titulo": "Mi primera web", "puntos": 10,
+  "contenido": { "retos": [ { "id": "titulo", "titulo": "Un título rojo",
+    "enunciado": "Añade un título <h1> con el texto «Mi web» y ponlo de color rojo.",
+    "html": "", "css": "", "pistas": ["El título principal se escribe <h1>…</h1>."],
+    "comprobaciones": [ { "tipo": "selector", "selector": "h1", "texto": "Mi web" },
+                        { "tipo": "estilo", "selector": "h1", "propiedad": "color", "valor": "#ff0000" } ] } ] } }
+```
+
+## Representación de la información (`"tipo": "info"`, TIC)
+
+Preguntas (1–40) que se corrigen solas; la solución la calcula el portal:
+
+* `{"tipo": "conversion", "de": "dec", "a": "bin", "valor": "13"}` · sistemas `dec`, `bin`, `hex`, `ascii`
+  (en ASCII, los códigos van separados por espacios: «72 105» ↔ «Hi»).
+* `{"tipo": "tamano", "archivo": {…}, "unidad": "KB"}` · `archivo`: `{"tipo": "imagen", "ancho", "alto", "bits"}`,
+  `{"tipo": "audio", "segundos", "hz", "bits", "canales"}`, `{"tipo": "texto", "caracteres", "bits": 8}` o
+  `{"tipo": "video", "ancho", "alto", "bits", "fps", "segundos"}`. Unidades `bit`, `B`, `KB`, `MB`, `GB`;
+  `"base": 1000` si se usa 1 K = 1000 (por defecto 1024); `"tolerancia"` en % (por defecto 1).
+
+Opcionales: `enunciado` (si no, se genera) y `explicacion`. En una tarea, cada pregunta se comprueba una vez.
+
+```json
+{ "formato": "superprofe/elemento@1", "tipo": "info", "titulo": "Sistemas de numeración", "puntos": 10,
+  "contenido": { "preguntas": [
+    { "tipo": "conversion", "de": "dec", "a": "bin", "valor": "13" },
+    { "tipo": "tamano", "archivo": { "tipo": "imagen", "ancho": 800, "alto": 600, "bits": 24 }, "unidad": "KB" } ] } }
+```
+
+## Ciberseguridad (`"tipo": "ciber"`, TIC)
+
+Una o varias partes: `correos` (bandeja: cada correo con `de`, `asunto`, `cuerpo`, `enlace` opcional,
+`phishing`: true/false y `explicacion`), `contrasena` (`{"minimo": "fuerte"}`: niveles «muy débil», «débil»,
+«aceptable», «fuerte», «muy fuerte»; **la contraseña no se guarda ni se envía**, solo cuenta si se alcanzó el
+nivel) y `red` (`nodos` con `id`, `nombre`, `tipo` —router, servidor, pc, portatil, movil, wifi, impresora,
+camara, nube, internet, switch—, posición `x` e `y` en % y, en los que tengan riesgo, `riesgo` con `pregunta`,
+`opciones`, `correcta` y `explicacion`; `enlaces`: `{"a": id, "b": id, "wifi": true}`). En una tarea cuenta la
+primera respuesta de cada correo y de cada riesgo.
+
+```json
+{ "formato": "superprofe/elemento@1", "tipo": "ciber", "titulo": "¿Es phishing?", "puntos": 10,
+  "contenido": {
+    "correos": [ { "de": "soporte@banco-seguro.example", "asunto": "Su cuenta será bloqueada",
+      "cuerpo": "Verifique sus datos en las próximas 2 horas.", "enlace": "http://banco-seguro.example.verificar-datos.top/login",
+      "phishing": true, "explicacion": "Urgencia, amenaza y un dominio que no es el del banco." } ],
+    "contrasena": { "minimo": "fuerte" },
+    "red": { "titulo": "Oficina pequeña",
+      "nodos": [ { "id": "internet", "nombre": "Internet", "tipo": "internet", "x": 10, "y": 50 },
+                 { "id": "router", "nombre": "Router", "tipo": "router", "x": 40, "y": 50,
+                   "riesgo": { "pregunta": "El router tiene la contraseña de fábrica. ¿Qué haces?",
+                               "opciones": ["Cambiarla por una fuerte y actualizar el firmware", "Nada"], "correcta": 0 } },
+                 { "id": "pc", "nombre": "PC de recepción", "tipo": "pc", "x": 75, "y": 50 } ],
+      "enlaces": [ { "a": "internet", "b": "router" }, { "a": "router", "b": "pc" } ] } } }
+```
+
+## Retos por bloques (`"tipo": "bloques"`, TIC)
+
+Niveles (1–20) con un robot en una cuadrícula. `mapa`: filas de igual largo (máx. 12) con `#` (muro),
+`.` (camino), `S` (salida) y `G` (meta); `direccion` inicial `N`, `E` (por defecto), `S` u `O`; `bloques`
+disponibles: `avanzar`, `girar`, `repetir`, `mientras` (repetir hasta la meta) y `si` (si hay camino);
+`maxBloques` opcional. El nivel se supera si el robot acaba en la meta sin chocar (y sin pasarse de bloques).
+
+```json
+{ "formato": "superprofe/elemento@1", "tipo": "bloques", "titulo": "El robot", "puntos": 10,
+  "contenido": { "niveles": [
+    { "id": "recto", "titulo": "En línea recta", "mapa": ["#####", "#S.G#", "#####"], "bloques": ["avanzar"] },
+    { "id": "esquina", "titulo": "Doblar la esquina", "mapa": ["######", "#S...#", "####.#", "####G#", "######"],
+      "bloques": ["avanzar", "girar", "repetir"], "maxBloques": 5 } ] } }
+```
+
+## Anatomía del PC (TIC I · Actividades de clase)
+
+Es una actividad 3D del motor de «Actividades de clase» (`src/act/registro.js`, piezas en `src/kit3d/pc.js`):
+se practica en TIC I → Laboratorio / Actividades de clase y se asigna como tarea desde su tarjeta.

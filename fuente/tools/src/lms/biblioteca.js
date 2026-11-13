@@ -20,6 +20,10 @@ export const TIPOS = {
   proyecto: { nombre: 'Proyecto', icon: '🚀', cat: 'proyectos' },
   explicacion: { nombre: 'Explicación interactiva', icon: '🎓', cat: 'tareas' },
   p5: { nombre: 'Laboratorio p5.js', icon: '🎨', cat: 'tareas' },
+  web: { nombre: 'Editor web en vivo', icon: '🌐', cat: 'tareas' },
+  info: { nombre: 'Representación de la información', icon: '🔢', cat: 'tareas' },
+  ciber: { nombre: 'Ciberseguridad', icon: '🔐', cat: 'tareas' },
+  bloques: { nombre: 'Retos por bloques', icon: '🧱', cat: 'tareas' },
 };
 export const CATEGORIAS = [
   { id: 'examenes', nombre: 'Exámenes y cuestionarios', peso: 40 },

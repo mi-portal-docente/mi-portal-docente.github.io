@@ -337,7 +337,7 @@ await P.pg.click('#apItemForm button[type=submit]');
 await P.pg.waitForSelector('.ac-card[data-act=maletin] .ac-est', { timeout: 15000 });
 var ID_ACT = (await P.pg.getAttribute('.ac-card[data-act=maletin] .ac-est a', 'href')).replace('#trabajo/', '');
 ok('la actividad queda asignada (tarea publicada de tipo «actividad»)', /Asignada en 1 tarea/.test(await P.pg.textContent('.ac-card[data-act=maletin] .ac-est')) && JSON.stringify(await (await fetch(`${REST}/items/${ID_ACT}`, owner)).json()).includes('"actividad"'));
-await P.pg.goto(BASE + '#asig/tic1/laboratorio');
+await P.pg.goto(BASE + '#asig/proy2/laboratorio');
 await P.pg.waitForSelector('#asig .as-vacio');
 ok('Laboratorio de una asignatura sin laboratorios → «Próximamente»', /Próximamente/.test(await P.pg.textContent('#asig .as-vacio')));
 

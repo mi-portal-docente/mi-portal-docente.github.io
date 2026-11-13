@@ -5,6 +5,8 @@
 import { Juego3D, tumbar } from './juego.js';
 import { herramienta, KIT_HERRAMIENTAS } from '../kit3d/herramientas.js';
 import { conductor, manguera, tuboCorrugado, rollo } from '../kit3d/cables.js';
+import * as PC from '../kit3d/pc.js';
+import { ic } from '../ui/iconos.js';
 
 const FAMILIAS = ['Destornilladores', 'Alicates', 'Corte y pelado', 'Medida y comprobación', 'Máquinas', 'Canalización'];
 // Herramienta del kit compartido colocada en la mesa (o en la espuma del maletín)
@@ -104,7 +106,36 @@ const cables = {
   ],
 };
 for (const a of [maletin, cables]) a.rondas = a.niveles.flatMap((n) => n.rondas); // lista plana (tarjetas: «N preguntas»)
-export const ACTIVIDADES = [maletin, cables];
+// TIC I · Anatomía del PC: las piezas de un ordenador de sobremesa en el banco (ejemplo mínimo)
+const P = (id, n, x, z, crear, rot = 0) => ({ id, n, x, z, rot, crear: (g) => g.add(crear()) });
+const anatomiaPC = {
+  id: 'anatomia-pc', asig: 'tic1', icon: ic('cpu'), color: '#1f6feb', tipo: '3D', tema: 'Hardware', duracion: '8 min', juego: Juego3D, escena: 'pc',
+  titulo: 'Anatomía del PC',
+  desc: 'Juego 3D: reconoce en el banco las piezas de un ordenador de sobremesa y para qué sirve cada una.',
+  intro: 'En el banco tienes las piezas de un ordenador desmontado. Supera los dos niveles: reconoce cada pieza y di para qué sirve.',
+  mesa: { w: 170, d: 96 },
+  objetos: [
+    P('placa', 'Placa base', -48, -18, PC.placaBase), P('cpu', 'Procesador (CPU)', -12, -26, PC.procesador), P('disipador', 'Disipador con ventilador', 8, -26, PC.disipadorCPU),
+    P('ram', 'Memoria RAM', -12, -8, PC.memoriaRAM), P('gpu', 'Tarjeta gráfica', 40, -24, PC.tarjetaGrafica), P('fuente', 'Fuente de alimentación', 60, 14, PC.fuenteAlimentacion),
+    P('ssd', 'Disco SSD', -50, 22, PC.discoSSD), P('hdd', 'Disco duro (HDD)', -24, 24, PC.discoDuro), P('m2', 'SSD M.2 NVMe', 8, 6, PC.m2),
+  ],
+  niveles: [
+    { n: 'Reconoce las piezas', icono: ic('search'), tiempo: 120, desc: 'Señala en el banco la pieza que te pidan.', rondas: [
+      { tipo: 'objeto', q: 'Señala la placa base', ok: ['placa'], exp: 'Es la placa a la que se conectan todas las demás piezas.' },
+      { tipo: 'objeto', q: 'Señala el procesador (CPU)', ok: ['cpu'], exp: 'Ejecuta las instrucciones de los programas. Va en el zócalo de la placa base.' },
+      { tipo: 'objeto', q: 'Señala un módulo de memoria RAM', ok: ['ram'], exp: 'Guarda los datos y programas en uso; se borra al apagar.' },
+      { tipo: 'objeto', q: 'Señala la tarjeta gráfica', ok: ['gpu'], exp: 'Genera la imagen que se ve en el monitor.' },
+      { tipo: 'objeto', q: 'Señala la fuente de alimentación', ok: ['fuente'], exp: 'Convierte la corriente alterna del enchufe en las tensiones continuas que usa el ordenador.' },
+      { tipo: 'objeto', q: 'Señala un almacenamiento sin partes móviles', ok: ['ssd', 'm2'], exp: 'Los SSD (2,5" o M.2) guardan los datos en memoria flash, sin discos ni cabezales.' },
+    ] },
+    { n: '¿Para qué sirve?', icono: ic('brain'), tiempo: 90, desc: 'Función de cada pieza.', rondas: [
+      { tipo: 'opcion', q: '¿Qué pieza pierde su contenido al apagar el ordenador?', foco: ['ram', 'ssd'], opciones: ['La memoria RAM', 'El disco SSD', 'El disco duro'], correcta: 0, exp: 'La RAM es memoria volátil; los discos guardan los datos sin corriente.' },
+      { tipo: 'opcion', q: '¿Para qué sirve el disipador?', foco: ['disipador', 'cpu'], opciones: ['Para evacuar el calor del procesador', 'Para guardar datos', 'Para dar corriente a la placa'], correcta: 0, exp: 'Se apoya sobre la CPU con pasta térmica y su ventilador saca el calor.' },
+    ] },
+  ],
+};
+
+export const ACTIVIDADES = [maletin, cables, anatomiaPC];
 export const actividadesDe = (asig) => ACTIVIDADES.filter((a) => a.asig === asig);
 export const actividad = (asig, id) => ACTIVIDADES.find((a) => a.asig === asig && a.id === id) || null;
 export const enlaceActividad = (a) => `#asig/${a.asig}/actividades/${a.id}`;

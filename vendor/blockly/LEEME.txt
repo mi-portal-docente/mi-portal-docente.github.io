@@ -1,0 +1,2 @@
+Blockly v11.2.2 (https://developers.google.com/blockly) · Licencia Apache-2.0.
+Se usa sin modificar en «Retos por bloques» (TIC); se carga solo al abrir ese laboratorio.
