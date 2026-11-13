@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { BT, ROWZ, COLS, colX, isRailCol, BOARD_W, BOARD_D, rot } from './board.js';
 import { PARTS, LED_COLORS, resistorBands, WIRE_HEX } from './parts.js';
+import { resistencia, led5, to92, rele, pila9, portapilas, polimetro, punta, dupont, cocodrilo, banana, pataCodo, pataRecta, tornoY, cajaR, PM, ESTANO, NIQUEL, texCanvas } from './detalle.js';
 
 const mc = {};
 export function M(color, o = {}) { const k = color + JSON.stringify(o); return mc[k] || (mc[k] = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.05, ...o })); }
@@ -21,6 +22,9 @@ function lead(p, x1, y1, z1, x2, y2, z2, r = 0.11) {
   m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); m.castShadow = false;
   return m;
 }
+const gcache = new Map();
+function geoC(k, f) { if (!gcache.has(k)) { const g = f(); g.userData.compartida = true; gcache.set(k, g); } return gcache.get(k); }
+function hiloPata(p, pts, r = 0.11) { const c = new THREE.CatmullRomCurve3(pts.map((q) => new THREE.Vector3(...q)), false, 'centripetal'); const m = new THREE.Mesh(new THREE.TubeGeometry(c, 22, r, 8, false), ESTANO()); p.add(m); return m; }
 export function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.userData = { canvas: c, draw }; return t; }
 let glowTex;
 export function glowTexture() { return glowTex || (glowTex = canvasTex(128, 128, (g, w) => { const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, w); })); }
@@ -67,8 +71,15 @@ export function buildBreadboard() {
   bump.colorSpace = THREE.NoColorSpace;
   const side = M(0xeeebe4, { roughness: 0.62 });
   const top = new THREE.MeshStandardMaterial({ map: tex, bumpMap: bump, bumpScale: 3, roughness: 0.62, metalness: 0, transparent: true, opacity: 1 });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(W, BT, D), [side, side, top, side, side, side]);
-  body.position.y = BT / 2; body.receiveShadow = true; body.castShadow = true; g.add(body);
+  // cuerpo en tres piezas para que el canal central sea un surco de verdad (como en una protoboard real);
+  // la cara de arriba de cada pieza recoge su parte de la misma textura (agujeros, carriles, números)
+  const pieza = (z0, z1, h) => {
+    const geo = new THREE.BoxGeometry(W, h, z1 - z0); geo.translate(0, h / 2, (z0 + z1) / 2);
+    const P = geo.attributes.position, U = geo.attributes.uv; const gr = geo.groups[2];
+    for (let i = gr.start; i < gr.start + gr.count; i++) { const v = geo.index.getX(i); U.setXY(v, (P.getX(v) + W / 2) / W, 1 - (P.getZ(v) + D / 2) / D); }
+    const m = new THREE.Mesh(geo, [side, side, top, side, side, side]); m.receiveShadow = true; m.castShadow = true; g.add(m); return m;
+  };
+  pieza(-D / 2, -0.6, BT); pieza(0.6, D / 2, BT); pieza(-0.6, 0.6, BT - 1.1);
   // base adhesiva y pestañas de unión laterales
   box(W - 0.4, 0.25, D - 0.4, M(0xd9d5cb, { roughness: 0.8 }), 0, -0.02, 0, g).castShadow = false;
   for (const z of [-6, 0, 6]) { box(0.5, BT * 0.7, 1.4, side, -W / 2 - 0.25, 0.3, z, g); box(0.5, BT * 0.7, 1.2, M(0xd8d3c8), W / 2 + 0.05, 0.3, z, g); }
@@ -116,25 +127,12 @@ function drawThrow(g, W, H, o) {
   g.fillText('1', xs[0], H * 0.28); g.fillText('C', xs[1], H * 0.28); g.fillText('2', xs[2], H * 0.28);
 }
 const B = {
-  resistor(p, part) {
-    const y = BT + 1.15;
-    legDown(p, 0, 0, 1.15); legDown(p, 4, 0, 1.15); lead(p, 0, y, 0, 4, y, 0);
-    const body = M(0xe6cf9e, { roughness: 0.6 });
-    const c = mesh(new THREE.CapsuleGeometry(0.5, 1.7, 4, 14), body, 2, y, 0, p); c.rotation.z = Math.PI / 2;
-    const bands = resistorBands(part.props.r);
-    [1.35, 1.75, 2.15, 2.75].forEach((bx, i) => { const b = mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.2, 16), M(new THREE.Color(bands.hex[i]).getHex(), { roughness: 0.5 }), bx, y, 0, p); b.rotation.z = Math.PI / 2; });
-  },
+  resistor(p, part) { resistencia(p, resistorBands(part.props.r).hex); },
   led(p, part) {
     const col = LED_COLORS[part.props.color];
-    // ánodo (pata larga, con codo) y cátodo (pata corta, recta)
-    legBent(p, 0, 0, 0.3, BT + 1.7, 0); legDown(p, 1, 0, 1.7);
-    const mat = new THREE.MeshPhysicalMaterial({ color: col.hex, transparent: true, opacity: 0.82, roughness: 0.08, transmission: 0.25, thickness: 0.6, emissive: new THREE.Color(col.hex), emissiveIntensity: 0 });
-    const y0 = BT + 1.7;
-    const rim = cyl(1.2, 0.3, mat, 0.5, y0, 0, p, 28); const bodyM = cyl(1.0, 1.9, mat, 0.5, y0 + 0.3, 0, p, 28);
-    const dome = mesh(new THREE.SphereGeometry(1.0, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), mat, 0.5, y0 + 2.2, 0, p);
-    box(0.06, 0.32, 1.2, M(0x333333), 1.66, y0, 0, p); // lado plano = cátodo
-    // yunque y poste internos (se ven a través de la cápsula)
-    box(0.5, 0.9, 0.12, METAL(), 0.85, y0 + 0.4, 0, p); box(0.12, 1.1, 0.12, METAL(), 0.2, y0 + 0.4, 0, p);
+    // ánodo (pata larga, con codo) y cátodo (pata corta, recta, lado plano de la cápsula)
+    pataCodo(p, 0, 0, 0.08, BT + 1.75, 0, 0.1); pataRecta(p, 1, 0, 1.75, 0.1);
+    const { mat, y0 } = led5(p, col);
     const gl = glow(col.glow, 9, 0.5, y0 + 2.2, 0, p);
     p.userData.update = (r, st) => {
       const burnt = st.burnt; const b = burnt ? 0 : Math.min(1.3, r.bright || 0);
@@ -155,9 +153,11 @@ const B = {
     p.userData.glowY = y0 + 2.2;
   },
   diode(p) {
-    const y = BT + 0.9; legDown(p, 0, 0, 0.9); legDown(p, 4, 0, 0.9); lead(p, 0, y, 0, 4, y, 0);
-    const c = mesh(new THREE.CylinderGeometry(0.55, 0.55, 2.1, 18), M(0x1d1d1d, { roughness: 0.3 }), 2, y, 0, p); c.rotation.z = Math.PI / 2;
-    const b = mesh(new THREE.CylinderGeometry(0.57, 0.57, 0.3, 18), M(0xc8c8c8), 2.75, y, 0, p); b.rotation.z = Math.PI / 2;
+    const y = BT + 0.9;
+    for (const [x, sx] of [[0, 1], [4, -1]]) hiloPata(p, [[x, BT - 0.45, 0], [x, y - 0.4, 0], [x + sx * 0.12, y - 0.08, 0], [x + sx * 0.45, y, 0], [2 - sx * 1.0, y, 0]]);
+    const g = new THREE.Group(); g.position.set(2, y, 0); g.rotation.z = Math.PI / 2; p.add(g);
+    mesh(geoC('diodo', () => tornoY([[0, -1.08], [0.32, -1.08], [0.5, -1.0], [0.56, -0.85], [0.56, 0.85], [0.5, 1.0], [0.32, 1.08], [0, 1.08]])), PM(0x1a1b1d, { roughness: 0.32, clearcoat: 0.5 }), 0, 0, 0, g);
+    mesh(geoC('diodoB', () => new THREE.CylinderGeometry(0.575, 0.575, 0.32, 24, 1, true)), PM(0xc9ccd1, { roughness: 0.4 }), 0, -0.68, 0, g).castShadow = false;
   },
   bulb(p) {
     legDown(p, 0, 0, 0.6); legDown(p, 2, 0, 0.6);
@@ -250,8 +250,7 @@ const B = {
   },
   relay(p, part) {
     // relé encapsulado azul (tipo SRD-05VDC) con sus 5 patas
-    for (const [x, z] of [[0, 0], [4, 0], [0, 3], [2, 3], [4, 3]]) legDown(p, x, z, 0.4);
-    rbox(5.2, 4.4, 4.4, 0.25, M(0x2d5fc0, { roughness: 0.35 }), 2, BT + 0.3, 1.5, p);
+    rele(p);
     const d = decal(p, 4.8, 4.0, 2, BT + 4.72, 1.5, (g, W, H, o) => {
       g.fillStyle = '#e9f0ff'; g.font = `800 ${W * 0.1}px system-ui`; g.textAlign = 'center'; g.fillText('5VDC', W / 2, H * 0.14);
       const P = { b1: [W * 0.1, H * 0.3], com: [W * 0.9, H * 0.3], b2: [W * 0.1, H * 0.92], nc: [W * 0.5, H * 0.92], no: [W * 0.9, H * 0.92] };
@@ -268,15 +267,7 @@ const B = {
     p.userData.update = (r) => { const o = { on: !!r.on, flow: Math.abs(r.contactI || 0) > 1e-5 }; const k = JSON.stringify(o); if (k !== last) { last = k; d.redraw(o); } };
     p.userData.update({});
   },
-  npn(p) {
-    // encapsulado TO-92: cara plana hacia delante, patas C B E
-    for (const x of [0, 1, 2]) legBent(p, x, 0, 0.6 + x * 0.4, BT + 1.4, 0, 0.1);
-    const g = new THREE.CylinderGeometry(1.0, 1.0, 2.0, 28, 1, false, -Math.PI / 2, Math.PI);
-    const b = mesh(g, M(0x1b1c1e, { roughness: 0.4 }), 1, BT + 2.4, 0, p);
-    box(2.0, 2.0, 0.02, M(0x1b1c1e, { roughness: 0.3 }), 1, BT + 1.4, 0, p);
-    const lab = canvasTex(128, 128, (c) => { c.fillStyle = '#1b1c1e'; c.fillRect(0, 0, 128, 128); c.fillStyle = '#cfd3d8'; c.font = '700 26px system-ui'; c.textAlign = 'center'; c.fillText('BC', 64, 46); c.fillText('547', 64, 76); c.font = '700 20px system-ui'; c.fillText('C  B  E', 64, 112); });
-    mesh(new THREE.PlaneGeometry(1.95, 1.95), new THREE.MeshStandardMaterial({ map: lab, roughness: 0.4 }), 1, BT + 2.4, 0.015, p).castShadow = false;
-  },
+  npn(p) { to92(p); },
   ldr(p) {
     legDown(p, 0, 0, 2.2); legDown(p, 1, 0, 2.2);
     const top = canvasTex(128, 128, (g) => { g.fillStyle = '#e8b04a'; g.beginPath(); g.arc(64, 64, 62, 0, 7); g.fill(); g.strokeStyle = '#a3321f'; g.lineWidth = 9; g.beginPath(); g.moveTo(22, 30); for (let i = 0; i < 6; i++) { g.lineTo(i % 2 ? 22 : 106, 30 + i * 14); g.lineTo(i % 2 ? 22 : 106, 44 + i * 14); } g.stroke(); });
@@ -294,18 +285,14 @@ const B = {
     p.userData.update = (r, st, t) => { rings.forEach((g, i) => { const ph = ((t * 1.6 + i * 0.5) % 1); g.scale.setScalar(1.9 + ph * 2.5); g.material.opacity = r.on ? (1 - ph) * 0.8 * Math.max(0.4, r.vol) : 0; }); };
   },
   cap(p) {
-    legDown(p, 0, 0, 0.4); legDown(p, 1, 0, 0.4);
-    cyl(0.95, 2.8, M(0x214e9c, { roughness: 0.35 }), 0.5, BT + 0.4, 0, p, 24);
-    box(0.5, 2.5, 0.1, M(0xbfc7d6), 1.0, BT + 0.5, 0, p).rotation.y = 0;
-    cyl(0.9, 0.05, METAL(), 0.5, BT + 3.2, 0, p, 24);
+    pataRecta(p, 0, 0, 0.45, 0.1); pataRecta(p, 1, 0, 0.45, 0.1);
+    mesh(geoC('capGoma', () => new THREE.CylinderGeometry(0.9, 0.9, 0.2, 24)), PM(0x2a2a2a, { roughness: 0.9 }), 0.5, BT + 0.5, 0, p);
+    const sl = texCanvas(256, 128, (g, w, h) => { g.fillStyle = '#1f4fa6'; g.fillRect(0, 0, w, h); g.fillStyle = '#b9c6de'; g.fillRect(w * 0.62, 0, w * 0.16, h); g.fillStyle = '#1f4fa6'; g.font = '900 30px Arial'; g.textAlign = 'center'; for (let i = 0; i < 4; i++) g.fillText('−', w * 0.7, 22 + i * 30); g.fillStyle = '#e8eef9'; g.font = '700 22px Arial'; g.fillText('100µF', w * 0.3, 56); g.fillText('16V', w * 0.3, 86); });
+    mesh(geoC('capCuerpo', () => tornoY([[0, 0], [0.95, 0], [0.97, 0.08], [0.97, 2.55], [0.93, 2.62], [0.9, 2.72], [0, 2.72]])), PM(0xffffff, { map: sl, roughness: 0.35, clearcoat: 0.6 }), 0.5, BT + 0.6, 0, p).rotation.y = -Math.PI * 0.35;
+    const tapa = texCanvas(128, 128, (g) => { g.fillStyle = '#c4cad2'; g.fillRect(0, 0, 128, 128); g.strokeStyle = '#7f8790'; g.lineWidth = 6; g.beginPath(); g.moveTo(64, 14); g.lineTo(64, 114); g.moveTo(14, 64); g.lineTo(114, 64); g.stroke(); });
+    const t = mesh(new THREE.CircleGeometry(0.88, 24), new THREE.MeshStandardMaterial({ map: tapa, metalness: 0.9, roughness: 0.35 }), 0.5, BT + 3.33, 0, p); t.rotation.x = -Math.PI / 2; t.castShadow = false;
   },
-  bat9(p) {
-    box(10.6, 15, 7, M(0x1d1f22, { roughness: 0.4 }), 0, 0, 0, p);
-    const lab = canvasTex(256, 360, (g) => { g.fillStyle = '#f2b632'; g.fillRect(0, 0, 256, 360); g.fillStyle = '#1d1f22'; g.font = '800 120px system-ui'; g.textAlign = 'center'; g.fillText('9V', 128, 200); g.font = '700 30px system-ui'; g.fillText('PILA', 128, 70); });
-    const f = mesh(new THREE.PlaneGeometry(10.62, 13), new THREE.MeshStandardMaterial({ map: lab }), 0, 8.5, 3.51, p); f.castShadow = false;
-    box(10.6, 4, 7, M(0xc9ccd1, { metalness: 0.8, roughness: 0.3 }), 0, 15, 0, p);
-    cyl(0.9, 0.6, METAL(), -2.4, 19, 0, p, 20); cyl(1.15, 0.6, METAL(), 2.4, 19, 0, p, 6);
-  },
+  bat9(p) { pila9(p); },
   aa2(p) { holder(p, 2); }, aa4(p) { holder(p, 4); },
   supply(p, part) {
     box(20, 8, 14, M(0x3d4752, { roughness: 0.5 }), 0, 0, 0, p);
@@ -370,17 +357,7 @@ const B = {
     p.userData.update({});
   },
   meter(p, part) {
-    rbox(14, 2.4, 24, 1.6, M(0xf2b632, { roughness: 0.5 }), 0, 0, 0, p);
-    rbox(12.4, 0.1, 22.4, 1.2, M(0x2b2f35, { roughness: 0.6 }), 0, 2.4, 0, p);
-    const disp = canvasTex(256, 110, (g) => drawMeter(g, '', ''));
-    mesh(new THREE.PlaneGeometry(10, 4.3), new THREE.MeshBasicMaterial({ map: disp }), 0, 2.56, -7.2, p).rotation.x = -Math.PI / 2;
-    const dialLab = canvasTex(256, 256, (g) => { g.fillStyle = '#f2f2f2'; g.font = '700 40px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; const L = [['OFF', -150], ['V', -60], ['A', 30], ['Ω', 120], ['·)))', 165]]; for (const [t, a] of L) { const r = a * Math.PI / 180; g.fillText(t, 128 + Math.cos(r) * 100, 128 + Math.sin(r) * 100); } });
-    mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshBasicMaterial({ map: dialLab, transparent: true }), 0, 2.53, 1.5, p).rotation.x = -Math.PI / 2;
-    const dial = new THREE.Group(); dial.position.set(0, 2.5, 1.5); p.add(dial);
-    cyl(2.6, 0.8, M(0x1c1d20, { roughness: 0.4 }), 0, 0, 0, dial, 28); box(0.5, 0.15, 2.4, M(0xf2f2f2), 0, 0.8, -1.2, dial);
-    for (const [x, c] of [[-3.6, 0x111111], [0, 0xd42a2a], [3.6, 0xd42a2a]]) { cyl(0.85, 0.3, M(c, { roughness: 0.4 }), x, 2.4, 9.4, p, 18); cyl(0.42, 0.32, M(0x050505), x, 2.42, 9.4, p, 12); }
-    const lab = canvasTex(256, 48, (g) => { g.fillStyle = '#f2f2f2'; g.font = '700 22px system-ui'; g.textAlign = 'center'; g.fillText('COM', 62, 34); g.fillText('VΩmA', 128, 34); g.fillText('10A', 194, 34); });
-    mesh(new THREE.PlaneGeometry(13.5, 1.9), new THREE.MeshBasicMaterial({ map: lab, transparent: true }), 0, 2.53, 7.6, p).rotation.x = -Math.PI / 2;
+    const { dial, disp } = polimetro(p, drawMeter);
     const ang = { V: -60, A: 30, 'Ω': 120, '·)))': 165 };
     let last = '';
     p.userData.update = (r) => {
@@ -392,18 +369,7 @@ const B = {
     p.userData.update({}, {});
   },
 };
-function holder(p, n) {
-  const w = n === 2 ? 13 : 25;
-  box(w, 3.2, 22, M(0x1f2124, { roughness: 0.6 }), 0, 0, 0, p);
-  for (let i = 0; i < n; i++) {
-    const x = -w / 2 + 0.6 + 2.95 + i * 5.95;
-    const c = mesh(new THREE.CylinderGeometry(2.85, 2.85, 17.5, 24), M(i % 2 ? 0x2f8f4e : 0x2f8f4e, { roughness: 0.35 }), x, 3.1, 0.6, p); c.rotation.x = Math.PI / 2;
-    const tip = mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.8, 14), METAL(), x, 3.1, i % 2 ? 9.7 : -8.5, p); tip.rotation.x = Math.PI / 2;
-    const band = mesh(new THREE.CylinderGeometry(2.87, 2.87, 4, 24), M(0x1a1a1a), x, 3.1, i % 2 ? -6 : 7, p); band.rotation.x = Math.PI / 2;
-  }
-  box(8, 5.6, 2.6, M(0x2a2c30), 0, 0, -9.6, p);
-  cyl(0.85, 0.9, M(0xd42a2a), -2.2, 5.7, -9.2, p, 16); cyl(0.85, 0.9, M(0x1c1c1c), 2.2, 5.7, -9.2, p, 16);
-}
+function holder(p, n) { portapilas(p, n); }
 function drawSupply(g, set, v) {
   g.fillStyle = '#0b1a12'; g.fillRect(0, 0, 256, 96); g.fillStyle = '#5dff9a'; g.font = '700 58px ui-monospace, Consolas, monospace'; g.textAlign = 'right';
   g.fillText((+set).toFixed(1).replace('.', ',') + ' V', 240, 70);
@@ -460,20 +426,10 @@ const GOLD = () => M(0xd8c08a, { metalness: 0.9, roughness: 0.25 });
 // Conector en un extremo: la punta está en p, el cable sale hacia arriba
 function connector(g, end, p, mat, dir) {
   const x = p.x, y = p.y, z = p.z;
-  if (end === 'M') { cyl(0.13, 1.4, PINMAT(), x, y - 1.2, z, g, 6); box(0.95, EXIT.M - 0.1, 0.95, HOUSING(), x, y + 0.1, z, g); box(0.97, 0.5, 0.97, mat, x, y + EXIT.M - 0.75, z, g); }
-  else if (end === 'H') { box(0.98, EXIT.H + 1.4, 0.98, HOUSING(), x, y - 1.4, z, g); box(0.4, 0.04, 0.4, M(0x000000), x, y - 1.43, z, g); box(1.0, 0.5, 1.0, mat, x, y + EXIT.H - 0.7, z, g); }
+  if (end === 'M' || end === 'H') dupont(g, end === 'M', p, EXIT, mat, RAD[end]);
   else if (end === 'S') { cyl(0.15, EXIT.S + 0.7, M(0xc77b3a, { metalness: 0.9, roughness: 0.3 }), x, y - 0.7, z, g, 6); }
-  else if (end === 'B') { cyl(0.2, 1.6, GOLD(), x, y - 1.4, z, g, 8); cyl(0.55, EXIT.B, mat, x, y + 0.2, z, g, 14, 0.42); cyl(0.6, 0.35, mat, x, y + 0.2, z, g, 14); }
-  else if (end === 'C') {
-    // pinza de cocodrilo: mordaza metálica con dientes y funda de plástico del color del cable
-    const cg = new THREE.Group(); cg.position.set(x, y, z); g.add(cg);
-    const yaw = dir ? Math.atan2(dir.x, dir.z) : 0; cg.rotation.y = yaw;
-    const jaw = M(0xcfd4da, { metalness: 0.9, roughness: 0.28 });
-    const j1 = box(0.5, 0.18, 2.6, jaw, 0, 0.35, -0.6, cg); j1.rotation.x = -0.12; const j2 = box(0.5, 0.18, 2.6, jaw, 0, -0.25, -0.6, cg); j2.rotation.x = 0.12;
-    for (let i = 0; i < 4; i++) box(0.5, 0.12, 0.12, jaw, 0, 0.22, -1.7 + i * 0.4, cg);
-    const boot = mesh(new THREE.CylinderGeometry(0.62, 0.8, 4.2, 14), mat, 0, 1.9, 1.6, cg); boot.rotation.x = -0.75;
-    box(0.2, 0.9, 1.4, jaw, 0, -0.1, 0.5, cg);
-  }
+  else if (end === 'B') banana(g, p, mat, EXIT);
+  else if (end === 'C') cocodrilo(g, p, mat, dir);
 }
 export function buildWire(a, b, hex, opts = {}) {
   const g = new THREE.Group();
@@ -494,13 +450,5 @@ export function buildWire(a, b, hex, opts = {}) {
 export const wireHex = (c) => WIRE_HEX[c] || '#1f9d3a';
 
 // Punta del polímetro
-export function buildProbe(color) {
-  const g = new THREE.Group();
-  cyl(0.06, 1.3, METAL(), 0, -0.3, 0, g, 6);
-  cyl(0.42, 0.5, M(color), 0, 1.0, 0, g, 12);
-  cyl(0.32, 3.6, M(color, { roughness: 0.4 }), 0, 1.0, 0, g, 12);
-  cyl(0.4, 0.6, M(0x1c1c1c), 0, 4.6, 0, g, 12);
-  const hit = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 6, 8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })); hit.position.y = 2.5; g.add(hit);
-  return g;
-}
+export function buildProbe(color) { return punta(color); }
 export { rot };

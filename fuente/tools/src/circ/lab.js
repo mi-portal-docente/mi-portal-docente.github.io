@@ -1,6 +1,7 @@
 // Laboratorio de Circuitos: editor 3D de protoboard con simulación en tiempo real y prácticas guiadas.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { estudio, camaraSuave, cancelarVuelo, volar } from '../kit3d/escena.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { BT, BOARD_W, BOARD_D, holeAt, holePos, stripOf, holesOfStrip, holeName, stripName, rot, parseHole } from './board.js';
 import { PARTS, CATS, E12, WIRE_COLORS, WIRE_HEX, resistorBands, fmtOhm, fmtSI, defaultState, ID_PREFIX } from './parts.js';
@@ -231,22 +232,18 @@ export class CircuitLab {
   initScene() {
     const gl = this.$('#cxGL');
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
-    r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0;
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     gl.appendChild(r.domElement);
     const sc = this.scene = new THREE.Scene(); sc.background = new THREE.Color(0xd3dfe0);
-    // reflejos realistas (PBR) con un entorno de estudio generado: se calcula una sola vez
-    try { const pm = new THREE.PMREMGenerator(r); sc.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; sc.environmentIntensity = 0.55; pm.dispose(); } catch (e) { }
+    // misma luz de estudio, reflejos PBR y sombra suave que el laboratorio ESP32 (kit3d/escena.js)
+    const est = estudio(r, sc, { escala: 60, entorno: 0.5, sombrasSiempre: true, intPrincipal: 2.1, dir: [-40, 95, 55], bias: -0.0008, normalBias: 0.01 });
     const cam = this.camera = new THREE.PerspectiveCamera(36, 1, 1, 3000);
     const ctl = this.controls = new OrbitControls(cam, r.domElement);
-    ctl.addEventListener('start', () => { this.userCam = true; });
-    ctl.enableDamping = true; ctl.dampingFactor = 0.12; ctl.maxPolarAngle = Math.PI * 0.47; ctl.minDistance = 12; ctl.maxDistance = 260; ctl.screenSpacePanning = true;
+    ctl.addEventListener('start', () => { this.userCam = true; cancelarVuelo(cam); });
+    camaraSuave(ctl, { polarMax: Math.PI * 0.47, min: 12, max: 260 });
     ctl.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     ctl.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-    sc.add(new THREE.HemisphereLight(0xffffff, 0x8fa3a3, 0.9));
-    const d = new THREE.DirectionalLight(0xffffff, 2.0); d.position.set(-40, 95, 55); d.castShadow = true; d.shadow.mapSize.set(2048, 2048);
-    Object.assign(d.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 300 }); d.shadow.bias = -0.0008; d.shadow.radius = 3; sc.add(d);
-    const f = new THREE.DirectionalLight(0xdff6ff, 0.55); f.position.set(60, 40, -50); sc.add(f);
+    const d = est.principal;
     const table = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshStandardMaterial({ color: 0xcdbb9c, roughness: 0.85 }));
     table.rotation.x = -Math.PI / 2; table.position.y = -0.05; table.receiveShadow = true; sc.add(table);
     sc.add(buildMat());
@@ -311,13 +308,16 @@ export class CircuitLab {
     if (this.pr) for (const st of this.pr.steps) if (st.place && st.place.pos) add(st.place);
     return b;
   }
-  homeView(instant, top) {
+  homeView(instant, top, suave) {
     this._force = true;
     const b = this.bounds(); const c = b.getCenter(new THREE.Vector3()); const sz = b.getSize(new THREE.Vector3());
     const aspect = this.camera.aspect || 1.6; const fov = this.camera.fov * Math.PI / 180;
     const need = Math.max(sz.z * (top ? 1.15 : 1.4), sz.x * 1.12 / aspect); const dist = need / 2 / Math.tan(fov / 2) + (top ? 4 : 10);
     const dir = top ? new THREE.Vector3(0, 1, 0.0001) : new THREE.Vector3(0, 1.15, 0.85).normalize();
-    this.userCam = false; c.y = 0; this.camera.position.copy(c).addScaledVector(dir, dist); this.controls.target.copy(c); this.camera.lookAt(c); this.controls.update();
+    this.userCam = false; c.y = 0;
+    const pos = c.clone().addScaledVector(dir, dist);
+    if (suave && !instant) { volar(this.camera, this.controls, pos, c, 600); return; } // botones y teclas: transición suave como en ESP32
+    cancelarVuelo(this.camera); this.camera.position.copy(pos); this.controls.target.copy(c); this.camera.lookAt(c); this.controls.update();
   }
   makeThumbs() {
     if (this.thumbs) return; this.thumbs = {};
@@ -911,7 +911,7 @@ export class CircuitLab {
   // ------------------------------------------------------------ herramientas y teclado
   tool(t) {
     if (t === 'rotate') this.rotateSel(); else if (t === 'del') this.deleteSel();
-    else if (t === 'home' || t === 'fit') this.homeView(); else if (t === 'top') this.homeView(false, true);
+    else if (t === 'home' || t === 'fit') this.homeView(false, false, true); else if (t === 'top') this.homeView(false, true, true);
     else if (t === 'sound') { this.buzz.muted = !this.buzz.muted; this.host.querySelector('[data-tool="sound"]').textContent = this.buzz.muted ? ICON.mute : ICON.sound; }
     else if (t === 'help') { this.tab = 'ayuda'; this.renderSide(); }
     else if (t === 'flow') { this.showFlow = !this.showFlow; store.set('pref:flow', this.showFlow); this.updateDots(0); this._force = true; this.toolState(); this.toast(this.showFlow ? '⚡ Corriente visible: los puntos amarillos van del + al − (sentido convencional). Más rápidos = más corriente.' : 'Corriente oculta.'); this.toolState(); }
@@ -929,7 +929,7 @@ export class CircuitLab {
     if (k === 'r' || k === 'R') this.rotateSel();
     else if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); this.deleteSel(); }
     else if (k === 'Escape') { this.cancelWire(); this.cancelDrag(); this.select(null); }
-    else if (k === 'h' || k === 'H' || k === 'f' || k === 'F') this.homeView(); else if (k === 't' || k === 'T') this.homeView(false, true);
+    else if (k === 'h' || k === 'H' || k === 'f' || k === 'F') this.homeView(false, false, true); else if (k === 't' || k === 'T') this.homeView(false, true, true);
     else if (/^[0-9]$/.test(k)) this.setWireColor(WIRE_COLORS[+k][0]);
     else if (k === 'x' || k === 'X') this.tool('xray'); else if (k === 'n' || k === 'N') this.tool('pins'); else if (k === 'c' || k === 'C') this.tool('flow');
   }
