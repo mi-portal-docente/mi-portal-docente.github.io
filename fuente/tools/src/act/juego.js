@@ -6,6 +6,7 @@
 // Niveles con cronómetro, puntos, racha y estrellas. El resultado («Aciertos: a/t») va al cuaderno igual que antes.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { estudio, camaraSuave } from '../kit3d/escena.js';
 import { Actividad3D, nota10, textoResultado } from './motor.js';
 import { entorno, maderaTex, espumaTex, pbr, MATS, bloqueRedondo, caja, malla, calidad, textoTex, liberar } from '../kit3d/base.js';
 import { herramienta, punta as punta3D, PUNTAS3D } from '../kit3d/herramientas.js';
@@ -40,8 +41,8 @@ export class Juego3D extends Actividad3D {
     this.host.querySelector('.ac-vista').insertAdjacentHTML('beforeend', '<div class="aj-hud" id="ajHud" hidden></div><button class="aj-volver" id="ajVolver" data-ac="mesa" hidden>↩ Volver a la mesa</button>');
     this.host.classList.add('aj');
     const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xd9dde1); s.fog = new THREE.Fog(0xd9dde1, 260, 520); entorno(r, s, 0.6);
-    s.add(new THREE.HemisphereLight(0xffffff, 0x8a7a66, 0.9));
-    const d = new THREE.DirectionalLight(0xfff6e8, 2.1); d.position.set(-40, 120, 70); d.castShadow = Q.sombras; d.shadow.mapSize.set(Q.baja ? 1024 : 2048, Q.baja ? 1024 : 2048); Object.assign(d.shadow.camera, { left: -100, right: 100, top: 80, bottom: -80, near: 10, far: 400 }); d.shadow.bias = -0.0005; s.add(d);
+    // luz de estudio común (la del laboratorio ESP32): cielo + principal con sombra suave + relleno + contraluz
+    estudio(null, s, { escala: 100, dir: [-40, 120, 70], sombraR: 100, intPrincipal: 2.1, intCielo: 1.2, suelo: 0x8a7a66, colorPrincipal: 0xfff6e8, bias: -0.0005, sombras: Q.sombras, entorno: false });
     this.camera = new THREE.PerspectiveCamera(34, 1, 1, 1200);
     // sala: pared con panel perforado y banco de madera
     const pared = malla(new THREE.PlaneGeometry(600, 300), pbr(0xe8e2d8, { roughness: 0.95 }), s, 0, 100, -60); pared.receiveShadow = true;
@@ -65,7 +66,7 @@ export class Juego3D extends Actividad3D {
       g.traverse((m) => { if (m.material && m.material.emissive) this.objs.get(o.id).mats.push(m.material); });
     }
     const c = this.controls = new OrbitControls(this.camera, r.domElement);
-    c.enableDamping = true; c.minDistance = 18; c.maxDistance = 300; c.minPolarAngle = 0.15; c.maxPolarAngle = 1.35; c.enablePan = true; c.screenSpacePanning = true;
+    camaraSuave(c, { polarMax: 1.35, min: 18, max: 300 }); c.minPolarAngle = 0.15; c.enablePan = true; c.addEventListener('start', () => { this.tw = null; }); // si el alumno toma la cámara, se corta la transición
     this.camera.position.set(0, 140, 190); c.target.set(0, 0, 0);
     this.ray = new THREE.Raycaster(); this.ptr = new THREE.Vector2();
     r.domElement.addEventListener('pointermove', (e) => this.onMove(e));

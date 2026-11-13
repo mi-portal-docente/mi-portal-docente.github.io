@@ -5,6 +5,7 @@
 //   userData.id, userData.partes (piezas móviles) y userData.anim(t) (animación de uso en bucle, t en segundos).
 import * as THREE from 'three';
 import { MATS, pbr, torno, malla, caja, cilZ, cilX, extruir, bloqueRedondo, calcoCil, textoTex, rotulo1000V, estriasNormal, moleteadoNormal, calidad, tex } from './base.js';
+import { polimetro, punta as punta3 } from '../circ/detalle.js';
 
 const ROJO = () => MATS.rojoVDE(), AMAR = () => MATS.amarilloVDE();
 const gomaAm = () => pbr(0xf5c400, { roughness: 0.75, normalMap: estriasNormal(14, 0.6), normalScale: new THREE.Vector2(0.6, 0.6) });
@@ -250,31 +251,25 @@ function pantallaLCD(texto) {
   pintar(texto); return { t, pintar };
 }
 export function multimetro({ conPuntas = true, lectura = '0.00' } = {}) {
+  // Mismo modelo detallado que el polímetro del laboratorio de Circuitos (funda de goma, rueda estriada,
+  // anillo de escalas, bornes de 4 mm), escalado a cm: ≈ 10 × 17 × 3,8 cm.
   const G = new THREE.Group(); G.userData.id = 'multimetro';
-  const funda = bloqueRedondo(9.4, 18.5, 4.2, 1.3, pbr(0xf6c516, { roughness: 0.7 }), G, 0.4); funda.rotation.x = -Math.PI / 2; funda.position.set(0, 2.1, 9.25);
-  const cara = bloqueRedondo(8.0, 16.6, 0.4, 0.8, pbr(0x2a2d31, { roughness: 0.5 }), G, 0.1); cara.rotation.x = -Math.PI / 2; cara.position.set(0, 4.3, 9.25);
-  const L = pantallaLCD(lectura); const lcd = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 3.0), new THREE.MeshStandardMaterial({ map: L.t, roughness: 0.25, emissive: 0x223311, emissiveIntensity: 0.05 }));
-  lcd.rotation.x = -Math.PI / 2; lcd.position.set(0, 4.62, 4.2); G.add(lcd);
-  const anillo = new THREE.Mesh(new THREE.CircleGeometry(3.2, 40), new THREE.MeshStandardMaterial({ map: textoTex('V~   V⎓   Ω   •)))   A   OFF', { color: '#f5f5f5', bg: '#2a2d31', w: 512, h: 64, font: 'bold 26px system-ui' }), roughness: 0.5 }));
-  anillo.rotation.x = -Math.PI / 2; anillo.position.set(0, 4.58, 10); G.add(anillo);
-  const dial = new THREE.Group(); dial.position.set(0, 4.6, 10); G.add(dial);
-  malla(new THREE.CylinderGeometry(2.3, 2.3, 0.7, 32), pbr(0x1b1d20, { roughness: 0.6 }), dial, 0, 0.35, 0); // rueda selectora (eje vertical)
-  const asa = caja(0.9, 0.5, 4.2, pbr(0x3b4045, { roughness: 0.5 }), dial, 0, 0.9, 0); void asa;
-  const flecha = caja(0.25, 0.1, 1.5, pbr(0xffffff), dial, 0, 1.18, -1.1); void flecha;
-  const bornas = [[-2.6, 0x111111, 'COM'], [0, 0xd62828, 'VΩ'], [2.6, 0xd62828, '10A']];
-  bornas.forEach(([x, c]) => { cilZ(0.45, 0.6, pbr(c, { roughness: 0.4 }), G, x, 4.4, 16.0, 16).rotation.set(0, 0, 0); });
-  G.userData.partes = { lcd, dial };
-  G.userData.leer = (s) => L.pintar(s);
+  const cuerpo = new THREE.Group(); cuerpo.scale.set(0.72, 1.5, 0.72); cuerpo.position.set(0, 0, 9.25); G.add(cuerpo);
+  const L = pantallaLCD(lectura);
+  const { dial, disp } = polimetro(cuerpo, () => {});
+  disp.image = L.t.image; disp.needsUpdate = true; // la pantalla usa el lienzo de pantallaLCD
+  const pintar = (s) => { L.pintar(s); disp.needsUpdate = true; };
+  let lcd = null; cuerpo.traverse((o) => { if (o.isMesh && o.material?.map === disp) lcd = o; });
   if (conPuntas) {
     for (const [x, c, dz] of [[-2.6, 0x111111, -3], [0, 0xd62828, 3]]) {
-      const cur = new THREE.CatmullRomCurve3([new THREE.Vector3(x, 4.6, 16), new THREE.Vector3(x * 1.4, 4.0, 20), new THREE.Vector3(x * 2 + 6, 0.5, 24), new THREE.Vector3(14 + dz, 0.6, 18), new THREE.Vector3(16 + dz, 0.6, 8)]);
-      malla(new THREE.TubeGeometry(cur, 40, 0.18, 8), pbr(c, { roughness: 0.5 }), G);
-      const pr = new THREE.Group(); pr.position.set(16 + dz, 0.8, 8); pr.rotation.y = Math.PI; G.add(pr);
-      malla(torno([[0.32, 0], [0.42, 1], [0.45, 7], [0.85, 7.2], [0.85, 7.6], [0.4, 7.8], [0.2, 8.4]], { seg: 16 }), pbr(c, { roughness: 0.45 }), pr).rotation.y = Math.PI;
-      const pm = cilZ(0.07, 1.8, MATS.niquel(), pr, 0, 0, -9.3, 8); void pm;
+      const cur = new THREE.CatmullRomCurve3([new THREE.Vector3(x, 4.0, 16), new THREE.Vector3(x * 1.4, 3.6, 20), new THREE.Vector3(x * 2 + 6, 0.5, 24), new THREE.Vector3(14 + dz, 0.5, 18), new THREE.Vector3(16 + dz, 1.0, 9.5)]);
+      malla(new THREE.TubeGeometry(cur, calidad().baja ? 24 : 48, 0.18, 8), pbr(c, { roughness: 0.55 }), G);
+      const pr = punta3(c); pr.children.filter((m) => m.material?.opacity === 0).forEach((m) => pr.remove(m)); pr.scale.setScalar(2.4); pr.rotation.x = Math.PI / 2; pr.position.set(16 + dz, 1.35, 9.5 - 5.3 * 2.4); G.add(pr);
     }
   }
-  G.userData.anim = (t) => { dial.rotation.y = -0.8 + Math.round((t % 4) / 1.3) * 0.6; L.pintar(['230.4', '229.8', '0.L', '230.1'][Math.floor(t % 4)]); };
+  G.userData.partes = { lcd, dial };
+  G.userData.leer = pintar;
+  G.userData.anim = (t) => { dial.rotation.y = -0.8 + Math.round((t % 4) / 1.3) * 0.6; pintar(['230.4', '229.8', '0.L', '230.1'][Math.floor(t % 4)]); };
   return G;
 }
 

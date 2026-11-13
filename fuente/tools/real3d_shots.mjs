@@ -50,8 +50,15 @@ if (quiero('viv')) {
 }
 if (quiero('act')) {
   await go('#asig/eee/actividades/maletin', 3500); await shot('act_maletin');
+  await pg.evaluate(() => { const A = window.__act; const x = A.objs.get('multimetro'); const b = new (x.g.position.constructor)(); x.g.getWorldPosition(b); A.tw = null; A.camera.position.set(b.x + 10, b.y + 34, b.z + 26); A.controls.target.set(b.x, b.y, b.z); A.controls.update(); A._force = true; });
+  await wait(1200); await shot('act_multimetro_cerca');
   await go('#asig/eee/actividades/cables', 3500); await shot('act_cables');
 }
-if (quiero('pc')) { await go('#asig/tic1/actividades/anatomia-pc', 3500); await shot('pc'); }
+if (quiero('pc')) {
+  await go('#asig/tic1/actividades/anatomia-pc', 3500); await shot('pc');
+  const cerca = async (id, n, d = [8, 30, 26]) => { await pg.evaluate(([id, d]) => { const A = window.__act; const x = A.objs.get(id); const b = new (x.g.position.constructor)(); x.g.getWorldPosition(b); A.tw = null; A.camera.position.set(b.x + d[0], b.y + d[1], b.z + d[2]); A.controls.target.set(b.x, b.y + 1, b.z); A.controls.update(); A._force = true; }, [id, d]); await wait(1200); await shot(n); };
+  await cerca('placa', 'pc_placa', [6, 34, 30]); await cerca('gpu', 'pc_gpu', [6, 22, 22]); await cerca('fuente', 'pc_fuente', [-14, 22, 26]);
+  await cerca('cpu', 'pc_cpu_ram', [2, 20, 24]); await cerca('hdd', 'pc_discos', [-6, 22, 18]);
+}
 await b.close();
 console.log('errores:', JSON.stringify(errs.slice(0, 8)));

@@ -5,6 +5,7 @@
 // «Entregar resultado» (va al cuaderno de calificaciones como cualquier tarea).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { estudio, camaraSuave } from '../kit3d/escena.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const barajar = (L) => { const a = L.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -27,11 +28,10 @@ export class Actividad3D {
   initScene() {
     const el = this.$('#acGL');
     try { this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); } catch (e) { el.innerHTML = '<p class="ac-sin3d">Este navegador no puede mostrar 3D: usa los números de la lista.</p>'; return; }
-    const r = this.renderer; r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r.shadowMap.enabled = true; r.outputColorSpace = THREE.SRGBColorSpace; el.appendChild(r.domElement);
+    const r = this.renderer; r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); el.appendChild(r.domElement);
     const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xeef1f3);
     this.camera = new THREE.PerspectiveCamera(34, 1, 1, 1000);
-    s.add(new THREE.HemisphereLight(0xffffff, 0x9a8a76, 1.5));
-    const d = new THREE.DirectionalLight(0xffffff, 1.5); d.position.set(-30, 90, 60); d.castShadow = true; d.shadow.mapSize.set(2048, 2048); Object.assign(d.shadow.camera, { left: -80, right: 80, top: 60, bottom: -60 }); s.add(d);
+    estudio(r, s, { escala: 80, dir: [-30, 90, 60], sombraR: 80, intPrincipal: 1.8, intCielo: 1.5, suelo: 0x9a8a76, entorno: 0.45 });
     const W = this.def.mesa?.w || 110, D = this.def.mesa?.d || 66;
     const mesa = new THREE.Mesh(new THREE.BoxGeometry(W, 2, D), new THREE.MeshStandardMaterial({ color: this.def.mesa?.color || 0x3f4a54, roughness: 0.85 })); mesa.position.y = -1; mesa.receiveShadow = true; s.add(mesa);
     const borde = new THREE.Mesh(new THREE.BoxGeometry(W + 3, 1.6, D + 3), new THREE.MeshStandardMaterial({ color: 0x2b3238 })); borde.position.y = -1.6; s.add(borde);
@@ -42,7 +42,7 @@ export class Actividad3D {
       g.traverse((m) => { if (m.material) this.objs.get(o.id).mats.push(m.material); });
     }
     const c = this.controls = new OrbitControls(this.camera, r.domElement);
-    c.target.set(0, 0, 2); c.enableDamping = true; c.minDistance = 40; c.maxDistance = 260; c.minPolarAngle = 0.15; c.maxPolarAngle = 1.2; c.enablePan = false;
+    c.target.set(0, 0, 2); camaraSuave(c, { polarMax: 1.2, min: 40, max: 260, zoomCursor: false }); c.minPolarAngle = 0.15; c.enablePan = false;
     this.camera.position.set(0, 88, 70);
     this.ray = new THREE.Raycaster(); this.ptr = new THREE.Vector2();
     r.domElement.addEventListener('pointermove', (e) => this.onMove(e));
