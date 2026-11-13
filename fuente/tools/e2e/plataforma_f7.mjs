@@ -18,7 +18,8 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   let r = await lectura(pg);
   ok('con la avería (R1 abierta) el LED no luce y R1 tiene casi toda la tensión de la pila', !r.led && r.m?.value > 6, JSON.stringify(r.m));
   await shot(pg, 'f7_averia_medir');
-  await medir(pg, '·)))', 'h:a10', 'h:a14'); await pg.waitForTimeout(600);
+  await medir(pg, '·)))', 'h:a10', 'h:a14');
+  await pg.waitForFunction(() => window.__circ.lastSim?.res?.M1?.meter?.mode === '·)))' && /continuidad/.test(document.querySelector('#cxAlert')?.textContent || ''), null, { timeout: 8000 }).catch(() => {});
   r = await lectura(pg);
   ok('continuidad (·))) con la pila conectada → aviso de quitar la alimentación', /continuidad/.test(r.alerta) && r.m?.beep === false, r.alerta);
   await pg.click('#cxSim'); await pg.waitForTimeout(300);

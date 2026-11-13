@@ -205,7 +205,7 @@ async function enterCode(pg, code) {
     scr: document.body.classList.contains('scr-circ'),
     sales: /salesian/i.test((document.querySelector('#circ') || {}).innerHTML || ''),
   }));
-  ok('Circuitos: portada con 12 prácticas + modo libre, sin pedir código otra vez', !st.gate && st.cards === 13 && st.scr, JSON.stringify(st));
+  ok('Circuitos: portada con 12 prácticas + modo libre + «Encuentra la avería», sin pedir código otra vez', !st.gate && st.cards === 14 && st.scr, JSON.stringify(st));
   ok('Circuitos: sin marca salesiana dentro del laboratorio', !st.sales);
   await pg.evaluate(() => { location.hash = '#eee/circuitos/c2'; });
   await pg.waitForTimeout(2000);

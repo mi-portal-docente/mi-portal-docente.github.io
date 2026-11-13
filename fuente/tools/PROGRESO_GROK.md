@@ -349,3 +349,22 @@ miembros de su equipo). Regenerado el `para-pegar`.
 ocultan en la interfaz; las reglas no comparan con la hora) — igual que ya pasaba con los items programados.
 La auto/coevaluación no pasa sola al cuaderno: el profesor la ve en el resumen y pone la nota del proyecto.
 La lectura en voz alta depende de las voces instaladas en el dispositivo.
+
+## Regresión final (13/11/2026)
+
+Todas las suites, una vez, sobre la rama: `placa`, `circ`, `circ_pins`, `viv`, `viv_modelo`, `aula_modelo`, resto de
+`*_test.mjs`: OK · `acceso` 28/28 · reglas 105/105 · `fb_e2e` 59/59 · `aula_e2e` 116/116 · plataforma (fases 1–8) 121/121.
+Ajustes de pruebas (no de la web): `acceso_test` cuenta 14 tarjetas en Circuitos (se añade «Encuentra la avería»);
+`aula_e2e` espera hasta 10 s a que «Quitar del curso» llegue al servidor (antes leía demasiado pronto);
+`plataforma_f7` espera la lectura de continuidad en vez de un tiempo fijo.
+
+## Para pasar la rama a `main`
+
+1. **Reglas de Firestore primero**: pegar `/workspace/portal-acceso/firestore.rules.para-pegar.txt` (ya lleva el
+   correo del profesor) en Firebase → Firestore → Reglas → Publicar. Sin ellas fallan los tipos nuevos, la
+   recuperación, el PIAC y las entregas de los laboratorios. Las reglas nuevas aceptan todo lo que ya había.
+2. Revisar el PR `grok-plataforma` → `main` y fusionarlo (la web es estática: no hay que compilar nada en el
+   servidor; `js/app.js` y `js/portal-fb.js` ya están generados y la caché está en `gp8-20261113`).
+3. Después, en el portal: abrir una vez como profesor; probar un «Importar JSON» y un laboratorio.
+No hace falta crear índices compuestos: las consultas nuevas (`piac`, `piacEval`, `visibleAl`) usan solo igualdades
+o `array-contains`.

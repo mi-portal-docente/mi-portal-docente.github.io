@@ -608,8 +608,10 @@ let dlg = ''; P.pg.once('dialog', (d) => { dlg = d.message(); });
 await P.pg.click('#subjects [data-cur=quitar][data-asig=tic1]');
 await P.pg.waitForFunction(() => document.querySelectorAll('#subjects .bib-card').length === 2, null, { timeout: 15000 });
 ok('«Quitar del curso» pide confirmación, explica que no se borra nada y avisa del grupo', /No se borra nada/.test(dlg) && /1º Bach A/.test(dlg), dlg.split('\n')[0]);
-cd = await cursoDoc();
-ok('el curso ya no tiene T.I.Cs 1º Bach; el grupo y su código tampoco', !cd.asigs.includes('tic1') && !(await asigsDe('grupos', GA.id)).includes('tic1') && !(await asigsDe('codigos', GA.codigo)).includes('tic1'));
+// la escritura llega al servidor un poco después de que la interfaz se actualice: se espera hasta 10 s
+let quitado = null;
+for (let i = 0; i < 20; i++) { cd = await cursoDoc(); quitado = { curso: cd.asigs, grupo: await asigsDe('grupos', GA.id), codigo: await asigsDe('codigos', GA.codigo) }; if (![quitado.curso, quitado.grupo, quitado.codigo].some((L) => L.includes('tic1'))) break; await P.pg.waitForTimeout(500); }
+ok('el curso ya no tiene T.I.Cs 1º Bach; el grupo y su código tampoco', ![quitado.curso, quitado.grupo, quitado.codigo].some((L) => L.includes('tic1')), JSON.stringify(quitado));
 ok('quitar del curso no borra el contenido (la tarea sigue)', (await fetch(`${REST}/items/${ID_E}`, owner)).status === 200);
 await P.pg.screenshot({ path: SHOTS + 'curso_quitada.png' });
 await P.pg.goto(BASE + '#biblioteca');
