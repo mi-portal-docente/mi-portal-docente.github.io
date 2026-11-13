@@ -44,6 +44,22 @@ queda en *Borrador* hasta que lo publiques.
 }
 ```
 
+### Rúbrica por niveles y criterios «en clase» (fase 10)
+
+Cada fila de `rubrica` puede llevar `niveles`: los descriptores de los 4 niveles de la vista de corrección
+(Insuficiente → Excelente; cada nivel vale `puntos · nivel / 4`). Con `"clase": true` el criterio lo evalúa el
+profesor en clase: aparece en la rúbrica pero **no puntúa** en la corrección (no lleva `puntos`).
+
+```json
+"rubrica": [
+  { "criterio": "Contenido", "puntos": 6, "niveles": ["Incompleto", "Lo básico", "Completo", "Completo y ampliado"] },
+  { "criterio": "Presentación", "puntos": 4 },
+  { "criterio": "Exposición oral", "clase": true }
+]
+```
+En el editor, una línea por criterio: `Contenido | 6 | Incompleto; Lo básico; Completo; Completo y ampliado`,
+`Presentación | 4` o `Exposición oral | clase`.
+
 ## Material y pregunta (varios a la vez)
 
 ```json

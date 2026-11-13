@@ -63,9 +63,13 @@ export function validarElemento(j) {
     if (!Array.isArray(j.rubrica)) err('rubrica', '«rubrica» tiene que ser una lista: [ { "criterio": "…", "puntos": 4 } ].');
     else j.rubrica.forEach((r, i) => {
       const c = r?.criterio ?? r?.c; const p = Number(r?.puntos ?? r?.p);
+      const niv = Array.isArray(r?.niveles) ? r.niveles.slice(0, 4).map((x) => String(x ?? '').slice(0, 200)) : null;
+      if (niv) while (niv.length < 4) niv.push('');
       if (!esTexto(c) || !c.trim()) err(`rubrica[${i}]`, `La fila ${i + 1} de la rúbrica no tiene «criterio».`);
+      else if (r.clase === true) rubrica.push({ c: c.trim().slice(0, 200), p: 0, clase: true });
+      else if (r?.niveles != null && !Array.isArray(r.niveles)) err(`rubrica[${i}]`, `«niveles» de la fila ${i + 1} tiene que ser una lista de 4 textos (Insuficiente → Excelente).`);
       else if (!(p > 0)) err(`rubrica[${i}]`, `La fila ${i + 1} de la rúbrica necesita «puntos» mayores que 0.`);
-      else rubrica.push({ c: c.trim().slice(0, 200), p: redondea(p), ...(r.peso != null ? { peso: Number(r.peso) } : {}), ...(r.autoria ? { autoria: true } : {}) });
+      else rubrica.push({ c: c.trim().slice(0, 200), p: redondea(p), ...(r.peso != null ? { peso: Number(r.peso) } : {}), ...(r.autoria ? { autoria: true } : {}), ...(niv && niv.some(Boolean) ? { niveles: niv } : {}) });
     });
     if (rubrica.length > 20) err('rubrica', 'Máximo 20 filas en la rúbrica.');
   }
@@ -138,7 +142,7 @@ export function exportarElemento(it, { preguntas = null, claves = null, examen =
   if (it.fechaEntrega) o.fechaEntrega = deMs(it.fechaEntrega);
   if (it.criterio) o.criterio = it.criterio;
   if (it.categoria) o.categoria = it.categoria;
-  if (it.rubrica?.length) o.rubrica = it.rubrica.map((r) => ({ criterio: r.c, puntos: r.p, ...(r.peso != null ? { peso: r.peso } : {}), ...(r.autoria ? { autoria: true } : {}) }));
+  if (it.rubrica?.length) o.rubrica = it.rubrica.map((r) => (r.clase ? { criterio: r.c, clase: true } : { criterio: r.c, puntos: r.p, ...(r.peso != null ? { peso: r.peso } : {}), ...(r.autoria ? { autoria: true } : {}), ...(r.niveles ? { niveles: r.niveles } : {}) }));
   if (it.tipo === 'pregunta' && it.opciones?.length) o.opciones = it.opciones;
   if (it.contenido) o.contenido = it.contenido;
   if (it.tipo === 'examen') {

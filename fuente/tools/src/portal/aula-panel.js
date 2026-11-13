@@ -13,6 +13,7 @@ import { notaPorCriterio, filasCriterios, analizarExamen } from '../lms/analitic
 import { motor } from '../lms/elemento.js';
 import { estadoTrabajo, cuentaComoEntrega, ordenarVersiones, ESTADOS_TRABAJO } from '../lms/entrega.js';
 import { estadoChipHTML } from './entrega-ui.js';
+import { crearCorreccion } from './correccion-ui.js';
 
 // Elementos que entregan «Aciertos: a/t» (actividades de clase y motores entregables: explicación, laboratorios…)
 const conResultado = (t) => t === 'actividad' || !!motor(t)?.entregable;
@@ -38,6 +39,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   function render(B, sub, extra) {
     A.el = B.closest('.pn') || B; A.sub = sub;
     if (!['notas', 'analitica'].includes(sub)) pararGrupo();
+    if (sub !== 'notas') A.corr = false;
     B.innerHTML = `<div id="apBody"></div>`;
     pintar();
   }
@@ -45,6 +47,11 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const B = $('#apBody'); if (!B) return;
     if (!st.listo.cursos) { B.innerHTML = '<p class="pn-small">Cargando…</p>'; return; }
     if (A.sub === 'cursos') B.innerHTML = cursosHTML();
+    if (A.sub === 'notas' && A.corr && corr.activa) {
+      const g = grupoSel(); if (g) escucharGrupo(g);
+      if (!A.listoG) { B.innerHTML = '<p class="pn-small">Cargando…</p>'; return; }
+      corr.pintar(B, forzar); return;
+    }
     if (A.sub === 'notas') {
       // Con datos nuevos solo se repinta la tabla: el detalle (lo que el profesor está calificando) no se toca.
       const g = grupoSel(); const key = g ? `${g.id}|${asigGrupo(g)}` : '';
@@ -151,6 +158,9 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     alert(`✔ ${n} elementos copiados como borrador.`);
   }
 
+  // Vista de corrección (fase 10)
+  const corr = crearCorreccion({ db, st, A, grupoSel: () => grupoSel(), filas: (g) => filas(g), $, pintarTodo: (f) => pintar(f), textoHTML });
+
   // =============================================================== CALIFICACIONES
   function grupoSel() { const g = ps.grupos.get(A.gGrupo); if (g) return g; const L = [...ps.grupos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')); A.gGrupo = L[0]?.id || ''; return L[0] || null; }
   function asigGrupo(g) { const L = (g?.asignaturas || []).filter((x) => asignatura(x)); if (!L.includes(A.gAsig)) A.gAsig = L[0] || ''; return A.gAsig; }
@@ -203,7 +213,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const head = `<tr><th class="ap-n">Nº</th>${cols.map((c) => {
       const sinPub = c.lab ? 0 : [...A.notas.values()].filter((n) => n.item === c.k && !n.publicada && n.nota != null).length;
       return `<th class="ap-col cat-${esc(c.cat)}" data-col="${esc(c.k)}" title="${esc(c.titulo)}"><div class="ap-cth">${c.lab ? '🔬' : TIPOS[c.it.tipo]?.icon || ''} ${esc(c.titulo.length > 26 ? c.titulo.slice(0, 25) + '…' : c.titulo)}</div>
-        ${c.lab ? '<div class="pn-small">laboratorio</div>' : `<div class="ap-cacts">${c.it.tipo === 'examen' ? '<button class="btn tiny" data-ap="autocorregir" title="Corregir automáticamente las entregas sin nota">⚡ Corregir</button>' : conResultado(c.it.tipo) ? '<button class="btn tiny" data-ap="notasActividad" title="Poner como nota el resultado de la actividad a las entregas sin nota">⚡ Poner notas</button>' : ''}${sinPub ? `<button class="btn tiny" data-ap="publicarNotas" title="Publicar las notas a los alumnos">📢 Publicar ${sinPub}</button>` : ''}</div>`}</th>`;
+        ${c.lab ? '<div class="pn-small">laboratorio</div>' : `<div class="ap-cacts">${c.it.tipo === 'examen' ? `<button class="btn tiny" data-ap="autocorregir" title="Corregir automáticamente las entregas sin nota">${ic('zap')} Corregir</button>` : `<button class="btn tiny" data-ap="corregir" title="Vista de corrección: un alumno cada vez, con la rúbrica por niveles">${ic('clipboard-check')} Corregir</button>${conResultado(c.it.tipo) ? `<button class="btn tiny" data-ap="notasActividad" title="Poner como nota el resultado de la actividad a las entregas sin nota">${ic('zap')} Poner notas</button>` : ''}`}${sinPub ? `<button class="btn tiny" data-ap="publicarNotas" title="Publicar las notas a los alumnos">${ic('megaphone')} Publicar ${sinPub}</button>` : ''}</div>`}</th>`;
     }).join('')}</tr>`;
     const body = filas(g).map((n) => {
       const vals = cols.map((c) => ({ c, v: celda(g, c, n) }));
@@ -252,7 +262,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       h += `<div class="pn-inf"><b>Respuesta</b><div>${tr.texto ? textoHTML(tr.texto) : '<span class="pn-small">—</span>'}</div></div>${(tr.enlaces || []).map((u) => `<div>🔗 <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}`;
     }
     if (it.rubrica?.length) {
-      h += `<h4>Rúbrica</h4><table class="pn-t ap-rub">${it.rubrica.map((r, i) => `<tr><td>${esc(r.c)}</td><td class="c"><input type="number" class="ap-rpts" data-ri="${i}" min="0" max="${esc(r.p)}" step="0.25" value="${esc(det['r' + i] ?? '')}"> / ${esc(fmtNota(r.p))}</td></tr>`).join('')}</table>`;
+      h += `<h4>Rúbrica</h4><table class="pn-t ap-rub">${it.rubrica.map((r, i) => r.clase ? `<tr><td>${esc(r.c)}</td><td class="c pn-small">en clase</td></tr>` : `<tr><td>${esc(r.c)}</td><td class="c"><input type="number" class="ap-rpts" data-ri="${i}" min="0" max="${esc(r.p)}" step="0.25" value="${esc(det['r' + i] ?? '')}"> / ${esc(fmtNota(r.p))}</td></tr>`).join('')}</table>`;
     }
     const sug = auto ? auto.nota : it.rubrica?.length ? notaRubrica(it.rubrica, Object.fromEntries(it.rubrica.map((_, i) => [i, det['r' + i]]))).nota : null;
     h += `<h4>Calificación</h4><form id="apNotaForm" class="pn-form"><label class="pn-f">Nota (0–10)<input name="nota" id="apNota" type="number" min="0" max="10" step="0.01" value="${esc(nt?.nota ?? sug ?? '')}"></label>
@@ -260,7 +270,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       <label class="pn-chk"><input type="checkbox" name="publicada" ${nt ? (nt.publicada ? 'checked' : '') : ''}> Publicar la nota al alumno</label>
       <div class="pn-acts"><button class="btn primary" type="submit">💾 Guardar nota</button>${nt ? '<button class="btn" type="button" data-ap="borrarNota">Quitar nota</button>' : ''}<span class="pn-msg" id="apNotaMsg"></span></div></form>
       ${tr?.tipo === 'tarea' ? seguimientoHTML(id, tr) : ''}
-      <div class="pn-acts">${tr ? `<button class="btn small" data-ap="repetir" title="Borra la entrega para que pueda volver a entregar o repetir el examen">↺ Permitir repetir</button>` : ''}${pinB}</div>`;
+      <div class="pn-acts">${it.tipo !== 'examen' ? `<button class="btn small" data-ap="corregirAl">${ic('clipboard-check')} Vista de corrección</button>` : ''}${tr ? `<button class="btn small" data-ap="repetir" title="Borra la entrega para que pueda volver a entregar o repetir el examen">↺ Permitir repetir</button>` : ''}${pinB}</div>`;
     D.innerHTML = h;
   }
   // Fase 9: devolver para corregir, comentarios privados y últimas versiones entregadas.
@@ -447,6 +457,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   // =============================================================== eventos
   async function onClick(ev) {
     const t = ev.target;
+    if (A.sub === 'notas' && A.corr && corr.onClick(ev)) return;
     const cel = t.closest('[data-celda]'); if (cel && A.sub === 'notas') { A.abierta = { k: cel.dataset.celda, n: +cel.dataset.n }; A.el.querySelectorAll('.ap-c.sel').forEach((x) => x.classList.remove('sel')); cel.classList.add('sel'); pintarDetalle(); return; }
     const b = t.closest('[data-ap]'); if (!b || !A.el?.contains(b)) return;
     const acc = b.dataset.ap;
@@ -459,6 +470,8 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       const col = b.closest('[data-col]')?.dataset.col;
       if (acc === 'autocorregir' && col) { b.disabled = true; await autocorregir(col); }
       if (acc === 'notasActividad' && col) { b.disabled = true; await notasActividad(col); }
+      if (acc === 'corregir' && col && st.items.get(col)) { corr.abrir(st.items.get(col), grupoSel()); pintar(true); return; }
+      if (acc === 'corregirAl' && A.abierta && st.items.get(A.abierta.k)) { corr.abrir(st.items.get(A.abierta.k), grupoSel(), A.abierta.n); pintar(true); return; }
       if (acc === 'publicarNotas' && col) await publicarNotas(col);
       if (acc === 'csvNotas') exportarCSV();
       if (acc === 'csvCriterios') { b.disabled = true; try { await exportarCSVCriterios(); } finally { b.disabled = false; } }
@@ -480,14 +493,16 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || e?.message || 'error') + ').'); }
   }
   function onChange(ev) {
+    if (A.sub === 'notas' && A.corr && corr.onChange(ev)) return;
     const t = ev.target;
     if (t.dataset.apF === 'curso') { aula.elegirCurso(t.value); pintar(true); }
     if (t.dataset.apF === 'gGrupo') { A.gGrupo = t.value; A.abierta = null; A.anEx = ''; pintar(); }
     if (t.dataset.apF === 'gAsig') { A.gAsig = t.value; A.abierta = null; A.anEx = ''; pintar(); }
     if (t.dataset.apF === 'anEx') { A.anEx = t.value; pintar(); }
   }
-  function onInput(ev) { if (ev.target.matches?.('.ap-rpts, .ap-qpts')) recalcular(); }
+  function onInput(ev) { if (A.sub === 'notas' && A.corr && corr.onInput(ev)) return; if (ev.target.matches?.('.ap-rpts, .ap-qpts')) recalcular(); }
   function onSubmit(ev) {
+    if (A.sub === 'notas' && A.corr && corr.onSubmit(ev)) return true;
     if (ev.target.id === 'apCursoForm') { ev.preventDefault(); guardarCurso(ev.target); return true; }
     if (ev.target.id === 'apNotaForm') { ev.preventDefault(); guardarNota(ev.target); return true; }
     if (ev.target.id === 'apDevForm') { ev.preventDefault(); devolver(ev.target); return true; }

@@ -39,10 +39,11 @@ export function corregirExamen(preguntas, claves, respuestas, manual = {}) {
   return { puntos: redondea(puntos), max: redondea(max), nota: max ? redondea((puntos / max) * 10) : 0, detalle, revisar };
 }
 
-// Rúbrica: [{c, p}] (criterio y puntos máximos); valores: {índice: puntos obtenidos}.
+// Rúbrica: [{c, p, clase?, niveles?}] (criterio y puntos máximos); valores: {índice: puntos obtenidos}.
+// Los criterios «clase» (los evalúa el profesor en clase) no puntúan aquí.
 export function notaRubrica(rubrica, valores) {
   let max = 0, got = 0;
-  (rubrica || []).forEach((r, i) => { const p = Number(r.p) || 0; max += p; const v = Number(valores?.[i]); if (!Number.isNaN(v)) got += Math.max(0, Math.min(p, v)); });
+  (rubrica || []).forEach((r, i) => { if (r.clase) return; const p = Number(r.p) || 0; max += p; const v = Number(valores?.[i]); if (!Number.isNaN(v)) got += Math.max(0, Math.min(p, v)); });
   return { puntos: redondea(got), max: redondea(max), nota: max ? redondea((got / max) * 10) : null };
 }
 
@@ -120,13 +121,25 @@ export function ordenEntre(antes, despues) {
 }
 export const enlacesTexto = (L) => (L || []).map((e) => (e.t ? `${e.t} | ${e.u}` : e.u)).join('\n');
 // Rúbrica escrita como «Criterio | puntos» (una por línea).
+// «Criterio | puntos», «Criterio | puntos | nivel 1; nivel 2; nivel 3; nivel 4» (descriptores de los 4 niveles)
+// o «Criterio | clase» (lo evalúa el profesor en clase: no puntúa en la corrección).
 export function leeRubrica(txt) {
   return String(txt || '').split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 20).map((l) => {
-    const i = l.lastIndexOf('|'); const c = (i >= 0 ? l.slice(0, i) : l).trim().slice(0, 200); const p = i >= 0 ? Number(l.slice(i + 1).trim().replace(',', '.')) : 1;
-    return { c, p: Number.isFinite(p) && p > 0 ? redondea(p) : 1 };
+    let niveles = null; let resto = l;
+    const partes = l.split('|');
+    if (partes.length >= 3 && partes[partes.length - 1].includes(';')) { niveles = partes.pop().split(';').map((x) => x.trim().slice(0, 200)).slice(0, 4); while (niveles.length < 4) niveles.push(''); resto = partes.join('|'); }
+    const i = resto.lastIndexOf('|'); const c = (i >= 0 ? resto.slice(0, i) : resto).trim().slice(0, 200); const v = i >= 0 ? resto.slice(i + 1).trim() : '';
+    if (/^clase$/i.test(v)) return { c, p: 0, clase: true };
+    const p = i >= 0 ? Number(v.replace(',', '.')) : 1;
+    return { c, p: Number.isFinite(p) && p > 0 ? redondea(p) : 1, ...(niveles && niveles.some(Boolean) ? { niveles } : {}) };
   }).filter((r) => r.c);
 }
-export const rubricaTexto = (R) => (R || []).map((r) => `${r.c} | ${String(r.p).replace('.', ',')}`).join('\n');
+export const rubricaTexto = (R) => (R || []).map((r) => (r.clase ? `${r.c} | clase` : `${r.c} | ${String(r.p).replace('.', ',')}${r.niveles?.some(Boolean) ? ' | ' + r.niveles.join('; ') : ''}`)).join('\n');
+// Niveles de la rúbrica (vista de corrección): nivel 1..4 → puntos = p · nivel / 4.
+export const NIVELES = [[1, 'Insuficiente'], [2, 'Suficiente'], [3, 'Bien'], [4, 'Excelente']];
+export const puntosNivel = (p, nivel) => redondea((Number(p) || 0) * nivel / 4);
+/** Nivel más cercano a unos puntos (para marcar el botón al reabrir una nota antigua). */
+export function nivelDePuntos(p, v) { if (v == null || v === '' || !(p > 0)) return null; const n = Math.round((Number(v) / p) * 4); return n >= 1 && n <= 4 && Math.abs(puntosNivel(p, n) - v) < 1e-6 ? n : null; }
 
 // URL segura para enlaces que escribe el profesor o el alumno (solo http/https).
 export const urlSegura = (u) => (enlaceValido(u) ? String(u) : '#');

@@ -374,3 +374,19 @@ test('fase 9: migración de entregas del laboratorio (uid → grupo + nº), idem
   assert.deepEqual(EN.sinDuplicadas(despues).map((e) => e.id).sort(), ['g1_7_c4', 'g1_7_c5', 'g1_7_c6']);
   assert.equal(EN.idEntregaLab('g1', 7, 'c4'), 'g1_7_c4');
 });
+
+// ---------------------------------------------------------------- fase 10 · vista de corrección
+import * as M10 from './src/lms/modelo.js';
+test('fase 10: rúbrica con niveles, descriptores y criterios «clase» (no puntúan)', () => {
+  const R = M10.leeRubrica('Contenido | 4 | No llega; Básico; Completo; Excelente y ampliado\nPresentación | 2\nExposición oral | clase');
+  assert.equal(R.length, 3); assert.deepEqual(R[0].niveles, ['No llega', 'Básico', 'Completo', 'Excelente y ampliado']);
+  assert.ok(R[2].clase && R[2].p === 0);
+  assert.equal(M10.rubricaTexto(R), 'Contenido | 4 | No llega; Básico; Completo; Excelente y ampliado\nPresentación | 2\nExposición oral | clase');
+  assert.equal(M10.puntosNivel(4, 3), 3); assert.equal(M10.puntosNivel(2, 1), 0.5);
+  assert.equal(M10.nivelDePuntos(4, 3), 3); assert.equal(M10.nivelDePuntos(4, 2.2), null);
+  const n = M10.notaRubrica(R, { 0: 3, 1: 2, 2: 99 });
+  assert.deepEqual([n.puntos, n.max, n.nota], [5, 6, 8.33], 'el criterio de clase no cuenta');
+  const J = leerJSON(JSON.stringify({ tipo: 'tarea', titulo: 'T', rubrica: [{ criterio: 'Contenido', puntos: 4, niveles: ['a', 'b', 'c', 'd'] }, { criterio: 'Exposición', clase: true }] }));
+  assert.deepEqual(J.errores, []); assert.ok(J.elementos[0].rubrica[1].clase); assert.equal(J.elementos[0].rubrica[0].niveles[3], 'd');
+  assert.deepEqual(exportarElemento(J.elementos[0]).rubrica[1], { criterio: 'Exposición', clase: true });
+});

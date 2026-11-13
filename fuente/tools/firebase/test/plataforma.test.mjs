@@ -288,3 +288,20 @@ describe('Fase 9 · entregas completas', () => {
     await assertFails(setDoc(doc(anon('a7b'), 'entregas/g1_7_c2'), ent('a7b', { practica: 'c2', al: 'g1_7' })), 'con nota ya no se cambia');
   });
 });
+
+describe('Fase 10 · vista de corrección', () => {
+  test('comentarios rápidos: solo el profesor los lee y escribe (lista corta)', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'config/comentarios'), { lista: ['Muy bien.', 'Falta la conclusión.'] }));
+    await assertSucceeds(getDoc(doc(profe(), 'config/comentarios')));
+    await assertFails(getDoc(doc(anon('a7'), 'config/comentarios')));
+    await assertFails(setDoc(doc(anon('a7'), 'config/comentarios'), { lista: [] }));
+    await assertFails(setDoc(doc(profe(), 'config/comentarios'), { lista: [], otra: 1 }));
+    await assertFails(setDoc(doc(profe(), 'config/otra'), { lista: [] }), 'el resto de config sigue cerrado');
+  });
+  test('nota en borrador (sin publicar): el alumno no la ve hasta publicarla', async () => {
+    await sembrar(async (db) => setDoc(doc(db, 'notas/itemT01_g1_7'), nota({ publicada: false, detalle: { r0: 3, n0: 4 } })));
+    await assertFails(getDoc(doc(anon('a7'), 'notas/itemT01_g1_7')));
+    await assertSucceeds(updateDoc(doc(profe(), 'notas/itemT01_g1_7'), { publicada: true }));
+    await assertSucceeds(getDoc(doc(anon('a7'), 'notas/itemT01_g1_7')));
+  });
+});

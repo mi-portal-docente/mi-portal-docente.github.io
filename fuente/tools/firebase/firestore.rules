@@ -196,6 +196,13 @@ service cloud.firestore {
         && listaCorta(request.resource.data.emails, 20);
       allow delete: if esPropietario();
     }
+    // Comentarios rápidos reutilizables de la vista de corrección (fase 10). Solo el profesor.
+    match /config/comentarios {
+      allow read: if esProfesor();
+      allow write: if esProfesor()
+        && request.resource.data.keys().hasOnly(['lista'])
+        && listaCorta(request.resource.data.lista, 60);
+    }
     match /config/{otro} {
       allow read, write: if false;
     }

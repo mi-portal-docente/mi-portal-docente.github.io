@@ -77,7 +77,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   function rubricaHTML(it, n) {
     if (!it.rubrica?.length) return '';
     const det = n?.detalle || {};
-    return `<h4>Rúbrica</h4><table class="au-t"><thead><tr><th>Criterio</th><th class="c">Puntos</th>${n ? '<th class="c">Obtenidos</th>' : ''}</tr></thead><tbody>${it.rubrica.map((r, i) => `<tr><td>${esc(r.c)}</td><td class="c">${esc(fmtNota(r.p))}</td>${n ? `<td class="c"><b>${det['r' + i] != null ? esc(fmtNota(det['r' + i])) : '—'}</b></td>` : ''}</tr>`).join('')}</tbody></table>`;
+    return `<h4>Rúbrica</h4><table class="au-t"><thead><tr><th>Criterio</th><th class="c">Puntos</th>${n ? '<th class="c">Obtenidos</th>' : ''}</tr></thead><tbody>${it.rubrica.map((r, i) => r.clase ? `<tr><td>${esc(r.c)}</td><td class="c au-small" colspan="${n ? 2 : 1}">Se evalúa en clase</td></tr>` : `<tr><td>${esc(r.c)}${r.niveles?.some(Boolean) ? `<div class="au-small">${r.niveles.map((x, k) => x ? `${k + 1}: ${esc(x)}` : '').filter(Boolean).join(' · ')}</div>` : ''}</td><td class="c">${esc(fmtNota(r.p))}</td>${n ? `<td class="c"><b>${det['r' + i] != null ? esc(fmtNota(det['r' + i])) : '—'}</b></td>` : ''}</tr>`).join('')}</tbody></table>`;
   }
   function notaHTML(it) {
     const n = st.notas.get(it.id); if (!n) return '';

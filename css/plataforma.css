@@ -325,3 +325,31 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
   #enImprimir table { border-collapse: collapse; } #enImprimir td, #enImprimir th { border: 1px solid #999; padding: 3pt 6pt; }
   #enImprimir img { max-width: 100%; }
 }
+
+/* ---------- Fase 10 · vista de corrección ---------- */
+.co-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.co-tit { display: flex; flex-direction: column; line-height: 1.2; }
+.co-nn { font-variant-numeric: tabular-nums; padding: 0 4px; }
+.co-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .co-grid { grid-template-columns: 1fr; } }
+.co-izq { max-height: calc(100vh - 170px); overflow: auto; position: sticky; top: 64px; }
+.co-texto, .co-doc { background: var(--fill, #f2f2f7); border-radius: 12px; padding: 12px 14px; margin: 10px 0; line-height: 1.55; }
+.co-rub { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.co-crit { border: 1px solid var(--sep, rgba(60,60,67,.18)); border-radius: 12px; padding: 8px 10px; }
+.co-crit.clase { background: var(--fill, #f2f2f7); }
+.co-crit-t { display: flex; gap: 6px; align-items: baseline; font-weight: 600; margin-bottom: 6px; }
+.co-pts { margin-left: auto; font-variant-numeric: tabular-nums; }
+.co-niv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.co-n { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; text-align: left; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--sep, rgba(60,60,67,.2)); background: var(--card, #fff); color: inherit; font: inherit; font-size: .8rem; cursor: pointer; min-height: 44px; }
+.co-n b { font-size: .8rem; } .co-n span { opacity: .7; } .co-n small { font-size: .72rem; opacity: .85; line-height: 1.25; }
+.co-n:hover { border-color: var(--acc, #007aff); }
+.co-n.on { background: var(--acc, #007aff); border-color: var(--acc, #007aff); color: #fff; }
+.co-n:focus-visible { outline: 3px solid rgba(0,122,255,.45); outline-offset: 1px; }
+@media (max-width: 560px) { .co-niv { grid-template-columns: repeat(2, 1fr); } }
+.co-nota { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.co-nota .pn-f { max-width: 140px; }
+.co-raps { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.co-rap { display: inline-flex; align-items: center; }
+.co-rap-x { border: 0; background: none; color: var(--sec, #8e8e93); cursor: pointer; padding: 2px; display: inline-flex; }
+.co-rap-x .ic { width: 12px; height: 12px; }
+.co-reg { margin-top: 10px; }

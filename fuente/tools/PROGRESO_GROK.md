@@ -417,3 +417,26 @@ o `array-contains`.
 **A tener en cuenta**: con el portal sin red, la entrega queda en cola en Firestore y la página avisa («no cierres
 la página»); el borrador sí queda en el ordenador. Tras reentregar algo que tenía nota (devuelto → entregado) queda
 bloqueado hasta que el profesor ponga la nota nueva o lo vuelva a devolver.
+
+## Fase 10 · Vista de corrección (13/11/2026)
+
+**Hecho** (`src/portal/correccion-ui.js`)
+- Cuaderno → botón **Corregir** en cada columna (y «Vista de corrección» en el detalle de una casilla): un alumno
+  cada vez, el trabajo a la izquierda (estado, fecha, nº de entrega, texto o documento, enlaces, resultado de la
+  actividad y, cuando lo haya, el registro de edición) y la rúbrica a la derecha.
+- Rúbrica **por niveles**: Insuficiente · Suficiente · Bien · Excelente (= puntos · 1/4, 2/4, 3/4, 4/4), con los
+  descriptores de cada nivel si el elemento los trae; clic para marcar y otra vez para quitar. La nota se calcula
+  sola y se puede cambiar a mano.
+- Criterio **«lo evalúa el profesor en clase»** (`"clase": true` / «Criterio | clase»): aparece en la rúbrica (y al
+  alumno como «Se evalúa en clase») pero no puntúa aquí.
+- **Anterior / Siguiente** (y Alt+← / Alt+→), con «Solo con entrega»; «Guardar y siguiente».
+- **Comentarios rápidos** reutilizables (clic para añadirlos; «Guardar el comentario como rápido»; quitar con ×).
+  Se guardan en `config/comentarios` (solo el profesor), así que están en cualquier ordenador.
+- Las notas se guardan **en borrador** (sin publicar) y se publican a mano: una («Guardar y publicar») o todas las
+  del grupo a la vez («Publicar N»). También «Devolver para corregir» con el comentario.
+
+**Reglas**: nuevo `config/comentarios` (solo profesor, `{ lista }` ≤ 60). Pruebas: 113/113.
+**Formato JSON**: `rubrica[].niveles` (4 textos) y `rubrica[].clase` en `FORMATO_IMPORTAR.md`.
+**Pruebas**: `plataforma_test.mjs` 31/31 · reglas 113/113 · E2E fase 10: 14/14 · `fb_e2e` 59/59 y `aula_e2e`
+116/116 tras la fase 9.
+**Capturas**: `f10_correccion`, `f10_alumno_nota`.
