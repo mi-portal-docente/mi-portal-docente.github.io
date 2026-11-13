@@ -1,6 +1,15 @@
-// Fotos reales del portal (Wikimedia Commons, licencias libres), reducidas a 800 px y servidas desde img/fotos/.
+// Fotos reales del portal (Wikimedia Commons, licencias libres), reducidas a 800 px (la de portada/fondo, aula.webp, a 1600 px) y servidas desde img/fotos/.
 // Créditos visibles en #eee/vivienda/creditos. Para añadir una: descárgala, redúcela y añádela aquí con su autor y licencia.
 export const FOTOS_PORTAL = {
+ "aula": {
+  "f": "img/fotos/aula.webp",
+  "t": "Grande salle ENC n1.jpg",
+  "u": "https://commons.wikimedia.org/wiki/File:Grande_salle_ENC_n1.jpg",
+  "a": "Marie-Lan Nguyen",
+  "l": "CC BY 2.5",
+  "lu": "https://creativecommons.org/licenses/by/2.5",
+  "uso": "Entrada, portada del aula virtual y fondo de cristal del portal"
+ },
  "tic1": {
   "f": "img/fotos/tic1.webp",
   "t": "Dalby State School, Computer lab, 2023.jpg",
@@ -44,7 +53,7 @@ export const FOTOS_PORTAL = {
   "a": "Electronicspices",
   "l": "CC BY-SA 4.0",
   "lu": "https://creativecommons.org/licenses/by-sa/4.0",
-  "uso": "Asignatura Equipos eléctricos y electrónicos · portada"
+  "uso": "Asignatura Equipos eléctricos y electrónicos"
  },
  "esp32": {
   "f": "img/fotos/esp32.webp",
