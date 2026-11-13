@@ -54,6 +54,13 @@ rules_version = '2';
 //                       respuestas del examen)                        el alumno las suyas
 //   notas/{item_grupo_nº}     nota, rúbrica y comentario              profesor; el alumno
 //                                                                     solo las suyas publicadas
+//   --- rama grok-plataforma ---
+//   incidencias/{item_grupo_nº}  modo examen: salidas de la pestaña o de
+//                       la pantalla completa {t, tipo, dur} (informativo,
+//                       no anula ni puntúa)                           el alumno crea/añade las
+//                                                                     suyas; leer/borrar: profesor
+//   banco/{id}          banco de preguntas {asig, criterio, q, fecha}  SOLO profesor
+//   items.criterio      criterio de evaluación opcional (texto corto)
 //  El alumno se identifica SOLO por grupo + nº de lista + un PIN que
 //  elige él (se guarda su hash SHA-256, nunca el PIN). Sin nombres.
 // =====================================================================
@@ -484,7 +491,8 @@ service cloud.firestore {
             && request.time <= resource.data.hasta);
       allow list, delete: if esProfesor();
       allow create, update: if esProfesor()
-        && request.resource.data.keys().hasOnly(['grupos', 'publicado', 'desde', 'hasta', 'limiteMin', 'barajar', 'preguntas'])
+        && request.resource.data.keys().hasOnly(['grupos', 'publicado', 'desde', 'hasta', 'limiteMin', 'barajar', 'preguntas', 'pantallaCompleta'])
+        && (!('pantallaCompleta' in request.resource.data) || request.resource.data.pantallaCompleta is bool)
         && listaCorta(request.resource.data.grupos, 40)
         && request.resource.data.publicado is bool
         && request.resource.data.desde is timestamp && request.resource.data.hasta is timestamp
@@ -493,6 +501,35 @@ service cloud.firestore {
             || (request.resource.data.limiteMin is int && request.resource.data.limiteMin >= 1 && request.resource.data.limiteMin <= 600))
         && request.resource.data.barajar is bool
         && listaCorta(request.resource.data.preguntas, 100);
+    }
+
+    // incidencias/{item_grupo_nº}: modo examen. Registro INFORMATIVO de las salidas de la pestaña o de la
+    // pantalla completa durante un examen [{t: ms, tipo, dur: segundos|null}]. Lo escribe el alumno (solo
+    // añadir, el suyo, en un examen publicado para su grupo); lo lee SOLO el profesor.
+    match /incidencias/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if alumnoOk()
+        && request.resource.data.keys().hasOnly(['item', 'al', 'grupo', 'numero', 'uid', 'salidas', 'fecha'])
+        && request.resource.data.item is string
+        && id == request.resource.data.item + '_' + idAlumno(miSesion())
+        && request.resource.data.al == idAlumno(miSesion())
+        && request.resource.data.grupo == miSesion().grupo && request.resource.data.numero == miSesion().numero
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.fecha == request.time
+        && request.resource.data.salidas is list && request.resource.data.salidas.size() <= 400
+        && get(ruta('items', request.resource.data.item)).data.tipo == 'examen'
+        && miSesion().grupo in get(ruta('items', request.resource.data.item)).data.visible;
+    }
+
+    // banco/{id}: banco de preguntas por asignatura {asig, criterio, q (pregunta con su solución), fecha}.
+    // SOLO el profesor (lleva las soluciones).
+    match /banco/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}$')
+        && request.resource.data.keys().hasOnly(['asig', 'criterio', 'q', 'fecha'])
+        && textoCorto(request.resource.data.asig, 20)
+        && textoCorto(request.resource.data.criterio, 60) && request.resource.data.criterio.size() > 0
+        && request.resource.data.q is map;
     }
 
     // claves/{id}: respuestas correctas de los exámenes. SOLO el profesor.

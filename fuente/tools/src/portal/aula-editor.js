@@ -6,6 +6,7 @@ import { doc, writeBatch, Timestamp } from 'firebase/firestore';
 import { esc } from './util.js';
 import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
 import { criterioValido } from '../lms/elemento.js';
+import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta } from '../lms/preguntas.js';
 import { categoriaDe, idItem, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, TIPOS_ENTREGA, enlaceValido } from '../lms/modelo.js';
 
 export const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -16,7 +17,11 @@ export const TIPOS_CREAR = ['tarea', 'examen', 'pregunta', 'material', 'cuestion
 const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto'];
 export const PEND = 'Contenido pendiente de subir.';
 export const PEND_T = 'Pendiente de completar';
-const nuevaPregunta = (tipo) => ({ id: 'q' + Math.random().toString(36).slice(2, 8), tipo, enunciado: '', opciones: tipo === 'test' ? ['', '', ''] : [], correcta: tipo === 'test' ? 0 : tipo === 'vf' ? true : [], puntos: 1 });
+const BASICAS = ['test', 'vf', 'corta'];
+const EXTRA_NUEVA = { emparejar: { pares: [['', ''], ['', '']], distractores: [] }, ordenar: { elementos: ['', '', ''] }, huecos: { texto: '' }, numerica: { valor: 0, tolerancia: 0, modo: 'abs', unidad: '' }, zonas: { imagen: '', zonas: [] } };
+const nuevaPregunta = (tipo) => ({ id: 'q' + Math.random().toString(36).slice(2, 8), tipo, enunciado: '', opciones: tipo === 'test' ? ['', '', ''] : [], correcta: tipo === 'test' ? 0 : tipo === 'vf' ? true : [], puntos: 1, ...(EXTRA_NUEVA[tipo] ? JSON.parse(JSON.stringify(EXTRA_NUEVA[tipo])) : {}) });
+const zonasTexto = (Z) => (Z || []).map((z) => `${z.x}, ${z.y}, ${z.w}, ${z.h} | ${z.nombre || ''} | ${z.correcta === false ? 'no' : 'sí'}`).join('\n');
+const leeZonas = (t) => String(t || '').split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 20).map((l) => { const [n, nombre = '', c = 'sí'] = l.split('|').map((x) => x.trim()); const [x, y, w, h] = n.split(/[,;\s]+/).map((v) => Number(v.replace(',', '.'))); return { x, y, w, h, nombre, correcta: !/^(no|n|false|0)$/i.test(c) }; });
 
 // Estado de una publicación para el profesor: borrador, programada o publicada.
 export function estadoPub(it, now = Date.now()) {
@@ -50,8 +55,8 @@ export function crearEditor({ db, aula, gruposDe }) {
         E.edit.cargando = true;
         aula.examen(it.id, { claves: true }).then(({ examen, claves }) => {
           const k = claves?.respuestas || {};
-          E.preguntas = (examen?.preguntas || []).map((q) => ({ ...q, correcta: k[q.id] ?? (q.tipo === 'corta' ? [] : q.tipo === 'vf' ? true : 0) }));
-          if (examen) E.edit.examen = { ...E.edit.examen, desde: examen.desde, hasta: examen.hasta, limiteMin: examen.limiteMin, barajar: examen.barajar };
+          E.preguntas = (examen?.preguntas || []).map((q) => (BASICAS.includes(q.tipo) ? { ...q, correcta: k[q.id] ?? (q.tipo === 'corta' ? [] : q.tipo === 'vf' ? true : 0) } : unirPregunta(q, k[q.id])));
+          if (examen) E.edit.examen = { ...E.edit.examen, desde: examen.desde, hasta: examen.hasta, limiteMin: examen.limiteMin, barajar: examen.barajar, pantallaCompleta: !!examen.pantallaCompleta };
           E.edit.cargando = false; if (E.el) montar();
         }).catch(() => { E.edit.cargando = false; if (E.el) montar(); });
       }
@@ -91,9 +96,10 @@ export function crearEditor({ db, aula, gruposDe }) {
         <div class="ap-fila"><label class="pn-f">Se abre<input type="datetime-local" name="desde" value="${esc(aLocal(ex.desde))}"></label><label class="pn-f">Se cierra<input type="datetime-local" name="hasta" value="${esc(aLocal(ex.hasta))}"></label>
         <label class="pn-f">Tiempo límite (min, vacío = sin límite)<input type="number" name="limiteMin" min="1" max="600" value="${ex.limiteMin || ''}"></label></div>
         <label class="pn-chk"><input type="checkbox" name="barajar" ${ex.barajar !== false ? 'checked' : ''}> Barajar preguntas y opciones para cada alumno</label>
+        <label class="pn-chk"><input type="checkbox" name="pantallaCompleta" ${ex.pantallaCompleta ? 'checked' : ''}> 🛡 Modo examen: pantalla completa y registro de salidas de la pestaña (informativo, solo lo ves tú)</label>
         <p class="pn-small">Las soluciones se guardan aparte (solo las puede leer el profesor). Test y verdadero/falso se corrigen solos; las respuestas cortas se corrigen solas si coinciden con alguna aceptada (sin tildes ni mayúsculas) y si no, las revisas tú.</p>
         <div id="apPreguntas">${e.cargando ? '<p class="pn-small">Cargando preguntas…</p>' : preguntasHTML()}</div>
-        <div class="pn-acts"><button type="button" class="btn small" data-ed="q+test">➕ Test</button><button type="button" class="btn small" data-ed="q+vf">➕ Verdadero/falso</button><button type="button" class="btn small" data-ed="q+corta">➕ Respuesta corta</button></div></fieldset>` : ''}
+        <div class="pn-acts"><button type="button" class="btn small" data-ed="q+test">➕ Test</button><button type="button" class="btn small" data-ed="q+vf">➕ Verdadero/falso</button><button type="button" class="btn small" data-ed="q+corta">➕ Respuesta corta</button><button type="button" class="btn small" data-ed="q+emparejar">➕ Emparejar</button><button type="button" class="btn small" data-ed="q+ordenar">➕ Ordenar</button><button type="button" class="btn small" data-ed="q+huecos">➕ Huecos</button><button type="button" class="btn small" data-ed="q+numerica">➕ Numérica</button><button type="button" class="btn small" data-ed="q+zonas">➕ Imagen con zonas</button><button type="button" class="btn small" data-ed="banco">🗄 Del banco…</button></div></fieldset>` : ''}
       <fieldset class="pn-f cl-nota ${e.pendiente ? 'pend' : ''}"><legend>🔒 Nota privada (solo la ves tú)</legend>
         ${e.pendiente ? `<p class="cl-pend-aviso"><b>⚠ ${PEND_T}.</b> Al importarlo de Classroom no constaban todos los detalles. Añade instrucciones o adjuntos y guarda: el aviso desaparece solo.</p>` : ''}
         <textarea name="nota" rows="2" maxlength="2000" placeholder="Recordatorios para ti; los alumnos no la ven.">${esc(e.nota || '')}</textarea>
@@ -117,7 +123,7 @@ export function crearEditor({ db, aula, gruposDe }) {
   }
   function preguntasHTML() {
     if (!E.preguntas.length) return '<p class="pn-small">Sin preguntas todavía.</p>';
-    return E.preguntas.map((q, i) => `<div class="ap-q" data-qi="${i}"><div class="ap-qh"><b>${i + 1}.</b> ${q.tipo === 'test' ? 'Test' : q.tipo === 'vf' ? 'Verdadero / falso' : 'Respuesta corta'}
+    return E.preguntas.map((q, i) => `<div class="ap-q" data-qi="${i}"><div class="ap-qh"><b>${i + 1}.</b> ${esc(TIPOS_PREGUNTA[q.tipo]?.nombre || q.tipo)}
         <label>Puntos <input type="number" class="ap-qp" data-qf="puntos" min="0.25" max="100" step="0.25" value="${esc(q.puntos ?? 1)}"></label>
         <label class="ap-qc">Criterio <input type="text" data-qf="criterio" maxlength="60" value="${esc(q.criterio || '')}" placeholder="p. ej. eee_c1_1" title="Criterio de evaluación (opcional)"></label>
         <span class="pn-grow"></span><button type="button" class="btn small" data-ed="qUp" ${i ? '' : 'disabled'} aria-label="Subir">↑</button><button type="button" class="btn small" data-ed="qDown" ${i < E.preguntas.length - 1 ? '' : 'disabled'} aria-label="Bajar">↓</button><button type="button" class="btn small pn-peligro" data-ed="qDel" aria-label="Quitar">🗑</button></div>
@@ -125,7 +131,13 @@ export function crearEditor({ db, aula, gruposDe }) {
       ${q.tipo === 'test' ? `<div class="ap-ops">${q.opciones.map((o, j) => `<label class="ap-op"><input type="radio" name="corr_${esc(q.id)}" data-qf="correcta" value="${j}" ${Number(q.correcta) === j ? 'checked' : ''} title="Respuesta correcta"><input type="text" data-qf="op" data-j="${j}" maxlength="500" value="${esc(o)}" placeholder="Opción ${j + 1}"></label>`).join('')}
           <button type="button" class="btn small" data-ed="op+">➕ Opción</button>${q.opciones.length > 2 ? '<button type="button" class="btn small" data-ed="op-">➖ Opción</button>' : ''}<span class="pn-small"> Marca el círculo de la correcta.</span></div>`
       : q.tipo === 'vf' ? `<label class="ap-op">Respuesta correcta: <select data-qf="correcta"><option value="true" ${q.correcta === true ? 'selected' : ''}>Verdadero</option><option value="false" ${q.correcta === false ? 'selected' : ''}>Falso</option></select></label>`
-      : `<label class="pn-f">Respuestas aceptadas (una por línea; vacío = corrección manual)<textarea data-qf="aceptadas" rows="2" maxlength="2000">${esc((q.correcta || []).join('\n'))}</textarea></label>`}</div>`).join('');
+      : q.tipo === 'corta' ? `<label class="pn-f">Respuestas aceptadas (una por línea; vacío = corrección manual)<textarea data-qf="aceptadas" rows="2" maxlength="2000">${esc((q.correcta || []).join('\n'))}</textarea></label>`
+      : q.tipo === 'emparejar' ? `<label class="pn-f">Parejas (una por línea: «izquierda | derecha»; se puntúa cada pareja)<textarea data-qf="pares" rows="4" maxlength="4000">${esc((q.pares || []).map((p) => p.join(' | ')).join('\n'))}</textarea></label><label class="pn-f">Distractores (opcional: opciones de la derecha que no van con ninguna, una por línea)<textarea data-qf="distractores" rows="2" maxlength="2000">${esc((q.distractores || []).join('\n'))}</textarea></label>`
+      : q.tipo === 'ordenar' ? `<label class="pn-f">Elementos EN EL ORDEN CORRECTO (uno por línea; al alumno le salen desordenados)<textarea data-qf="elementos" rows="4" maxlength="4000">${esc((q.elementos || []).join('\n'))}</textarea></label>`
+      : q.tipo === 'huecos' ? `<label class="pn-f">Texto con huecos: escribe la respuesta entre [[ ]]; otras válidas con «|». Ej.: La ley de [[Ohm]] relaciona [[intensidad|corriente]]…<textarea data-qf="texto" rows="3" maxlength="3000">${esc(q.texto || '')}</textarea></label>`
+      : q.tipo === 'numerica' ? `<div class="ap-fila"><label class="pn-f">Valor correcto<input type="text" inputmode="decimal" data-qf="valor" value="${esc(String(q.valor ?? 0).replace('.', ','))}"></label><label class="pn-f">Tolerancia<input type="text" inputmode="decimal" data-qf="tolerancia" value="${esc(String(q.tolerancia ?? 0).replace('.', ','))}"></label><label class="pn-f">Tipo de tolerancia<select data-qf="modo"><option value="abs" ${q.modo !== 'pct' ? 'selected' : ''}>Absoluta (±)</option><option value="pct" ${q.modo === 'pct' ? 'selected' : ''}>En %</option></select></label><label class="pn-f">Unidad (opcional)<input data-qf="unidad" maxlength="20" value="${esc(q.unidad || '')}"></label></div>`
+      : q.tipo === 'zonas' ? `<label class="pn-f">Imagen (https://… o materiales/…)<input data-qf="imagen" maxlength="500" value="${esc(q.imagen || '')}"></label><label class="pn-f">Zonas en % de la imagen, una por línea: «x, y, ancho, alto | nombre | sí» (sí = correcta)<textarea data-qf="zonasTxt" rows="3" maxlength="2000" placeholder="40, 30, 20, 15 | Condensador | sí">${esc(zonasTexto(q.zonas))}</textarea></label>${q.imagen ? `<div class="ex-zonas ex-zonas-prof"><img src="${esc(q.imagen)}" alt="">${(q.zonas || []).map((z) => `<span class="ex-zona ${z.correcta === false ? '' : 'ok'}" style="left:${z.x}%;top:${z.y}%;width:${z.w}%;height:${z.h}%" title="${esc(z.nombre || '')}"></span>`).join('')}</div>` : ''}`
+      : ''}</div>`).join('');
   }
   function leerPreguntas() {
     const box = E.el?.querySelector('#apPreguntas'); if (!box) return;
@@ -137,6 +149,12 @@ export function crearEditor({ db, aula, gruposDe }) {
       if (q.tipo === 'test') { q.opciones = [...el.querySelectorAll('[data-qf=op]')].map((x) => x.value.slice(0, 500)); const c = el.querySelector('[data-qf=correcta]:checked'); q.correcta = c ? Number(c.value) : 0; }
       if (q.tipo === 'vf') q.correcta = el.querySelector('[data-qf=correcta]').value === 'true';
       if (q.tipo === 'corta') q.correcta = el.querySelector('[data-qf=aceptadas]').value.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 20);
+      const lineas = (k) => (el.querySelector(`[data-qf=${k}]`)?.value || '').split('\n').map((s) => s.trim()).filter(Boolean);
+      if (q.tipo === 'emparejar') { q.pares = lineas('pares').slice(0, 12).map((l) => { const i = l.indexOf('|'); return i < 0 ? [l, ''] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }); q.distractores = lineas('distractores').slice(0, 6); }
+      if (q.tipo === 'ordenar') q.elementos = lineas('elementos').slice(0, 12);
+      if (q.tipo === 'huecos') q.texto = el.querySelector('[data-qf=texto]').value.slice(0, 3000);
+      if (q.tipo === 'numerica') { const n = (k) => Number(String(el.querySelector(`[data-qf=${k}]`).value).trim().replace(',', '.')); q.valor = n('valor'); q.tolerancia = n('tolerancia') || 0; q.modo = el.querySelector('[data-qf=modo]').value; q.unidad = el.querySelector('[data-qf=unidad]').value.trim().slice(0, 20); }
+      if (q.tipo === 'zonas') { q.imagen = el.querySelector('[data-qf=imagen]').value.trim(); q.zonas = leeZonas(el.querySelector('[data-qf=zonasTxt]').value); }
     });
   }
   function leer(f) {
@@ -153,7 +171,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (f.elements.categoria) e.categoria = String(fd.get('categoria'));
     if (f.elements.criterio) e.criterio = String(fd.get('criterio') || '').trim().slice(0, 60) || null;
     if (f.elements.opciones) e.opciones = String(fd.get('opciones') || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 10).map((s) => s.slice(0, 300));
-    if (f.elements.desde) e.examen = { desde: deLocal(fd.get('desde')), hasta: deLocal(fd.get('hasta')), limiteMin: parseInt(fd.get('limiteMin'), 10) || null, barajar: !!fd.get('barajar'), n: E.preguntas.length };
+    if (f.elements.desde) e.examen = { desde: deLocal(fd.get('desde')), hasta: deLocal(fd.get('hasta')), limiteMin: parseInt(fd.get('limiteMin'), 10) || null, barajar: !!fd.get('barajar'), pantallaCompleta: !!fd.get('pantallaCompleta'), n: E.preguntas.length };
   }
   async function guardar(f) {
     leer(f); const e = E.edit; const msg = E.el.querySelector('#apItemMsg');
@@ -172,6 +190,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       for (const [i, q] of E.preguntas.entries()) {
         if (!q.enunciado.trim()) return err(`La pregunta ${i + 1} no tiene enunciado.`);
         if (q.tipo === 'test' && (q.opciones.filter((o) => o.trim()).length < 2 || !String(q.opciones[q.correcta] || '').trim())) return err(`La pregunta ${i + 1} necesita al menos 2 opciones y la correcta marcada.`);
+        if (!BASICAS.includes(q.tipo)) { const errs = []; validarPregunta(q, i, (r, t) => errs.push(t)); if (errs.length) return err(errs[0]); }
       }
     }
     msg.textContent = 'Guardando…'; msg.className = 'pn-msg';
@@ -182,7 +201,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       rubrica: entregable && !esEx ? e.rubrica || [] : [], categoria: entregable ? e.categoria || categoriaDe(e.tipo) : null, opciones: e.tipo === 'pregunta' ? e.opciones || [] : null,
       grupos: e.grupos, visible: publicado ? e.grupos : [], publicado, pub: e.estado === 'programar' ? e.pub : null,
       orden: e.orden ?? 1000, origen: e.origen || null, pendiente: !!e.pendiente && !e.texto.replace(PEND, '').trim() && !e.enlaces.length, nota: e.nota || null,
-      examen: esEx ? { desde: e.examen.desde, hasta: e.examen.hasta, limiteMin: e.examen.limiteMin, n: E.preguntas.length } : null, actualizado: Date.now() };
+      examen: esEx ? { desde: e.examen.desde, hasta: e.examen.hasta, limiteMin: e.examen.limiteMin, n: E.preguntas.length, ...(e.examen.pantallaCompleta ? { pantallaCompleta: true } : {}) } : null, actualizado: Date.now() };
     if (e.unidad) data.unidad = e.unidad;
     if (e.criterio && entregable && !esEx) data.criterio = e.criterio;
     if (e.contenido) data.contenido = e.contenido;
@@ -190,9 +209,10 @@ export function crearEditor({ db, aula, gruposDe }) {
       const b = writeBatch(db);
       b.set(doc(db, 'items', id), data);
       if (esEx) {
-        const qs = E.preguntas.map((q) => ({ id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.tipo === 'test' ? { opciones: q.opciones } : {}) }));
-        b.set(doc(db, 'examenes', id), { grupos: e.grupos, publicado, desde: Timestamp.fromMillis(e.examen.desde), hasta: Timestamp.fromMillis(e.examen.hasta), limiteMin: e.examen.limiteMin, barajar: e.examen.barajar, preguntas: qs });
-        b.set(doc(db, 'claves', id), { respuestas: Object.fromEntries(E.preguntas.map((q) => [q.id, q.correcta])) });
+        const sep = E.preguntas.map((q) => (BASICAS.includes(q.tipo) ? null : separarPregunta(validarPregunta(q, 0, () => { }) || q)));
+        const qs = E.preguntas.map((q, i) => sep[i] ? sep[i].publica : ({ id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.tipo === 'test' ? { opciones: q.opciones } : {}) }));
+        b.set(doc(db, 'examenes', id), { grupos: e.grupos, publicado, desde: Timestamp.fromMillis(e.examen.desde), hasta: Timestamp.fromMillis(e.examen.hasta), limiteMin: e.examen.limiteMin, barajar: e.examen.barajar, preguntas: qs, ...(e.examen.pantallaCompleta ? { pantallaCompleta: true } : {}) });
+        b.set(doc(db, 'claves', id), { respuestas: Object.fromEntries(E.preguntas.map((q, i) => [q.id, sep[i] ? sep[i].clave : q.correcta])) });
       } else if (e.id && st.items.get(e.id)?.tipo === 'examen') { b.delete(doc(db, 'examenes', id)); b.delete(doc(db, 'claves', id)); }
       await b.commit(); aula.olvidarExamen(id);
       const cb = E.alGuardar; cerrar(); cb?.(id);
@@ -209,6 +229,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       if (!enlaceValido(u)) { f.adjU.setCustomValidity('Pega un enlace que empiece por https:// (o materiales/…)'); f.adjU.reportValidity(); f.adjU.setCustomValidity(''); return; }
       f.enlaces.value = (f.enlaces.value.trim() ? f.enlaces.value.trim() + '\n' : '') + (t ? `${t} | ${u}` : u); f.adjU.value = ''; f.adjT.value = ''; return;
     }
+    if (acc === 'banco') { leerPreguntas(); api.desdeBanco?.(E.edit.asig, (L) => { E.preguntas.push(...L); E.el.querySelector('#apPreguntas').innerHTML = preguntasHTML(); }); return; }
     if (acc.startsWith('q+')) { leerPreguntas(); E.preguntas.push(nuevaPregunta(acc.slice(2))); E.el.querySelector('#apPreguntas').innerHTML = preguntasHTML(); return; }
     const qi = +b.closest('[data-qi]')?.dataset.qi;
     if (['qUp', 'qDown', 'qDel', 'op+', 'op-'].includes(acc)) {

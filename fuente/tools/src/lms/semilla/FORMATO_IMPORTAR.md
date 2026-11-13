@@ -64,6 +64,15 @@ Si no pones fechas, se abre mañana durante 24 h (lo cambias al editar). Cada pr
 | `test` | `opciones` (2–8 textos), `correcta` (nº de la buena, **empezando en 0**) | todo o nada |
 | `vf` | `correcta`: `true` / `false` | todo o nada |
 | `corta` | `aceptadas`: lista de respuestas válidas (sin tildes ni mayúsculas); vacía = la corriges tú | todo o nada / manual |
+| `emparejar` | `pares`: `[["izquierda", "derecha"], …]` (2–12); `distractores` (opcional): opciones de la derecha que no van con ninguna | **parcial**: cada pareja bien hecha |
+| `ordenar` | `elementos`: lista **en el orden correcto** (2–12); al alumno le salen desordenados | **parcial**: cada posición correcta |
+| `huecos` | `texto` con los huecos entre `[[ ]]`; otras respuestas válidas con `|`: `"La ley de [[Ohm]] relaciona [[intensidad|corriente]]"` | **parcial**: cada hueco |
+| `numerica` | `valor`, `tolerancia` (0 por defecto), `modo`: `"abs"` (±) o `"pct"` (en %), `unidad` (opcional) | todo o nada |
+| `zonas` | `imagen` (https://…, `materiales/…` o `img/…`), `alt` (descripción), `zonas`: `[{ "x": 10, "y": 20, "w": 15, "h": 10, "nombre": "…", "correcta": true }]` en **% de la imagen** (origen arriba a la izquierda). El alumno pulsa un punto | todo o nada |
+
+Modo examen: `"examen": { …, "pantallaCompleta": true }` → el examen se abre a pantalla completa y se anota
+cada salida de la pestaña o de la pantalla completa (hora y duración). Lo ve solo el profesor, en el
+cuaderno (casilla del alumno). **Es informativo: no anula ni puntúa nada.**
 
 ```json
 {
@@ -78,4 +87,37 @@ Si no pones fechas, se abre mañana durante 24 h (lo cambias al editar). Cada pr
     { "id": "q3", "tipo": "corta", "enunciado": "Pregunta de respuesta corta de ejemplo", "aceptadas": ["respuesta"] }
   ]
 }
+```
+
+### Examen con los tipos nuevos (modo examen)
+
+```json
+{
+  "formato": "superprofe/elemento@1",
+  "tipo": "examen",
+  "titulo": "Ejemplo con los tipos nuevos",
+  "examen": { "limiteMin": 20, "barajar": true, "pantallaCompleta": true },
+  "preguntas": [
+    { "tipo": "emparejar", "enunciado": "Une cada magnitud con su unidad", "puntos": 2, "pares": [["Magnitud A", "Unidad A"], ["Magnitud B", "Unidad B"], ["Magnitud C", "Unidad C"]], "distractores": ["Unidad D"], "criterio": "eee_c1_1" },
+    { "tipo": "ordenar", "enunciado": "Ordena los pasos", "puntos": 2, "elementos": ["Primer paso", "Segundo paso", "Tercer paso"] },
+    { "tipo": "huecos", "enunciado": "Completa la frase", "texto": "Texto con un [[hueco]] y otro [[hueco2|alternativa]].", "puntos": 2 },
+    { "tipo": "numerica", "enunciado": "Calcula el valor", "valor": 2.5, "tolerancia": 5, "modo": "pct", "unidad": "A" },
+    { "tipo": "zonas", "enunciado": "Pulsa sobre la zona indicada", "imagen": "img/fotos/eee.webp", "alt": "Foto de ejemplo", "zonas": [{ "x": 30, "y": 30, "w": 40, "h": 40, "nombre": "Centro", "correcta": true }] }
+  ]
+}
+```
+
+## Banco de preguntas (por asignatura)
+
+«Trabajo de clase» → **🗄 Banco de preguntas**. Se pegan **preguntas** (no elementos): una lista con el mismo
+formato que las `preguntas` de un examen, y **cada una con su `criterio`** (o un criterio por defecto para todas).
+También se pueden copiar las preguntas de un examen ya hecho. **Generar examen**: eliges cuántas preguntas al
+azar quieres de cada criterio y se crea un examen en borrador. En el editor de exámenes, **🗄 Del banco…** añade
+preguntas sueltas. «Exportar el banco» da este mismo formato:
+
+```text
+{ "preguntas": [
+  { "tipo": "vf", "enunciado": "Afirmación de ejemplo", "correcta": true, "criterio": "eee_c1_1" },
+  { "tipo": "test", "enunciado": "Pregunta de ejemplo", "opciones": ["A", "B"], "correcta": 0, "criterio": "eee_c1_2" }
+] }
 ```

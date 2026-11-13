@@ -1,11 +1,13 @@
 // Panel del profesor · aula virtual: cursos escolares, contenido (biblioteca → curso, editor de
 // materiales, tareas, proyectos y exámenes) y calificaciones (cuaderno por grupo con categorías y pesos).
-import { collection, doc, getDocs, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { getDoc, collection, doc, getDocs, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { leerResultado } from '../act/resultado.js';
 import { esc } from './util.js';
 import { BIBLIOTECA, asignatura, TIPOS, CATEGORIAS, ETAPAS } from '../lms/biblioteca.js';
 import { corregirExamen, notaRubrica, mediaPonderada, pesosPorDefecto, categoriaDe, fmtNota, redondea, idItem, idTrabajo, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, csv, urlSegura, TIPOS_ENTREGA } from '../lms/modelo.js';
 import { ordenarItems, nombreUnidad, textoHTML } from './aula-vistas.js';
+import { respuestaTexto, solucionTexto } from './examen-ui.js';
+import { resumenSalidas } from './modo-examen.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -225,12 +227,13 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
         const manual = {}; pq.forEach((q) => { if (det[q.id] != null) manual[q.id] = det[q.id]; });
         auto = corregirExamen(pq, k, r, manual);
         h += `<h4>Respuestas · ${esc(fmtNota(auto.puntos))} / ${esc(fmtNota(auto.max))} puntos</h4><ol class="ap-resp">${pq.map((q) => {
-          const v = r[q.id]; const txt = v == null ? '— sin responder' : q.tipo === 'test' ? (q.opciones || [])[v] ?? v : q.tipo === 'vf' ? (v ? 'Verdadero' : 'Falso') : v;
-          const sol = q.tipo === 'test' ? (q.opciones || [])[k[q.id]] : q.tipo === 'vf' ? (k[q.id] ? 'Verdadero' : 'Falso') : (k[q.id] || []).join(' · ');
+          const v = r[q.id]; const txt = respuestaTexto(q, v);
+          const sol = solucionTexto(q, k[q.id]);
           const p = auto.detalle[q.id]; const okk = p >= (q.puntos || 1);
           return `<li class="${okk ? 'ok' : p > 0 ? 'med' : 'ko'}"><div>${esc(q.enunciado)}</div><div>➜ <b>${esc(txt)}</b></div><div class="pn-small">Solución: ${esc(sol || '(manual)')}</div>
             <label class="pn-small">Puntos <input type="number" class="ap-qpts" data-qid="${esc(q.id)}" min="0" max="${esc(q.puntos || 1)}" step="0.25" value="${esc(p)}"> / ${esc(fmtNota(q.puntos || 1))}${auto.revisar.includes(q.id) ? ' · <b>revisar</b>' : ''}</label></li>`;
         }).join('')}</ol>`;
+        if (it.examen?.pantallaCompleta || ex.examen?.pantallaCompleta) h += salidasHTML(id);
       }
     } else if (tr) {
       if (it.tipo === 'actividad') { const r = leerResultado(tr.texto); if (r) { auto = { nota: r.nota }; h += `<div class="pn-inf ap-act">🧩 Resultado de la actividad: <b>${r.aciertos}/${r.total}</b> aciertos → nota sugerida <b>${esc(fmtNota(r.nota))}</b></div>`; } }
@@ -246,6 +249,15 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       <div class="pn-acts"><button class="btn primary" type="submit">💾 Guardar nota</button>${nt ? '<button class="btn" type="button" data-ap="borrarNota">Quitar nota</button>' : ''}<span class="pn-msg" id="apNotaMsg"></span></div></form>
       <div class="pn-acts">${tr ? `<button class="btn small" data-ap="repetir" title="Borra la entrega para que pueda volver a entregar o repetir el examen">↺ Permitir repetir</button>` : ''}${pinB}</div>`;
     D.innerHTML = h;
+  }
+  // Modo examen: salidas de la pestaña / pantalla completa (informativo, no cambia la nota)
+  function salidasHTML(id) {
+    if (!A.salidas) A.salidas = new Map();
+    if (!A.salidas.has(id)) { A.salidas.set(id, null); getDoc(doc(db, 'incidencias', id)).then((d) => { A.salidas.set(id, d.exists() ? d.data().salidas || [] : []); pintarDetalle(); }).catch(() => A.salidas.set(id, [])); return '<h4>🛡 Modo examen</h4><p class="pn-small">Cargando el registro…</p>'; }
+    const L = A.salidas.get(id); if (L == null) return '<h4>🛡 Modo examen</h4><p class="pn-small">Cargando el registro…</p>';
+    const R = resumenSalidas(L); const hora = (t) => new Date(t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const dur = (s) => (s == null ? 'no volvió (o cerró la página)' : s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`);
+    return `<h4>🛡 Modo examen · salidas</h4>${R.length ? `<table class="pn-t ex-sal"><thead><tr><th>Hora</th><th>De</th><th>Duración</th></tr></thead><tbody>${R.map((x) => `<tr><td>${esc(hora(x.t))}</td><td>${esc(x.tipo === 'pantalla' ? 'pantalla completa' : 'la pestaña')}</td><td>${esc(dur(x.dur))}</td></tr>`).join('')}</tbody></table><p class="pn-small">${R.length} salida${R.length === 1 ? '' : 's'}. Es solo informativo: no cambia la nota.</p>` : '<p class="pn-small">Sin salidas registradas.</p>'}`;
   }
   function recalcular() {
     const D = $('#apDetalle'); const ab = A.abierta; if (!D || !ab) return;

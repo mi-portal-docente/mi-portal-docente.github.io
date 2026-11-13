@@ -60,3 +60,32 @@ describe('Fase 1 · criterio', () => {
     await assertFails(setDoc(doc(anon('a7'), 'items/itemC04'), { ...ITEM_T, criterio: 'eee_c1_1' }));
   });
 });
+
+describe('Fase 2 · modo examen (incidencias) y banco de preguntas', () => {
+  const inc = (uid, o = {}) => ({ item: 'itemE01', al: 'g1_7', grupo: 'g1', numero: 7, uid, salidas: [{ t: 1, tipo: 'pestaña', dur: null }], fecha: serverTimestamp(), ...o });
+  test('examen con «pantallaCompleta»; tipo raro → denegado', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'examenes/itemE02'), EXAMEN({ pantallaCompleta: true })));
+    await assertFails(setDoc(doc(profe(), 'examenes/itemE03'), EXAMEN({ pantallaCompleta: 'sí' })));
+  });
+  test('el alumno anota sus salidas (crear y añadir) pero NO puede leerlas; el profesor sí', async () => {
+    const db = anon('a7');
+    await assertSucceeds(setDoc(doc(db, 'incidencias/itemE01_g1_7'), inc('a7')));
+    await assertSucceeds(setDoc(doc(db, 'incidencias/itemE01_g1_7'), inc('a7', { salidas: [{ t: 1, tipo: 'pestaña', dur: null }, { t: 1, tipo: 'pestaña', dur: 9 }] }), { merge: true }));
+    await assertFails(getDoc(doc(db, 'incidencias/itemE01_g1_7')));
+    await assertSucceeds(getDoc(doc(profe(), 'incidencias/itemE01_g1_7')));
+  });
+  test('ataque: anotar salidas de otro nº, de otro item o con campos extra → denegado', async () => {
+    const db = anon('a7');
+    await assertFails(setDoc(doc(db, 'incidencias/itemE01_g1_9'), inc('a7', { al: 'g1_9', numero: 9 })));
+    await assertFails(setDoc(doc(db, 'incidencias/itemT01_g1_7'), inc('a7', { item: 'itemT01' })));
+    await assertFails(setDoc(doc(db, 'incidencias/itemE01_g1_7'), inc('a7', { nota: 10 })));
+    await assertFails(setDoc(doc(anon('b5'), 'incidencias/itemE01_g2_5'), inc('b5', { al: 'g2_5', grupo: 'g2', numero: 5 })));
+  });
+  test('banco: solo el profesor lee y escribe; criterio obligatorio', async () => {
+    const q = { asig: 'eee', criterio: 'eee_c1_1', q: { tipo: 'vf', enunciado: 'x', correcta: true }, fecha: 1 };
+    await assertSucceeds(setDoc(doc(profe(), 'banco/bancoA1'), q));
+    await assertFails(setDoc(doc(profe(), 'banco/bancoA2'), { ...q, criterio: '' }));
+    await assertFails(getDoc(doc(anon('a7'), 'banco/bancoA1')));
+    await assertFails(setDoc(doc(anon('a7'), 'banco/bancoA3'), q));
+  });
+});

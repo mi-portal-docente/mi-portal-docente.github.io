@@ -1,10 +1,12 @@
 // Página de cada elemento del aula (#trabajo/<id>): material, tarea con entrega, actividad de clase,
 // examen con ventana y tiempo límite. (El «Trabajo de clase» y el tablón están en aula-clase.js.)
 // Sirven al alumno (con su grupo + nº + PIN) y al profesor (vista previa).
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { esc } from './util.js';
 import { asignatura, TIPOS } from '../lms/biblioteca.js';
 import { fmtNota, barajar, semilla, leeEnlaces, urlSegura, idTrabajo, TIPOS_ENTREGA, corregirExamen, tipoAdjunto } from '../lms/modelo.js';
+import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTipoPregunta } from './examen-ui.js';
+import { crearModoExamen } from './modo-examen.js';
 
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const pad = (n) => String(n).padStart(2, '0');
@@ -32,6 +34,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   const al = ses ? `${ses.grupo}_${ses.numero}` : null;
   const ex = { id: null, examen: null, resp: {}, timer: null, guardado: 0, tGuardar: null, enviando: false, error: '' };
   let actual = null; // {el, tipo: 'lista'|'item', id}
+  // Modo examen (pantalla completa + registro informativo de salidas). Solo alumno.
+  const modo = rol === 'alumno' ? crearModoExamen({ db, ses, uid }) : null;
 
   // ---------------------------------------------------------------- estado de cada elemento (alumno)
   function ventana(it) { const e = it.examen || {}; return { desde: e.desde || 0, hasta: e.hasta || 0, limiteMin: e.limiteMin || null }; }
@@ -97,7 +101,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (tr) return h + '<div class="au-ok">⏱ Se acabó el tiempo. Se han guardado las respuestas que diste.</div>';
     if (now < v.desde) return h + `<p class="au-vacio">El examen se abrirá el ${esc(fFecha(v.desde))}.</p>`;
     if (now > v.hasta) return h + '<p class="au-vacio">El plazo del examen ha terminado.</p>';
-    return h + `<div class="au-aviso">Solo tienes <b>un intento</b>. ${v.limiteMin ? `Tendrás <b>${v.limiteMin} minutos</b> desde que pulses «Empezar».` : ''} Las respuestas se guardan solas mientras contestas.</div>
+    const me = it.examen?.pantallaCompleta ? '<div class="au-aviso ex-modo-aviso">🛡 <b>Modo examen</b>: se abrirá a pantalla completa. Si sales de la pestaña o de la pantalla completa, queda anotada la hora y cuánto tiempo (lo ve solo tu profesor). No anula el examen.</div>' : '';
+    return h + me + `<div class="au-aviso">Solo tienes <b>un intento</b>. ${v.limiteMin ? `Tendrás <b>${v.limiteMin} minutos</b> desde que pulses «Empezar».` : ''} Las respuestas se guardan solas mientras contestas.</div>
       <div class="au-acts"><button class="btn primary" data-au="empezar">▶ Empezar el examen</button><span class="au-msg" id="auMsg"></span></div>`;
   }
   function itemHTML(it) {
@@ -160,22 +165,21 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     Object.assign(ex, { id: it.id, examen, resp: { ...(tr.respuestas || {}) }, guardado: Date.now(), enviando: false, error: '' });
     const s = semilla(it.id + '|' + al);
     const qs = examen.barajar ? barajar(examen.preguntas || [], s) : (examen.preguntas || []);
-    const opcionesDe = (q) => { const idx = (q.opciones || []).map((_, i) => i); return examen.barajar ? barajar(idx, s ^ semilla(q.id)) : idx; };
     const r = (q) => ex.resp[q.id];
     actual.el.innerHTML = barraSup() + `<div class="au-page au-examen">${cabeceraItem(it)}
       <div class="au-reloj" id="auReloj" role="timer"></div>
-      <form id="auExamen" class="au-form" autocomplete="off">${qs.map((q, n) => `<fieldset class="au-q" data-q="${esc(q.id)}"><legend><span class="au-qn">${n + 1}</span> ${textoHTML(q.enunciado)}<span class="au-small"> (${esc(fmtNota(q.puntos || 1))} pt)</span></legend>
-        ${q.tipo === 'test' ? opcionesDe(q).map((i) => `<label class="au-op"><input type="radio" name="q_${esc(q.id)}" value="${i}" ${r(q) === i ? 'checked' : ''}> ${esc(q.opciones[i])}</label>`).join('')
-        : q.tipo === 'vf' ? `<label class="au-op"><input type="radio" name="q_${esc(q.id)}" value="true" ${r(q) === true ? 'checked' : ''}> Verdadero</label><label class="au-op"><input type="radio" name="q_${esc(q.id)}" value="false" ${r(q) === false ? 'checked' : ''}> Falso</label>`
-        : `<input type="text" class="au-corta" name="q_${esc(q.id)}" maxlength="500" value="${esc(r(q) || '')}" placeholder="Tu respuesta">`}</fieldset>`).join('')}
+      ${examen.pantallaCompleta ? '<div class="ex-modo" id="exModo" role="status">🛡 Modo examen · las salidas de la pestaña o de la pantalla completa quedan anotadas (solo informativo). <button type="button" class="btn tiny" data-au="pantalla">⛶ Volver a pantalla completa</button></div>' : ''}
+      <form id="auExamen" class="au-form" autocomplete="off">${qs.map((q, n) => preguntaHTML(q, r(q), { n: n + 1, barajarOps: examen.barajar, s })).join('')}
         <div class="au-acts"><button type="submit" class="btn primary">📤 Entregar el examen</button><span class="au-msg" id="auMsg"></span></div>
         <p class="au-small">Las respuestas se guardan solas. Si se corta la conexión, vuelve a entrar con tu código, tu número y tu PIN: podrás seguir mientras quede tiempo.</p></form></div>`;
+    enlazarPreguntas(actual.el, () => { const f = document.getElementById('auExamen'); if (f && ex.examen) { leerRespuestas(f); programarGuardado(); } });
+    if (examen.pantallaCompleta) modo?.empezar(it); else modo?.parar();
     clearInterval(ex.timer); ex.timer = setInterval(() => tic(it), 1000); tic(it);
   }
   function tic(it) {
     const tr = st.trabajos.get(it.id); const el = document.getElementById('auReloj');
     if (!el || ex.id !== it.id) { clearInterval(ex.timer); return; }
-    if (tr?.estado === 'entregado') { clearInterval(ex.timer); ex.id = null; ex.examen = null; renderItem(actual.el, it.id); return; }
+    if (tr?.estado === 'entregado') { modo?.parar(true); clearInterval(ex.timer); ex.id = null; ex.examen = null; renderItem(actual.el, it.id); return; }
     const fin = limiteDe(it, tr || { inicio: Date.now() }); const s = Math.max(0, Math.round((fin - Date.now()) / 1000));
     el.textContent = `⏱ Tiempo restante: ${Math.floor(s / 60)}:${pad(s % 60)}`; el.classList.toggle('poco', s < 120);
     if (s <= 0 && !ex.enviando) entregarExamen(true);
@@ -183,10 +187,10 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   function leerRespuestas(f) {
     const q = ex.examen.preguntas || [];
     for (const p of q) {
-      const name = 'q_' + p.id;
-      if (p.tipo === 'corta') { const v = f.elements[name]?.value || ''; if (v.trim()) ex.resp[p.id] = v.slice(0, 500); else delete ex.resp[p.id]; continue; }
-      const c = f.querySelector(`input[name="${CSS.escape(name)}"]:checked`); if (!c) continue;
-      ex.resp[p.id] = p.tipo === 'vf' ? c.value === 'true' : Number(c.value);
+      const fs = f.querySelector(`fieldset[data-q="${CSS.escape(p.id)}"]`); if (!fs) continue;
+      const v = leerRespuesta(p, fs);
+      if (v === null) continue; // test / V-F sin marcar: se deja lo que hubiera
+      if (v === undefined) delete ex.resp[p.id]; else ex.resp[p.id] = v;
     }
   }
   function programarGuardado() {
@@ -208,6 +212,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     const id = ex.id;
     try {
       await updateDoc(doc(db, 'trabajos', idTrabajo(id, ses.grupo, ses.numero)), { respuestas: ex.resp, estado: 'entregado', fecha: serverTimestamp() });
+      modo?.parar(true);
       clearInterval(ex.timer); ex.id = null; ex.examen = null; renderItem(actual.el, id);
     } catch (e) {
       ex.enviando = false;
@@ -226,8 +231,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       const pq = examen?.preguntas || [];
       const prueba = corregirExamen(pq, k, k);
       box.innerHTML = pq.length ? `<ol class="au-prev">${pq.map((q) => `<li><div>${textoHTML(q.enunciado)} <span class="au-small">(${esc(fmtNota(q.puntos || 1))} pt)</span></div>
-        ${q.tipo === 'test' ? `<ul>${(q.opciones || []).map((o, i) => `<li class="${Number(k[q.id]) === i ? 'ok' : ''}">${Number(k[q.id]) === i ? '✔ ' : ''}${esc(o)}</li>`).join('')}</ul>`
-        : q.tipo === 'vf' ? `<div class="ok">✔ ${k[q.id] ? 'Verdadero' : 'Falso'}</div>` : `<div class="ok">✔ Se aceptan: ${esc((k[q.id] || []).join(' · ') || '— (corrección manual)')}</div>`}</li>`).join('')}</ol>
+        ${q.criterio ? `<span class="au-crit">${esc(q.criterio)}</span>` : ''}${q.tipo === 'test' ? `<ul>${(q.opciones || []).map((o, i) => `<li class="${Number(k[q.id]) === i ? 'ok' : ''}">${Number(k[q.id]) === i ? '✔ ' : ''}${esc(o)}</li>`).join('')}</ul>`
+        : q.tipo === 'vf' ? `<div class="ok">✔ ${k[q.id] ? 'Verdadero' : 'Falso'}</div>` : q.tipo === 'corta' ? `<div class="ok">✔ Se aceptan: ${esc((k[q.id] || []).join(' · ') || '— (corrección manual)')}</div>`
+        : `<div class="au-small">${esc(nombreTipoPregunta(q.tipo))}</div><div class="ok">✔ ${esc(solucionTexto(q, k[q.id]))}</div>`}</li>`).join('')}</ol>
         <p class="au-small">Total: ${esc(fmtNota(prueba.max))} puntos · ${examen.barajar ? 'preguntas y opciones barajadas para cada alumno' : 'sin barajar'}.</p>` : '<p class="au-vacio">Este examen todavía no tiene preguntas.</p>';
     } catch (e) { box.innerHTML = '<p class="au-vacio">No se han podido cargar las preguntas.</p>'; }
   }
@@ -235,8 +241,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   // ---------------------------------------------------------------- eventos
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-au]'); if (!b || !actual?.el.contains(b)) return;
-    if (b.dataset.au === 'empezar') empezar(b);
-    if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); b.disabled = true; abrirExamen(it).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }
+    if (b.dataset.au === 'empezar') { const it = st.items.get(actual.id); if (it?.examen?.pantallaCompleta) modo?.pedirPantalla(); empezar(b); }
+    if (b.dataset.au === 'pantalla') modo?.pedirPantalla();
+    if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); if (it?.examen?.pantallaCompleta) modo?.pedirPantalla(); b.disabled = true; abrirExamen(it).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }
     if (b.dataset.au === 'verPreguntas') verPreguntas();
     if (b.dataset.au === 'editar') window.PORTAL?.aula?.editar?.(actual.id);
   });
@@ -247,7 +254,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   });
   const alCambiar = (e) => { const f = e.target.closest?.('#auExamen'); if (f && ex.examen) { leerRespuestas(f); programarGuardado(); } };
   document.addEventListener('change', alCambiar); document.addEventListener('input', alCambiar);
-  window.addEventListener('hashchange', () => { if (ex.id && !location.hash.startsWith('#trabajo/' + ex.id)) { guardarExamen(); clearInterval(ex.timer); ex.id = null; ex.examen = null; } });
+  window.addEventListener('hashchange', () => { if (ex.id && !location.hash.startsWith('#trabajo/' + ex.id)) { guardarExamen(); modo?.parar(true); clearInterval(ex.timer); ex.id = null; ex.examen = null; } });
 
   // ---------------------------------------------------------------- actividades de clase (alumno)
   // Tarea de tipo «actividad» publicada para su grupo que enlaza a esta actividad (#asig/<a>/actividades/<id>).

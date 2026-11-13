@@ -56,3 +56,55 @@ después de `ios.css`), `index.html`, `js/acceso.js` (caché `gp1-20261113`), `f
 **Capturas**: `f1_importar_errores.png`, `f1_importar_vista_previa.png`, `f1_editor_criterio.png`, `f1_exportar.png`.
 
 **Dudas / pendiente**: ninguna.
+
+---
+
+## Fase 2 · Tipos de pregunta, banco y modo examen — HECHA
+
+**Qué hay**
+* Tipos nuevos de pregunta en el editor de exámenes, en la importación JSON y en la vista del alumno:
+  **emparejar** (desplegable por fila; distractores opcionales), **ordenar** (botones ↑ ↓, accesible con
+  teclado; nunca aparece ya ordenado), **completar huecos** (`[[respuesta|otra válida]]`, sin tildes ni
+  mayúsculas), **numérica** con tolerancia absoluta o en % (admite coma decimal y unidad) e **imagen con
+  zonas** (el alumno pulsa un punto; zonas en % de la imagen; también con flechas del teclado).
+* **Puntuación parcial** en emparejar (por pareja), ordenar (por posición) y huecos (por hueco). La
+  autocorrección del cuaderno y el detalle de cada entrega muestran la respuesta y la solución de cada tipo.
+* Las soluciones de los tipos nuevos van a `claves` (solo profesor): en `examenes` la derecha y el orden
+  van barajados, los huecos como `[[1]]`, y sin zonas ni valor.
+* **🗄 Banco de preguntas** por asignatura (botón en «Trabajo de clase»): añadir por JSON (cada pregunta
+  con su `criterio`) o copiando las de un examen del curso, verlas por criterio, borrarlas, exportarlas, y
+  **generar un examen** con n preguntas al azar de cada criterio (se guarda como borrador). En el editor,
+  «🗄 Del banco…» añade preguntas a un examen.
+* **Modo examen** (casilla en el examen): pide pantalla completa al empezar, franja fija con «Volver a
+  pantalla completa», y anota en `incidencias/{item_grupo_nº}` cada salida de la pestaña o de la pantalla
+  completa (hora y duración). El alumno lo sabe antes de empezar. El profesor lo ve en el detalle del
+  cuaderno («🛡 Modo examen · salidas»). **Es solo informativo: ni anula ni cambia la nota.** El barajado y
+  el tiempo límite ya existían y se mantienen.
+* Formatos y ejemplos en `FORMATO_IMPORTAR.md` (tabla de tipos, ejemplo con todos, formato del banco).
+
+**Archivos**: `src/lms/preguntas.js` (tipos nuevos), `src/lms/modelo.js` (corrección genérica),
+`src/lms/banco.js` (nuevo), `src/portal/examen-ui.js` (nuevo: pintar/leer respuestas), `src/portal/modo-examen.js`
+(nuevo), `src/portal/aula-banco.js` (nuevo), `src/portal/aula-vistas.js`, `src/portal/aula-editor.js`,
+`src/portal/aula-panel.js`, `src/portal/aula-clase.js`, `css/plataforma.css`, `FORMATO_IMPORTAR.md`,
+`firebase/firestore.rules`, `firebase/test/plataforma.test.mjs`, `plataforma_test.mjs`, `e2e/plataforma_f2.mjs`,
+caché `gp2-20261113`.
+
+**Reglas (cambian, sin desplegar)**: nueva colección `incidencias` (el alumno solo crea/añade las suyas, con
+claves fijas, `fecha == request.time`, máx. 400 salidas, solo en exámenes publicados para su grupo; no las
+puede leer; el profesor lee y borra); nueva colección `banco` (solo profesor); `examenes` admite
+`pantallaCompleta` (booleano). Regenerado `/workspace/portal-acceso/firestore.rules.para-pegar.txt`
+(fuera del repositorio; la copia anterior está en `/workspace/copias/`).
+
+**Nota técnica**: Firestore no admite listas dentro de listas; la clave de «huecos» guarda cada hueco como
+texto `"a|b"` y el banco guarda las parejas como `{i, d}`. Hay una prueba unitaria que lo vigila.
+
+**Pruebas**: `plataforma_test.mjs` 16/16 · reglas 89/89 (fases 1 y 2 incluidas) · E2E fases 1+2: 12/12 y
+17/17. Regresión de siempre con el estado de la fase 1: placa, circ, circ_pins, viv, viv_modelo,
+aula_modelo, acceso, extra y reglas ✔; E2E `fb_e2e` 59/59 y `aula_e2e` 115/116 (falla «el curso ya no tiene
+T.I.Cs 1º Bach…», la comprobación se hace justo después de quitar la asignatura; no toca código de esta
+rama: se repite en la fase 3 para ver si es de tiempo).
+
+**Capturas**: `f2_editor_tipos_nuevos.png`, `f2_alumno_examen_tipos.png`, `f2_cuaderno_salidas.png`, `f2_banco.png`.
+
+**Dudas / pendiente**: en iPhone (Safari) la pantalla completa no existe para páginas; allí solo se anota
+la salida de la pestaña. Las preguntas generadas del banco conservan el criterio.

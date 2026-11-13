@@ -1,6 +1,7 @@
 // Lógica pura del aula virtual (sin Firebase ni DOM): corrección de exámenes, rúbricas,
 // medias ponderadas, barajado determinista, PIN y CSV. Se usa en la web y en las pruebas.
 import { CATEGORIAS, TIPOS } from './biblioteca.js';
+import { TIPOS_PREGUNTA } from './preguntas.js';
 
 export const TIPOS_ENTREGA = ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto'];
 export const categoriaDe = (tipo) => (TIPOS[tipo] && TIPOS[tipo].cat) || null;
@@ -14,7 +15,7 @@ export function normaliza(t) {
 }
 
 // Corrige un examen.
-//  preguntas: [{id, tipo: 'test'|'vf'|'corta', puntos}]
+//  preguntas: [{id, tipo: 'test'|'vf'|'corta'|'emparejar'|'ordenar'|'huecos'|'numerica'|'zonas', puntos}] (ver preguntas.js)
 //  claves:    {qid: índice (test) | true/false (vf) | [respuestas aceptadas] (corta)}
 //  respuestas:{qid: índice | true/false | texto}
 // Devuelve {puntos, max, nota (0-10), detalle: {qid: puntos}, revisar: [qid de respuestas cortas sin coincidencia]}
@@ -32,6 +33,7 @@ export function corregirExamen(preguntas, claves, respuestas, manual = {}) {
       got = ok ? p : 0;
       if (!ok && r != null && String(r).trim() !== '') revisar.push(q.id);
     }
+    else if (TIPOS_PREGUNTA[q.tipo]) got = redondea(p * TIPOS_PREGUNTA[q.tipo].corregir(q, k, r), 4); // emparejar, ordenar, huecos (parcial), numérica, zonas
     detalle[q.id] = got; puntos += got;
   }
   return { puntos: redondea(puntos), max: redondea(max), nota: max ? redondea((puntos / max) * 10) : 0, detalle, revisar };

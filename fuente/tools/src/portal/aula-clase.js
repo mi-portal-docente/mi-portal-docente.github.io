@@ -10,6 +10,7 @@ import { idItem, ordenEntre, leeEnlaces, categoriaDe, tipoAdjunto, urlSegura, fm
 import { crearEditor, estadoPub, fFecha, PEND_T } from './aula-editor.js';
 import { textoHTML } from './aula-vistas.js';
 import { crearJson } from './aula-json.js';
+import { crearBanco } from './aula-banco.js';
 
 const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const nombreTipo = (tipo) => TIPOS[tipo]?.nombre || tipo;
@@ -42,7 +43,8 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const gruposDe = (cursoId, asig) => [...st.grupos.values()].filter((g) => (!asig || (g.asignaturas || []).includes(asig)) && (g.curso ? g.curso === cursoId : true)).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const editor = prof ? crearEditor({ db, aula, gruposDe }) : null;
   const json = prof ? crearJson({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal(), gruposDe }) : null;
-  if (editor) editor.exportar = (it) => json.exportar(it);
+  const banco = prof ? crearBanco({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal(), gruposDe }) : null;
+  if (editor) { editor.exportar = (it) => json.exportar(it); editor.desdeBanco = (asig, cb) => banco.elegir(asig, cb); }
   const curso = () => st.cursos.get(st.cursoSel) || null;
   const ahora = () => Date.now();
 
@@ -99,7 +101,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const bar = prof ? `<div class="cl-bar"><div class="cl-crear"><button class="btn primary cl-crear-b" data-cl="crear" aria-haspopup="true" aria-expanded="${C.crear}">＋ Crear</button>
         ${C.crear ? `<div class="cl-crear-m" role="menu">${[['tarea', 'Tarea'], ['examen', 'Tarea de cuestionario'], ['pregunta', 'Pregunta'], ['material', 'Material']].map(([t, n]) => `<button role="menuitem" data-cl="nuevo" data-tipo="${t}"><span>${icono(t)}</span>${n}</button>`).join('')}
           <hr><button role="menuitem" data-cl="reutilizar"><span>♻️</span>Reutilizar publicación</button><button role="menuitem" data-cl="nuevoTema"><span>🗂</span>Tema</button></div>` : ''}</div>
-        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">📥 Importar JSON</button><span class="pn-grow"></span>
+        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">📥 Importar JSON</button><button class="btn" data-cl="banco">🗄 Banco de preguntas</button><span class="pn-grow"></span>
         <span class="pn-small">${E.items.length} elementos · ${E.items.filter((i) => i.publicado).length} publicados · ${E.items.filter((i) => !i.publicado).length} borradores</span></div>` : '';
     if (!E.items.length && !E.temas.length) return bar + (prof
       ? `<div class="cl-vacio"><p>Aquí aparecerá el trabajo de clase de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}.</p><p>Pulsa <b>⬇ Importar de Classroom</b> para cargar los temas y elementos que tenías en Classroom, o <b>＋ Crear</b> para empezar.</p></div>`
@@ -481,6 +483,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'nuevoTema') { pintar(); return nuevoTema(); }
       if (acc === 'reutilizar') { pintar(); return reutilizar(); }
       if (acc === 'importar') return importar();
+      if (acc === 'banco') return banco.abrir(C.asig);
       if (acc === 'importarJSON') return json.importar({ curso: st.cursoSel, asig: C.asig, tema: C.filtro || null, temas: temasAsig(C.asig, []) });
       if (acc === 'temaUp' || acc === 'temaDown') { const L = temasAsig(C.asig, []); const i = L.findIndex((x) => x.id === t.id); return moverTema(t.id, acc === 'temaUp' ? L[i - 1]?.id : L[i + 2]?.id || null); }
       if (acc === 'temaRen' && t) return renombrarTema(t);
