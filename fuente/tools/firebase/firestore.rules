@@ -740,6 +740,12 @@ service cloud.firestore {
 
     // versiones/{trabajo_vN}: las 5 últimas versiones entregadas de cada trabajo (fase 9).
     // El alumno las escribe al entregar (hueco N = nº de entrega módulo 5) pero NO las lee: solo el profesor.
+    // Fase 14: «Exportar todo» y «Limpiar curso escolar» leen los comentarios de todos los trabajos con una sola
+    // consulta de grupo (solo el profesor, que ya puede leer cada uno).
+    match /{ruta=**}/comentarios/{cid} {
+      allow read: if esProfesor();
+    }
+
     match /versiones/{id} {
       allow read, delete: if esProfesor();
       allow create, update: if alumnoOk() && versionOk(request.resource.data)

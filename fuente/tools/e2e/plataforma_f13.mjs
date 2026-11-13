@@ -48,7 +48,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   ok('entregado: la hoja se guarda (fórmulas, gráfico, tabla dinámica) con el resumen «Aciertos: 2/2»', d.c?.C5 === '=SUMA(C2:C4)' && d.g?.rango === 'A1:C4' && d.p?.fila === 'Tipo' && /Aciertos: 2\/2/.test(campo(tr, 'texto')), campo(tr, 'texto'));
   ok('entregada: solo lectura', !(await A.pg.$('.hj-c')) && !!(await A.pg.$('.hj-ro')));
   // ---- profesor: corrección
-  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 15000 });
+  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo], [data-co=cerrar]', { timeout: 20000 }); if (await pg.$('[data-co=cerrar]')) await pg.click('[data-co=cerrar]'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 15000 });
   await pg.selectOption('[data-ap-f=gGrupo]', T.GE.id); await pg.waitForFunction((g) => document.querySelector('[data-ap-f=gGrupo]')?.value === g && document.querySelector('[data-ap-f=gAsig]'), T.GE.id, { timeout: 15000 });
   if ((await pg.inputValue('[data-ap-f=gAsig]')) !== 'eee') await pg.selectOption('[data-ap-f=gAsig]', 'eee');
   await pg.waitForSelector(`th[data-col="${id}"] [data-ap=corregir]`, { timeout: 15000 }); await pg.click(`th[data-col="${id}"] [data-ap=corregir]`);
@@ -82,7 +82,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await A.pg.keyboard.press('Escape'); await A.pg.waitForTimeout(300);
   ok('Esc cierra el visor 3D', !(await A.pg.$('.v3')));
   await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 }).catch(async () => { throw new Error('entregar: ' + await A.pg.textContent('#enMsg').catch(() => '?')); });
-  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector(`[data-ap-f=gGrupo], th[data-col="${ta}"]`, { timeout: 15000 });
+  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo], [data-co=cerrar]', { timeout: 20000 }); if (await pg.$('[data-co=cerrar]')) await pg.click('[data-co=cerrar]'); await pg.waitForSelector(`[data-ap-f=gGrupo], th[data-col="${ta}"]`, { timeout: 15000 });
   if (!(await pg.$(`th[data-col="${ta}"] [data-ap=corregir]`))) { if ((await pg.inputValue('[data-ap-f=gGrupo]').catch(() => T.GE.id)) !== T.GE.id) await pg.selectOption('[data-ap-f=gGrupo]', T.GE.id); }
   await pg.waitForSelector(`th[data-col="${ta}"] [data-ap=corregir]`, { timeout: 15000 }); await pg.click(`th[data-col="${ta}"] [data-ap=corregir]`);
   await pg.waitForSelector('#coTrabajo [data-v3d-tid]', { timeout: 15000 });

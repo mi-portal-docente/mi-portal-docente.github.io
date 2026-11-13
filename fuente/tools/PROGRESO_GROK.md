@@ -516,3 +516,26 @@ bloqueado hasta que el profesor ponga la nota nueva o lo vuelva a devolver.
 **Formato JSON**: secciones «Hoja de cálculo» y «Modelo 3D en una entrega» en `FORMATO_IMPORTAR.md`.
 **Pruebas**: `plataforma_test.mjs` 40/40 · reglas 119/119 · E2E fase 13: 17/17.
 **Capturas**: `f13_hoja_alumno`, `f13_hoja_correccion`, `f13_visor_pdf`, `f13_visor_3d`.
+
+## Fase 14 · Copia y limpieza del curso escolar y rendimiento (13/11/2026)
+
+**Hecho**
+- **«Exportar todo»** (Ajustes y limpieza): JSON de un curso escolar con elementos, temas, anuncios, exámenes y claves,
+  trabajos con sus comentarios, imágenes y modelos 3D, versiones, notas, registros, incidencias, PIAC y directo.
+  Lecturas justas: una consulta por colección (las ligadas a elementos, con `in` en trozos de 30), los comentarios
+  con una sola consulta de grupo y las imágenes / modelos solo de los trabajos que los usan.
+- **«Limpiar curso escolar…»**: descarga antes la copia, enseña cuántos documentos va a borrar y pide **dos
+  confirmaciones** (aceptar y escribir el nombre del curso). Borra los datos del alumnado (también las subcolecciones,
+  que el antiguo «Borrar trabajos y notas» dejaba huérfanas) y conserva el contenido salvo que se marque la casilla.
+  Sustituye al botón antiguo.
+- **Rendimiento con 100 alumnos**: el cuaderno escucha solo los trabajos de la asignatura elegida (antes, todos los del
+  grupo, que pesan por los documentos); el panel deja de escuchar (sesiones, accesos, entregas…) si la pestaña está
+  oculta más de 2 minutos y se reanuda al volver (cada latido de 100 alumnos era una lectura por minuto). Los
+  elementos del profesor ya se escuchaban solo del curso elegido.
+
+**Reglas** (sin desplegar): lectura de los comentarios con consulta de grupo `/{ruta=**}/comentarios/{cid}` solo
+para el profesor (que ya podía leer cada uno). Pruebas: 120/120.
+**Librerías**: ninguna nueva.
+**Formato JSON**: sección «Copia de un curso escolar» en `FORMATO_IMPORTAR.md`.
+**Pruebas**: `plataforma_test.mjs` 41/41 · reglas 120/120 · E2E fase 14: 7/7 (fases 9–14 seguidas: ver abajo).
+**Capturas**: `f14_ajustes_copia`, `f14_limpiar_hecho`.

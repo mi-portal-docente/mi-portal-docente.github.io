@@ -486,3 +486,19 @@ test('fase 13: motor «hoja» (tamaño, celdas iniciales y retos validados)', as
   const e2 = []; M.validar({ columnas: 3, celdas: { Z9: 'x' }, retos: [{ texto: 'r', comprobar: [{ celda: 'A1', formula: 'NOEXISTE' }] }] }, (r, t) => e2.push(r));
   assert.deepEqual(e2, ['celdas', 'retos[0].comprobar']);
 });
+
+// ---------------------------------------------------------------- fase 14 · copia y limpieza del curso
+import * as CP from './src/lms/copia.js';
+test('fase 14: copia del curso (fechas a JSON, trozos de 30, imágenes usadas, resumen, nombre y doble confirmación)', () => {
+  const f = { toDate: () => new Date('2026-11-13T10:00:00Z') };
+  assert.deepEqual(CP.aJSON({ a: f, b: [1, { c: f }], d: null, e: 'x' }), { a: { __fecha: '2026-11-13T10:00:00.000Z' }, b: [1, { c: { __fecha: '2026-11-13T10:00:00.000Z' } }], d: null, e: 'x' });
+  assert.deepEqual(CP.trozos(Array.from({ length: 65 }, (_, i) => i)).map((t) => t.length), [30, 30, 5]);
+  assert.deepEqual(CP.imagenesDe({ doc: '<p><img data-img="img1" src=""><img data-img="img3"><img data-img="img1"></p>' }), ['img1', 'img3']);
+  assert.deepEqual(CP.imagenesDe({}), []);
+  const c = { colecciones: { items: [{}, {}], trabajos: [{}, {}, {}], notas: [{}] }, subcolecciones: { comentarios: [{}], imagenes: [] } };
+  assert.deepEqual(CP.resumenCopia(c), { items: 2, trabajos: 3, notas: 1, comentarios: 1, imagenes: 0 });
+  assert.equal(CP.totalCopia(c), 7); assert.equal(CP.alumnadoCopia(c), 5);
+  assert.equal(CP.nombreCopia('2026/27', new Date('2026-11-13T12:00:00Z')), 'copia-curso-2026-27-20261113.json');
+  assert.ok(CP.confirmacionOk(' 2026/27 ', '2026/27')); assert.ok(!CP.confirmacionOk('2026', '2026/27')); assert.ok(!CP.confirmacionOk('', ''));
+  assert.ok(CP.COLECCIONES_CURSO.some((x) => x.col === 'trabajos' && !x.contenido) && CP.COLECCIONES_CURSO.some((x) => x.col === 'items' && x.contenido));
+});

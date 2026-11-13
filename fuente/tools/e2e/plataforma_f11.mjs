@@ -73,7 +73,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const tidX = `${id}_${T.GE.id}_10`; malo.fields.numero = { integerValue: '10' }; malo.fields.al = { stringValue: `${T.GE.id}_10` }; malo.fields.estado = { stringValue: 'entregado' };
   await fetch(`${REST}/trabajos/${tidX}`, { ...owner, method: 'PATCH', headers: { ...owner.headers, 'Content-Type': 'application/json' }, body: JSON.stringify(malo) });
   // ---- profesor: vista de corrección
-  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 15000 });
+  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo], [data-co=cerrar]', { timeout: 20000 }); if (await pg.$('[data-co=cerrar]')) await pg.click('[data-co=cerrar]'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 15000 });
   await pg.selectOption('[data-ap-f=gGrupo]', T.GE.id); await pg.waitForFunction((g) => document.querySelector('[data-ap-f=gGrupo]')?.value === g && document.querySelector('[data-ap-f=gAsig]'), T.GE.id, { timeout: 15000 });
   if ((await pg.inputValue('[data-ap-f=gAsig]')) !== 'eee') await pg.selectOption('[data-ap-f=gAsig]', 'eee');
   await pg.waitForSelector(`th[data-col="${id}"] [data-ap=corregir]`, { timeout: 15000 }); await pg.click(`th[data-col="${id}"] [data-ap=corregir]`);

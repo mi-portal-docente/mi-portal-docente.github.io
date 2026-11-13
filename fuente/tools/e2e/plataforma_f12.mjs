@@ -53,7 +53,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const tr = JSON.stringify(await docREST(`trabajos/${id}_${T.GE.id}_11`));
   ok('entregado: respuestas de clasificar, tabla y la abierta (HTML limpio con negrita)', /<strong>sobreintensidad<\/strong>/.test(tr) && /ohmio/.test(tr), tr.slice(0, 160));
   // ---- profesor: autocorregir + rúbrica de la abierta
-  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 20000 });
+  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo], [data-co=cerrar]', { timeout: 20000 }); if (await pg.$('[data-co=cerrar]')) await pg.click('[data-co=cerrar]'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 20000 });
   await pg.selectOption('[data-ap-f=gGrupo]', T.GE.id); await pg.waitForTimeout(500); await pg.selectOption('[data-ap-f=gAsig]', 'eee').catch(() => { });
   await pg.waitForSelector(`th[data-col="${id}"] [data-ap=autocorregir]`, { timeout: 20000 });
   await pg.click(`th[data-col="${id}"] [data-ap=autocorregir]`); await pg.waitForTimeout(2000);
@@ -91,7 +91,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   ok('intento 2: 2/2, es el mejor y ya no quedan intentos', /2 \/ 2 puntos/.test(await A.pg.textContent('.ia-res')) && /No te quedan intentos/.test(await A.pg.textContent('.ia')));
   const ti = await docREST(`trabajos/${ia}_${T.GE.id}_11`);
   ok('se guarda el mejor intento («Aciertos: 2/2») y los datos de los intentos', /Aciertos: 2\/2/.test(ti.fields?.texto?.stringValue || '') && num(ti.fields?.datos?.mapValue?.fields?.intentos) === 2 && num(ti.fields?.datos?.mapValue?.fields?.mejor) === 10);
-  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 20000 });
+  await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo], [data-co=cerrar]', { timeout: 20000 }); if (await pg.$('[data-co=cerrar]')) await pg.click('[data-co=cerrar]'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 20000 });
   await pg.selectOption('[data-ap-f=gGrupo]', T.GE.id); await pg.waitForTimeout(500); await pg.selectOption('[data-ap-f=gAsig]', 'eee').catch(() => { });
   await pg.waitForSelector(`th[data-col="${ia}"] [data-ap=notasActividad]`, { timeout: 20000 });
   await pg.click(`th[data-col="${ia}"] [data-ap=notasActividad]`); await pg.waitForTimeout(2000);

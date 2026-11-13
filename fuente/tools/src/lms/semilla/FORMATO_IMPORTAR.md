@@ -451,3 +451,23 @@ líneas) y tabla dinámica sencilla (agrupar por una columna y SUMA / PROMEDIO /
 En tareas, prácticas, proyectos, actividades y recuperaciones el alumno puede subir **un STL de hasta 600 KB**
 (se guarda en el propio trabajo, sin Storage) o poner un enlace a un `.stl` / `.glb`. El profesor lo abre en el visor
 3D al corregir. Los adjuntos y enlaces `.stl` / `.glb` / `.gltf` del profesor también se abren en el visor.
+
+## Copia de un curso escolar («Exportar todo», fase 14)
+
+Panel del profesor › Ajustes y limpieza › «Curso escolar: copia y limpieza». Descarga `copia-curso-AAAA-AA-AAAAMMDD.json`:
+
+```json
+{ "formato": "portal-docente/copia-curso@1", "fecha": "2027-06-30T10:00:00.000Z",
+  "curso": { "id": "…", "nombre": "2026/27", "asignaturas": ["eee"] },
+  "grupos": [ { "id": "…", "nombre": "…", "curso": "…" } ],
+  "colecciones": { "items": [ { "id": "…", "tipo": "tarea", "…": "…" } ], "temas": [], "anuncios": [], "examenes": [], "claves": [],
+                   "directo": [], "trabajos": [], "notas": [], "versiones": [], "registros": [], "incidencias": [], "piac": [],
+                   "piacEval": [], "respDirecto": [] },
+  "subcolecciones": { "comentarios": [ { "trabajo": "…", "id": "…", "texto": "…" } ], "imagenes": [], "modelos": [] } }
+```
+
+- Cada documento lleva su `id`; las fechas van como `{ "__fecha": "ISO" }`. Es una copia para guardar fuera del portal
+  (contiene trabajos y notas del alumnado: guárdala en un sitio seguro y bórrala cuando ya no haga falta).
+- «Limpiar curso escolar» descarga antes esta copia y pide dos confirmaciones (aceptar y escribir el nombre del curso).
+  Borra trabajos (con comentarios, imágenes y modelos 3D), notas, versiones, registros, incidencias, PIAC y respuestas
+  en directo del curso. El contenido (elementos, temas, anuncios, exámenes) solo se borra si se marca la casilla.

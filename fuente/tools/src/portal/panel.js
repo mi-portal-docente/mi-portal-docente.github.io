@@ -62,6 +62,14 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     st.unsubs.push(onSnapshot(collection(db, 'bloqueos'), (qs) => { st.bloqueos = new Set(qs.docs.map((d) => d.id)); pintarLuego(); }, () => { }));
     st.tick = setInterval(() => { if (st.sub === 'conectados') pintarDatos(); else pintarContadores(); }, 15000);
   }
+  // Fase 14: con la pestaña oculta más de 2 minutos se dejan de escuchar los datos (con 100 alumnos, cada latido
+  // de las sesiones es una lectura); al volver se reanudan (Firestore solo cobra lo que ha cambiado si es en < 30 min).
+  let dormir = 0;
+  document.addEventListener('visibilitychange', () => {
+    clearTimeout(dormir);
+    if (document.visibilityState === 'hidden') { dormir = setTimeout(() => { if (st.unsubs.length) { parar(); st.dormido = true; } }, 120000); return; }
+    if (st.dormido) { st.dormido = false; if (st.el && document.body.contains(st.el)) { iniciar(); pintarDatos(); ap.pintar?.(); } }
+  });
   function parar() { st.unsubs.forEach(f => { try { f(); } catch (e) { } }); st.unsubs = []; clearInterval(st.tick); st.tick = null; ap.parar(); }
   function errorDatos(e) { const b = $('#pnAviso'); if (b) { b.textContent = 'No se pueden leer los datos del portal (' + (e?.code || 'error') + '). Comprueba la conexión.'; b.hidden = false; } }
   // Horario de verano/invierno: el desfase con UTC se guarda en cada grupo; se actualiza solo al abrir el panel.

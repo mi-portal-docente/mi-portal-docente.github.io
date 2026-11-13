@@ -7,7 +7,7 @@
 (function () {
   'use strict';
   var LS_KEY = 'portal.acceso';
-  var APP_SRC = 'js/app.js?v=gp13-20261113';
+  var APP_SRC = 'js/app.js?v=gp14-20261113';
 
   function cfg() { return window.PORTAL_ACCESO || {}; }
 
@@ -229,7 +229,7 @@
 
   function cargarFirebase() {
     var s = document.createElement('script');
-    s.src = 'js/portal-fb.js?v=gp13-20261113';
+    s.src = 'js/portal-fb.js?v=gp14-20261113';
     s.onerror = function () {
       document.body.insertAdjacentHTML('afterbegin', '<p class="loading">No se ha podido cargar el control de acceso. Comprueba la conexión y recarga la página.</p>');
     };

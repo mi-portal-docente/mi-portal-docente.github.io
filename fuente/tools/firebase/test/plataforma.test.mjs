@@ -370,3 +370,12 @@ describe('Fase 13 · modelo 3D (STL pequeño) y hoja de cálculo', () => {
     await assertSucceeds(deleteDoc(m('m1')));
   });
 });
+
+describe('Fase 14 · copia del curso: comentarios con consulta de grupo', () => {
+  test('el profesor lee todos los comentarios con collectionGroup; el alumno no', async () => {
+    await sembrar(async (db) => { await setDoc(doc(db, 'trabajos/itemC01_g1_7'), { ...tarea('a7', { item: 'itemC01', estado: 'entregado' }), fecha: 1 }); await setDoc(doc(db, 'trabajos/itemC01_g1_7/comentarios/c00001'), { autor: 'profesor', texto: 'Bien', fecha: 1 }); });
+    const { collectionGroup, getDocs } = await import('firebase/firestore');
+    await assertSucceeds(getDocs(collectionGroup(profe(), 'comentarios')));
+    await assertFails(getDocs(collectionGroup(anon('a7'), 'comentarios')));
+  });
+});

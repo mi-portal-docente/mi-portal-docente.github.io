@@ -16,6 +16,8 @@ import { estadoChipHTML } from './entrega-ui.js';
 import { crearCorreccion } from './correccion-ui.js';
 import { limpiarDoc } from '../lms/doc-html.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
+import { exportarCurso, limpiarCurso } from './curso-datos.js';
+import { totalCopia } from '../lms/copia.js';
 
 // Elementos que entregan «Aciertos: a/t» (actividades de clase y motores entregables: explicación, laboratorios…)
 const conResultado = (t) => t === 'actividad' || !!motor(t)?.entregable;
@@ -167,11 +169,13 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   function grupoSel() { const g = ps.grupos.get(A.gGrupo); if (g) return g; const L = [...ps.grupos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')); A.gGrupo = L[0]?.id || ''; return L[0] || null; }
   function asigGrupo(g) { const L = (g?.asignaturas || []).filter((x) => asignatura(x)); if (!L.includes(A.gAsig)) A.gAsig = L[0] || ''; return A.gAsig; }
   function escucharGrupo(g) {
-    if (A.gEsc === g.id) return; pararGrupo(); A.gEsc = g.id; A.listoG = false;
+    // Fase 14: los trabajos (que pueden pesar mucho por el documento) solo de la asignatura elegida; las notas, del grupo.
+    const asig = asigGrupo(g); const clave = g.id + '|' + asig;
+    if (A.gEsc === clave) return; pararGrupo(); A.gEsc = clave; A.listoG = false;
     if (g.curso && g.curso !== st.cursoSel) aula.elegirCurso(g.curso);
     let n = 0; const listo = () => { if (++n >= 2) A.listoG = true; pintar(); };
     let una = [false, false];
-    A.gUnsubs.push(onSnapshot(query(collection(db, 'trabajos'), where('grupo', '==', g.id)), (qs) => { A.trabajos = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); A.trabajos.set(d.id, { id: d.id, ...x, fecha: x.fecha?.toMillis?.() || null, inicio: x.inicio?.toMillis?.() || null }); }); if (!una[0]) { una[0] = true; listo(); } else pintar(); }, () => { }));
+    A.gUnsubs.push(onSnapshot(asig ? query(collection(db, 'trabajos'), where('grupo', '==', g.id), where('asig', '==', asig)) : query(collection(db, 'trabajos'), where('grupo', '==', g.id)), (qs) => { A.trabajos = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); A.trabajos.set(d.id, { id: d.id, ...x, fecha: x.fecha?.toMillis?.() || null, inicio: x.inicio?.toMillis?.() || null }); }); if (!una[0]) { una[0] = true; listo(); } else pintar(); }, () => { }));
     A.gUnsubs.push(onSnapshot(query(collection(db, 'notas'), where('grupo', '==', g.id)), (qs) => { A.notas = new Map(); qs.forEach((d) => A.notas.set(d.id, { id: d.id, ...d.data() })); if (!una[1]) { una[1] = true; listo(); } else pintar(); }, () => { }));
   }
   function pararGrupo() { A.gUnsubs.forEach((f) => { try { f(); } catch (e) { } }); A.gUnsubs = []; A.gEsc = null; }
@@ -445,20 +449,23 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
 
   // =============================================================== limpieza (aula)
   function limpiezaHTML() {
+    const prev = { c: $('#apBorrarCurso')?.value, x: !!$('#apBorrarContenido')?.checked, m: $('#apBorrarMsg')?.textContent || '' }; // se repinta con cada cambio de datos
     const gs = [...ps.grupos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     return `<section class="pn-card"><h3>PIN de los alumnos</h3><p class="pn-small">Cada nº de lista elige un PIN la primera vez. Si un alumno lo olvida, reinícialo desde el «Cuaderno de calificaciones» (casilla del alumno) o aquí todos los del grupo: la próxima vez que entre elegirá uno nuevo.</p>
       <div class="pn-acts"><select id="apPinGrupo">${gs.map((g) => opt(g.id, g.nombre, '')).join('')}</select><button class="btn" data-ap="pinesGrupo" ${gs.length ? '' : 'disabled'}>🔑 Reiniciar todos los PIN del grupo</button><span class="pn-msg" id="apPinMsg"></span></div></section>
-      <section class="pn-card"><h3>Trabajos y notas del aula</h3><p class="pn-small">Al cerrar un curso escolar, exporta el CSV de cada grupo y borra sus trabajos y notas para no guardar datos más tiempo del necesario.</p>
-      <div class="pn-acts"><select id="apBorrarCurso">${cursos().map((c) => opt(c.id, c.nombre, '')).join('')}</select><button class="btn pn-peligro" data-ap="borrarCursoDatos" ${st.cursos.size ? '' : 'disabled'}>🗑 Borrar trabajos y notas de ese curso</button><span class="pn-msg" id="apBorrarMsg"></span></div></section>`;
+      <section class="pn-card" id="apCopia"><h3>${ic('archive')} Curso escolar: copia y limpieza</h3><p class="pn-small">«Exportar todo» descarga un JSON con todo el curso: elementos, temas, anuncios, exámenes, trabajos (con comentarios, imágenes y modelos 3D), versiones, notas y registros. Al cerrar el curso, «Limpiar curso escolar» descarga antes esa copia y después borra los datos del alumnado (doble confirmación). El contenido se conserva salvo que marques la casilla.</p>
+      <div class="pn-acts"><select id="apBorrarCurso" aria-label="Curso escolar">${cursos().map((c) => opt(c.id, c.nombre, prev.c || '')).join('')}</select><button class="btn" data-ap="exportarCurso" ${st.cursos.size ? '' : 'disabled'}>${ic('download')} Exportar todo (JSON)</button></div>
+      <div class="pn-acts"><label class="pn-chk"><input type="checkbox" id="apBorrarContenido" ${prev.x ? 'checked' : ''}> Borrar también el contenido (elementos, temas, anuncios y exámenes)</label></div>
+      <div class="pn-acts"><button class="btn pn-peligro" data-ap="limpiarCurso" ${st.cursos.size ? '' : 'disabled'}>${ic('trash')} Limpiar curso escolar…</button><span class="pn-msg" id="apBorrarMsg" role="status" aria-live="polite">${esc(prev.m)}</span></div></section>`;
   }
-  async function borrarDatosCurso(cid) {
-    const nombre = st.cursos.get(cid)?.nombre || cid;
-    const [t, n] = await Promise.all([getDocs(query(collection(db, 'trabajos'), where('curso', '==', cid))), getDocs(query(collection(db, 'notas'), where('curso', '==', cid)))]);
-    if (!t.size && !n.size) { alert('No hay trabajos ni notas de ese curso.'); return; }
-    if (!confirm(`¿Borrar ${t.size} trabajos y ${n.size} notas de ${nombre}? No se puede deshacer.`)) return;
-    await enLotes([...t.docs, ...n.docs].map((d) => ({ db, fn: (b) => b.delete(d.ref) })));
-    $('#apBorrarMsg').textContent = '✔ Borrado.';
+  async function copiaCurso(acc) {
+    const c = st.cursos.get($('#apBorrarCurso')?.value || ''); if (!c) return; const m = $('#apBorrarMsg'); const aviso = (t) => { if (m) m.textContent = t; };
+    try {
+      if (acc === 'exportarCurso') { const cp = await exportarCurso(db, c, aviso); aviso(`Copia descargada: ${totalCopia(cp)} documentos.`); }
+      else await limpiarCurso(db, c, { contenido: !!$('#apBorrarContenido')?.checked }, aviso);
+    } catch (e) { aviso('No se ha podido: ' + (e?.code || e?.message || e)); }
   }
+
 
   // =============================================================== eventos
   async function onClick(ev) {
@@ -496,7 +503,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
         if (!confirm(`¿Reiniciar ${L.length} PIN de ${g.nombre}?`)) return;
         await enLotes(L.map((d) => ({ db, fn: (bt) => bt.delete(d.ref) }))); $('#apPinMsg').textContent = `✔ ${L.length} PIN reiniciados.`;
       }
-      if (acc === 'borrarCursoDatos') await borrarDatosCurso($('#apBorrarCurso').value);
+      if (acc === 'exportarCurso' || acc === 'limpiarCurso') { b.disabled = true; try { await copiaCurso(acc); } finally { b.disabled = false; } }
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || e?.message || 'error') + ').'); }
   }
   function onChange(ev) {
