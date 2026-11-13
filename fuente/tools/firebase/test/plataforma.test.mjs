@@ -267,6 +267,8 @@ describe('Fase 9 · entregas completas', () => {
     await assertFails(getDoc(doc(anon('a7'), 'versiones/itemT01_g1_7_v1')));
     await assertFails(setDoc(doc(anon('a7'), 'versiones/itemT01_g1_7_v2'), v()), 'hueco equivocado');
     await assertFails(setDoc(doc(anon('a9'), 'versiones/itemT01_g1_7_v1'), v()), 'otro alumno');
+    await assertFails(setDoc(doc(anon('a7'), 'versiones/itemT01_g1_7_v1'), v({ texto: 'reescrita' })), 'no se reescribe el historial');
+    await assertSucceeds(setDoc(doc(anon('a7'), 'versiones/itemT01_g1_7_v1'), v({ n: 11, texto: 'v11' })));
     await assertSucceeds(getDocs(query(collection(profe(), 'versiones'), where('trabajo', '==', 'itemT01_g1_7'))));
   });
   test('entregas del laboratorio por grupo + nº: se ven desde otro ordenador; migración del profesor', async () => {
@@ -377,5 +379,25 @@ describe('Fase 14 · copia del curso: comentarios con consulta de grupo', () => 
     const { collectionGroup, getDocs } = await import('firebase/firestore');
     await assertSucceeds(getDocs(collectionGroup(profe(), 'comentarios')));
     await assertFails(getDocs(collectionGroup(anon('a7'), 'comentarios')));
+  });
+});
+
+describe('Revisión Claude · las evidencias solo crecen', () => {
+  test('incidencias: el alumno no puede vaciar ni acortar sus salidas', async () => {
+    const inc = (o = {}) => ({ item: 'itemE01', al: 'g1_7', grupo: 'g1', numero: 7, uid: 'a7', salidas: [{ t: 1, tipo: 'pestaña', dur: 3 }, { t: 2, tipo: 'pestaña', dur: 4 }], fecha: serverTimestamp(), ...o });
+    const db = anon('a7');
+    await assertSucceeds(setDoc(doc(db, 'incidencias/itemE01_g1_7'), inc()));
+    await assertFails(setDoc(doc(db, 'incidencias/itemE01_g1_7'), inc({ salidas: [] })), 'vaciar');
+    await assertFails(setDoc(doc(db, 'incidencias/itemE01_g1_7'), inc({ salidas: [{ t: 1, tipo: 'pestaña', dur: 3 }] })), 'acortar');
+    await assertSucceeds(setDoc(doc(db, 'incidencias/itemE01_g1_7'), inc({ salidas: [{ t: 1, tipo: 'pestaña', dur: 3 }, { t: 2, tipo: 'pestaña', dur: 4 }, { t: 3, tipo: 'pestaña', dur: 1 }] })));
+  });
+  test('registros: tiempo y pegados no se pueden rebajar', async () => {
+    await sembrar(async (d) => { await setDoc(doc(d, 'items/itemD01'), { ...ITEM_T, tipo: 'documento', titulo: 'Doc' }); });
+    const reg = (o = {}) => ({ item: 'itemD01', al: 'g1_7', grupo: 'g1', numero: 7, seg: 120, pegados: [{ t: 1, n: 500 }], fecha: serverTimestamp(), ...o });
+    const db = anon('a7');
+    await assertSucceeds(setDoc(doc(db, 'registros/itemD01_g1_7'), reg()));
+    await assertFails(setDoc(doc(db, 'registros/itemD01_g1_7'), reg({ seg: 10 })), 'rebajar tiempo');
+    await assertFails(setDoc(doc(db, 'registros/itemD01_g1_7'), reg({ pegados: [] })), 'borrar pegados');
+    await assertSucceeds(setDoc(doc(db, 'registros/itemD01_g1_7'), reg({ seg: 200 })));
   });
 });
