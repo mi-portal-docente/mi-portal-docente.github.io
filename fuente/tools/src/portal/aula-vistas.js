@@ -8,6 +8,12 @@ import { asignatura, TIPOS } from '../lms/biblioteca.js';
 import { fmtNota, barajar, semilla, leeEnlaces, urlSegura, idTrabajo, TIPOS_ENTREGA, corregirExamen, tipoAdjunto } from '../lms/modelo.js';
 import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTipoPregunta } from './examen-ui.js';
 import { crearModoExamen } from './modo-examen.js';
+import { montarExplicacion } from './explicacion-ui.js';
+
+// Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
+// registran en window.PORTAL_MOTORES[tipo] = (nodo, item, opciones) => ({ actualizar }).
+const MOTORES_UI = { explicacion: montarExplicacion };
+const montadorDe = (tipo) => MOTORES_UI[tipo] || window.PORTAL_MOTORES?.[tipo] || null;
 
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const pad = (n) => String(n).padStart(2, '0');
@@ -35,6 +41,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   const al = ses ? `${ses.grupo}_${ses.numero}` : null;
   const ex = { id: null, examen: null, resp: {}, timer: null, guardado: 0, tGuardar: null, enviando: false, error: '' };
   let actual = null; // {el, tipo: 'lista'|'item', id}
+  let motorM = null; // motor montado en la página del elemento
   // Modo examen (pantalla completa + registro informativo de salidas). Solo alumno.
   const modo = rol === 'alumno' ? crearModoExamen({ db, ses, uid }) : null;
 
@@ -115,6 +122,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (it.enlaces?.length) h += `<h4>Adjuntos</h4>${adjuntosHTML(it.enlaces)}`;
     h += rubricaHTML(it, st.notas.get(it.id));
     if (it.tipo === 'examen') h += examenInfoHTML(it);
+    else if (it.contenido && montadorDe(it.tipo)) h += `${rol === 'alumno' && st.notas.get(it.id) ? notaHTML(it) : ''}<div id="auMotor" class="au-motor"></div>`;
     else if (TIPOS_ENTREGA.includes(it.tipo) && rol === 'alumno') h += entregaHTML(it);
     return h;
   }
@@ -123,7 +131,15 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (ex.id === id && ex.examen && rol === 'alumno') return; // examen en marcha: no se repinta
     let it = st.items.get(id); if (it && rol === 'alumno' && it.pub && it.pub > Date.now()) it = null;
     if (!it) { el.innerHTML = barraSup() + `<div class="au-page">${st.listo.items ? '<p class="au-vacio">Este elemento no existe o no está publicado para tu grupo.</p><a class="btn" href="#asignaturas">← Asignaturas</a>' : '<p class="au-small">Cargando…</p>'}</div>`; return; }
+    // motor ya montado (explicación, laboratorio…): no se repinta para no perder lo que está haciendo el alumno
+    if (motorM && motorM.id === id && motorM.nota === !!st.notas.get(id) && el.contains(motorM.nodo)) { motorM.api?.actualizar?.({ trabajo: st.trabajos.get(id), nota: st.notas.get(id) }); return; }
     el.innerHTML = barraSup() + `<div class="au-page">${itemHTML(it)}</div>`;
+    const nodo = el.querySelector('#auMotor'); motorM = null;
+    if (nodo) {
+      const montar = montadorDe(it.tipo);
+      const api = montar(nodo, it, { rol, trabajo: st.trabajos.get(id), nota: st.notas.get(id), entregar: rol === 'alumno' ? (texto, extra) => entregarActividad(it.id, texto, extra) : null });
+      motorM = { id, nodo, api, nota: !!st.notas.get(id) };
+    }
   }
   function repintar() {
     if (!actual || !actual.el.isConnected) return;

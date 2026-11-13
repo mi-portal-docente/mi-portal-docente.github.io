@@ -5,6 +5,7 @@
 import { doc, writeBatch, Timestamp } from 'firebase/firestore';
 import { esc } from './util.js';
 import { ic } from './ico.js';
+import '../lms/motores/index.js';
 import { leerJSON, exportarElemento, motor } from '../lms/elemento.js';
 import { separarPregunta, unirPregunta, TIPOS_PREGUNTA } from '../lms/preguntas.js';
 import { idItem, categoriaDe, TIPOS_ENTREGA, fmtNota } from '../lms/modelo.js';

@@ -10,6 +10,10 @@ import { esc, enHorario, conTimeout } from './util.js';
 import { crearAula } from './aula-datos.js';
 import { crearVistas } from './aula-vistas.js';
 import { crearClase } from './aula-clase.js';
+import { crearDirectoAlumno } from './directo.js';
+
+// Laboratorio incrustado en una «Explicación interactiva» (index.html?incrustado=1#…): sin cabecera ni menús.
+try { if (new URLSearchParams(location.search).has('incrustado')) document.documentElement.classList.add('incrustado'); } catch (e) { /* nada */ }
 import { pinValido, hashPin } from '../lms/modelo.js';
 import { montarChipSesion, resumenDispositivo } from './sesion-chip.js';
 
@@ -292,6 +296,7 @@ function entrarAlumno(uid, s, c) {
   aula = crearAula({ db: fb.db, rol: 'alumno', ses: { ...ses, asignaturas: (c.asignaturas || []).slice() } });
   vistas = crearVistas({ db: fb.db, aula, rol: 'alumno', ses, uid: () => uid });
   clase = crearClase({ db: fb.db, aula, rol: 'alumno', ses, estado: vistas.estado });
+  const directo = crearDirectoAlumno({ db: fb.db, ses, uid: () => uid }); unsubs.push(() => directo.parar());
   ACC.loadApp();
   try { if (sessionStorage.getItem('portal.pinNuevo')) { sessionStorage.removeItem('portal.pinNuevo'); setTimeout(() => banner(`PIN guardado para el nº ${pad(s.numero)}. Apúntalo: lo necesitarás para entrar la próxima vez.`, 9000), 600); } } catch (e) { }
   const { db } = fb;

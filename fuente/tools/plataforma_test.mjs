@@ -170,3 +170,38 @@ test('Fase 3 · analítica: % por pregunta y por criterio (parcial incluido), de
   assert.equal(R.porPregunta.find((q) => q.id === 'q2').fallos, 2);
   assert.equal(analizarExamen(P, K, []).masFalladas.length, 0);
 });
+
+// ------------------------------------------------------------------ Fase 4
+test('Fase 4 · explicación: importar, validar (errores en castellano), vídeo, lab y sin listas anidadas', async () => {
+  await import('./src/lms/motores/index.js');
+  const { validarElemento, exportarElemento } = await import('./src/lms/elemento.js');
+  const { anidada } = await import('./src/lms/motores/comun.js');
+  const ok = validarElemento({ tipo: 'explicacion', titulo: 'E', contenido: { diapositivas: [
+    { titulo: 'Uno', texto: 'Hola', video: 'https://www.youtube.com/watch?v=abcdefghijk' },
+    { titulo: 'Dos', pregunta: { tipo: 'test', enunciado: '¿?', opciones: ['a', 'b'], correcta: 1 } },
+    { titulo: 'Tres', lab: '#eee/circuitos' }], resumen: 'R' } });
+  assert.deepEqual(ok.errores, []);
+  assert.equal(ok.el.contenido.diapositivas[0].video.src, 'https://www.youtube-nocookie.com/embed/abcdefghijk');
+  assert.ok(!anidada(ok.el.contenido));
+  const mal = validarElemento({ tipo: 'explicacion', titulo: 'E', contenido: { diapositivas: [{ titulo: '', pregunta: { tipo: 'test', enunciado: 'x', opciones: ['a'], correcta: 4 } }, { titulo: 'v', video: 'http://x.com/a.avi' }] } });
+  const rutas = mal.errores.map((e) => e.ruta);
+  assert.ok(rutas.includes('contenido.diapositivas[0].titulo') && rutas.includes('contenido.diapositivas[0].pregunta.opciones') && rutas.includes('contenido.diapositivas[1].video'), rutas.join());
+  assert.match(validarElemento({ tipo: 'explicacion', titulo: 'E' }).errores[0].texto, /necesita «contenido»/);
+  const exp = exportarElemento({ tipo: 'explicacion', titulo: 'E', contenido: ok.el.contenido, puntos: 10 });
+  assert.deepEqual(validarElemento(exp).errores, []);
+});
+
+test('Fase 4 · explicación: aciertos de las preguntas de control', async () => {
+  const { aciertoControl, controles } = await import('./src/lms/motores/explicacion.js');
+  assert.equal(aciertoControl({ tipo: 'test', correcta: 1 }, 1), true);
+  assert.equal(aciertoControl({ tipo: 'test', correcta: 1 }, 0), false);
+  assert.equal(aciertoControl({ tipo: 'vf', correcta: false }, false), true);
+  assert.equal(aciertoControl({ tipo: 'vf', correcta: false }, 'false'), false);
+  assert.equal(controles({ diapositivas: [{ pregunta: {} }, {}, { pregunta: {} }] }), 2);
+});
+
+test('Fase 4 · pregunta en directo: recuento anónimo', async () => {
+  const { recuentoDe } = await import('./src/portal/directo.js').catch(() => ({}));
+  if (!recuentoDe) return; // necesita firebase en node: se prueba en el E2E
+  assert.deepEqual(recuentoDe([0, 2, 2, 5, -1, 1.5], 3), [1, 0, 2]);
+});

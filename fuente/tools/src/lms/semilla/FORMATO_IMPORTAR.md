@@ -121,3 +121,44 @@ preguntas sueltas. «Exportar el banco» da este mismo formato:
   { "tipo": "test", "enunciado": "Pregunta de ejemplo", "opciones": ["A", "B"], "correcta": 0, "criterio": "eee_c1_2" }
 ] }
 ```
+
+## Explicación interactiva (`"tipo": "explicacion"`)
+
+Diapositivas que el alumno pasa con «Anterior / Siguiente» (o las flechas del teclado), preguntas de
+control con respuesta al momento (no son examen), un laboratorio del portal incrustado y un resumen final.
+Al terminar, el alumno pulsa «He terminado: entregar» y se guarda «Aciertos: a/t»; en el cuaderno,
+«Poner notas» lo convierte en nota sobre 10 (si quieres que cuente). Todo va en `contenido`:
+
+| Campo | Qué es |
+|---|---|
+| `diapositivas` | Lista (1–40). Cada una: `titulo` (obligatorio), y al menos uno de `texto`, `imagen`, `lab`, `pregunta`. |
+| `texto` | Texto de la diapositiva (`**negrita**` y enlaces). Máx. 5000. |
+| `imagen` / `alt` | Ruta del portal (`img/…`, `materiales/…`) o `https://…`, y su texto alternativo. |
+| `video` | Enlace de YouTube o Vimeo (se incrusta) o un `.mp4` del portal (`materiales/…`). |
+| `lab` | Laboratorio del portal incrustado, p. ej. `"#eee/circuitos"`, `"#eee/vivienda"`. |
+| `pregunta` | De control: `{ "tipo": "test", "enunciado", "opciones": [...], "correcta": 0, "explicacion" }` o `{ "tipo": "vf", "enunciado", "correcta": true, "explicacion" }`. |
+| `resumen` | Texto del resumen final (si no se pone, se listan los títulos). |
+
+```json
+{
+  "tipo": "explicacion",
+  "titulo": "Ejemplo de explicación",
+  "puntos": 10,
+  "criterio": "eee_c1_1",
+  "contenido": {
+    "diapositivas": [
+      { "titulo": "Qué vamos a ver", "texto": "Escribe aquí la explicación." },
+      { "titulo": "Comprueba", "texto": "Una pregunta de control:",
+        "pregunta": { "tipo": "vf", "enunciado": "Escribe aquí una afirmación.", "correcta": true, "explicacion": "Por qué." } },
+      { "titulo": "Pruébalo", "texto": "Haz la prueba en el laboratorio.", "lab": "#eee/circuitos" }
+    ],
+    "resumen": "Ideas clave para recordar."
+  }
+}
+```
+
+## Pregunta en directo
+
+No se importa: se lanza desde «Trabajo de clase» → «Pregunta en directo» (grupo, pregunta y opciones, o
+verdadero/falso). Los alumnos conectados de ese grupo la ven al momento en una tarjeta y responden; el
+profesor ve el gráfico en pantalla grande. Es anónimo (solo el recuento).

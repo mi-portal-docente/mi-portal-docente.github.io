@@ -6,7 +6,8 @@ import { doc, writeBatch, Timestamp } from 'firebase/firestore';
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
-import { criterioValido } from '../lms/elemento.js';
+import { criterioValido, motor } from '../lms/elemento.js';
+import '../lms/motores/index.js';
 import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta } from '../lms/preguntas.js';
 import { categoriaDe, idItem, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, TIPOS_ENTREGA, enlaceValido } from '../lms/modelo.js';
 
@@ -15,7 +16,8 @@ const aLocal = (t) => { if (!t) return ''; const d = new Date(t); return new Dat
 const deLocal = (v) => (v ? new Date(v).getTime() : null);
 const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
 export const TIPOS_CREAR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario'];
-const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto'];
+const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion'];
+const entregableDe = (t) => TIPOS_ENTREGA.includes(t) || t === 'examen' || !!motor(t)?.entregable;
 export const PEND = 'Contenido pendiente de subir.';
 export const PEND_T = 'Pendiente de completar';
 const BASICAS = ['test', 'vf', 'corta'];
@@ -79,12 +81,12 @@ export function crearEditor({ db, aula, gruposDe }) {
     const e = E.edit; const a = asignatura(e.asig);
     const ex = e.examen || { desde: Date.now(), hasta: Date.now() + 864e5, limiteMin: 30, barajar: true };
     const gs = gruposDe(e.curso, e.asig);
-    const entregable = TIPOS_ENTREGA.includes(e.tipo) || e.tipo === 'examen';
+    const entregable = entregableDe(e.tipo); const M = motor(e.tipo);
     const temas = temasDe(e.curso, e.asig);
     return `<form id="apItemForm" class="pn-form ap-form cl-form" autocomplete="off">
     <header class="cl-dlg-h"><span class="cl-dlg-ic">${TIPOS[e.tipo]?.icon || '📄'}</span><h3>${e.id ? 'Editar' : 'Crear'}: ${esc(TIPOS[e.tipo]?.nombre || e.tipo)}</h3><span class="pn-small">${esc(a?.corto || e.asig)}</span><span class="pn-grow"></span>${e.id ? '<button class="btn small" type="button" data-ed="exportar" title="Exportar este elemento en JSON (lo guardado)">' + ic('download') + ' JSON</button>' : ''}<button class="btn" type="button" data-ed="cancelar" aria-label="Cerrar">✕</button></header>
     <div class="cl-dlg-b"><div class="cl-dlg-main">
-      <label class="pn-f">Tipo<select name="tipo">${TIPOS_EDITOR.map((t) => opt(t, `${TIPOS[t].icon} ${TIPOS[t].nombre}`, e.tipo)).join('')}</select></label>
+      <label class="pn-f">Tipo<select name="tipo">${TIPOS_EDITOR.map((t) => opt(t, TIPOS[t].nombre, e.tipo)).join('')}</select></label>
       <label class="pn-f">${e.tipo === 'pregunta' ? 'Pregunta' : 'Título'}<input name="titulo" maxlength="150" required value="${esc(e.titulo)}"></label>
       <label class="pn-f">Instrucciones${e.tipo === 'material' ? ' / descripción' : ''} (opcional)<textarea name="texto" rows="7" maxlength="20000" placeholder="Explica qué hay que hacer. **negrita** y los enlaces se ven como enlaces.">${esc(e.texto || '')}</textarea></label>
       ${e.tipo === 'pregunta' ? `<label class="pn-f">Opciones (una por línea; vacío = respuesta corta)<textarea name="opciones" rows="3" maxlength="2000">${esc((e.opciones || []).join('\n'))}</textarea></label>` : ''}
@@ -93,6 +95,10 @@ export function crearEditor({ db, aula, gruposDe }) {
         <div class="cl-adj-add"><input name="adjT" maxlength="120" placeholder="Título (opcional)"><input name="adjU" maxlength="500" placeholder="https://… (Drive, Docs, YouTube, cualquier web) o materiales/…">
           <button type="button" class="btn small" data-ed="adj">➕ Añadir</button></div>
         <p class="pn-small">Google Drive, Documentos, Presentaciones, Formularios, YouTube o cualquier enlace. Los PDF e imágenes que estén en la web van con la ruta <code>materiales/…</code>. (Para subir archivos al portal haría falta el plan de pago de Firebase: usa Drive y pega el enlace.)</p></fieldset>
+      ${M ? `<fieldset class="pn-f ap-motor"><legend>${esc(M.nombre || TIPOS[e.tipo]?.nombre || e.tipo)} · contenido (JSON)</legend>
+        <textarea name="contenido" class="js-ta" rows="14" spellcheck="false" maxlength="400000">${esc(e.contenidoTxt ?? JSON.stringify(e.contenido || M.ejemplo || {}, null, 2))}</textarea>
+        <div class="pn-acts"><button type="button" class="btn small" data-ed="ejemplo">Poner el ejemplo</button><span class="pn-small">Formato y ejemplos en «FORMATO_IMPORTAR.md». Se comprueba al guardar.</span></div>
+        ${M.entregable ? '<p class="pn-small">Al terminar, el alumno entrega su resultado («Aciertos: a/t»); en el cuaderno, «Poner notas» lo pasa a nota sobre 10.</p>' : ''}</fieldset>` : ''}
       ${e.tipo === 'examen' ? `<fieldset class="pn-f ap-exam"><legend>Cuestionario del portal (autocorregido)</legend>
         <div class="ap-fila"><label class="pn-f">Se abre<input type="datetime-local" name="desde" value="${esc(aLocal(ex.desde))}"></label><label class="pn-f">Se cierra<input type="datetime-local" name="hasta" value="${esc(aLocal(ex.hasta))}"></label>
         <label class="pn-f">Tiempo límite (min, vacío = sin límite)<input type="number" name="limiteMin" min="1" max="600" value="${ex.limiteMin || ''}"></label></div>
@@ -170,6 +176,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (f.elements.fechaEntrega) e.fechaEntrega = deLocal(fd.get('fechaEntrega'));
     if (f.elements.rubrica) e.rubrica = leeRubrica(fd.get('rubrica'));
     if (f.elements.categoria) e.categoria = String(fd.get('categoria'));
+    if (f.elements.contenido) e.contenidoTxt = String(fd.get('contenido') || '');
     if (f.elements.criterio) e.criterio = String(fd.get('criterio') || '').trim().slice(0, 60) || null;
     if (f.elements.opciones) e.opciones = String(fd.get('opciones') || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 10).map((s) => s.slice(0, 300));
     if (f.elements.desde) e.examen = { desde: deLocal(fd.get('desde')), hasta: deLocal(fd.get('hasta')), limiteMin: parseInt(fd.get('limiteMin'), 10) || null, barajar: !!fd.get('barajar'), pantallaCompleta: !!fd.get('pantallaCompleta'), n: E.preguntas.length };
@@ -194,9 +201,17 @@ export function crearEditor({ db, aula, gruposDe }) {
         if (!BASICAS.includes(q.tipo)) { const errs = []; validarPregunta(q, i, (r, t) => errs.push(t)); if (errs.length) return err(errs[0]); }
       }
     }
+    const M = motor(e.tipo);
+    if (M) {
+      let j; try { j = JSON.parse(e.contenidoTxt ?? JSON.stringify(e.contenido || {})); } catch (x) { return err('El contenido no es un JSON válido: revisa comas, comillas y llaves.'); }
+      if (!j || typeof j !== 'object' || Array.isArray(j)) return err('El contenido tiene que ser un objeto JSON { … }.');
+      const errs = []; const limpio = M.validar(j, (r, t) => errs.push(`contenido${r ? '.' + r : ''}: ${t}`));
+      if (errs.length) return err(errs.slice(0, 3).join(' · '));
+      e.contenido = limpio;
+    }
     msg.textContent = 'Guardando…'; msg.className = 'pn-msg';
     const id = e.id || idItem();
-    const entregable = TIPOS_ENTREGA.includes(e.tipo) || esEx;
+    const entregable = entregableDe(e.tipo);
     const data = { curso: e.curso, asig: e.asig, tema: e.tema || null, tipo: e.tipo, titulo: e.titulo, texto: e.texto, enlaces: e.enlaces,
       fechaEntrega: entregable && !esEx ? e.fechaEntrega || null : null, puntos: entregable ? e.puntos ?? null : null,
       rubrica: entregable && !esEx ? e.rubrica || [] : [], categoria: entregable ? e.categoria || categoriaDe(e.tipo) : null, opciones: e.tipo === 'pregunta' ? e.opciones || [] : null,
@@ -205,7 +220,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       examen: esEx ? { desde: e.examen.desde, hasta: e.examen.hasta, limiteMin: e.examen.limiteMin, n: E.preguntas.length, ...(e.examen.pantallaCompleta ? { pantallaCompleta: true } : {}) } : null, actualizado: Date.now() };
     if (e.unidad) data.unidad = e.unidad;
     if (e.criterio && entregable && !esEx) data.criterio = e.criterio;
-    if (e.contenido) data.contenido = e.contenido;
+    if (e.contenido && M) data.contenido = e.contenido;
     try {
       const b = writeBatch(db);
       b.set(doc(db, 'items', id), data);
@@ -224,6 +239,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     const b = ev.target.closest('[data-ed]'); if (!b) return;
     const acc = b.dataset.ed;
     if (acc === 'cancelar') return cerrar();
+    if (acc === 'ejemplo') { const M = motor(E.edit.tipo); const ta = b.form?.elements.contenido; if (M && ta && (!ta.value.trim() || confirm('¿Cambiar el contenido por el ejemplo?'))) { ta.value = JSON.stringify(M.ejemplo || {}, null, 2); E.edit.contenidoTxt = ta.value; } return; }
     if (acc === 'exportar') { const it = st.items.get(E.edit?.id); if (it) api.exportar?.(it); return; }
     if (acc === 'adj') {
       const f = b.form; const u = f.adjU.value.trim(); const t = f.adjT.value.trim();

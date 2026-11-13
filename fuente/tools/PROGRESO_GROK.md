@@ -146,3 +146,45 @@ de la fase 2: placa, circ, circ_pins, viv, viv_modelo, aula_modelo, acceso, extr
 **Dudas / pendiente**: el CSV es por grupo (el nº de lista solo identifica dentro de un grupo); si se
 quiere uno con todos los grupos de la asignatura habría que añadir la columna grupo (no la he puesto
 porque pediste exactamente esas 5 columnas).
+
+---
+
+## Fase 4 · Explicaciones interactivas y pregunta en directo — HECHA
+
+**Qué hay**
+* Tipo nuevo **Explicación interactiva** (`explicacion`): diapositivas con título, texto, imagen o **vídeo**
+  (YouTube/Vimeo sin cookies o `.mp4` del portal), **preguntas de control** test o V/F con respuesta al
+  momento y su explicación (no puntúan como examen), **laboratorio del portal incrustado** (`"lab": "#eee/circuitos"`,
+  se abre con `?incrustado=1`, sin la cabecera del portal, y con «Abrir en otra pestaña») y **resumen final**.
+  Anterior/Siguiente, puntos de progreso y flechas del teclado; recuerda la diapositiva al recargar.
+  Al terminar, «He terminado: entregar» guarda «Aciertos: a/t» y el cuaderno lo pasa a nota con «Poner notas»
+  (solo si el profesor quiere). Se importa por JSON y se edita en el editor (campo «contenido (JSON)» con
+  botón «Poner el ejemplo»). Formato con ejemplo en `FORMATO_IMPORTAR.md`.
+* Mecanismo común para los **motores** de las fases siguientes: `src/lms/motores/` (validación con errores
+  en castellano, `registrarMotor`), campo `contenido` en el item, editor JSON genérico y montaje de la vista
+  en la página del elemento (`MOTORES_UI` o `window.PORTAL_MOTORES[tipo]` para los laboratorios de `app.js`),
+  sin repintar mientras el alumno trabaja.
+* **Pregunta en directo** («Trabajo de clase» → «Pregunta en directo»): grupo, pregunta y opciones (o V/F).
+  Pantalla grande (botón de pantalla completa) con el gráfico en tiempo real; cerrar/volver a abrir; «Mostrar
+  el gráfico a los alumnos». Los alumnos conectados del grupo la ven en una tarjeta flotante en cualquier
+  página (móvil y PC), responden y pueden cambiar la respuesta mientras está abierta. **Anónimo**: el
+  profesor solo ve el recuento; los alumnos no pueden leer respuestas de nadie.
+
+**Archivos**: `src/lms/motores/{comun,explicacion,index}.js` (nuevos), `src/portal/explicacion-ui.js` (nuevo),
+`src/portal/directo.js` (nuevo), `src/portal/aula-vistas.js`, `aula-editor.js`, `aula-json.js`, `aula-clase.js`,
+`src/portal/main.js`, `src/lms/biblioteca.js` (tipo nuevo), `css/plataforma.css`, `FORMATO_IMPORTAR.md`,
+`firebase/firestore.rules`, `firebase/test/plataforma.test.mjs`, `plataforma_test.mjs`, `e2e/plataforma_f4.mjs`,
+caché `gp4-20261113`. (El selector «Tipo» del editor ya no lleva emoji delante.)
+
+**Reglas (cambian, sin desplegar)**: `items` admite `contenido` (mapa) y el tipo `explicacion`; los trabajos
+de tipo tarea admiten items `explicacion`; colecciones nuevas `directo` (escribe el profesor; el alumno lee
+las de su grupo) y `respDirecto` (el alumno escribe solo la suya, con la pregunta abierta, de su grupo y con
+opción válida; solo el profesor lee). Regenerado el `para-pegar` (fuera del repositorio).
+
+**Pruebas**: `plataforma_test.mjs` 22/22 · reglas 93/93 · E2E fases 2+4: 33/33.
+
+**Capturas**: `f4_editor_explicacion.png`, `f4_explicacion_alumno.png`, `f4_explicacion_lab.png`,
+`f4_explicacion_resumen.png`, `f4_directo_profesor.png`, `f4_directo_alumno_movil.png`.
+
+**Dudas / pendiente**: las preguntas en directo cerradas se quedan guardadas (solo el recuento); se pueden
+borrar con la limpieza de fin de curso más adelante. El laboratorio incrustado usa la misma sesión del alumno.

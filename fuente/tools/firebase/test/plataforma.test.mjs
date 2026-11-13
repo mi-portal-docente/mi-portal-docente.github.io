@@ -89,3 +89,37 @@ describe('Fase 2 · modo examen (incidencias) y banco de preguntas', () => {
     await assertFails(setDoc(doc(anon('a7'), 'banco/bancoA3'), q));
   });
 });
+
+describe('Fase 4 · explicación interactiva y pregunta en directo', () => {
+  const EXPL = { ...ITEM_T, tipo: 'explicacion', titulo: 'Explicación', contenido: { diapositivas: [{ titulo: 'Uno', texto: 'x' }], resumen: 'r' } };
+  const DIR = { curso: 'c2627', asig: 'eee', grupo: 'g1', tipo: 'test', enunciado: '¿Cuál?', opciones: ['a', 'b', 'c'], abierta: true, mostrar: false, recuento: [0, 0, 0], fecha: 1 };
+  const resp = (uid, o = {}) => ({ d: 'dirA01', al: 'g1_7', grupo: 'g1', uid, r: 1, fecha: serverTimestamp(), ...o });
+  test('el profesor guarda una explicación con «contenido»; contenido que no es objeto → denegado', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'items/itemX01'), EXPL));
+    await assertFails(setDoc(doc(profe(), 'items/itemX02'), { ...EXPL, contenido: 'texto' }));
+  });
+  test('el alumno entrega la explicación como tarea («Aciertos: a/t»)', async () => {
+    await sembrar((db) => setDoc(doc(db, 'items/itemX01'), EXPL));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemX01_g1_7'), tarea('a7', { item: 'itemX01', texto: 'Explicación terminada. Aciertos: 2/3', enlaces: [] })));
+  });
+  test('pregunta en directo: el profesor la lanza; el alumno del grupo la lee y responde (y cambia)', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'directo/dirA01'), DIR));
+    const db = anon('a7');
+    await assertSucceeds(getDocs(query(collection(db, 'directo'), where('grupo', '==', 'g1'), where('abierta', '==', true))));
+    await assertSucceeds(setDoc(doc(db, 'respDirecto/dirA01_g1_7'), resp('a7')));
+    await assertSucceeds(setDoc(doc(db, 'respDirecto/dirA01_g1_7'), resp('a7', { r: 2 })));
+    await assertSucceeds(getDocs(query(collection(profe(), 'respDirecto'), where('d', '==', 'dirA01'))));
+  });
+  test('ataque: leer respuestas, responder por otro nº, opción fuera de rango, pregunta cerrada u otro grupo → denegado', async () => {
+    await sembrar(async (db) => { await setDoc(doc(db, 'directo/dirA01'), DIR); await setDoc(doc(db, 'directo/dirC01'), { ...DIR, abierta: false }); });
+    const db = anon('a7');
+    await assertFails(getDocs(query(collection(db, 'respDirecto'), where('d', '==', 'dirA01'))));
+    await assertFails(setDoc(doc(db, 'respDirecto/dirA01_g1_9'), resp('a7', { al: 'g1_9' })));
+    await assertFails(setDoc(doc(db, 'respDirecto/dirA01_g1_7'), resp('a7', { r: 3 })));
+    await assertFails(setDoc(doc(db, 'respDirecto/dirC01_g1_7'), resp('a7', { d: 'dirC01' })));
+    await assertFails(setDoc(doc(db, 'respDirecto/dirA01_g1_7'), resp('a7', { nombre: 'x' })));
+    await assertFails(getDocs(query(collection(anon('b5'), 'directo'), where('grupo', '==', 'g1'))));
+    await assertFails(setDoc(doc(anon('b5'), 'respDirecto/dirA01_g2_5'), resp('b5', { al: 'g2_5', grupo: 'g2' })));
+    await assertFails(setDoc(doc(db, 'directo/dirX01'), DIR));
+  });
+});

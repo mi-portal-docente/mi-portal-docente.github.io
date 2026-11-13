@@ -61,6 +61,9 @@ rules_version = '2';
 //                                                                     suyas; leer/borrar: profesor
 //   banco/{id}          banco de preguntas {asig, criterio, q, fecha}  SOLO profesor
 //   items.criterio      criterio de evaluación opcional (texto corto)
+//   items.contenido     contenido de los motores nuevos (explicación interactiva…), mapa
+//   directo/{id}        pregunta en directo a un grupo                  profesor; alumno: leer las de su grupo
+//   respDirecto/{id}    respuesta anónima (recuento) de cada nº        el alumno la suya; leer: profesor
 //  El alumno se identifica SOLO por grupo + nº de lista + un PIN que
 //  elige él (se guarda su hash SHA-256, nunca el PIN). Sin nombres.
 // =====================================================================
@@ -428,12 +431,12 @@ service cloud.firestore {
       function itemOk(d) {
         return d.keys().hasOnly(['curso', 'asig', 'tema', 'unidad', 'tipo', 'titulo', 'texto', 'enlaces', 'fechaEntrega', 'puntos', 'rubrica',
                                  'categoria', 'grupos', 'visible', 'publicado', 'pub', 'orden', 'origen', 'examen', 'opciones', 'pendiente', 'nota', 'actualizado',
-                                 'criterio'])
+                                 'criterio', 'contenido'])
           && d.keys().hasAll(['curso', 'asig', 'tipo', 'titulo', 'grupos', 'visible', 'publicado'])
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
           && (!('unidad' in d) || textoCorto(d.unidad, 40))
-          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen']
+          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion']
           && textoCorto(d.titulo, 150)
           && (!('texto' in d) || textoCorto(d.texto, 20000))
           && (!('enlaces' in d) || listaCorta(d.enlaces, 20))
@@ -443,6 +446,7 @@ service cloud.firestore {
           && (!('pub' in d) || d.pub == null || esNumero(d.pub))
           && (!('nota' in d) || d.nota == null || textoCorto(d.nota, 2000))
           && (!('criterio' in d) || d.criterio == null || textoCorto(d.criterio, 60))
+          && (!('contenido' in d) || d.contenido == null || d.contenido is map)
           && listaCorta(d.grupos, 40) && listaCorta(d.visible, 40)
           && d.publicado is bool
           && ((d.publicado == true && d.visible == d.grupos) || (d.publicado == false && d.visible.size() == 0));
@@ -532,6 +536,42 @@ service cloud.firestore {
         && request.resource.data.q is map;
     }
 
+    // directo/{id}: «Pregunta en directo» lanzada por el profesor a UN grupo. El alumno con sesión válida
+    // solo lee las de su grupo (y solo ve el recuento si el profesor lo muestra). Sin nombres.
+    match /directo/{id} {
+      allow read: if esProfesor() || (alumnoOk() && resource.data.grupo == miSesion().grupo);
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}$') && directoOk(request.resource.data);
+      function directoOk(d) {
+        return d.keys().hasOnly(['curso', 'asig', 'grupo', 'tipo', 'enunciado', 'opciones', 'abierta', 'mostrar', 'recuento', 'fecha'])
+          && d.keys().hasAll(['grupo', 'tipo', 'enunciado', 'opciones', 'abierta'])
+          && textoCorto(d.grupo, 40) && d.tipo in ['test', 'vf']
+          && textoCorto(d.enunciado, 500) && d.enunciado.size() > 0
+          && listaCorta(d.opciones, 6) && d.opciones.size() >= 2
+          && d.abierta is bool
+          && (!('mostrar' in d) || d.mostrar is bool)
+          && (!('recuento' in d) || listaCorta(d.recuento, 6));
+      }
+    }
+    // respDirecto/{directo_grupo_nº}: respuesta de un nº de lista (una por alumno; la puede cambiar mientras
+    // la pregunta está abierta). El alumno solo escribe la suya y no lee las de nadie; el profesor solo
+    // muestra el recuento.
+    match /respDirecto/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if alumnoOk() && respDirectoOk(id);
+      function respDirectoOk(id) {
+        let d = request.resource.data;
+        let s = miSesion();
+        let q = get(ruta('directo', d.d)).data;
+        return d.keys().hasOnly(['d', 'al', 'grupo', 'uid', 'r', 'fecha'])
+          && d.d is string && id == d.d + '_' + idAlumno(s)
+          && d.al == idAlumno(s) && d.grupo == s.grupo && d.uid == request.auth.uid
+          && q.grupo == s.grupo && q.abierta == true
+          && d.r is int && d.r >= 0 && d.r < q.opciones.size()
+          && d.fecha == request.time;
+      }
+    }
+
     // claves/{id}: respuestas correctas de los exámenes. SOLO el profesor.
     match /claves/{id} {
       allow read, write: if esProfesor();
@@ -575,7 +615,7 @@ service cloud.firestore {
       function item() { return get(ruta('items', request.resource.data.item)).data; }
       function examen() { return get(ruta('examenes', request.resource.data.item)).data; }
       function tipoTarea() {
-        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto'];
+        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion'];
       }
       function tipoExamen() { return request.resource.data.tipo == 'examen' && item().tipo == 'examen'; }
       function trabajoBase(id) {
