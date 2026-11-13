@@ -425,3 +425,29 @@ las soluciones viajan con la actividad (para evaluar en serio, usa el examen).
         "filas": [ ["Tensión", "[[voltio|V]]"], ["Intensidad", "[[amperio|A]]"] ] }
     ] } }
 ```
+
+## Hoja de cálculo (`"tipo": "hoja"`, fase 13)
+
+El alumno trabaja en una hoja (hasta 100 filas × 26 columnas) y la entrega como un trabajo. Fórmulas en castellano
+con `;` entre argumentos y coma decimal: `SUMA`, `PROMEDIO`, `SI`, `CONTAR.SI`, `BUSCARV`, `MIN`, `MAX`, `CONTAR`,
+`REDONDEAR`, `Y`, `O`; operadores `+ - * / ^ &`, comparaciones y referencias `$A$1`. También gráfico (barras o
+líneas) y tabla dinámica sencilla (agrupar por una columna y SUMA / PROMEDIO / CONTAR de otra).
+
+```json
+{ "tipo": "hoja", "titulo": "Presupuesto de la instalación", "puntos": 10,
+  "contenido": { "filas": 20, "columnas": 6,
+    "celdas": { "A1": "Material", "B1": "Precio", "A2": "Cable", "B2": "12,5", "A3": "Enchufe", "B3": "4" },
+    "retos": [ { "texto": "En B4, el total con SUMA", "comprobar": [ { "celda": "B4", "valor": 16.5, "formula": "SUMA" } ] },
+               { "texto": "En C2, «Caro» si el precio pasa de 10", "comprobar": [ { "celda": "C2", "valor": "Caro" } ] } ] } }
+```
+
+- `celdas`: valores o fórmulas iniciales (`"=SUMA(B2:B3)"`). Opcionales `filas` (≤ 100) y `columnas` (≤ 26).
+- `retos[].comprobar`: cada comprobación mira una celda: `valor` (número con margen de 0,01, o texto sin distinguir
+  mayúsculas) y, si se pone, `formula` (la celda tiene que usar esa función; no vale escribir el número a mano).
+- Al entregar se guarda la hoja (`doc`) y el resumen «Aciertos: a/t» de los retos, que «Poner notas» pasa a nota.
+
+## Modelo 3D en una entrega (fase 13)
+
+En tareas, prácticas, proyectos, actividades y recuperaciones el alumno puede subir **un STL de hasta 600 KB**
+(se guarda en el propio trabajo, sin Storage) o poner un enlace a un `.stl` / `.glb`. El profesor lo abre en el visor
+3D al corregir. Los adjuntos y enlaces `.stl` / `.glb` / `.gltf` del profesor también se abren en el visor.

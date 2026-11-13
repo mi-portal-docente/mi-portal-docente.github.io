@@ -28,6 +28,8 @@ function tokens(src) {
     if (num) { T.push({ t: 'num', v: Number(num[0].replace(',', '.')) }); i += num[0].length; continue; }
     const rng = /^\$?[A-Za-z]\$?\d{1,3}:\$?[A-Za-z]\$?\d{1,3}/.exec(src.slice(i));
     if (rng) { T.push({ t: 'rng', v: rng[0].toUpperCase().replace(/\$/g, '') }); i += rng[0].length; continue; }
+    const abs = /^\$[A-Za-z]\$?\d{1,3}(?![\w(])/.exec(src.slice(i));
+    if (abs) { T.push({ t: 'ref', v: abs[0].toUpperCase().replace(/\$/g, '') }); i += abs[0].length; continue; }
     const id = /^[A-Za-zÁÉÍÓÚáéíóúÑñ_][A-Za-zÁÉÍÓÚáéíóúÑñ_.\d$]*/.exec(src.slice(i));
     if (id) { const w = id[0].toUpperCase(); i += w.length; if (/^\$?[A-Z]\$?\d{1,3}$/.test(w)) T.push({ t: 'ref', v: w.replace(/\$/g, '') }); else T.push({ t: 'id', v: w }); continue; }
     const op = /^(<=|>=|<>|[-+*/^&=<>()%])/.exec(src.slice(i));
@@ -152,7 +154,7 @@ export function datosGrafico(H, rango) {
   const conCab = R[0].slice(1).some((x) => typeof x === 'string' && x !== '');
   const nombres = conCab ? R[0].slice(1).map(mostrar) : R[0].slice(1).map((_, i) => `Serie ${i + 1}`);
   const filas = conCab ? R.slice(1) : R;
-  return { etiquetas: filas.map((f) => mostrar(f[0])), series: nombres.map((n, j) => ({ nombre: n, valores: filas.map((f) => (typeof f[j + 1] === 'number' ? f[j + 1] : 0)) })) };
+  return { etiquetas: filas.map((f) => mostrar(f[0])), series: nombres.map((n, j) => ({ nombre: n, num: filas.some((f) => typeof f[j + 1] === 'number'), valores: filas.map((f) => (typeof f[j + 1] === 'number' ? f[j + 1] : 0)) })).filter((x) => x.num).map(({ num, ...x }) => x) }; // columnas de texto fuera
 }
 export function csvHoja(H, filas, cols) {
   const L = []; for (let f = 0; f < filas; f++) { const r = []; for (let c = 0; c < cols; c++) r.push(H.texto(nombreCelda(f, c))); L.push(r); }

@@ -488,3 +488,31 @@ bloqueado hasta que el profesor ponga la nota nueva o lo vuelva a devolver.
 **Formato JSON**: secciones «Preguntas nuevas…» y «Actividad interactiva» en `FORMATO_IMPORTAR.md`.
 **Pruebas**: `plataforma_test.mjs` 38/38 · reglas 117/117 · E2E fase 12: 21/21 (fase 11: 17/17).
 **Capturas**: `f12_editor_preguntas`, `f12_alumno_examen`, `f12_cuaderno_rubrica`, `f12_interactiva_intento`.
+
+## Fase 13 · Hoja de cálculo, visor de PDF y visor 3D (13/11/2026)
+
+**Hecho**
+- **Visor de PDF** dentro del portal (pdf.js 3.11.174 en `vendor/pdfjs/`, Apache-2.0): pantalla completa, páginas que
+  se pintan al verse, ir a página, zoom y «ajustar al ancho», teclado (Esc, flechas, + / −), descargar y abrir aparte;
+  en móvil ocupa toda la pantalla. Los enlaces a PDF del propio sitio (materiales) se abren en el visor.
+  `isEvalSupported:false`.
+- **Hoja de cálculo** (`"tipo": "hoja"`): barra de fórmulas, fórmulas en castellano (SUMA, PROMEDIO, SI, CONTAR.SI,
+  BUSCARV, MIN, MAX, CONTAR, REDONDEAR, Y, O; `$A$1`), errores tipo hoja (#DIV/0!, #N/A, #CICLO!…), teclado,
+  gráfico SVG (barras / líneas), tabla dinámica sencilla, CSV. Se entrega como un trabajo (guardado automático,
+  versiones, imprimir). **Retos** con comprobación de celdas en el JSON (valor y función obligatoria) →
+  «Aciertos: a/t» → «Poner notas». El profesor la ve en la corrección con valores, gráfico y tabla dinámica.
+- **Visor 3D** (three.js, ya incluido: STLLoader, GLTFLoader, OrbitControls, MIT): STL / GLB por enlace o un STL de
+  ≤ 600 KB subido por el alumno (`trabajos/{id}/modelos/m1` en base64 + resumen `modelo` en el trabajo). Girar,
+  zoom, medidas, rejilla. El profesor lo abre al corregir. Una entrega puede ser solo el modelo.
+
+**Reglas** (en `fuente/tools/firebase/firestore.rules`, sin desplegar):
+- `hoja` añadido a los tipos de elemento y de trabajo.
+- Trabajo: campo opcional `modelo` (mapa solo con `nombre` y `bytes`).
+- Nueva subcolección `trabajos/{id}/modelos/{m}`: solo `m1`; `data` base64 ≤ 820 000 caracteres, `nombre` ≤ 120,
+  `bytes` ≤ 614 400, `fecha` = hora del servidor; escribe solo el alumno dueño; leen el dueño y el profesor; borran
+  el dueño y el profesor. Pruebas: 119/119.
+
+**Librerías**: pdf.js 3.11.174 (Apache-2.0, anotada en LEEME.txt). three.js ya estaba (MIT).
+**Formato JSON**: secciones «Hoja de cálculo» y «Modelo 3D en una entrega» en `FORMATO_IMPORTAR.md`.
+**Pruebas**: `plataforma_test.mjs` 40/40 · reglas 119/119 · E2E fase 13: 17/17.
+**Capturas**: `f13_hoja_alumno`, `f13_hoja_correccion`, `f13_visor_pdf`, `f13_visor_3d`.

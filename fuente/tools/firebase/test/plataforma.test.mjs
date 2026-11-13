@@ -348,3 +348,25 @@ describe('Fase 12 · actividad interactiva: varios intentos con el mejor resulta
     await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemI01_g1_7'), tarea('a7', { item: 'itemI01', texto: 'Aciertos: 4/4', datos: datos(3) }), { merge: true }));
   });
 });
+
+describe('Fase 13 · modelo 3D (STL pequeño) y hoja de cálculo', () => {
+  const ITEM_H = { curso: 'c2627', asig: 'eee', tipo: 'hoja', titulo: 'Hoja', texto: '', enlaces: [], grupos: ['g1'], visible: ['g1'], publicado: true, contenido: { filas: 10, columnas: 4, celdas: {}, retos: [] } };
+  test('el alumno guarda una hoja (tipo hoja) con el resumen del modelo 3D', async () => {
+    await sembrar(async (db) => setDoc(doc(db, 'items/itemH01'), ITEM_H));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemH01_g1_7'), tarea('a7', { item: 'itemH01', estado: 'borrador', doc: '{"v":1,"c":{"A1":"=SUMA(1;2)"}}', modelo: { nombre: 'pieza.stl', bytes: 1200 } })));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemH01_g1_7'), tarea('a7', { item: 'itemH01', estado: 'borrador', modelo: { nombre: 'x', bytes: 1, data: 'AAAA' } })), 'el resumen no lleva datos');
+  });
+  test('modelos/m1: ≤ 600 KB en base64, solo el dueño escribe; el profesor lo lee', async () => {
+    await sembrar(async (db) => { await setDoc(doc(db, 'items/itemH01'), ITEM_H); await setDoc(doc(db, 'trabajos/itemH01_g1_7'), { ...tarea('a7', { item: 'itemH01', estado: 'borrador' }), fecha: 1 }); });
+    const m = (n, u = 'a7') => doc(anon(u), `trabajos/itemH01_g1_7/modelos/${n}`);
+    const md = (o = {}) => ({ data: 'U1RM'.repeat(100), nombre: 'pieza.stl', bytes: 300, fecha: serverTimestamp(), ...o });
+    await assertSucceeds(setDoc(m('m1'), md()));
+    await assertFails(setDoc(m('m2'), md()), 'solo m1');
+    await assertFails(setDoc(m('m1'), md({ data: 'A'.repeat(830000) })), 'demasiado grande');
+    await assertFails(setDoc(m('m1'), md({ data: '<script>' })));
+    await assertFails(setDoc(m('m1', 'a9'), md()), 'otro alumno');
+    await assertFails(getDoc(m('m1', 'a9')));
+    await assertSucceeds(getDoc(doc(profe(), 'trabajos/itemH01_g1_7/modelos/m1')));
+    await assertSucceeds(deleteDoc(m('m1')));
+  });
+});

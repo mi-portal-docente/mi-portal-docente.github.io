@@ -81,7 +81,7 @@ export function montarEntrega(nodo, it, ctx) {
   }
   async function entregar(btn) {
     const v = valores(); const msg = nodo.querySelector('#enMsg');
-    if (!v.texto.trim() && !v.enlaces.length && !(v.doc && String(v.doc).replace(/<[^>]*>/g, '').trim())) { msg.textContent = 'Escribe una respuesta o añade un enlace.'; msg.className = 'au-msg ko'; return; }
+    if (!v.texto.trim() && !v.enlaces.length && !S.tr?.modelo && !(v.doc && String(v.doc).replace(/<[^>]*>/g, '').trim())) { msg.textContent = 'Escribe una respuesta, añade un enlace o sube un archivo.'; msg.className = 'au-msg ko'; return; }
     const cont = it.contenido || {};
     if (v.doc != null && (cont.palabrasMin || cont.palabrasMax)) { const np = contarPalabras(v.doc); if ((cont.palabrasMin && np < cont.palabrasMin) || (cont.palabrasMax && np > cont.palabrasMax)) { if (!confirm(`Tu documento tiene ${np} palabras y se piden ${cont.palabrasMin ? 'al menos ' + cont.palabrasMin : ''}${cont.palabrasMin && cont.palabrasMax ? ' y ' : ''}${cont.palabrasMax ? 'como mucho ' + cont.palabrasMax : ''}. ¿Entregar igualmente?`)) return; } }
     btn.disabled = true; msg.textContent = 'Entregando…'; msg.className = 'au-msg';
@@ -157,8 +157,9 @@ export function montarEntrega(nodo, it, ctx) {
   async function modelo(f, b) {
     const msg = nodo.querySelector('#enMsg');
     try {
-      if (b.dataset.en === 'm3dQuitar') { if (!confirm('¿Quitar el modelo 3D?')) return; await quitarModelo(db, tid); }
-      else { await asegurar(); msg.textContent = 'Subiendo el modelo…'; msg.className = 'au-msg'; const m = await subirModelo(db, tid, f); msg.textContent = `Modelo subido (${Math.round(m.bytes / 1024)} KB).`; msg.className = 'au-msg ok'; }
+      if (b.dataset.en === 'm3dQuitar') { if (!confirm('¿Quitar el modelo 3D?')) return; await quitarModelo(db, tid); if (S.tr) { const { modelo: _q, ...r } = S.tr; S.tr = r; } }
+      else { await asegurar(); msg.textContent = 'Subiendo el modelo…'; msg.className = 'au-msg'; const m = await subirModelo(db, tid, f); S.tr = { ...S.tr, modelo: { nombre: m.nombre, bytes: m.bytes } }; msg.textContent = `Modelo subido (${Math.round(m.bytes / 1024)} KB).`; msg.className = 'au-msg ok'; }
+      const viejo = nodo.querySelector('.m3'); if (viejo) viejo.outerHTML = modeloHTML(S.tr, editable(estado()), tid);
     } catch (e) { msg.textContent = 'No se ha podido: ' + (e?.code === 'permission-denied' ? 'permiso denegado (¿ya está calificado?)' : e.message || e); msg.className = 'au-msg ko'; }
   }
   // ------------------------------------------------------------ pintar

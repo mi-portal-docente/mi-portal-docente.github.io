@@ -462,3 +462,27 @@ test('fase 12: actividad interactiva (separa las claves, rechaza abiertas, edici
   assert.deepEqual(LR12('… Aciertos: 3,5/5 · Nota: 7'), { aciertos: 3.5, total: 5, nota: 7 });
   assert.deepEqual(LR12('Aciertos: 3/4'), { aciertos: 3, total: 4, nota: 7.5 });
 });
+
+// ---------------------------------------------------------------- fase 13 · hoja de cálculo
+import * as HJ from './src/lms/hoja.js';
+import './src/lms/motores/hoja.js';
+test('fase 13: fórmulas en castellano (SUMA, PROMEDIO, SI, CONTAR.SI, BUSCARV), coma decimal y errores', () => {
+  const H = HJ.crearHoja({ A1: 'Producto', B1: 'Precio', A2: 'Pan', B2: '1,5', A3: 'Leche', B3: '2', A4: 'Pan', B4: '3',
+    B5: '=SUMA(B2:B4)', B6: '=PROMEDIO(B2:B4)', C1: '=SI(B5>=6;"Caro";"Barato")', C2: '=CONTAR.SI(A2:A4;"pan")', C3: '=BUSCARV("Leche";A2:B4;2;FALSO)',
+    C4: '=B5/0', C5: '=C6', C6: '=C5', C7: '=FOO(1)', C8: '=A2&" "&B2', C9: '=CONTAR.SI(B2:B4;">1,5")', D1: '=2^3+1*-2', D2: '=REDONDEAR(10/3;2)', D3: '=SUM(B2:B4)', D4: '=$B$2*2', D5: '=BUSCARV("Agua";A2:B4;2;FALSO)' });
+  const t = (r) => HJ.mostrar(H.valor(r));
+  assert.deepEqual(['B5', 'C1', 'C2', 'C3', 'C4', 'C5', 'C7', 'C8', 'C9', 'D1', 'D2', 'D3', 'D4', 'D5'].map(t), ['6,5', 'Caro', '2', '2', '#DIV/0!', '#CICLO!', '#¿NOMBRE?', 'Pan 1,5', '2', '6', '3,33', '6,5', '3', '#N/A']);
+  assert.ok(Math.abs(H.valor('B6') - 2.1667) < 1e-3);
+  H.poner('B2', '10'); assert.equal(t('B5'), '15', 'recalcula al cambiar');
+  assert.deepEqual(HJ.tablaDinamica(H, { rango: 'A1:B4', fila: 'Producto', valor: 'Precio' }).filas, [['Pan', 13], ['Leche', 2]]);
+  assert.equal(HJ.datosGrafico(H, 'A1:B4').series[0].nombre, 'Precio'); assert.equal(HJ.datosGrafico(HJ.crearHoja({ A1: 'x', B1: 'Tipo', C1: 'Precio', A2: 'a', B2: 'b', C2: '3' }), 'A1:C2').series.length, 1, 'sin columnas de texto');
+  assert.ok(HJ.comprobarReto(H, { comprobar: [{ celda: 'B5', valor: 15, formula: 'SUMA' }] }));
+  assert.ok(!HJ.comprobarReto(HJ.crearHoja({ B5: '15' }), { comprobar: [{ celda: 'B5', valor: 15, formula: 'SUMA' }] }), 'pide la fórmula, no el número');
+  assert.match(HJ.csvHoja(H, 4, 2), /^Producto;Precio\nPan;10/);
+});
+test('fase 13: motor «hoja» (tamaño, celdas iniciales y retos validados)', async () => {
+  const { motor } = await import('./src/lms/elemento.js'); const M = motor('hoja');
+  const e = []; const o = M.validar(M.ejemplo, (r, t) => e.push(t)); assert.deepEqual(e, []); assert.equal(o.retos.length, 3);
+  const e2 = []; M.validar({ columnas: 3, celdas: { Z9: 'x' }, retos: [{ texto: 'r', comprobar: [{ celda: 'A1', formula: 'NOEXISTE' }] }] }, (r, t) => e2.push(r));
+  assert.deepEqual(e2, ['celdas', 'retos[0].comprobar']);
+});
