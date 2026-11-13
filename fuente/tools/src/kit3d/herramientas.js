@@ -5,7 +5,8 @@
 //   userData.id, userData.partes (piezas móviles) y userData.anim(t) (animación de uso en bucle, t en segundos).
 import * as THREE from 'three';
 import { MATS, pbr, torno, malla, caja, cilZ, cilX, extruir, bloqueRedondo, calcoCil, textoTex, rotulo1000V, estriasNormal, moleteadoNormal, calidad, tex } from './base.js';
-import { polimetro, punta as punta3 } from '../circ/detalle.js';
+import { multimetro } from './polimetro.js';
+export { multimetro };
 
 const ROJO = () => MATS.rojoVDE(), AMAR = () => MATS.amarilloVDE();
 const gomaAm = () => pbr(0xf5c400, { roughness: 0.75, normalMap: estriasNormal(14, 0.6), normalScale: new THREE.Vector2(0.6, 0.6) });
@@ -244,34 +245,7 @@ export function buscapolos() {
   return G;
 }
 
-// ---------------------------------------------------------------- multímetro con puntas de prueba
-function pantallaLCD(texto) {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 112; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-  const pintar = (s) => { const g = c.getContext('2d'); g.fillStyle = '#b9c9a5'; g.fillRect(0, 0, 256, 112); g.fillStyle = 'rgba(0,0,0,0.08)'; g.font = 'bold 72px monospace'; g.textAlign = 'right'; g.fillText('88.88', 244, 82); g.fillStyle = '#1b2318'; g.fillText(String(s).slice(0, 6), 244, 82); g.font = 'bold 20px monospace'; g.textAlign = 'left'; g.fillText('AUTO', 10, 24); t.needsUpdate = true; };
-  pintar(texto); return { t, pintar };
-}
-export function multimetro({ conPuntas = true, lectura = '0.00' } = {}) {
-  // Mismo modelo detallado que el polímetro del laboratorio de Circuitos (funda de goma, rueda estriada,
-  // anillo de escalas, bornes de 4 mm), escalado a cm: ≈ 10 × 17 × 3,8 cm.
-  const G = new THREE.Group(); G.userData.id = 'multimetro';
-  const cuerpo = new THREE.Group(); cuerpo.scale.set(0.72, 1.5, 0.72); cuerpo.position.set(0, 0, 9.25); G.add(cuerpo);
-  const L = pantallaLCD(lectura);
-  const { dial, disp } = polimetro(cuerpo, () => {});
-  disp.image = L.t.image; disp.needsUpdate = true; // la pantalla usa el lienzo de pantallaLCD
-  const pintar = (s) => { L.pintar(s); disp.needsUpdate = true; };
-  let lcd = null; cuerpo.traverse((o) => { if (o.isMesh && o.material?.map === disp) lcd = o; });
-  if (conPuntas) {
-    for (const [x, c, dz] of [[-2.6, 0x111111, -3], [0, 0xd62828, 3]]) {
-      const cur = new THREE.CatmullRomCurve3([new THREE.Vector3(x, 4.0, 16), new THREE.Vector3(x * 1.4, 3.6, 20), new THREE.Vector3(x * 2 + 6, 0.5, 24), new THREE.Vector3(14 + dz, 0.5, 18), new THREE.Vector3(16 + dz, 1.0, 9.5)]);
-      malla(new THREE.TubeGeometry(cur, calidad().baja ? 24 : 48, 0.18, 8), pbr(c, { roughness: 0.55 }), G);
-      const pr = punta3(c); pr.children.filter((m) => m.material?.opacity === 0).forEach((m) => pr.remove(m)); pr.scale.setScalar(2.4); pr.rotation.x = Math.PI / 2; pr.position.set(16 + dz, 1.35, 9.5 - 5.3 * 2.4); G.add(pr);
-    }
-  }
-  G.userData.partes = { lcd, dial };
-  G.userData.leer = pintar;
-  G.userData.anim = (t) => { dial.rotation.y = -0.8 + Math.round((t % 4) / 1.3) * 0.6; pintar(['230.4', '229.8', '0.L', '230.1'][Math.floor(t % 4)]); };
-  return G;
-}
+// multímetro con puntas: en ./polimetro.js (el mismo modelo que el polímetro de Circuitos)
 
 // ---------------------------------------------------------------- tijera cortatubos (PVC / corrugado)
 export function cortatubos() {

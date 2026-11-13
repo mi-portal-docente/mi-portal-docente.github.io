@@ -13,7 +13,9 @@ import { simular, comprobar, comprobarTablero, puntas, TXT_PUNTA, CONDUCE, medir
 import { CIRCUITOS, CALIBRES, CALIBRES_IGA, CALIBRES_ID, CURVAS, CAJAS, FICHAS, BORNES, LARGOS_PELADO, PUNTAS, TUBOS, tuboMinimo, GRAPA_MAX, MARCAS, HERRAMIENTAS, REFERENCIAS, PROTEGE } from './catalogo.js';
 import { mecanismo3D, bombilla3D, cajaEmpalme3D, modulo3D, cuadro3D, herramienta3D, rotulo } from './modelos3d.js';
 import { Visor } from './visor.js';
-import { entorno } from '../kit3d/base.js';
+import { entorno, calidad } from '../kit3d/base.js';
+import { aislTex } from '../kit3d/cables.js';
+const Q_ = calidad();
 import { Taller } from './taller.js';
 import { Montaje } from './montaje.js';
 import { CasaVista } from './casa3d.js';
@@ -303,13 +305,15 @@ export class ViviendaLab {
       const curva = new THREE.CatmullRomCurve3(Q, false, 'centripetal', 0.2);
       const sel = this.sel?.k === 'cable' && this.sel.id === c.id; const mal = this.chk?.cables?.has(c.id);
       const rr = c.sec >= 4 ? 0.36 : c.sec >= 2.5 ? 0.3 : 0.22;
-      const mt = c.color === 'tierra' ? Object.assign(new THREE.MeshStandardMaterial({ map: this.texTierra(), roughness: 0.45, emissive: sel ? 0x2244aa : 0 }), { userData: { desechable: true } }) : M(new THREE.Color(COLORES[c.color].hex).getHex(), { roughness: 0.45, emissive: sel ? 0x2244aa : mal ? 0x550000 : 0x000000 });
-      const o = new THREE.Mesh(new THREE.TubeGeometry(curva, Math.max(16, Q.length * 14), rr, 8, false), mt); o.castShadow = true; G.add(o);
+      // aislamiento de PVC con el rotulado H07V-K continuo (como el cable real), del color normalizado
+      const Lt = curva.getLength(); const tx = this.texCable(c.color, c.sec || 1.5, Lt);
+      const mt = Object.assign(new THREE.MeshPhysicalMaterial({ map: tx, roughness: 0.4, clearcoat: 0.35, clearcoatRoughness: 0.35, emissive: sel ? 0x2244aa : mal ? 0x550000 : 0x000000 }), { userData: { desechable: true } });
+      const o = new THREE.Mesh(new THREE.TubeGeometry(curva, Math.max(16, Q.length * 14), rr, Q_.baja ? 8 : 12, false), mt); o.castShadow = true; G.add(o);
       if (!rc.enTubo) { const d = new THREE.Mesh(new THREE.TubeGeometry(curva, 30, 0.5, 6, false), new THREE.MeshBasicMaterial({ color: 0xff3030, transparent: true, opacity: 0.25, depthWrite: false })); d.material.userData.desechable = true; G.add(d); }
       const Lc = curva.getLength();
       for (const lado of ['a', 'b']) { const e = extremo(c, lado); if (!e.pel || !(Lc > 0.2)) continue; const f = Math.min(0.45, e.pel / 10 / Lc); const u0 = lado === 'a' ? 0 : 1 - f, u1 = lado === 'a' ? f : 1;
         const pts = []; for (let i = 0; i <= 4; i++) pts.push(curva.getPointAt(u0 + ((u1 - u0) * i) / 4)); if (pts[0].distanceTo(pts[4]) < 0.02) continue;
-        G.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 6, rr * 0.75 + 0.03, 8, false), M(0xc8743c, { metalness: 0.85, roughness: 0.3 }))); }
+        G.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 6, rr * 0.75 + 0.03, 10, false), this.matCobre())); }
     }
     if (this.tool === 'multimetro') for (const [ref, col] of [[this.multi.a, 0xd01a1a], [this.multi.b, 0x111111]]) { if (!ref || ref === 'TIERRA') continue; const q = posBorne(m, ref); if (!q) continue; const s = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 6, 8), M(col)); s.rotation.x = Math.PI / 2; s.position.set(q.x + 0.3, q.y + 0.3, zBorne(m, ref) + 3); G.add(s); }
     if (this.sel?.k === 'cable') { const c = m.cables.find((x) => x.id === this.sel.id); const o = c && P.get(c.id); if (o) for (const lado of ['a', 'b']) { const q = posBorne(m, c[lado]); if (q && o[lado] !== 'ok') lbl('⚠ ' + TXT_PUNTA[o[lado]], q.x, q.y, zBorne(m, c[lado]) + 1.5, 'mini aviso'); } }
@@ -323,6 +327,13 @@ export class ViviendaLab {
     const r = new THREE.BufferGeometry(); r.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); r.computeVertexNormals(); r.userData.compartida = true; return (this._gg = r); }
   marco(x, y, w, h, z = 0.3) { const g = new THREE.EdgesGeometry(new THREE.PlaneGeometry(w, h)); const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x1f6fff })); l.material.userData.desechable = true; l.position.set(x, y, z); this.G.add(l); }
   texTubo() { if (this._tt) return this._tt; const t = canvasTex(64, 16, (g, w, h) => { g.fillStyle = '#7c848b'; g.fillRect(0, 0, w, h); g.fillStyle = '#5c646b'; for (let x = 0; x < w; x += 16) g.fillRect(x, 0, 6, h); }); t.wrapS = t.wrapT = THREE.RepeatWrapping; return (this._tt = t); }
+  texCable(color, sec, L) { // rotulado del aislamiento repetido cada ~9 cm (texturas compartidas por color, sección y largo)
+    this._tc = this._tc || new Map(); const k = color + '|' + sec + '|' + Math.max(1, Math.round(L / 9));
+    if (!this._tc.has(k)) { const t = aislTex(color, sec, 'K').clone(); t.wrapS = THREE.RepeatWrapping; t.repeat.set(Math.max(1, Math.round(L / 9)), 1); t.needsUpdate = true; this._tc.set(k, t); }
+    return this._tc.get(k);
+  }
+  matCobre() { if (this._mcu) return this._mcu; const t = canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#c8743c'; g.fillRect(0, 0, w, h); for (let i = 0; i < 16; i++) { g.fillStyle = i % 2 ? 'rgba(255,214,160,0.55)' : 'rgba(110,50,15,0.35)'; g.beginPath(); g.moveTo(i * 8 - 32, 0); g.lineTo(i * 8 - 28, 0); g.lineTo(i * 8 + 4, h); g.lineTo(i * 8, h); g.fill(); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 3);
+    return (this._mcu = new THREE.MeshStandardMaterial({ map: t, color: 0xffffff, metalness: 0.85, roughness: 0.32 })); } // hebras retorcidas
   texTierra() { if (this._tg) return this._tg; const t = canvasTex(64, 16, (g, w, h) => { g.fillStyle = '#3fae2a'; g.fillRect(0, 0, w, h); g.fillStyle = '#f2d21b'; for (let x = 0; x < w; x += 16) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + 8, 0); g.lineTo(x + 16, h); g.lineTo(x + 8, h); g.fill(); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30, 1); return (this._tg = t); }
   pintarGuias() {
     const gh = this.ghost; gh.traverse((o) => { o.geometry?.dispose(); }); gh.clear(); if (this.kind !== 'tablero' || this.ro) return;

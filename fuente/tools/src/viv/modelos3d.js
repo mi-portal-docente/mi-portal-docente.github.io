@@ -87,6 +87,26 @@ export function placaHueco(W, H, d, hueco, r, m, z, par) {
   const o = new THREE.Mesh(g, m); o.position.z = z; o.castShadow = true; o.receiveShadow = true; par?.add(o); return o;
 }
 function tornilloFrente(x, y, z, par, r = 0.24) { const g = new THREE.Group(); const c = new THREE.Mesh(gCyl(r, 0.14, 16, r * 0.92), LATON()); c.rotation.x = Math.PI / 2; c.position.z = 0.07; g.add(c); caja(r * 1.5, 0.06, 0.05, HUECO(), 0, 0, 0.13, g); caja(0.06, r * 1.5, 0.05, HUECO(), 0, 0, 0.13, g); g.position.set(x, y, z); par?.add(g); return g; }
+function schukoTex() {
+  if (tc.has('schuko')) return tc.get('schuko');
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#ecebe6'; g.beginPath(); g.arc(128, 128, 128, 0, Math.PI * 2); g.fill();
+  const sh = g.createRadialGradient(128, 128, 80, 128, 128, 128); sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.18)'); g.fillStyle = sh; g.fillRect(0, 0, 256, 256);
+  for (const x of [128 - 62, 128 + 62]) {
+    g.fillStyle = '#dcdad3'; g.beginPath(); g.arc(x, 128, 27, 0, Math.PI * 2); g.fill(); g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = '#121315'; g.beginPath(); g.arc(x, 128, 17, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#9aa0a6'; g.beginPath(); g.arc(x, 128, 13, 0, Math.PI * 2); g.fill(); // obturador
+    g.fillStyle = '#5e646a'; g.fillRect(x - 11, 126, 22, 4);
+  }
+  g.fillStyle = '#9b9a94'; g.font = 'bold 17px Arial'; g.textAlign = 'center'; g.fillText('16 A  250 V~', 128, 196);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; tc.set('schuko', t); return t;
+}
+// Tecla basculante: arista suave en el centro (el lado pulsado queda hundido)
+function teclaBasculante(w, h, par) {
+  const t = bloqueRedondo(w, h, 0.45, 0.45, PLAST(), par, 0.12); const P = t.geometry.attributes.position;
+  for (let i = 0; i < P.count; i++) { const y = P.getY(i), z = P.getZ(i); const f = Math.max(0, Math.min(1, (z + 0.35) / 0.7)); P.setZ(i, z + f * 0.16 * (1 - Math.min(1, Math.abs(y) / (h / 2)) ** 1.6)); }
+  t.geometry.computeVertexNormals(); return t;
+}
 export function mecanismo3D(tipo, o = {}) {
   const G = new THREE.Group(); G.userData.partes = {}; G.userData.bornes = {};
   const part = (n) => { const g = new THREE.Group(); g.name = n; G.add(g); G.userData.partes[n] = g; return g; };
@@ -109,6 +129,7 @@ export function mecanismo3D(tipo, o = {}) {
       for (const [sx, sy] of [[0, -3.0], [0, 3.0], [-3.0, 0], [3.0, 0]]) { const r = bloqueRedondo(sx ? 0.35 : 1.0, sx ? 1.0 : 0.35, 0.05, 0.17, HUECO(), mc2, 0.01); r.position.set(cx + sx, sy, 3.47); } // colisos de los tornillos
       for (const sx of [-2.55, 2.55]) { caja(0.5, 1.4, 1.4, ZAMAK(), cx + sx, 0, 1.7, mc2); tornilloFrente(cx + sx * 0.93, 0, 3.42, mc2, 0.2); } // garras con su tornillo
     }
+    { const r = rotulo(esEnch ? '16 A 250 V~  2P+T' : tipo === 'minutero' ? '230 V~  1–7 min' : '10 AX 250 V~', 3.4, 0.45, -dx / 2 - 2.27, 0, 2.2, mc2, { color: '#7c8288', w: 256, h: 34, font: 'bold 24px system-ui, sans-serif' }); r.rotation.set(0, -Math.PI / 2, 0); r.rotateZ(Math.PI / 2); } // rótulo en el costado del mecanismo
     for (const [t, [bx0, by]] of Object.entries(BORNES_MEC[tipo] || {})) {
       const bx = bx0 - dx / 2; const mk = marcas[t] || t;
       const col = t === 'PE' ? '#2f9e44' : t === 'N' ? '#1f5fd6' : '#7a4a22';
@@ -139,8 +160,15 @@ export function mecanismo3D(tipo, o = {}) {
       placaHueco(4.4, 4.4, 0.42, { r: 1.95 }, 0.45, PLAST(), z0 + 0.1, tc2).position.x = cx; // tapa con el pozo Schuko
       const pozo = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 1.95, 0.55, 40, 1, true), Object.assign(PLAST_MATE().clone(), { side: THREE.DoubleSide })); pozo.rotation.x = Math.PI / 2; pozo.position.set(cx, 0, z0 + 0.25); tc2.add(pozo);
       cil(1.95, 0.05, PLAST_MATE(), cx, 0, z0, tc2, 40);
-      for (const sx of [-0.95, 0.95]) { cil(0.27, 0.06, HUECO(), cx + sx, 0, z0 + 0.03, tc2, 16); cil(0.3, 0.02, pbr(0xd9d6cf, { roughness: 0.5 }), cx + sx, 0, z0 + 0.05, tc2, 16).scale.set(1, 1, 1); }
-      for (const sy of [-1.86, 1.86]) caja(1.0, 0.1, 0.5, MATS.acero(), cx, sy, z0 + 0.03, tc2); // contactos de tierra
+      // fondo del pozo: dos alvéolos de 4,8 mm con obturadores (protección infantil) y rótulo 16 A 250 V~
+      const fondo = new THREE.Mesh(geo('schFondo', () => new THREE.CircleGeometry(1.94, 48)), (() => { const kk = 'schFondoM'; if (!mc.has(kk)) { const mm = new THREE.MeshStandardMaterial({ map: schukoTex(), roughness: 0.55 }); mm.userData.compartido = true; mc.set(kk, mm); } return mc.get(kk); })());
+      fondo.position.set(cx, 0, z0 + 0.06); tc2.add(fondo);
+      for (const sx of [-0.95, 0.95]) cil(0.42, 0.1, PLAST_MATE(), cx + sx, 0, z0 - 0.04, tc2, 20); // resaltes de los alvéolos (dentro del dibujo)
+      // muescas laterales con los contactos de tierra (lámina de acero curvada que sobresale hacia el centro)
+      for (const sy of [-1, 1]) {
+        caja(1.15, 0.32, 0.52, HUECO(), cx, sy * 1.78, z0 + 0.02, tc2);
+        const clip = new THREE.Mesh(geo('schClip', () => new THREE.TorusGeometry(0.32, 0.07, 6, 14, Math.PI)), MATS.acero()); clip.position.set(cx, sy * 1.84, z0 + 0.3); clip.rotation.set(0, Math.PI / 2, sy > 0 ? Math.PI / 2 : -Math.PI / 2); clip.scale.set(1, 1, 1.6); tc2.add(clip);
+      }
       tornilloFrente(cx, 0, z0 + 0.02, tc2, 0.2);
       if (i === 0) G.userData.agujeros = { L: new THREE.Vector3(cx - 0.95, 0, z0 + 0.6), N: new THREE.Vector3(cx + 0.95, 0, z0 + 0.6), PE: new THREE.Vector3(cx, 1.8, z0 + 0.6) };
     }
@@ -150,10 +178,11 @@ export function mecanismo3D(tipo, o = {}) {
     simbolo('reloj', 0.75, -1.25, -1.4, z0 + 0.57, tc2, '#6b7278'); rotulo('1–7 min', 2.6, 0.8, 0.45, -1.4, z0 + 0.56, tc2, { color: '#6b7278', w: 192, h: 56, font: 'bold 36px system-ui, sans-serif' });
   } else {
     const on = tipo === 'interruptor' || tipo === 'pulsador' ? !!o.on : !!o.pos;
-    const t = bloqueRedondo(4.1, 4.1, 0.45, 0.45, PLAST(), tc2, 0.12); t.position.z = z0 + 0.35; t.rotation.x = on ? -0.07 : 0.07;
+    const t = teclaBasculante(4.1, 4.1, tc2); t.position.z = z0 + 0.35; t.rotation.x = on ? -0.07 : 0.07;
+    for (const sx of [-2.08, 2.08]) caja(0.06, 3.9, 0.3, HUECO(), sx, 0, z0 + 0.12, tc2); // holgura entre tecla y marco
     const sim = { conmutador: 'flechas', cruzamiento: 'cruce', pulsador: 'campana', interruptor: '' }[tipo];
     if (sim) simbolo(sim, 0.9, 1.3, -1.3, z0 + 0.62, tc2, '#a3aaaf');
-    caja(2.6, 0.1, 0.04, MAT.gris(), 0, on ? -1.5 : 1.5, z0 + 0.6, tc2);
+    caja(2.6, 0.1, 0.04, MAT.gris(), 0, on ? -1.5 : 1.5, z0 + 0.66, tc2);
     if (tipo === 'pulsador') { const led = cil(0.18, 0.05, pbr(0x6fb6ff, { emissive: 0x2a7fff, emissiveIntensity: 0.6 }), 0, 1.5, z0 + 0.6, tc2, 12); void led; }
   }
   if (o.tablero && o.empotrar) G.userData.partes.caja.visible = false;
@@ -185,12 +214,17 @@ export function ficha3D(tipo) {
     const cu = bloqueRedondo(w, 1.86, 0.82, 0.12, pbr(0xe6eef2, { roughness: 0.08, transparent: true, opacity: 0.42, depthWrite: false, clearcoat: 1 }), G, 0.04); cu.position.z = 0.41;
     caja(w - 0.12, 1.1, 0.12, MAT.cobre(), 0, -0.25, 0.12, G); // barra de corriente
     for (let i = 0; i < n; i++) { const x = -w / 2 + pv * (i + 0.5);
-      const lev = new THREE.Group(); lev.position.set(x, 0.55, 0.74); lev.rotation.x = -0.06; G.add(lev);
-      const pl = bloqueRedondo(pv - 0.1, 1.3, 0.2, 0.06, pbr(0xff7a12, { roughness: 0.38, clearcoat: 0.3 }), lev, 0.03); pl.position.set(0, -0.3, 0.05);
-      for (let k = 0; k < 4; k++) caja(pv - 0.16, 0.04, 0.05, pbr(0xe66a08, { roughness: 0.5 }), 0, 0.05 + k * 0.1, 0.15, lev);
+      // palanca con su perfil real: bisagra atrás, lomo inclinado y pestaña de empuje con estrías
+      const lev = new THREE.Group(); lev.position.set(x, 0, 0); G.add(lev);
+      const lg = geo('wagoLev|' + pv, () => { const sh = new THREE.Shape(); [[0.9, 0.7], [0.9, 0.9], [0.3, 0.98], [-0.32, 1.12], [-0.55, 1.08], [-0.6, 0.92], [-0.42, 0.84], [0.6, 0.75]].forEach(([y, z], k) => (k ? sh.lineTo(y, z) : sh.moveTo(y, z)));
+        const e = new THREE.ExtrudeGeometry(sh, { depth: pv - 0.12, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 1 }); e.translate(0, 0, -(pv - 0.12) / 2);
+        e.applyMatrix4(new THREE.Matrix4().set(0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1)); return e; });
+      const lm = new THREE.Mesh(lg, pbr(0xff7a12, { roughness: 0.36, clearcoat: 0.35 })); lm.castShadow = true; lev.add(lm);
+      for (let k = 0; k < 3; k++) caja(pv - 0.18, 0.05, 0.04, pbr(0xd8620a, { roughness: 0.5 }), 0, -0.48 + k * 0.1, 1.11 - k * 0.035, lev);
+      cil(0.08, pv - 0.1, MATS.acero(), 0, 0.82, 0.76, G).rotation.set(0, Math.PI / 2, 0); // eje de la bisagra
       caja(pv - 0.22, 0.12, 0.42, MATS.acero(), x, -0.55, 0.22, G); // pinza (resorte)
       cil(0.15, 0.06, MAT.hueco(), x, -0.93, 0.3, G, 10).rotation.x = 0; // boca del cable
-      caja(0.1, 0.24, 0.03, MAT.hueco(), x, -0.35, 0.83, G); } // ranura de prueba
+      caja(0.1, 0.22, 0.03, MAT.hueco(), x, -0.78, 0.86, G); } // ranura de prueba (delante de la palanca)
   } else if (f.kind === 'insercion') { // tipo 2273: carcasa transparente con tapa de color y entradas redondas
     const cu = bloqueRedondo(w, 1.3, 0.75, 0.1, pbr(0xe6eef2, { roughness: 0.08, transparent: true, opacity: 0.45, depthWrite: false, clearcoat: 1 }), G, 0.03); cu.position.z = 0.375;
     const tp = bloqueRedondo(w + 0.02, 0.5, 0.78, 0.1, pbr(n >= 5 ? 0xf2c200 : n === 3 ? 0xff7a12 : 0xcfd3d6, { roughness: 0.4 }), G, 0.03); tp.position.set(0, 0.42, 0.39);

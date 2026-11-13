@@ -4,8 +4,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { camaraSuave } from '../kit3d/escena.js';
 import { PLANO, TIPOS_CASA, PALETA_CASA, area, estancia, estanciaEn, pegarPared, posPunto, ALTO_TUBO, casaVacia, sanearCasa, comprobarCasa, simularCasa, materialesCasa, caminos, minimos, circDefecto, solucionCasa, largoTuboCasa } from './casa.js';
 import { CIRCUITOS, CALIBRES, CALIBRES_IGA, CALIBRES_ID, SECCIONES, TUBOS, tuboMinimo } from './catalogo.js';
-import { mat, MAT, caja } from './modelos3d.js';
+import { mat } from './modelos3d.js';
 import { entorno } from '../kit3d/base.js';
+import { amueblar, luzCasa, puntoCasa, luzTecho, cuadroCasa } from './casaDeco.js';
+const NORMAL = { S: [0, 1], N: [0, -1], O: [1, 0], E: [-1, 0] };
+const normalDe = (x, y) => NORMAL[pegarPared(x, y).pared] || [0, 1];
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const num = (n) => String(n).replace('.', ',');
@@ -17,21 +20,14 @@ export class CasaVista {
   init(renderer) {
     if (this.scene) return;
     const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xe8ecef); entorno(renderer, s, 0.35);
-    s.add(new THREE.HemisphereLight(0xffffff, 0x8a7a66, 1.5)); const d = new THREE.DirectionalLight(0xffffff, 1.3); d.position.set(200, -300, 900); s.add(d);
+    luzCasa(s, PLANO);
     const cam = this.camera = new THREE.PerspectiveCamera(38, 1, 5, 6000); cam.up.set(0, 0, 1);
     const c = this.controls = new OrbitControls(cam, renderer.domElement); camaraSuave(c, { polarMax: 1.35, min: 120, max: 2200 }); c.enabled = false;
     c.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
-    // suelo por estancias
-    const colores = { vestibulo: 0xd9cbb3, pasillo: 0xd9cbb3, salon: 0xc9a77c, cocina: 0xdfe3e6, bano: 0xcfe3ea, dormitorio: 0xc9a77c };
-    const fondo = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), mat(0xb7bdb3, { roughness: 0.95 })); fondo.position.set(PLANO.w / 2, PLANO.h / 2, -1); s.add(fondo);
+    // exterior, suelos con textura (tarima, gres y baldosa), tabiques con rodapié, muebles y puerta de la calle
+    const fondo = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), mat(0xb7bdb3, { roughness: 0.95 })); fondo.position.set(PLANO.w / 2, PLANO.h / 2, -1); fondo.receiveShadow = true; s.add(fondo);
     this.labels = [];
-    for (const e of PLANO.estancias) { const [x0, y0, x1, y1] = e.r; const f = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0), mat(colores[e.tipo] || 0xdddddd, { roughness: 0.85 })); f.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0); s.add(f); }
-    const muro = mat(0xf3f1ec, { roughness: 0.8 }), canto = mat(0x5a6168);
-    for (const [x0, y0, x1, y1] of PLANO.muros) { const L = Math.hypot(x1 - x0, y1 - y0) + 10; const w = new THREE.Mesh(new THREE.BoxGeometry(L, 10, PLANO.alto), muro); w.position.set((x0 + x1) / 2, (y0 + y1) / 2, PLANO.alto / 2); w.rotation.z = Math.atan2(y1 - y0, x1 - x0); s.add(w); const t = new THREE.Mesh(new THREE.BoxGeometry(L, 10.5, 1), canto); t.position.set(w.position.x, w.position.y, PLANO.alto + 0.5); t.rotation.z = w.rotation.z; s.add(t); }
-    const mueble = { banera: 0xffffff, lavabo: 0xffffff, inodoro: 0xffffff, encimera: 0x8b8f93, fregadero: 0xc4c8ce, placa: 0x1b1d1f, frigo: 0xe6e8ea, cama: 0x8fa9c7, sofa: 0x7c8b6e, mesa: 0x8a6a44 };
-    for (const f of PLANO.muebles) { const [x0, y0, x1, y1] = f.r; const o = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, f.h), mat(mueble[f.t] || 0xcccccc, { roughness: 0.6 })); o.position.set((x0 + x1) / 2, (y0 + y1) / 2, f.h / 2 + (f.t === 'fregadero' || f.t === 'placa' ? 0.5 : 0)); s.add(o); }
-    // puerta de la calle
-    const pc = PLANO.puertaCalle; const pu = new THREE.Mesh(new THREE.BoxGeometry(6, pc.ancho, 210), mat(0x6b4a2b)); pu.position.set(-6, pc.y, 105); pu.rotation.z = 0; s.add(pu);
+    amueblar(s, PLANO);
     this.G = new THREE.Group(); s.add(this.G);
     this.ray = new THREE.Raycaster(); this.ndc = new THREE.Vector2(); this.plano = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
     this.vista();
@@ -46,21 +42,17 @@ export class CasaVista {
   // ------------------------------------------------------------ 3D
   construir() {
     if (!this.G) return; const G = this.G;
-    G.traverse((o) => { if (o.geometry && !o.geometry.userData?.compartida) o.geometry.dispose(); }); G.clear();
+    G.traverse((o) => { if (o.geometry && !o.geometry.userData?.compartida) o.geometry.dispose(); if (o.material && !o.material.userData?.compartido) o.material.dispose(); }); G.clear();
     this.labels = PLANO.estancias.map((e) => ({ txt: `${e.n} · ${num(Math.round(area(e) * 10) / 10)} m²`, v: new THREE.Vector3((e.r[0] + e.r[2]) / 2, (e.r[1] + e.r[3]) / 2, 2), cls: 'est' }));
     this.labels.push({ txt: 'Acceso', v: new THREE.Vector3(-40, PLANO.puertaCalle.y, 2), cls: 'est' });
     const m = this.m; const sim = this.red ? simularCasa(m) : null; const C = caminos(m);
     const selC = (id) => this.sel?.k === 'punto' && this.sel.id === id || (this.tuboIni === id) || (this.mandoIni === id);
-    if (m.cuadro) { const o = caja(30, 30, 24, mat(this.sel?.k === 'cuadro' ? 0x7fb2ff : 0xf6f6f3), m.cuadro.x, m.cuadro.y, 168, G); o.position.z = 180; this.labels.push({ txt: 'Cuadro', v: new THREE.Vector3(m.cuadro.x, m.cuadro.y, 200), cls: 'ce' }); }
+    if (m.cuadro) { const [nx, ny] = normalDe(m.cuadro.x, m.cuadro.y); G.add(cuadroCasa(m.cuadro, this.sel?.k === 'cuadro', nx, ny)); this.labels.push({ txt: 'Cuadro', v: new THREE.Vector3(m.cuadro.x, m.cuadro.y, 200), cls: 'ce' }); }
     for (const p of m.puntos) {
-      const T = TIPOS_CASA[p.tipo]; const sel = selC(p.id); const col = sel ? 0x2b7bff : null;
-      if (p.tipo === 'luz') { const on = sim?.luces.find((l) => l.id === p.id)?.on; const b = new THREE.Mesh(new THREE.SphereGeometry(9, 16, 12), new THREE.MeshStandardMaterial({ color: col || (on ? 0xfff1a8 : 0xf2efe6), emissive: 0xffc93a, emissiveIntensity: on ? 1.4 : 0 })); b.position.set(p.x, p.y, 238); G.add(b);
+      const T = TIPOS_CASA[p.tipo]; const sel = selC(p.id);
+      if (p.tipo === 'luz') { const on = sim?.luces.find((l) => l.id === p.id)?.on; G.add(luzTecho(p, PLANO.alto, { on, sel }));
         if (on) { const l = new THREE.PointLight(0xffe7a0, 0.6, 400); l.position.set(p.x, p.y, 220); G.add(l); } }
-      else if (p.tipo === 'caja') { caja(14, 14, 10, mat(col || 0x9aa1a6), p.x, p.y, T.h - 5, G); }
-      else { const o = caja(12, 12, 12, mat(col || (p.tipo === 'base25' ? 0xd9d2c6 : 0xffffff)), p.x, p.y, T.h - 6, G); void o;
-        const dot = caja(5, 5, 1, p.tipo.startsWith('base') ? mat(HEXC(p.circ)) : (p.tipo === 'interruptor' || p.tipo === 'conmutador') && p.on ? MAT.verde() : MAT.grisOsc(), p.x, p.y, T.h + 6, G); void dot; }
-      // mástil fino hasta el suelo para ver la altura
-      if (!T.techo && p.tipo !== 'caja') { const mm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, T.h - 6, 6), mat(0x7d858c)); mm.rotation.x = Math.PI / 2; mm.position.set(p.x, p.y, (T.h - 6) / 2); G.add(mm); }
+      else { const [nx, ny] = normalDe(p.x, p.y); G.add(puntoCasa(p, T, { colorCirc: COLOR_CIRC[p.circ] ?? 0x8a8f94, on: !!p.on, sel, nx, ny })); }
       this.labels.push({ txt: T.icon + (p.circ && p.tipo !== 'luz' && p.tipo !== 'interruptor' && p.tipo !== 'conmutador' && p.tipo !== 'timbre' ? ' ' + p.circ : ''), v: new THREE.Vector3(p.x, p.y, (T.techo ? 250 : T.h) + 14), cls: 'mini' + (sel ? ' sel' : '') + (C.conectado(p.id) ? '' : ' suelto') });
     }
     // mando (interruptor → luz): línea discontinua
@@ -72,9 +64,11 @@ export class CasaVista {
       const path = new THREE.CurvePath(); for (let i = 1; i < pts.length; i++) if (pts[i].distanceTo(pts[i - 1]) > 0.1) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
       if (!path.curves.length) continue;
       const sel = this.sel?.k === 'tubo' && this.sel.id === t.id; const mal = this.chk?.tubos?.has(t.id);
-      const o = new THREE.Mesh(new THREE.TubeGeometry(path, 40, t.d / 12, 8), new THREE.MeshStandardMaterial({ color: sel ? 0x2b7bff : mal ? 0xff3030 : cs.length ? COLOR_CIRC[cs[0]] : 0x8a8f94, roughness: 0.6 })); G.add(o);
+      const o = new THREE.Mesh(new THREE.TubeGeometry(path, 40, t.d / 12, 10), new THREE.MeshStandardMaterial({ color: sel ? 0x2b7bff : mal ? 0xff3030 : cs.length ? COLOR_CIRC[cs[0]] : 0x8a8f94, roughness: 0.55, bumpMap: this.corrugado(), bumpScale: 1.2 })); o.castShadow = true; G.add(o);
     }
   }
+  corrugado() { if (this._cor) return this._cor; const c = document.createElement('canvas'); c.width = 64; c.height = 8; const g = c.getContext('2d'); for (let x = 0; x < 64; x++) { const v = 128 + 120 * Math.sin((x / 64) * Math.PI * 2 * 8); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(x, 0, 1, 8); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30, 1); return (this._cor = t); } // tubo corrugado (estrías)
   punto(e, dom) { const r = dom.getBoundingClientRect(); this.ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); this.ray.setFromCamera(this.ndc, this.camera); const v = new THREE.Vector3(); return this.ray.ray.intersectPlane(this.plano, v) ? { x: v.x, y: v.y } : null; }
   pantalla(x, y, z, dom) { const v = new THREE.Vector3(x, y, z).project(this.camera); const r = dom.getBoundingClientRect(); return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height }; }
   // el punto más cercano en pantalla (los de techo y pared se ven a distinta altura)

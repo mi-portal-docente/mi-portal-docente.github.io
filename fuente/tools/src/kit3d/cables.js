@@ -13,7 +13,7 @@ export const rCable = (sec) => (FICHA_COND[sec]?.d || 3.6) / 2 / 10;
 const fmt = (s) => String(s).replace('.', ',');
 
 // ---------------------------------------------------------------- texturas del aislamiento (rotulado continuo)
-function aislTex(color, sec, tipo) {
+export function aislTex(color, sec, tipo) {
   const txt = `H07V-${tipo} 1x${fmt(sec)} mm²  450/750 V  Eca  ◇  `;
   return tex(`aisl|${color}|${sec}|${tipo}`, 1024, 64, (g, w, h) => {
     if (color === 'tierra') { g.fillStyle = '#f2d21b'; g.fillRect(0, 0, w, h); g.fillStyle = '#1f9a3a'; g.fillRect(0, 0, w, h * 0.2); g.fillRect(0, h * 0.42, w, h * 0.22); }
@@ -45,15 +45,24 @@ function caraTex(sec, tipo, color) {
 }
 
 // ---------------------------------------------------------------- hebras de cobre (InstancedMesh)
+// Conductor clase 5: las hebras van cableadas en hélice (paso ≈ 16 mm) y se abren un poco en la punta.
+// Una geometría helicoidal por corona; cada hebra de la corona es la misma hélice girada sobre el eje X.
+const PASO_HEBRA = 1.6; // cm
+function heliceGeo(rf, rs, largo, abierto, rc) {
+  const n = Math.max(6, Math.round(largo / 0.12)); const pts = [];
+  for (let i = 0; i <= n; i++) { const x = (i / n) * largo; const t = x / largo; const r = rf * (1 + abierto * 4 * t * t * (rf / rc)); const a = (x / PASO_HEBRA) * Math.PI * 2; pts.push(new THREE.Vector3(x, Math.sin(a) * r, Math.cos(a) * r)); }
+  const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), n, rs, 5, false); return g;
+}
 function hebras(sec, largo, abierto = 0.06) {
   const rc = rCobre(sec); const n = Math.min(FICHA_COND[sec]?.hebras || 30, calidad().hebras); const rs = rc * Math.sqrt(0.8 / n) * 1.05;
-  const geo = new THREE.CylinderGeometry(rs, rs, largo, 5); geo.rotateZ(-Math.PI / 2); geo.translate(largo / 2, 0, 0);
-  const im = new THREE.InstancedMesh(geo, MATS.cobre(), n); im.castShadow = true;
-  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1);
-  let k = 0; for (let ring = 0; k < n; ring++) { const rr = ring * rs * 2; const m = ring === 0 ? 1 : Math.max(1, Math.floor((2 * Math.PI * rr) / (rs * 2.05))); for (let i = 0; i < m && k < n; i++, k++) {
-    const a = (i / m) * Math.PI * 2 + ring * 0.7; const rf = Math.min(rr, rc - rs); p.set(0, Math.sin(a) * rf, Math.cos(a) * rf);
-    e.set(0, -Math.cos(a) * abierto * (rf / rc), Math.sin(a) * abierto * (rf / rc)); q.setFromEuler(e); M.compose(p, q, S); im.setMatrixAt(k, M); } }
-  im.instanceMatrix.needsUpdate = true; return im;
+  const G = new THREE.Group(); G.userData.tipo = 'hebras';
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1), X = new THREE.Vector3(1, 0, 0);
+  let k = 0; for (let ring = 0; k < n; ring++) { const rr = ring * rs * 2; const m = ring === 0 ? 1 : Math.max(1, Math.floor((2 * Math.PI * rr) / (rs * 2.05))); const cnt = Math.min(m, n - k); const rf = Math.min(rr, rc - rs);
+    const geo = ring === 0 ? new THREE.CylinderGeometry(rs, rs, largo, 6).rotateZ(-Math.PI / 2).translate(largo / 2, 0, 0) : heliceGeo(rf, rs, largo, abierto, rc);
+    const im = new THREE.InstancedMesh(geo, MATS.cobre(), cnt); im.castShadow = true;
+    for (let i = 0; i < cnt; i++) { q.setFromAxisAngle(X, (i / m) * Math.PI * 2 + ring * 0.7); M.compose(p, q, S); im.setMatrixAt(i, M); }
+    im.instanceMatrix.needsUpdate = true; G.add(im); k += cnt; }
+  return G;
 }
 
 // ---------------------------------------------------------------- conductor unipolar
@@ -129,14 +138,27 @@ export function grapa(d = 20) {
   return G;
 }
 // ---------------------------------------------------------------- rollo de cable (100 m)
+// Las espiras siguen la circunferencia del rollo: la textura del aislamiento corre a lo largo de cada vuelta y un
+// mapa de normales marca los surcos entre espiras; unas vueltas sueltas por encima y la etiqueta del fabricante.
+function espirasNormal() {
+  return tex('espiras', 16, 256, (g, w, h) => { const img = g.createImageData(w, h); for (let y = 0; y < h; y++) { const s = Math.sin((y / h) * Math.PI * 2 * 4); const c = Math.abs(Math.cos((y / h) * Math.PI * 4)); for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; img.data[i] = 128; img.data[i + 1] = (s * 0.5 + 0.5) * 255; img.data[i + 2] = 150 + c * 105; img.data[i + 3] = 255; } } g.putImageData(img, 0, 0); }, { datos: true, rep: [1, 1] });
+}
 export function rollo({ sec = 2.5, color = 'marron', tipo = 'K' } = {}) {
   const G = new THREE.Group(); G.userData.tipo = 'rollo'; Object.assign(G.userData, { sec, color });
-  const R = 7.5 + sec * 0.25, r = 2.2 + sec * 0.25; const t = aislTex(color, sec, tipo).clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 14); t.rotation = Math.PI / 2; t.needsUpdate = true;
-  const toro = malla(new THREE.TorusGeometry(R, r, calidad().baja ? 12 : 18, calidad().baja ? 36 : 56), new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.35, clearcoat: 0.4, normalMap: corrugadoNormal(), normalScale: new THREE.Vector2(0.35, 0.35) }), G);
+  const R = 7.5 + sec * 0.25, r = 2.2 + sec * 0.25, Rc = rCable(sec); const Q = calidad();
+  const vueltas = Math.round((Math.PI * 2 * r) / (Rc * 2 * 4)) * 4; // espiras visibles alrededor de la sección
+  const t = aislTex(color, sec, tipo).clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(Math.round((Math.PI * 2 * R) / 9), vueltas); t.needsUpdate = true;
+  const nm = espirasNormal().clone(); nm.wrapS = nm.wrapT = THREE.RepeatWrapping; nm.repeat.set(1, vueltas / 4); nm.needsUpdate = true;
+  const toro = malla(new THREE.TorusGeometry(R, r, Q.baja ? 16 : 28, Q.baja ? 40 : 72), new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.35, clearcoat: 0.45, clearcoatRoughness: 0.3, normalMap: nm, normalScale: new THREE.Vector2(0.9, 0.9) }), G);
   toro.rotation.x = Math.PI / 2; toro.position.y = r; toro.scale.z = 0.9;
-  const film = malla(new THREE.TorusGeometry(R, r + 0.05, 10, 40), pbr(0xffffff, { roughness: 0.1, transparent: true, opacity: 0.18, depthWrite: false }), G); film.rotation.x = Math.PI / 2; film.position.y = r;
+  // espiras sueltas que cruzan por encima (como un rollo real ya empezado)
+  const mAis = aislMat(color, sec, tipo, Math.PI * 2 * R);
+  for (let j = 0; j < (Q.baja ? 1 : 3); j++) { const pts = []; const a0 = j * 1.9, ph = 0.35 + j * 0.25;
+    for (let i = 0; i <= 64; i++) { const a = a0 + (i / 64) * Math.PI * 1.2; const v = Math.PI * (0.25 + 0.5 * i / 64) + j * 0.4; const rr = r + Rc * 1.05; pts.push(new THREE.Vector3(Math.cos(a) * (R + Math.cos(v) * rr * 0.98), r + Math.sin(v) * rr * 0.9 * ph * 2.4 / 1.2, Math.sin(a) * (R + Math.cos(v) * rr * 0.98))); }
+    malla(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, Rc, 8, false), mAis, G); }
+  const film = malla(new THREE.TorusGeometry(R, r + Rc * 2.4, 12, 48), pbr(0xffffff, { roughness: 0.08, transparent: true, opacity: 0.14, depthWrite: false, clearcoat: 1 }), G); film.rotation.x = Math.PI / 2; film.position.y = r; film.scale.z = 0.9;
   const et = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 3.2), new THREE.MeshStandardMaterial({ map: textoTex(`H07V-${tipo}\n1 x ${fmt(sec)} mm²\n100 m`, { color: '#1d2329', bg: '#fbfbf7', w: 256, h: 160, font: 'bold 34px system-ui' }), roughness: 0.7 }));
-  et.rotation.x = -Math.PI / 2; et.position.set(0, r * 2 + 0.06, R); G.add(et);
+  et.rotation.x = -Math.PI / 2; et.position.set(0, r * 2 + Rc * 2.6 + 0.06, R); G.add(et);
   // punta suelta pelada
   const p = conductor({ sec, color, tipo, len: 7, pelado: [0, 10] }); p.position.set(R + r * 0.3, 0.3, 0); p.rotation.y = -0.6; G.add(p);
   return G;

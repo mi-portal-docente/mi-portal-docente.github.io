@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { BT, ROWZ, COLS, colX, isRailCol, BOARD_W, BOARD_D, rot } from './board.js';
 import { PARTS, LED_COLORS, resistorBands, WIRE_HEX } from './parts.js';
-import { resistencia, led5, to92, rele, pila9, portapilas, polimetro, punta, dupont, cocodrilo, banana, pataCodo, pataRecta, tornoY, cajaR, PM, ESTANO, NIQUEL, texCanvas } from './detalle.js';
+import { resistencia, led5, to92, rele, pila9, portapilas, dupont, cocodrilo, banana, pataCodo, pataRecta, tornoY, cajaR, PM, ESTANO, NIQUEL, texCanvas } from './detalle.js';
+import { polimetro, punta } from '../kit3d/polimetro.js';
 
 const mc = {};
 export function M(color, o = {}) { const k = color + JSON.stringify(o); return mc[k] || (mc[k] = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.05, ...o })); }
