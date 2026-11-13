@@ -284,3 +284,27 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 .pi-tab { width: 100%; border-collapse: collapse; font-size: .85rem; } .pi-tab th, .pi-tab td { text-align: left; padding: 6px 8px; border-top: 1px solid rgba(60, 60, 67, .12); }
 .pi-nueva select, .pi-nueva input { min-height: 40px; box-sizing: border-box; }
 .pi-nueva select { border-radius: 10px; border: 1px solid rgba(60, 60, 67, .25); padding: 0 10px; background: var(--card, #fff); font: inherit; width: 100%; }
+
+/* =====================================================================================
+   Cristal (cri1-20261113). Cambios aditivos, al final, para cruzar mejor con grok-plataforma.
+   El desenfoque va en contenedores (diálogo en directo, tarjetas grandes), no en cada fila.
+   ===================================================================================== */
+.xp, .lg-card, .p5-izq, .p5-der, .cb-panel, .ifl section, .lb-ent, .js-prev, .pi-tarea, .pi-entrada,
+.pi-eval, .pi-resumen, .pi-conf, .pi-col, .ca-prox a, .lg-ic {
+  background: var(--card, rgba(255, 255, 255, .72));
+  border: .5px solid var(--glass-borde, rgba(255, 255, 255, .68));
+  box-shadow: var(--sh1, 0 1px 2px rgba(20, 24, 40, .06));
+}
+.dir-al, .xp, .p5-izq, .p5-der, .cb-panel {
+  -webkit-backdrop-filter: var(--blur, saturate(180%) blur(22px));
+  backdrop-filter: var(--blur, saturate(180%) blur(22px));
+  background: var(--glass-fuerte, var(--card));
+}
+.ca-grid, .pi-tablero { background: var(--glass); border: .5px solid var(--glass-borde, transparent); box-shadow: var(--sh1); }
+.dir-al { border: .5px solid var(--glass-borde, rgba(255, 255, 255, .68)); }
+html.glass-lite .dir-al, html.glass-lite .xp, html.glass-lite .p5-izq, html.glass-lite .p5-der, html.glass-lite .cb-panel {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .dir-al, .xp, .p5-izq, .p5-der, .cb-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card, #fff); }
+}
