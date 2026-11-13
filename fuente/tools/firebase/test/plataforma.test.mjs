@@ -123,3 +123,16 @@ describe('Fase 4 · explicación interactiva y pregunta en directo', () => {
     await assertFails(setDoc(doc(db, 'directo/dirX01'), DIR));
   });
 });
+
+describe('Fase 5 · laboratorio p5.js', () => {
+  const P5 = { ...ITEM_T, tipo: 'p5', titulo: 'Retos p5', contenido: { retos: [{ id: 'r1', titulo: 'Uno', enunciado: 'x', codigo: 'let a = 1;', pistas: [], comprobaciones: [{ tipo: 'codigo', contiene: 'a', mensaje: '' }] }] } };
+  test('el profesor guarda un elemento p5 y el alumno entrega el código como tarea', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'items/itemP501'), P5));
+    await sembrar((db) => setDoc(doc(db, 'items/itemP501'), P5));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemP501_g1_7'), tarea('a7', { item: 'itemP501', texto: 'Laboratorio p5.js. Aciertos: 1/1\n\n--- Reto 1 ---\nlet a = 1;', enlaces: [] })));
+  });
+  test('ataque: un alumno no puede crear elementos p5', async () => {
+    await assertFails(setDoc(doc(anon('a7'), 'items/itemP502'), P5));
+  });
+});
+

@@ -87,7 +87,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     let h = '<h4>Tu entrega</h4>';
     if (tr) h += `<div class="au-ok">✅ Entregado · ${esc(fFecha(tr.fecha))}${it.fechaEntrega && tr.fecha > it.fechaEntrega ? ' · <b>con retraso</b>' : ''}${tr.pendiente ? ' · enviando…' : ''}</div>`;
     if (n) return h + notaHTML(it) + (tr ? `<div class="au-mia">${textoHTML(tr.texto)}${(tr.enlaces || []).map((u) => `<div>🔗 <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}</div>` : '');
-    const act = it.tipo === 'actividad' && (it.enlaces || []).find((e) => /^#asig\/[\w-]+\/actividades\/[\w-]+$/.test(e.u));
+    const act = it.tipo === 'actividad' && (it.enlaces || []).find((e) => (/^#asig\/[\w-]+\/actividades\/[\w-]+$/.test(e.u) || /^#[a-z0-9]{2,8}\/[a-z0-9-]{2,30}\/[\w-]{1,40}$/.test(e.u)));
     if (act) return h + `${tr ? `<div class="au-mia">${textoHTML(tr.texto)}</div>` : ''}<div class="au-acts"><a class="btn primary" href="${esc(act.u)}">▶ ${tr ? 'Repetir la actividad' : 'Hacer la actividad'}</a></div><p class="au-small">El resultado se entrega desde la propia actividad, al terminar. Puedes repetirla y volver a entregar hasta que el profesor la califique.</p>`;
     if (it.tipo === 'pregunta') return h + `<form id="auEntrega" class="au-form" autocomplete="off">
       ${it.opciones?.length ? `<fieldset class="au-q"><legend>Elige una respuesta</legend>${it.opciones.map((o) => `<label class="au-op"><input type="radio" name="texto" value="${esc(o)}" ${tr?.texto === o ? 'checked' : ''} required> ${esc(o)}</label>`).join('')}</fieldset>`
@@ -133,6 +133,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (!it) { el.innerHTML = barraSup() + `<div class="au-page">${st.listo.items ? '<p class="au-vacio">Este elemento no existe o no está publicado para tu grupo.</p><a class="btn" href="#asignaturas">← Asignaturas</a>' : '<p class="au-small">Cargando…</p>'}</div>`; return; }
     // motor ya montado (explicación, laboratorio…): no se repinta para no perder lo que está haciendo el alumno
     if (motorM && motorM.id === id && motorM.nota === !!st.notas.get(id) && el.contains(motorM.nodo)) { motorM.api?.actualizar?.({ trabajo: st.trabajos.get(id), nota: st.notas.get(id) }); return; }
+    motorM?.api?.destruir?.();
     el.innerHTML = barraSup() + `<div class="au-page">${itemHTML(it)}</div>`;
     const nodo = el.querySelector('#auMotor'); motorM = null;
     if (nodo) {

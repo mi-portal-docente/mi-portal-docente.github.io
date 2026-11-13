@@ -205,3 +205,39 @@ test('Fase 4 · pregunta en directo: recuento anónimo', async () => {
   if (!recuentoDe) return; // necesita firebase en node: se prueba en el E2E
   assert.deepEqual(recuentoDe([0, 2, 2, 5, -1, 1.5], 3), [1, 0, 2]);
 });
+
+test('Fase 5 · p5.js: validar retos, comprobaciones y exportar', async () => {
+  await import('./src/lms/motores/index.js');
+  const { anidada } = await import('./src/lms/motores/comun.js');
+  const ok = validarElemento({ tipo: 'p5', titulo: 'P', contenido: { retos: [{ titulo: 'Uno', enunciado: 'x', comprobaciones: [
+    { tipo: 'codigo', contiene: 'rect(' }, { tipo: 'variable', nombre: 'vel', min: 1, max: 5 }, { tipo: 'pixel', x: 5, y: 5, color: '#FF0000' }] }] } });
+  assert.deepEqual(ok.errores, []);
+  const r = ok.el.contenido.retos[0];
+  assert.equal(r.id, 'r1'); assert.match(r.codigo, /createCanvas/); assert.equal(r.comprobaciones[2].color, '#ff0000'); assert.equal(r.comprobaciones[2].tolerancia, 40);
+  assert.equal(anidada(ok.el.contenido), false);
+  const mal = validarElemento({ tipo: 'p5', titulo: 'P', contenido: { retos: [{ titulo: 'x', enunciado: 'y', comprobaciones: [{ tipo: 'pixel', x: 1 }, { tipo: 'variable', nombre: 'a;alert(1)' }, { tipo: 'codigo', regex: '(' }, { tipo: 'otra' }] }] } });
+  const t = mal.errores.map((e) => e.ruta + ' ' + e.texto).join('\n');
+  assert.match(t, /comprobaciones\[0\]/); assert.match(t, /comprobaciones\[1\]\.nombre/); assert.match(t, /comprobaciones\[2\]\.regex/); assert.match(t, /comprobaciones\[3\]\.tipo/);
+  assert.match(validarElemento({ tipo: 'p5', titulo: 'P', contenido: { retos: [] } }).errores[0].texto, /al menos 1/);
+  const exp = exportarElemento({ tipo: 'p5', titulo: 'P', contenido: ok.el.contenido, puntos: 10 });
+  assert.deepEqual(validarElemento(exp).errores, []);
+});
+
+test('Fase 5 · p5.js: comprobaciones y errores en castellano', async () => {
+  const { evaluarComprobacion: ev, traducirError } = await import('./src/lms/motores/p5.js');
+  assert.equal(ev({ tipo: 'codigo', contiene: 'rect(' }, 'rect(1,2,3,4)'), true);
+  assert.equal(ev({ tipo: 'codigo', noContiene: 'rect(' }, 'rect(1,2,3,4)'), false);
+  assert.equal(ev({ tipo: 'codigo', regex: 'circle\\s*\\(' }, 'circle (1,2,3)'), true);
+  const m = { variables: { vel: { existe: true, v: 3 }, n: { existe: false, v: null } }, pixeles: { '5,5': [250, 3, 0] } };
+  assert.equal(ev({ tipo: 'variable', nombre: 'vel', min: 1, max: 5 }, '', m), true);
+  assert.equal(ev({ tipo: 'variable', nombre: 'vel', igual: 4 }, '', m), false);
+  assert.equal(ev({ tipo: 'variable', nombre: 'n' }, '', m), false);
+  assert.equal(ev({ tipo: 'pixel', x: 5, y: 5, color: '#ff0000', tolerancia: 10 }, '', m), true);
+  assert.equal(ev({ tipo: 'pixel', x: 5, y: 5, distinto: '#ff0000', tolerancia: 10 }, '', m), false);
+  assert.equal(ev({ tipo: 'pixel', x: 9, y: 9, color: '#ff0000', tolerancia: 10 }, '', m), false);
+  assert.match(traducirError('Uncaught ReferenceError: circel is not defined'), /«circel» no existe/);
+  assert.match(traducirError("SyntaxError: Unexpected token '}'"), /cerca de «}»/);
+  assert.match(traducirError('SyntaxError: missing ) after argument list'), /paréntesis/);
+  assert.match(traducirError('TypeError: fil is not a function'), /«fil» no es una función/);
+  assert.match(traducirError('Algo raro'), /^Error: Algo raro/);
+});

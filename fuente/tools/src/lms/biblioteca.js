@@ -19,6 +19,7 @@ export const TIPOS = {
   practica: { nombre: 'Práctica', icon: '🔧', cat: 'practicas' },
   proyecto: { nombre: 'Proyecto', icon: '🚀', cat: 'proyectos' },
   explicacion: { nombre: 'Explicación interactiva', icon: '🎓', cat: 'tareas' },
+  p5: { nombre: 'Laboratorio p5.js', icon: '🎨', cat: 'tareas' },
 };
 export const CATEGORIAS = [
   { id: 'examenes', nombre: 'Exámenes y cuestionarios', peso: 40 },

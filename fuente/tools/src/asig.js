@@ -6,6 +6,7 @@ import { APARTADOS } from './subjects.js';
 import { asignatura } from './lms/biblioteca.js';
 import { programaHTML } from './lms/vistas-biblio.js';
 import { actividadesDe, enlaceActividad } from './act/registro.js';
+import { ic } from './ui/iconos.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const portal = () => window.PORTAL || null;
@@ -45,9 +46,9 @@ function laboratorioHTML(id) {
   const apartadoOk = (k) => { const s = window.PORTAL_SESION; return !s || !Array.isArray(s.apartados) || !s.apartados.length || s.apartados.includes(k); };
   const L = laboratoriosDe(id).filter((x) => apartadoOk(x.parte || x.id));
   if (!L.length) return `<div class="as-vacio"><div class="as-vacio-ic" aria-hidden="true">🔬</div><h2>Próximamente</h2><p>Todavía no hay laboratorios 3D de ${esc(asignatura(id).corto)}. Irán apareciendo aquí: cada laboratorio nuevo se añade a la lista y sale solo en esta pestaña.</p></div>`;
-  return `<p class="muted as-intro">Laboratorios 3D para montar, simular y comprobar. Las prácticas guiadas se entregan desde el propio laboratorio y la nota llega al cuaderno.</p>
+  return `<p class="muted as-intro">Laboratorios para montar, programar, simular y comprobar. Las prácticas guiadas se entregan desde el propio laboratorio y la nota llega al cuaderno.</p>
   <div class="ap-grid">${L.map((x) => x.active
-    ? `<a class="ap-card${x.foto ? ' con-foto' : ''}" style="--ap:${x.color}" href="${x.href}">${x.foto ? `<div class="ap-foto"><img src="${x.foto}" alt="" loading="lazy" decoding="async"></div>` : `<div class="ap-ic" aria-hidden="true">${x.icon}</div>`}<h3>${esc(x.nombre)}</h3><p>${esc(x.desc)}</p><div class="ap-tags">${(x.tags || []).map((t) => `<span>${esc(t)}</span>`).join('')}</div><span class="ap-go">Entrar →</span></a>`
+    ? `<a class="ap-card${x.foto ? ' con-foto' : ''}" style="--ap:${x.color}" href="${x.href}">${x.foto ? `<div class="ap-foto"><img src="${x.foto}" alt="" loading="lazy" decoding="async"></div>` : `<div class="ap-ic" aria-hidden="true">${x.lucide ? ic(x.lucide) : x.icon}</div>`}<h3>${esc(x.nombre)}</h3><p>${esc(x.desc)}</p><div class="ap-tags">${(x.tags || []).map((t) => `<span>${esc(t)}</span>`).join('')}</div><span class="ap-go">Entrar →</span></a>`
     : `<div class="ap-card off"><div class="ap-ic" aria-hidden="true">${x.icon}</div><h3>${esc(x.nombre)}</h3><p>Próximamente</p></div>`).join('')}</div>`;
 }
 function actividadesHTML(id) {

@@ -16,7 +16,7 @@ const aLocal = (t) => { if (!t) return ''; const d = new Date(t); return new Dat
 const deLocal = (v) => (v ? new Date(v).getTime() : null);
 const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
 export const TIPOS_CREAR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario'];
-const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion'];
+const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5'];
 const entregableDe = (t) => TIPOS_ENTREGA.includes(t) || t === 'examen' || !!motor(t)?.entregable;
 export const PEND = 'Contenido pendiente de subir.';
 export const PEND_T = 'Pendiente de completar';

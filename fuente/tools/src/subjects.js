@@ -28,4 +28,11 @@ export const APARTADOS = {
       tags: ['Ejercicio guiado: el tablero de la SA1', 'Modo libre', 'Averías y lista de materiales'],
     },
   ],
+  cdpc1: [
+    {
+      id: 'p5', nombre: 'Laboratorio p5.js', lucide: 'palette', color: '#6b3fa0', active: true,
+      desc: 'Programa dibujos y animaciones con p5.js: editor de código, lienzo aislado, consola con los errores explicados en castellano y retos que se comprueban solos.',
+      tags: ['Retos con comprobación', 'Modo libre', 'Se entrega como tarea'],
+    },
+  ],
 };

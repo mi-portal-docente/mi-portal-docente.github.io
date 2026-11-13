@@ -1,0 +1,2 @@
+p5.js v1.11.13 (https://p5js.org) · Licencia LGPL-2.1 (vendor/p5/LICENCIA.txt).
+Se usa sin modificar, solo dentro del lienzo aislado (iframe sandbox) del laboratorio p5.js de CDPC.

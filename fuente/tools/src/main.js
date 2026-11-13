@@ -12,6 +12,9 @@ import { asigHTML, pestañas, pestañaPorDefecto } from './asig.js';
 import { Actividad3D } from './act/motor.js';
 import { actividad, enlaceActividad } from './act/registro.js';
 import { instalarIconos, ic } from './ui/iconos.js';
+import { LABS, PaginaLab } from './labs/pagina.js';
+import './labs/p5-lab.js';
+import { montarP5 } from './labs/p5-ui.js';
 import { calidad } from './kit3d/base.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -370,6 +373,24 @@ function abrirActividad(asig, id) {
   window.__act = act;
 }
 
+// Laboratorios «ligeros» (p5.js, TIC…): #asig/lab y #asig/lab/reto
+function abrirLab(asig, id, sub) {
+  const def = LABS[`${asig}/${id}`]; showScreen('act');
+  if (act) act.destruir();
+  const P = portal();
+  act = new PaginaLab($('#act'), def, sub, { cabecera: cabecera(def.titulo, 'asig'), chip: chip(), asigCorto: asignatura(asig)?.corto || asig, esProfesor: !!P?.esProfesor,
+    asignacion: (url) => P?.aula?.asignacionActividad?.(url) || null,
+    entregar: (itemId, texto) => P.aula.entregarActividad(itemId, texto),
+    asignar: (o) => P?.aula?.asignarActividad?.(o) });
+  window.__lab = act;
+}
+// Elementos de Trabajo de clase con laboratorio propio (se montan en la página del elemento)
+const notaTxt = (n) => (n && n.nota != null ? String(n.nota).replace('.', ',') : null);
+window.PORTAL_MOTORES = Object.assign(window.PORTAL_MOTORES || {}, {
+  p5: (nodo, it, op) => { const c = montarP5(nodo, it.contenido?.retos || [], { clave: `p5it:${it.id}`, titulo: it.titulo, rol: op.rol, entregar: op.entregar, entregadoTexto: op.trabajo?.texto || '', nota: notaTxt(op.nota) });
+    return { actualizar: (o) => c.actualizar({ entregadoTexto: o.trabajo?.texto || '', nota: notaTxt(o.nota) }), destruir: c.destruir }; },
+});
+
 const TAB_NAMES = [['pasos', 'Paso a paso'], ['ficha', 'Ficha'], ['material', 'Material'], ['software', 'Preparar PC'], ['esquema', 'Esquema'], ['codigo', 'Código'], ['prueba', 'Prueba'], ['reto', 'Reto']];
 
 // ---------- inicio (guía general) ----------
@@ -522,6 +543,11 @@ function route() {
   if (tb) {
     if (!portal()?.aula?.activa?.()) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
     showScreen('aula'); portal().aula.renderItem($('#aula'), tb[1]); return;
+  }
+  const lg = h.match(/^#([a-z0-9]{2,8})\/([a-z0-9-]{2,30})(?:\/([\w-]{1,40}))?$/);
+  if (lg && LABS[`${lg[1]}/${lg[2]}`]) {
+    if (!permitida(lg[1])) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
+    return abrirLab(lg[1], lg[2], lg[3]);
   }
   // sin permiso para esta asignatura → listado de asignaturas
   if (!permitida(SUBJ.id)) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }

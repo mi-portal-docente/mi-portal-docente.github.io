@@ -188,3 +188,43 @@ opción válida; solo el profesor lee). Regenerado el `para-pegar` (fuera del re
 
 **Dudas / pendiente**: las preguntas en directo cerradas se quedan guardadas (solo el recuento); se pueden
 borrar con la limpieza de fin de curso más adelante. El laboratorio incrustado usa la misma sesión del alumno.
+
+## Fase 5 · Laboratorio p5.js (CDPC) — HECHA
+
+**Qué hay**
+* **CDPC → Laboratorio → «Laboratorio p5.js»** (`#cdpc1/p5`), con la misma estructura que los de EEE (tarjeta en
+  la pestaña Laboratorio, portada, retos y modo libre). Editor de código con números de línea (Tab sangra;
+  Esc y Tab para salir; Ctrl+Intro ejecuta), **lienzo aislado** (`iframe sandbox="allow-scripts"`, sin acceso
+  al portal, a la sesión ni a las cookies) y **consola en castellano**: los errores de JavaScript salen
+  traducidos y con el número de línea del código del alumno (p. ej. «Línea 7: «circel» no existe…»), y los
+  `console.log` del programa también se ven. Botones Ejecutar, Parar, Comprobar, Pista (de una en una) y
+  Código inicial; el código se guarda en el navegador mientras se escribe.
+* **Retos en JSON** (`"tipo": "p5"`): enunciado, código inicial, pistas y comprobaciones sobre el **código**
+  (contiene / no contiene / regex), sobre **variables** (igual, mín., máx.) y sobre **píxeles** del lienzo
+  (color con tolerancia o «distinto de»). Se importan con el importador de la fase 1 y se editan en el
+  editor (contenido JSON). Formato y ejemplo en `FORMATO_IMPORTAR.md`.
+* **Entregable**: en Trabajo de clase el elemento abre el editor con todos sus retos; «Entregar el código»
+  guarda «Aciertos: a/t» (retos superados) y **el código de cada reto** en el trabajo → el profesor lo ve en
+  el cuaderno y «Poner notas» lo pasa a nota. Los 2 retos de ejemplo del laboratorio también se pueden
+  **asignar como tarea** desde su tarjeta (tarea «actividad» con el enlace al reto; el alumno entrega desde
+  el laboratorio). La página común de laboratorios (`src/labs/pagina.js`) servirá para los de TIC (fase 6).
+* p5.js 1.11.13 va copiado en `vendor/p5/` (LGPL-2.1, con su licencia), sin CDN.
+
+**Archivos**: `src/lms/motores/p5.js` (nuevo: validar, comprobar, traducir errores), `src/labs/{pagina,p5-ui,p5-lab}.js`
+(nuevos), `vendor/p5/` (nuevo), `src/main.js` (ruta `#asig/lab/reto` y `window.PORTAL_MOTORES.p5`), `src/subjects.js`
+(laboratorio de cdpc1), `src/asig.js` (icono Lucide en las tarjetas de laboratorio), `src/portal/aula-vistas.js`
+(enlaces de reto en tareas «actividad»; los motores se desmontan al cambiar de elemento), `aula-editor.js`,
+`lms/biblioteca.js`, `css/plataforma.css`, `FORMATO_IMPORTAR.md`, reglas y pruebas. Caché `gp5-20261113`.
+
+**Reglas (cambian, sin desplegar)**: el tipo `p5` se admite en `items` y en las entregas de tipo tarea.
+Regenerado el `para-pegar` (fuera del repositorio).
+
+**Pruebas**: `plataforma_test.mjs` 24/24 · reglas 95/95 · E2E fases 4+5: 35/35.
+
+**Capturas**: `f5_portada.png`, `f5_consola_error.png`, `f5_reto_superado.png`, `f5_alumno_elemento.png`, `f5_alumno_movil.png`.
+
+**Dudas / pendiente**: un bucle infinito (`while (true)`) puede bloquear la pestaña: el lienzo está aislado
+pero el navegador puede ejecutarlo en el mismo proceso; «Parar» lo corta solo si el navegador sigue
+respondiendo. Los errores que se producen dentro de p5.js (no en el código del alumno) llegan sin detalle
+por estar aislados y se explican de forma genérica. Las comprobaciones de píxel se miden medio segundo
+después de arrancar (sirven para dibujos fijos, no para animaciones).

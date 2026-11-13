@@ -162,3 +162,46 @@ Al terminar, el alumno pulsa «He terminado: entregar» y se guarda «Aciertos: 
 No se importa: se lanza desde «Trabajo de clase» → «Pregunta en directo» (grupo, pregunta y opciones, o
 verdadero/falso). Los alumnos conectados de ese grupo la ven al momento en una tarjeta y responden; el
 profesor ve el gráfico en pantalla grande. Es anónimo (solo el recuento).
+
+## Laboratorio p5.js (`"tipo": "p5"`, CDPC)
+
+Uno o varios **retos** (1–20). Cada reto: `titulo`, `enunciado`, `codigo` inicial (si falta, un lienzo de
+400 × 400), `pistas` (se enseñan de una en una) y `comprobaciones`:
+
+* `{"tipo": "codigo", "contiene": "rect(" }` · también `"noContiene"` o `"regex"` (expresión regular).
+* `{"tipo": "variable", "nombre": "vel", "min": 1, "max": 5 }` · o `"igual": 80` (número, texto o true/false).
+  La variable tiene que estar declarada fuera de las funciones (`let vel = 3;` arriba del todo).
+* `{"tipo": "pixel", "x": 100, "y": 100, "color": "#ff0000", "tolerancia": 40 }` · o `"distinto": "#dcdcdc"`
+  (el píxel no es del color del fondo). Se mide medio segundo después de arrancar el programa.
+
+Todas admiten `"mensaje"` (lo que ve el alumno en la lista de comprobaciones). Un reto está superado si el
+programa se ejecuta sin errores y cumple todas sus comprobaciones. Al entregar se guarda «Aciertos: a/t»
+(retos superados) y el código de cada reto; el cuaderno lo pasa a nota con «Poner notas».
+
+```json
+{
+  "formato": "superprofe/elemento@1",
+  "tipo": "p5",
+  "titulo": "Primeros dibujos",
+  "puntos": 10,
+  "contenido": {
+    "retos": [
+      {
+        "id": "circulo",
+        "titulo": "Un círculo",
+        "enunciado": "Dibuja un círculo en el centro del lienzo.",
+        "codigo": "function setup() {\n  createCanvas(200, 200);\n}\n\nfunction draw() {\n  background(220);\n}\n",
+        "pistas": ["circle(x, y, d) dibuja un círculo."],
+        "comprobaciones": [
+          { "tipo": "codigo", "regex": "circle\\s*\\(|ellipse\\s*\\(", "mensaje": "Usas circle() o ellipse()" },
+          { "tipo": "pixel", "x": 100, "y": 100, "distinto": "#dcdcdc", "mensaje": "Hay algo dibujado en el centro" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Los retos de ejemplo del **Laboratorio p5.js** (CDPC → Laboratorio) también se pueden asignar como tarea
+desde su tarjeta («Asignar como tarea»): se crea una tarea de tipo «actividad» con el enlace al reto
+(`#cdpc1/p5/<id>`) y el alumno entrega desde el propio laboratorio.
