@@ -118,7 +118,7 @@
     return (
       '<div class="gate" id="gate" role="dialog" aria-labelledby="gate-title">' +
         '<div class="gate-card">' +
-          '<h1 id="gate-title">Super Profe Pablo</h1>' +
+          '<h1 id="gate-title">SuperProfe · Alumnos</h1>' +
           '<form id="gate-form" autocomplete="off">' +
             '<label for="gate-code">Código de clase</label>' +
             '<input id="gate-code" name="codigo" type="text" inputmode="text" autocapitalize="off" autocomplete="off" spellcheck="false" autofocus>' +
@@ -131,7 +131,7 @@
   }
 
   function showGate() {
-    document.title = 'Super Profe Pablo';
+    document.title = 'SuperProfe · Alumnos';
     document.body.classList.add('is-gate');
     document.body.classList.remove('is-unlocked');
     var loading = document.querySelector('.loading');

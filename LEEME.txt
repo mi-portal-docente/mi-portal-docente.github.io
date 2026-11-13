@@ -7,7 +7,7 @@ CÓMO ABRIR
 - También sirve en cualquier hosting estático (copiar la carpeta tal cual).
 ACCESO AL PORTAL (dos modos; se elige solo según js/firebase-config.js)
 - MODO FIREBASE (cuando js/firebase-config.js tiene apiKey y projectId):
-  · Pantalla de entrada «Super Profe Pablo» con dos opciones:
+  · Pantalla de entrada «SuperProfe · Alumnos» con dos opciones:
       «Soy alumno»: código de grupo (p. ej. FARO-472) + número de lista (1-40). Sesión ANÓNIMA de
                     Firebase: no se pide ni se guarda nombre ni correo del alumno.
       «Soy profesor»: «Iniciar sesión con Google» (ventana emergente; si el navegador la bloquea,
