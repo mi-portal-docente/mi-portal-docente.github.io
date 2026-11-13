@@ -8,7 +8,7 @@ export const leerJSON = (k, d) => { try { return JSON.parse(leer(k) || '') ?? d;
 
 // Caja de entrega: ctx = { entregar(texto) → Promise, entregadoTexto, nota }; datos() → { a, t, texto }
 export function cajaEntrega(nodo, ctx, datos, { boton = 'Entregar' } = {}) {
-  if (!ctx.entregar) { nodo.hidden = true; return { pintar() {} }; }
+  if (!ctx.entregar) { nodo.hidden = true; return { pintar() {}, actualizar() {} }; }
   nodo.classList.add('lb-ent');
   function pintar() {
     const d = datos();

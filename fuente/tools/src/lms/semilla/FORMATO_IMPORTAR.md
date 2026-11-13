@@ -456,7 +456,7 @@ En tareas, prácticas, proyectos, actividades y recuperaciones el alumno puede s
 
 Panel del profesor › Ajustes y limpieza › «Curso escolar: copia y limpieza». Descarga `copia-curso-AAAA-AA-AAAAMMDD.json`:
 
-```json
+```text
 { "formato": "portal-docente/copia-curso@1", "fecha": "2027-06-30T10:00:00.000Z",
   "curso": { "id": "…", "nombre": "2026/27", "asignaturas": ["eee"] },
   "grupos": [ { "id": "…", "nombre": "…", "curso": "…" } ],
