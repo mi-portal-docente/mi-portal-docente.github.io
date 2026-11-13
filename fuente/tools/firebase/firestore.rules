@@ -554,6 +554,8 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.fecha == request.time
         && request.resource.data.salidas is list && request.resource.data.salidas.size() <= 400
+        // Solo se puede AÑADIR: el alumno no puede vaciar ni acortar su registro de salidas.
+        && (resource == null || request.resource.data.salidas.size() >= resource.data.get('salidas', []).size())
         && get(ruta('items', request.resource.data.item)).data.tipo == 'examen'
         && miSesion().grupo in get(ruta('items', request.resource.data.item)).data.visible;
     }
@@ -749,7 +751,9 @@ service cloud.firestore {
     match /versiones/{id} {
       allow read, delete: if esProfesor();
       allow create, update: if alumnoOk() && versionOk(request.resource.data)
-        && id == request.resource.data.trabajo + '_v' + string(request.resource.data.n % 5);
+        && id == request.resource.data.trabajo + '_v' + string(request.resource.data.n % 5)
+        // Una versión solo se sustituye por otra más nueva (no se puede reescribir el historial).
+        && (resource == null || request.resource.data.n > resource.data.n);
       function versionOk(d) {
         let s = miSesion();
         let it = get(ruta('items', d.item)).data;
@@ -774,6 +778,9 @@ service cloud.firestore {
         && id == request.resource.data.item + '_' + request.resource.data.al
         && esNumero(request.resource.data.seg) && request.resource.data.seg >= 0
         && listaCorta(request.resource.data.get('pegados', []), 300)
+        // Solo crece: el tiempo y la lista de pegados no se pueden rebajar ni borrar.
+        && (resource == null || (request.resource.data.seg >= resource.data.get('seg', 0)
+            && request.resource.data.get('pegados', []).size() >= resource.data.get('pegados', []).size()))
         && request.resource.data.fecha == request.time;
     }
 
