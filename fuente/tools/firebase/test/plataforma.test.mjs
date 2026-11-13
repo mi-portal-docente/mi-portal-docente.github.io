@@ -223,3 +223,68 @@ describe('Fase 8 · recuperación, PIAC y avisos programados', () => {
     await assertSucceeds(setDoc(doc(profe(), 'anuncios/anunP001'), { curso: 'c2627', asig: 'eee', texto: 'Mañana, examen', grupos: ['g1'], visible: ['g1'], fecha: 1, pub: ahora() + 864e5 }));
   });
 });
+
+describe('Fase 9 · entregas completas', () => {
+  const borr = (uid, o = {}) => tarea(uid, { estado: 'borrador', texto: 'A medias', enlaces: [], guardado: 1, ...o });
+  test('borrador → entregado → anular (sin nota) → entregar otra vez', async () => {
+    const db = anon('a7'); const r = doc(db, 'trabajos/itemT01_g1_7');
+    await assertSucceeds(setDoc(r, borr('a7')));
+    await assertSucceeds(setDoc(r, borr('a7', { texto: 'Un poco más' })));
+    await assertSucceeds(setDoc(r, tarea('a7', { entregadoEn: 5, nEntregas: 1 })));
+    await assertSucceeds(setDoc(r, borr('a7', { nEntregas: 1 })));
+    await assertSucceeds(setDoc(r, tarea('a7', { nEntregas: 2 })));
+    await assertFails(setDoc(r, tarea('a7', { estado: 'devuelto' })), 'el alumno no puede ponerse «devuelto»');
+    await assertFails(setDoc(r, tarea('a7', { estado: 'calificado' })));
+  });
+  test('con nota (aunque no esté publicada) ya no se anula ni se cambia', async () => {
+    await sembrar(async (db) => { await setDoc(doc(db, 'trabajos/itemT01_g1_7'), { ...tarea('a7'), fecha: 1 }); await setDoc(doc(db, 'notas/itemT01_g1_7'), nota()); });
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7'), borr('a7')));
+  });
+  test('«Devolver para corregir»: solo el profesor y solo una entrega; el alumno rehace y vuelve a entregar', async () => {
+    await sembrar(async (db) => { await setDoc(doc(db, 'trabajos/itemT01_g1_7'), { ...tarea('a7'), fecha: 1 }); await setDoc(doc(db, 'notas/itemT01_g1_7'), nota()); });
+    await assertFails(updateDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7'), { estado: 'devuelto', devFecha: 2 }));
+    await assertFails(updateDoc(doc(profe(), 'trabajos/itemT01_g1_7'), { estado: 'devuelto', devFecha: 2, texto: 'cambiado' }), 'el profesor no toca el texto');
+    await assertSucceeds(updateDoc(doc(profe(), 'trabajos/itemT01_g1_7'), { estado: 'devuelto', devFecha: 2 }));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7'), tarea('a7', { devFecha: 9 })), 'no cambia la fecha de devolución');
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7'), borr('a7', { devFecha: 2 })));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7'), tarea('a7', { devFecha: 2, nEntregas: 2 })));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7'), borr('a7', { devFecha: 2 })), 'reentregada con la nota antigua: bloqueada hasta que el profesor la vuelva a devolver');
+    await assertFails(updateDoc(doc(profe(), 'trabajos/itemB02_g1_7'), { estado: 'devuelto', devFecha: 2 }));
+  });
+  test('comentarios privados: profesor y el alumno dueño; nadie más', async () => {
+    await sembrar(async (db) => setDoc(doc(db, 'trabajos/itemT01_g1_7'), { ...tarea('a7'), fecha: 1 }));
+    const c = (o = {}) => ({ autor: 'profesor', texto: 'Revisa el apartado 2', fecha: serverTimestamp(), ...o });
+    await assertSucceeds(setDoc(doc(profe(), 'trabajos/itemT01_g1_7/comentarios/cmt00001'), c()));
+    await assertSucceeds(getDocs(collection(anon('a7'), 'trabajos/itemT01_g1_7/comentarios')));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/comentarios/cmt00002'), c({ autor: 'alumno', numero: 7, texto: 'Hecho' })));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/comentarios/cmt00003'), c()), 'el alumno no firma como profesor');
+    await assertFails(getDocs(collection(anon('a9'), 'trabajos/itemT01_g1_7/comentarios')));
+    await assertFails(setDoc(doc(anon('a9'), 'trabajos/itemT01_g1_7/comentarios/cmt00004'), c({ autor: 'alumno', numero: 9 })));
+  });
+  test('versiones: el alumno las escribe al entregar pero no las lee; el profesor sí', async () => {
+    const v = (o = {}) => ({ trabajo: 'itemT01_g1_7', item: 'itemT01', curso: 'c2627', asig: 'eee', al: 'g1_7', grupo: 'g1', numero: 7, n: 6, texto: 'v6', enlaces: [], fecha: serverTimestamp(), ...o });
+    await assertSucceeds(setDoc(doc(anon('a7'), 'versiones/itemT01_g1_7_v1'), v()));
+    await assertFails(getDoc(doc(anon('a7'), 'versiones/itemT01_g1_7_v1')));
+    await assertFails(setDoc(doc(anon('a7'), 'versiones/itemT01_g1_7_v2'), v()), 'hueco equivocado');
+    await assertFails(setDoc(doc(anon('a9'), 'versiones/itemT01_g1_7_v1'), v()), 'otro alumno');
+    await assertSucceeds(getDocs(query(collection(profe(), 'versiones'), where('trabajo', '==', 'itemT01_g1_7'))));
+  });
+  test('entregas del laboratorio por grupo + nº: se ven desde otro ordenador; migración del profesor', async () => {
+    const ent = (uid, o = {}) => ({ uid, codigo: 'FARO-472', grupo: 'g1', numero: 7, practica: 'c4', tipo: 'circuitos', titulo: 'Práctica 4', fecha: serverTimestamp(), datos: { aciertos: '1/2' }, nota: null, comentario: '', ...o });
+    await assertSucceeds(setDoc(doc(anon('a7'), 'entregas/g1_7_c4'), ent('a7', { al: 'g1_7' })));
+    await sembrar(async (db) => { await setDoc(doc(db, 'sesiones/a7b'), sesion(7, H7)); });
+    await assertSucceeds(getDocs(query(collection(anon('a7b'), 'entregas'), where('al', '==', 'g1_7'))));
+    await assertSucceeds(setDoc(doc(anon('a7b'), 'entregas/g1_7_c4'), ent('a7b', { al: 'g1_7' })), 'otro ordenador vuelve a entregar');
+    await assertFails(getDoc(doc(anon('a9'), 'entregas/g1_7_c4')));
+    await assertFails(setDoc(doc(anon('a9'), 'entregas/g1_7_c5'), ent('a9', { practica: 'c5', al: 'g1_7' })), 'no puede entregar como el nº 7');
+    // antigua (ligada al uid) → copia del profesor con su nota
+    await sembrar(async (db) => setDoc(doc(db, 'entregas/a7_g1_7_c2'), { ...ent('a7', { practica: 'c2' }), fecha: ts(1000), nota: 7, comentario: 'Bien' }));
+    await assertFails(getDoc(doc(anon('a7b'), 'entregas/a7_g1_7_c2')), 'la antigua no se ve desde otro ordenador');
+    const copia = { ...ent('a7', { practica: 'c2' }), fecha: ts(1000), nota: 7, comentario: 'Bien', al: 'g1_7', migradaDe: 'a7_g1_7_c2' };
+    await assertSucceeds(setDoc(doc(profe(), 'entregas/g1_7_c2'), copia));
+    await assertFails(setDoc(doc(profe(), 'entregas/g1_9_c2'), copia), 'ID que no cuadra con grupo y nº');
+    await assertSucceeds(getDoc(doc(anon('a7b'), 'entregas/g1_7_c2')));
+    await assertSucceeds(getDoc(doc(profe(), 'entregas/a7_g1_7_c2')), 'la original se conserva');
+    await assertFails(setDoc(doc(anon('a7b'), 'entregas/g1_7_c2'), ent('a7b', { practica: 'c2', al: 'g1_7' })), 'con nota ya no se cambia');
+  });
+});

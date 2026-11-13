@@ -337,3 +337,40 @@ test('Fase 8 · PIAC, rúbrica ponderada y recuperación', async () => {
   assert.deepEqual(validarElemento({ tipo: 'recuperacion', titulo: 'Recuperación', texto: 'Repite la práctica 2' }).errores, []);
 });
 
+
+// ---------------------------------------------------------------- fase 9 · entregas completas
+import * as EN from './src/lms/entrega.js';
+test('fase 9: estados del trabajo (borrador, entregado, devuelto, calificado; antiguos = entregado)', () => {
+  assert.equal(EN.estadoTrabajo(null, null), 'sin');
+  assert.equal(EN.estadoTrabajo({ estado: 'borrador' }, null), 'borrador');
+  assert.equal(EN.estadoTrabajo({}, null), 'entregado', 'trabajos antiguos sin estado');
+  assert.equal(EN.estadoTrabajo({ estado: 'entregado' }, { nota: 7 }), 'calificado');
+  assert.equal(EN.estadoTrabajo({ estado: 'entregado' }, { nota: null }), 'entregado');
+  assert.equal(EN.estadoTrabajo({ estado: 'devuelto' }, { nota: 4 }), 'devuelto', 'devuelto gana a la nota antigua');
+  assert.ok(EN.editable('devuelto') && EN.editable('sin') && !EN.editable('entregado') && !EN.editable('calificado'));
+  assert.ok(EN.anulable('entregado') && !EN.anulable('calificado'));
+  assert.ok(!EN.cuentaComoEntrega({ estado: 'borrador' }) && EN.cuentaComoEntrega({ estado: 'devuelto' }) && EN.cuentaComoEntrega({}));
+});
+test('fase 9: versiones en 5 huecos y la copia local más reciente gana', () => {
+  assert.equal(EN.idVersion('itT_g1_7', 1), 'itT_g1_7_v1'); assert.equal(EN.idVersion('itT_g1_7', 5), 'itT_g1_7_v0'); assert.equal(EN.idVersion('itT_g1_7', 6), 'itT_g1_7_v1');
+  assert.deepEqual(EN.ordenarVersiones([{ n: 2 }, { n: 7 }, { n: 5 }]).map((v) => v.n), [7, 5, 2]);
+  assert.equal(EN.elegirBorrador({ texto: 'nube', guardado: 100 }, { texto: 'local', t: 200 }).texto, 'local');
+  assert.equal(EN.elegirBorrador({ texto: 'nube', guardado: 300 }, { texto: 'local', t: 200 }).texto, 'nube');
+  assert.equal(EN.elegirBorrador(null, null), null);
+});
+test('fase 9: migración de entregas del laboratorio (uid → grupo + nº), idempotente y sin pérdidas', () => {
+  const L = [
+    { id: 'u1_g1_7_c4', uid: 'u1', grupo: 'g1', numero: 7, practica: 'c4', fecha: 100, nota: null },
+    { id: 'u2_g1_7_c4', uid: 'u2', grupo: 'g1', numero: 7, practica: 'c4', fecha: 50, nota: 6 },
+    { id: 'u3_g1_7_c5', uid: 'u3', grupo: 'g1', numero: 7, practica: 'c5', fecha: 10, nota: null },
+    { id: 'u3_g1_7_c6', uid: 'u3', grupo: 'g1', numero: 7, practica: 'c6', fecha: 10, nota: null },
+    { id: 'g1_7_c6', uid: 'u9', grupo: 'g1', numero: 7, practica: 'c6', fecha: 90, nota: null, al: 'g1_7' },
+  ];
+  const P = EN.planMigracion(L);
+  assert.deepEqual(P.map((p) => [p.id, p.de]).sort(), [['g1_7_c4', 'u2_g1_7_c4'], ['g1_7_c5', 'u3_g1_7_c5']], 'gana la que tiene nota; c6 ya migrada');
+  assert.equal(P[0].datos.al, 'g1_7'); assert.ok(P.every((p) => p.datos.migradaDe === p.de));
+  const despues = [...L, ...P.map((p) => ({ id: p.id, ...p.datos, fecha: 1 }))];
+  assert.deepEqual(EN.planMigracion(despues), [], 'idempotente');
+  assert.deepEqual(EN.sinDuplicadas(despues).map((e) => e.id).sort(), ['g1_7_c4', 'g1_7_c5', 'g1_7_c6']);
+  assert.equal(EN.idEntregaLab('g1', 7, 'c4'), 'g1_7_c4');
+});

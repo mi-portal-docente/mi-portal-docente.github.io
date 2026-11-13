@@ -368,3 +368,52 @@ Ajustes de pruebas (no de la web): `acceso_test` cuenta 14 tarjetas en Circuitos
 3. Después, en el portal: abrir una vez como profesor; probar un «Importar JSON» y un laboratorio.
 No hace falta crear índices compuestos: las consultas nuevas (`piac`, `piacEval`, `visibleAl`) usan solo igualdades
 o `array-contains`.
+
+## Fase 9 · Entregas completas (13/11/2026)
+
+**Hecho**
+- Estados del trabajo: `borrador` → `entregado` → `devuelto` (para rehacer) → calificado (sale de la nota;
+  el alumno lo ve cuando está publicada). Los trabajos antiguos sin estado cuentan como `entregado`.
+- Página de la tarea (alumno, `src/portal/entrega-ui.js`): **Guardar** (sin entregar), **Entregar**,
+  **Anular la entrega** (mientras no tenga nota), **Volver a entregar** si se devuelve, **Imprimir / PDF** (hoja
+  limpia con título, grupo y nº, estado, fecha, nota, texto y enlaces; «Guardar como PDF» del navegador).
+- Guardado automático a los 3 s de dejar de escribir, cada 15 s si hay cambios, al cambiar de página, al ocultar la
+  pestaña y al cerrar. Indicador «Guardado hh:mm» / «Cambios sin guardar» / «Sin conexión…». Copia en
+  `localStorage` (`borr:<trabajo>`): si se corta la red no se pierde nada y se envía al volver (gana la más reciente).
+- Historial: cada entrega guarda una versión en `versiones/{trabajo}_v{n mod 5}` (las 5 últimas). Solo la lee el
+  profesor (cuaderno → casilla → «Versiones entregadas»).
+- Profesor (cuaderno): casillas nuevas «borrador» (lápiz) y «devuelto» (flecha); detalle con estado y nº de entrega,
+  **Devolver para corregir** con comentario y **comentarios privados** (`trabajos/{id}/comentarios`), en los dos
+  sentidos. «Poner notas» ignora los borradores.
+- **Mis trabajos** (`#mis-trabajos`, enlace en la barra del alumno): todos sus trabajos de todas las asignaturas,
+  con estado, fecha y nota publicada, filtros Todos / Pendientes / Entregados / Calificados; también las prácticas
+  de los laboratorios.
+- **Fallo corregido · entregas de los laboratorios**: las nuevas se guardan como `entregas/{grupo}_{nº}_{práctica}`
+  con `al = grupo_nº`, así que el alumno las ve desde cualquier ordenador con su nº y su PIN. Las antiguas
+  (`{uid}_{grupo}_{nº}_{práctica}`) se siguen leyendo.
+- **Migración (sin pérdidas, idempotente)**: al abrir el panel del profesor (y con el botón «Migrar N entregas
+  antiguas» de «Entregas del laboratorio») cada entrega antigua se **copia** al ID nuevo con su fecha, nota y
+  comentario y `migradaDe` = ID original. **No se borra nada.** Si un mismo nº tiene varias antiguas de la misma
+  práctica (varios ordenadores), se copia la que tiene nota; si ninguna, la más reciente; las demás siguen ahí. El
+  panel oculta las antiguas que ya tienen copia. Una práctica con nota (aunque sea antigua) no se puede reentregar.
+
+**Reglas de Firestore** (`firebase/firestore.rules`)
+- `trabajos`: el alumno puede escribir `estado` `borrador` o `entregado` (+ `guardado`, `entregadoEn`, `nEntregas`;
+  y ya preparados `doc`, `registro`, `datos` para la fase 11); se puede cambiar mientras no haya nota, o si el profesor
+  lo ha devuelto (y luego en borrador); no puede poner `devuelto` ni tocar `devFecha`. El profesor solo puede
+  cambiar `estado: 'devuelto'` + `devFecha` de una tarea entregada.
+- `trabajos/{id}/comentarios/{cid}` (nuevo): profesor y alumno dueño leen y escriben (autor fijo), nadie más.
+- `versiones/{id}` (nuevo): el alumno crea/actualiza solo las suyas en el hueco correcto; solo el profesor lee.
+- `entregas`: lectura también por `al == grupo_nº` de la sesión; creación con ID nuevo; el ID antiguo se sigue
+  aceptando (clientes con la caché vieja); el profesor puede crear las copias de migración.
+- Pruebas en el emulador (6 nuevas, con entregas antiguas sembradas): 111/111.
+
+**Pruebas**: `plataforma_test.mjs` 30/30 · reglas 111/111 · E2E fase 9: 23/23 (incluye corte de red con
+`setOffline`, otro ordenador con otro uid y migración). `aula_e2e` y `plataforma_f8` adaptados al formulario nuevo.
+
+**Capturas**: `f9_borrador_guardado`, `f9_entregado`, `f9_profesor_devolver`, `f9_alumno_devuelto`,
+`f9_mis_trabajos`, `f9_mis_trabajos_otro_ordenador`.
+
+**A tener en cuenta**: con el portal sin red, la entrega queda en cola en Firestore y la página avisa («no cierres
+la página»); el borrador sí queda en el ordenador. Tras reentregar algo que tenía nota (devuelto → entregado) queda
+bloqueado hasta que el profesor ponga la nota nueva o lo vuelva a devolver.

@@ -561,6 +561,10 @@ function route() {
     if (!tabs.includes(t)) { const d = pestañaPorDefecto(); history.replaceState(null, '', `#asig/${id}/${d}`); return showScreen('asig', { id, tab: d }); }
     return showScreen('asig', { id, tab: t });
   }
+  if (h === '#mis-trabajos') {
+    if (!portal()?.aula?.activa?.()) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
+    showScreen('aula'); portal().aula.renderMisTrabajos($('#aula')); return;
+  }
   if (h === '#calendario') {
     if (!portal()?.aula?.activa?.()) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
     showScreen('aula'); portal().aula.renderCalendario($('#aula')); return;

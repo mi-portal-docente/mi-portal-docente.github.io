@@ -69,10 +69,12 @@ const PORTAL = window.PORTAL = {
   navHTML(activa = '') {
     const a = (href, k, t) => `<a class="top-nav-a ${activa === k ? 'on' : ''}" href="${href}" ${activa === k ? 'aria-current="page"' : ''}>${t}</a>`;
     const cal = vistas ? a('#calendario', 'cal', `${ic('calendar-days')} Calendario`) : '';
-    if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${cal}</nav>`;
+    const mis = vistas && rol !== 'profesor' ? a('#mis-trabajos', 'mis', `${ic('briefcase')} Mis trabajos`) : '';
+    if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${mis}${cal}</nav>`;
     return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${cal}${a('#biblioteca', 'biblio', '🗂 Biblioteca')}${a('#panel', 'panel', '⚙️ Panel del profesor')}</nav>`;
   },
   estadoEntrega(practica) { return entregas.get(practica) || null; },
+  entregasLab() { return [...entregas.values()]; },
   entregar,
   calificar(id, nota, comentario) { return panel ? panel.calificar(id, nota, comentario) : Promise.reject(new Error('no-profesor')); },
   renderPanel(el, sub) { if (panel) panel.render(el, sub); },
@@ -109,6 +111,7 @@ const PORTAL = window.PORTAL = {
     reutilizar(asig) { clase?.reutilizar(asig); },
     renderItem(el, id) { if (vistas) vistas.renderItem(el, id); },
     renderCalendario(el) { if (vistas) vistas.renderCalendario(el); },
+    renderMisTrabajos(el) { if (vistas) vistas.renderMisTrabajos(el); },
     // Profesor: asignaturas del curso escolar activo (null si aún no hay curso) y, de cada asignatura,
     // los otros cursos escolares en los que estuvo (para el archivo de la Biblioteca).
     asignaturasCurso() {
@@ -318,15 +321,26 @@ function entrarAlumno(uid, s, c) {
     // cambios de asignaturas/apartados del grupo: se aplican al recargar la vista
     if (window.PORTAL_SESION) { window.PORTAL_SESION.asignaturas = (codDoc.asignaturas || []).slice(); window.PORTAL_SESION.apartados = (codDoc.apartados || []).slice(); }
   }, () => { }));
-  unsubs.push(onSnapshot(query(collection(db, 'entregas'), where('uid', '==', uid)), (qs) => {
+  // Entregas del laboratorio (fase 9): las nuevas van por grupo + nº (se ven desde cualquier ordenador);
+  // las antiguas, ligadas al uid de este ordenador, se siguen leyendo. Si hay de las dos, gana la nueva.
+  const entUid = new Map(), entAl = new Map();
+  const fundir = () => {
     entregas.clear();
+    for (const [p, e] of entUid) entregas.set(p, e);
+    for (const [p, e] of entAl) entregas.set(p, e);
+    window.dispatchEvent(new Event('portal-entregas'));
+  };
+  const leerEnt = (destino, filtrar) => (qs) => {
+    destino.clear();
     qs.forEach((d) => {
       const x = d.data({ serverTimestamps: 'estimate' });
-      if (x.grupo !== s.grupo || x.numero !== s.numero) return; // solo las de esta sesión (grupo + nº)
-      entregas.set(x.practica, { id: d.id, ...x, fecha: x.fecha?.toMillis ? x.fecha.toMillis() : Date.now(), pendiente: d.metadata.hasPendingWrites });
+      if (filtrar && (x.grupo !== s.grupo || x.numero !== s.numero)) return; // solo las de esta sesión (grupo + nº)
+      destino.set(x.practica, { id: d.id, ...x, fecha: x.fecha?.toMillis ? x.fecha.toMillis() : Date.now(), pendiente: d.metadata.hasPendingWrites });
     });
-    window.dispatchEvent(new Event('portal-entregas'));
-  }, () => { }));
+    fundir();
+  };
+  unsubs.push(onSnapshot(query(collection(db, 'entregas'), where('uid', '==', uid)), leerEnt(entUid, true), () => { }));
+  unsubs.push(onSnapshot(query(collection(db, 'entregas'), where('al', '==', idAl(s.grupo, s.numero))), leerEnt(entAl, false), () => { }));
   ultimoLatido = Date.now();
   timer = setInterval(() => { if (document.visibilityState !== 'hidden' && Date.now() - ultimoLatido >= LATIDO_MS) latido(); }, 5000);
   window.addEventListener('hashchange', alCambiarPagina);
@@ -375,8 +389,10 @@ function banner(txt, dura = 0) {
 
 async function entregar({ practica, tipo, titulo, datos }) {
   if (rol !== 'alumno' || !ses) throw { mensaje: 'solo los alumnos con sesión pueden entregar.' };
-  const id = `${ses.uid}_${ses.grupo}_${ses.numero}_${practica}`;
-  const data = { uid: ses.uid, codigo: ses.codigo, grupo: ses.grupo, numero: ses.numero, practica, tipo, titulo, fecha: serverTimestamp(), datos, nota: null, comentario: '' };
+  // Fase 9: ID por grupo + nº (no por ordenador). Si la práctica ya tiene nota (aunque sea en una entrega antigua), no se cambia.
+  const ya0 = entregas.get(practica); if (ya0 && ya0.nota != null) throw { mensaje: 'esta entrega ya está corregida por el profesor.' };
+  const id = `${ses.grupo}_${ses.numero}_${practica}`;
+  const data = { uid: ses.uid, codigo: ses.codigo, grupo: ses.grupo, numero: ses.numero, practica, tipo, titulo, fecha: serverTimestamp(), datos, nota: null, comentario: '', al: idAl(ses.grupo, ses.numero) };
   try {
     await conTimeout(setDoc(doc(fb.db, 'entregas', id), data), 15000);
   } catch (e) {

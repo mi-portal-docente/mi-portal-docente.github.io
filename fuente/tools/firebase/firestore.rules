@@ -304,15 +304,19 @@ service cloud.firestore {
       // Leer: el alumno SOLO las suyas (ligadas a su sesión anónima);
       // el profesor todas. Un alumno no puede leer entregas ajenas
       // ni consultarlas sin filtrar por su propio uid.
-      allow read: if (request.auth != null && resource.data.uid == request.auth.uid) || esProfesor();
+      // Fase 9: las entregas nuevas van ligadas a grupo + nº (al = 'grupo_nº', ID 'grupo_nº_práctica'),
+      // como los trabajos: el alumno las ve desde cualquier ordenador. Las antiguas (ID con el uid) se siguen
+      // leyendo como antes y el profesor las copia al ID nuevo («migración»), sin borrar las originales.
+      allow read: if (request.auth != null && resource.data.uid == request.auth.uid) || esProfesor()
+        || (sesionValida() && 'al' in resource.data && resource.data.al == idAlumno(miSesion()));
 
       // Crear o re-entregar (mientras no tenga nota): alumno con sesión válida.
       // Grupo, nº y código se copian de su sesión: no puede entregar
       // en nombre de otro número ni de otro grupo.
-      allow create: if sesionValida() && entregaAlumnoOk();
+      allow create: if (sesionValida() && entregaAlumnoOk()) || migracionOk();
       allow update: if (
           sesionValida() && entregaAlumnoOk()
-          && resource.data.uid == request.auth.uid
+          && (resource.data.uid == request.auth.uid || resource.data.get('al', '') == idAlumno(miSesion()))
           && resource.data.nota == null
         ) || (
           // Calificar: el profesor solo toca nota, comentario y notaFecha.
@@ -325,13 +329,26 @@ service cloud.firestore {
         );
       allow delete: if esProfesor();
 
+      // Migración (la hace el profesor): copia de una entrega antigua al ID por grupo + nº, con su
+      // fecha, nota y comentario originales y la referencia a la original (que no se borra).
+      function migracionOk() {
+        let d = request.resource.data;
+        return esProfesor()
+          && d.keys().hasOnly(['uid', 'codigo', 'grupo', 'numero', 'practica', 'tipo', 'titulo', 'fecha', 'datos', 'nota', 'comentario', 'notaFecha', 'al', 'migradaDe'])
+          && d.grupo is string && d.numero is int && d.practica is string
+          && d.al == d.grupo + '_' + string(d.numero)
+          && entregaId == d.al + '_' + d.practica
+          && d.migradaDe is string && d.migradaDe.size() <= 200
+          && d.datos is map && (d.nota == null || (esNumero(d.nota) && d.nota >= 0 && d.nota <= 10));
+      }
       function entregaAlumnoOk() {
         let d = request.resource.data;
         let s = miSesion();
-        return d.keys().hasOnly(['uid', 'codigo', 'grupo', 'numero', 'practica', 'tipo', 'titulo', 'fecha', 'datos', 'nota', 'comentario'])
+        return d.keys().hasOnly(['uid', 'codigo', 'grupo', 'numero', 'practica', 'tipo', 'titulo', 'fecha', 'datos', 'nota', 'comentario', 'al'])
           && d.keys().hasAll(['uid', 'codigo', 'grupo', 'numero', 'practica', 'tipo', 'titulo', 'fecha', 'datos', 'nota', 'comentario'])
           && d.uid == request.auth.uid
-          && entregaId == request.auth.uid + '_' + s.grupo + '_' + string(s.numero) + '_' + d.practica
+          && (entregaId == request.auth.uid + '_' + s.grupo + '_' + string(s.numero) + '_' + d.practica
+              || (d.get('al', '') == idAlumno(s) && entregaId == idAlumno(s) + '_' + d.practica))
           && d.codigo == s.codigo
           && d.grupo == s.grupo
           && d.numero == s.numero
@@ -597,8 +614,13 @@ service cloud.firestore {
       allow read: if esProfesor()
         || (alumnoOk() && resource.data.al == idAlumno(miSesion()));
       allow delete: if esProfesor();
+      // El profesor solo puede «Devolver para corregir» una entrega (estado y fecha).
+      allow update: if esProfesor()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'devFecha'])
+        && resource.data.tipo == 'tarea' && resource.data.get('estado', 'entregado') == 'entregado'
+        && request.resource.data.estado == 'devuelto' && esNumero(request.resource.data.devFecha);
       allow create: if alumnoOk() && trabajoBase(id)
-        && ((tipoTarea() && tareaOk())
+        && ((tipoTarea() && tareaOk() && !('devFecha' in request.resource.data))
             || (tipoExamen()
                 && request.resource.data.estado == 'en_curso'
                 && request.resource.data.inicio == request.time
@@ -606,10 +628,17 @@ service cloud.firestore {
                 && request.resource.data.respuestas is map
                 && request.resource.data.respuestas.size() == 0
                 && enVentana()));
+      // Fase 9: borrador → entregado → devuelto (lo pone el profesor) → calificado (nota).
+      // El alumno guarda y entrega mientras no haya nota, o si el profesor se la ha devuelto;
+      // no puede ponerse «devuelto» ni tocar la fecha de devolución.
       allow update: if alumnoOk() && trabajoBase(id)
         && resource.data.al == request.resource.data.al
         && resource.data.tipo == request.resource.data.tipo
-        && ((tipoTarea() && tareaOk() && !exists(ruta('notas', id)))
+        && ((tipoTarea() && tareaOk()
+             && resource.data.get('estado', 'entregado') in ['borrador', 'entregado', 'devuelto']
+             && request.resource.data.get('devFecha', null) == resource.data.get('devFecha', null)
+             && (!exists(ruta('notas', id)) || resource.data.get('estado', '') == 'devuelto'
+                 || (resource.data.get('estado', '') == 'borrador' && resource.data.get('devFecha', null) != null)))
             || (tipoExamen()
                 && resource.data.estado == 'en_curso'
                 && request.resource.data.estado in ['en_curso', 'entregado']
@@ -630,7 +659,8 @@ service cloud.firestore {
       function trabajoBase(id) {
         let d = request.resource.data;
         let s = miSesion();
-        return d.keys().hasOnly(['item', 'curso', 'asig', 'al', 'grupo', 'numero', 'uid', 'tipo', 'texto', 'enlaces', 'respuestas', 'inicio', 'fecha', 'estado'])
+        return d.keys().hasOnly(['item', 'curso', 'asig', 'al', 'grupo', 'numero', 'uid', 'tipo', 'texto', 'enlaces', 'respuestas', 'inicio', 'fecha', 'estado',
+                                 'guardado', 'entregadoEn', 'nEntregas', 'devFecha', 'doc', 'registro', 'datos'])
           && d.item is string
           && id == d.item + '_' + idAlumno(s)
           && d.al == idAlumno(s) && d.grupo == s.grupo && d.numero == s.numero
@@ -640,16 +670,54 @@ service cloud.firestore {
       }
       function tareaOk() {
         let d = request.resource.data;
-        return d.estado == 'entregado'
+        return d.estado in ['borrador', 'entregado']
           && d.fecha == request.time
           && textoCorto(d.get('texto', ''), 10000)
           && listaCorta(d.get('enlaces', []), 10)
+          && (!('guardado' in d) || esNumero(d.guardado))
+          && (!('entregadoEn' in d) || d.entregadoEn == null || esNumero(d.entregadoEn))
+          && (!('nEntregas' in d) || (d.nEntregas is int && d.nEntregas >= 0 && d.nEntregas <= 1000))
+          && (!('doc' in d) || textoCorto(d.doc, 300000))
+          && (!('registro' in d) || d.registro is map)
+          && (!('datos' in d) || d.datos is map)
           && !('respuestas' in d) && !('inicio' in d);
+      }
+
+      // Comentarios privados profesor ↔ alumno de cada trabajo (fase 9).
+      match /comentarios/{cid} {
+        function duenoTrabajo() { return alumnoOk() && get(ruta('trabajos', id)).data.al == idAlumno(miSesion()); }
+        allow read: if esProfesor() || duenoTrabajo();
+        allow create: if cid.matches('^[A-Za-z0-9]{6,30}$')
+          && request.resource.data.keys().hasOnly(['autor', 'texto', 'fecha', 'numero'])
+          && textoCorto(request.resource.data.texto, 2000) && request.resource.data.texto.size() > 0
+          && request.resource.data.fecha == request.time
+          && ((esProfesor() && request.resource.data.autor == 'profesor')
+              || (duenoTrabajo() && request.resource.data.autor == 'alumno' && request.resource.data.numero == miSesion().numero));
+        allow delete: if esProfesor();
       }
       function enVentana() {
         return examen().publicado == true
           && request.time >= examen().desde
           && request.time <= examen().hasta;
+      }
+    }
+
+    // versiones/{trabajo_vN}: las 5 últimas versiones entregadas de cada trabajo (fase 9).
+    // El alumno las escribe al entregar (hueco N = nº de entrega módulo 5) pero NO las lee: solo el profesor.
+    match /versiones/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if alumnoOk() && versionOk(request.resource.data)
+        && id == request.resource.data.trabajo + '_v' + string(request.resource.data.n % 5);
+      function versionOk(d) {
+        let s = miSesion();
+        let it = get(ruta('items', d.item)).data;
+        return d.keys().hasOnly(['trabajo', 'item', 'curso', 'asig', 'al', 'grupo', 'numero', 'n', 'texto', 'enlaces', 'doc', 'fecha'])
+          && d.item is string && d.al == idAlumno(s) && d.grupo == s.grupo && d.numero == s.numero
+          && d.trabajo == d.item + '_' + d.al
+          && d.n is int && d.n >= 1
+          && (s.grupo in it.visible || idAlumno(s) in it.get('visibleAl', []))
+          && textoCorto(d.get('texto', ''), 10000) && textoCorto(d.get('doc', ''), 300000)
+          && listaCorta(d.get('enlaces', []), 10) && d.fecha == request.time;
       }
     }
 

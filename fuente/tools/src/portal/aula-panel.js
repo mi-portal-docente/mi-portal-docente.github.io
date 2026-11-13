@@ -1,6 +1,6 @@
 // Panel del profesor · aula virtual: cursos escolares, contenido (biblioteca → curso, editor de
 // materiales, tareas, proyectos y exámenes) y calificaciones (cuaderno por grupo con categorías y pesos).
-import { getDoc, collection, doc, getDocs, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { getDoc, collection, doc, getDocs, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, Timestamp, orderBy, serverTimestamp } from 'firebase/firestore';
 import { leerResultado } from '../act/resultado.js';
 import { esc } from './util.js';
 import { ic } from './ico.js';
@@ -11,6 +11,8 @@ import { respuestaTexto, solucionTexto } from './examen-ui.js';
 import { resumenSalidas } from './modo-examen.js';
 import { notaPorCriterio, filasCriterios, analizarExamen } from '../lms/analitica.js';
 import { motor } from '../lms/elemento.js';
+import { estadoTrabajo, cuentaComoEntrega, ordenarVersiones, ESTADOS_TRABAJO } from '../lms/entrega.js';
+import { estadoChipHTML } from './entrega-ui.js';
 
 // Elementos que entregan «Aciertos: a/t» (actividades de clase y motores entregables: explicación, laboratorios…)
 const conResultado = (t) => t === 'actividad' || !!motor(t)?.entregable;
@@ -173,7 +175,9 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   function celda(g, c, n) {
     if (c.lab) { const e = ps.entregas.filter((x) => x.grupo === g.id && x.numero === n && x.practica === c.lab).sort((a, b) => b.fecha - a.fecha)[0]; return e ? { nota: e.nota, pub: true, estado: e.nota == null ? 'entregado' : 'nota' } : { estado: 'nada' }; }
     const id = idTrabajo(c.k, g.id, n); const nt = A.notas.get(id); const tr = A.trabajos.get(id);
-    if (nt && nt.nota != null) return { nota: nt.nota, pub: nt.publicada, estado: 'nota', tr };
+    if (tr?.estado === 'devuelto') return { estado: 'devuelto', tr, nota: nt?.nota };
+    if (nt && nt.nota != null && tr?.estado !== 'borrador') return { nota: nt.nota, pub: nt.publicada, estado: 'nota', tr };
+    if (tr?.estado === 'borrador') return { estado: 'borrador', tr };
     if (tr) return { estado: tr.estado === 'en_curso' ? 'curso' : 'entregado', tr, tarde: c.it?.fechaEntrega && tr.fecha > c.it.fechaEntrega };
     return { estado: 'nada' };
   }
@@ -203,7 +207,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     }).join('')}</tr>`;
     const body = filas(g).map((n) => {
       const vals = cols.map((c) => ({ c, v: celda(g, c, n) }));
-      return `<tr><th class="ap-n">${pad(n)}</th>${vals.map(({ c, v }) => `<td class="ap-c e-${v.estado} ${v.pub === false ? 'nopub' : ''} ${A.abierta && A.abierta.k === c.k && A.abierta.n === n ? 'sel' : ''}" data-celda="${esc(c.k)}" data-n="${n}" tabindex="0" title="${v.estado === 'nota' ? (v.pub ? 'Nota publicada' : 'Nota sin publicar') : v.estado === 'entregado' ? 'Entregado, sin nota' : v.estado === 'curso' ? 'Examen empezado' : 'Sin entrega'}">${v.estado === 'nota' ? esc(fmtNota(v.nota)) : v.estado === 'entregado' ? '📥' : v.estado === 'curso' ? '⏳' : '·'}${v.tarde ? '<sup>⏰</sup>' : ''}</td>`).join('')}</tr>`;
+      return `<tr><th class="ap-n">${pad(n)}</th>${vals.map(({ c, v }) => `<td class="ap-c e-${v.estado} ${v.pub === false ? 'nopub' : ''} ${A.abierta && A.abierta.k === c.k && A.abierta.n === n ? 'sel' : ''}" data-celda="${esc(c.k)}" data-n="${n}" tabindex="0" title="${v.estado === 'nota' ? (v.pub ? 'Nota publicada' : 'Nota sin publicar') : v.estado === 'entregado' ? 'Entregado, sin nota' : v.estado === 'curso' ? 'Examen empezado' : v.estado === 'borrador' ? 'Borrador: aún no lo ha entregado' : v.estado === 'devuelto' ? 'Devuelto para corregir' : 'Sin entrega'}">${v.estado === 'nota' ? esc(fmtNota(v.nota)) : v.estado === 'entregado' ? '📥' : v.estado === 'curso' ? '⏳' : v.estado === 'borrador' ? ic('pencil') : v.estado === 'devuelto' ? ic('undo-2') : '·'}${v.tarde ? '<sup>⏰</sup>' : ''}</td>`).join('')}</tr>`;
     }).join('');
     return `<table class="pn-t ap-tabla"><thead>${head}</thead><tbody>${body}</tbody></table>`;
   }
@@ -223,6 +227,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const id = idTrabajo(it.id, g.id, ab.n); const tr = A.trabajos.get(id); const nt = A.notas.get(id);
     let h = `<h3>${esc(g.nombre)} · nº ${pad(ab.n)}</h3><div class="pn-small">${TIPOS[it.tipo]?.icon || ''} ${esc(it.titulo)}</div>`;
     if (!tr) h += '<p class="pn-small">Sin entrega. Puedes poner nota igualmente (p. ej., trabajo hecho en clase o en papel).</p>';
+    else if (tr.tipo === 'tarea') h += `<div class="pn-small ap-est">${estadoChipHTML(estadoTrabajo(tr, nt))} · ${fFecha(tr.fecha)}${tr.nEntregas > 1 ? ` · ${tr.nEntregas}.ª entrega` : ''}${it.fechaEntrega && tr.estado === 'entregado' && tr.fecha > it.fechaEntrega ? ' · <b>con retraso</b>' : ''}</div>${tr.estado === 'borrador' ? '<p class="pn-small">Es un borrador: el alumno todavía no lo ha entregado.</p>' : ''}`;
     else h += `<div class="pn-small">${tr.estado === 'en_curso' ? '⏳ Examen empezado, sin entregar' : '📥 Entregado'} · ${fFecha(tr.fecha)}${it.fechaEntrega && tr.fecha > it.fechaEntrega ? ' · <b>con retraso</b>' : ''}</div>`;
     const det = nt?.detalle || {};
     let auto = null;
@@ -254,9 +259,45 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       <label class="pn-f">Comentario para el alumno<textarea name="comentario" maxlength="2000" rows="3">${esc(nt?.comentario || '')}</textarea></label>
       <label class="pn-chk"><input type="checkbox" name="publicada" ${nt ? (nt.publicada ? 'checked' : '') : ''}> Publicar la nota al alumno</label>
       <div class="pn-acts"><button class="btn primary" type="submit">💾 Guardar nota</button>${nt ? '<button class="btn" type="button" data-ap="borrarNota">Quitar nota</button>' : ''}<span class="pn-msg" id="apNotaMsg"></span></div></form>
+      ${tr?.tipo === 'tarea' ? seguimientoHTML(id, tr) : ''}
       <div class="pn-acts">${tr ? `<button class="btn small" data-ap="repetir" title="Borra la entrega para que pueda volver a entregar o repetir el examen">↺ Permitir repetir</button>` : ''}${pinB}</div>`;
     D.innerHTML = h;
   }
+  // Fase 9: devolver para corregir, comentarios privados y últimas versiones entregadas.
+  function seguimientoHTML(id, tr) {
+    if (!A.coms) A.coms = new Map();
+    if (A.comsId !== id) { A.unsubCom?.(); A.comsId = id; A.coms.set(id, null); A.unsubCom = onSnapshot(query(collection(db, 'trabajos', id, 'comentarios'), orderBy('fecha')), (qs) => { A.coms.set(id, qs.docs.map((d) => { const x = d.data({ serverTimestamps: 'estimate' }); return { id: d.id, ...x, fecha: x.fecha?.toMillis?.() || null }; })); const c = $('#apComs'); if (c) c.innerHTML = comsProfHTML(id); }, () => A.coms.set(id, [])); }
+    if (!A.vers) A.vers = new Map();
+    if (!A.vers.has(id)) { A.vers.set(id, null); getDocs(query(collection(db, 'versiones'), where('trabajo', '==', id))).then((qs) => { A.vers.set(id, ordenarVersiones(qs.docs.map((d) => { const x = d.data(); return { id: d.id, ...x, fecha: x.fecha?.toMillis?.() || null }; }))); const v = $('#apVers'); if (v) v.innerHTML = versionesHTML(id); }).catch(() => A.vers.set(id, [])); }
+    const dev = tr.estado === 'entregado' ? `<form id="apDevForm" class="pn-form ap-dev"><label class="pn-f">Comentario para que lo corrija<textarea name="c" rows="2" maxlength="2000" placeholder="Qué tiene que cambiar"></textarea></label><div class="pn-acts"><button class="btn" type="submit">${ic('undo-2')} Devolver para corregir</button><span class="pn-msg" id="apDevMsg"></span></div></form>`
+      : tr.estado === 'devuelto' ? `<p class="pn-small">${ic('undo-2')} Devuelto el ${fFecha(tr.devFecha)}. Cuando lo vuelva a entregar, aparecerá como entregado.</p>` : '';
+    return `<h4>${ic('undo-2')} Seguimiento</h4>${dev}
+      <h4>${ic('message-square')} Comentarios privados</h4><div id="apComs" class="en-coms">${comsProfHTML(id)}</div>
+      <form id="apComForm" class="en-comf"><textarea name="c" rows="2" maxlength="2000" placeholder="Solo lo ve este alumno"></textarea><button class="btn small" type="submit">${ic('send')} Enviar</button></form>
+      <details class="ap-vers"><summary>${ic('rotate-ccw-clock')} Versiones entregadas (últimas 5)</summary><div id="apVers">${versionesHTML(id)}</div></details>`;
+  }
+  function comsProfHTML(id) {
+    const L = A.coms?.get(id); if (L == null) return '<p class="pn-small">Cargando…</p>';
+    return L.length ? L.map((c) => `<div class="en-com ${c.autor === 'profesor' ? 'yo' : 'prof'}"><b>${c.autor === 'profesor' ? 'Tú' : 'Alumno'}</b> <span class="pn-small">${fFecha(c.fecha)}</span><div>${esc(c.texto)}</div></div>`).join('') : '<p class="pn-small">Sin comentarios.</p>';
+  }
+  function versionesHTML(id) {
+    const L = A.vers?.get(id); if (L == null) return '<p class="pn-small">Cargando…</p>';
+    if (!L.length) return '<p class="pn-small">Sin versiones guardadas (las entregas anteriores a esta función no tienen historial).</p>';
+    return L.map((v) => `<details class="ap-ver"><summary>${v.n}.ª entrega · ${fFecha(v.fecha)}</summary>${v.doc ? `<div class="doc-ver">${v.doc}</div>` : textoHTML(v.texto || '')}${(v.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}</details>`).join('');
+  }
+  const idComP = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
+  async function comentarProf(id, texto) { await setDoc(doc(db, 'trabajos', id, 'comentarios', idComP()), { autor: 'profesor', texto: texto.slice(0, 2000), fecha: serverTimestamp() }); }
+  async function devolver(f) {
+    const g = grupoSel(); const ab = A.abierta; const id = idTrabajo(ab.k, g.id, ab.n); const msg = $('#apDevMsg');
+    const c = String(new FormData(f).get('c') || '').trim();
+    msg.textContent = 'Devolviendo…';
+    try {
+      await updateDoc(doc(db, 'trabajos', id), { estado: 'devuelto', devFecha: Date.now() });
+      if (c) await comentarProf(id, c);
+      A.vers?.delete(id); pintarDetalle();
+    } catch (e) { msg.textContent = 'No se ha podido devolver (' + (e?.code || 'error') + ').'; msg.className = 'pn-msg ko'; }
+  }
+
   // Modo examen: salidas de la pestaña / pantalla completa (informativo, no cambia la nota)
   function salidasHTML(id) {
     if (!A.salidas) A.salidas = new Map();
@@ -314,7 +355,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   async function notasActividad(itemId) {
     const it = st.items.get(itemId); const ops = []; let n = 0;
     for (const tr of A.trabajos.values()) {
-      if (tr.item !== itemId || A.notas.get(tr.id)?.nota != null) continue;
+      if (tr.item !== itemId || A.notas.get(tr.id)?.nota != null || !cuentaComoEntrega(tr)) continue;
       const r = leerResultado(tr.texto); if (!r) continue; n++;
       ops.push({ db, fn: (b) => b.set(doc(db, 'notas', tr.id), { item: it.id, curso: it.curso, asig: it.asig, al: tr.al, grupo: tr.grupo, numero: tr.numero, nota: r.nota, puntos: r.aciertos, max: r.total, detalle: {}, comentario: `Actividad: ${r.aciertos}/${r.total} aciertos`, publicada: false, fecha: Date.now() }) });
     }
@@ -449,6 +490,13 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   function onSubmit(ev) {
     if (ev.target.id === 'apCursoForm') { ev.preventDefault(); guardarCurso(ev.target); return true; }
     if (ev.target.id === 'apNotaForm') { ev.preventDefault(); guardarNota(ev.target); return true; }
+    if (ev.target.id === 'apDevForm') { ev.preventDefault(); devolver(ev.target); return true; }
+    if (ev.target.id === 'apComForm') {
+      ev.preventDefault(); const f = ev.target; const t = String(new FormData(f).get('c') || '').trim(); if (!t) return true;
+      const g = grupoSel(); const ab = A.abierta; f.querySelector('button').disabled = true;
+      comentarProf(idTrabajo(ab.k, g.id, ab.n), t).then(() => { f.reset(); }).catch((e) => alert('No se ha podido enviar (' + (e?.code || 'error') + ').')).finally(() => { f.querySelector('button').disabled = false; });
+      return true;
+    }
     return false;
   }
   function fuera() { A.sub = null; pararGrupo(); }

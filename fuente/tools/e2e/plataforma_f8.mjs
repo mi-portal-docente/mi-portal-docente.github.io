@@ -63,9 +63,9 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   });
   const docR = JSON.stringify(await docREST('items/' + idR));
   ok('recuperación publicada solo para el nº 3 (visible vacío, visibleAl = grupo_3)', docR.includes(`${T.GE.id}_3`) && /"visible":\{"arrayValue":\{\}\}/.test(docR.replace(/\s/g, '')), docR.slice(0, 200));
-  await A.pg.goto(BASE + '#trabajo/' + idR); await A.pg.waitForSelector('#auEntrega', { timeout: 20000 });
+  await A.pg.goto(BASE + '#trabajo/' + idR); await A.pg.waitForSelector('#enForm', { timeout: 20000 });
   ok('el nº 3 la ve, con «Leer en voz alta»', !!(await A.pg.$('[data-au=leer]')));
-  await A.pg.fill('#auEntrega [name=texto]', 'Hecha de nuevo.'); await A.pg.click('#auEntrega button[type=submit]');
+  await A.pg.fill('#enForm [name=texto]', 'Hecha de nuevo.'); await A.pg.click('[data-en=entregar]');
   await A.pg.waitForFunction(() => /Entregad|entregad/.test(document.querySelector('#aula')?.textContent || ''), null, { timeout: 15000 });
   ok('el nº 3 entrega la recuperación', /Hecha de nuevo/.test(JSON.stringify(await docREST(`trabajos/${idR}_${T.GE.id}_3`))));
   await shot(A.pg, 'f8_recuperacion_alumno');

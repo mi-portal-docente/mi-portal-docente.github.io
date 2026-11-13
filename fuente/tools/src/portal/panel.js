@@ -7,6 +7,7 @@ import { nuevoCodigo } from './codigos.js';
 import { ic as lucide } from './ico.js';
 import { crearAulaPanel } from './aula-panel.js';
 import { BIBLIOTECA, asignatura } from '../lms/biblioteca.js';
+import { planMigracion, sinDuplicadas } from '../lms/entrega.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
 const pad = (n) => String(n).padStart(2, '0');
@@ -50,8 +51,11 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       st.sesiones = []; qs.forEach(d => { const x = d.data({ serverTimestamps: 'estimate' }); st.sesiones.push({ uid: d.id, ...x, latido: ms(x.latido), desde: ms(x.desde) }); }); st.listo.s = true; pintarLuego();
     }, (e) => errorDatos(e)));
     st.unsubs.push(onSnapshot(collection(db, 'entregas'), (qs) => {
-      st.entregas = []; qs.forEach(d => { const x = d.data({ serverTimestamps: 'estimate' }); st.entregas.push({ id: d.id, ...x, fecha: ms(x.fecha) }); });
+      const todas = []; st.entregasRaw = new Map();
+      qs.forEach(d => { const x = d.data({ serverTimestamps: 'estimate' }); st.entregasRaw.set(d.id, d.data()); todas.push({ id: d.id, ...x, fecha: ms(x.fecha) }); });
+      st.entregasTodas = todas; st.entregas = sinDuplicadas(todas);
       st.entregas.sort((a, b) => b.fecha - a.fecha); st.listo.e = true; pintarLuego();
+      if (!st.migError) migrarEntregas(false).catch(() => { }); // idempotente: solo copia las que falten
     }, (e) => errorDatos(e)));
     st.unsubs.push(onSnapshot(collection(db, 'pines'), (qs) => { st.pines = new Set(qs.docs.map((d) => d.id)); pintarLuego(); }, () => { }));
     st.unsubs.push(onSnapshot(collection(db, 'accesos'), (qs) => { st.accesos = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); st.accesos.set(d.id, { ultimo: ms(x.ultimo), disp: x.disp || '' }); }); pintarLuego(); }, () => { }));
@@ -325,6 +329,24 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   }
 
   // ------------------------------------------------------------ entregas
+  // Fase 9: las entregas antiguas iban ligadas al uid anónimo del ordenador. Se copian (sin borrar las
+  // originales) al ID por grupo + nº para que el alumno las vea desde cualquier ordenador. Idempotente:
+  // se lanza sola al abrir el panel y con el botón «Migrar entregas antiguas».
+  async function migrarEntregas(manual) {
+    if (st.migrando) return 0; const plan = planMigracion(st.entregasTodas || []);
+    if (!plan.length) { if (manual) alert('No hay entregas antiguas por migrar.'); return 0; }
+    st.migrando = true;
+    try {
+      for (let i = 0; i < plan.length; i += 400) {
+        const b = writeBatch(db);
+        plan.slice(i, i + 400).forEach((p) => { const raw = st.entregasRaw.get(p.de) || {}; b.set(doc(db, 'entregas', p.id), { ...raw, al: p.datos.al, migradaDe: p.de }); });
+        await b.commit();
+      }
+      if (manual) alert(`${plan.length} entrega(s) antiguas copiadas al nº de lista. Las originales se conservan.`);
+      return plan.length;
+    } catch (e) { st.migError = !manual; if (manual) alert('No se ha podido migrar (' + (e?.code || 'error') + ').'); return 0; } finally { st.migrando = false; }
+  }
+  const pendientesMigrar = () => planMigracion(st.entregasTodas || []).length;
   function filtradas() {
     return st.entregas.filter(e => (!st.f.grupo || e.grupo === st.f.grupo) && (!st.f.practica || e.practica === st.f.practica) && (!st.f.estado || (st.f.estado === 'sin' ? e.nota == null : e.nota != null)));
   }
@@ -335,7 +357,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     return `<label>Grupo <select data-pn-f="grupo">${opt('', 'Todos', st.f.grupo)}${gIds.map(id => opt(id, nombreGrupo(id), st.f.grupo)).join('')}</select></label>
       <label>Práctica <select data-pn-f="practica">${opt('', 'Todas', st.f.practica)}${pracs.map(([id, t]) => opt(id, t, st.f.practica)).join('')}</select></label>
       <label>Estado <select data-pn-f="estado">${opt('', 'Todas', st.f.estado)}${opt('sin', 'Sin nota', st.f.estado)}${opt('con', 'Con nota', st.f.estado)}</select></label>
-      <span class="pn-grow"></span><button class="btn" data-pn="csv">⬇ Exportar CSV</button>`;
+      <span class="pn-grow"></span>${pendientesMigrar() ? `<button class="btn" data-pn="migrar" title="Copia las entregas antiguas (ligadas al ordenador) al nº de lista del alumno, sin borrar las originales">${lucide('refresh-cw')} Migrar ${pendientesMigrar()} entregas antiguas</button>` : ''}<button class="btn" data-pn="csv">${lucide('download')} Exportar CSV</button>`;
   }
   function tablaEntregasHTML() {
     if (!st.listo.e) return '<p class="pn-small">Cargando…</p>';
@@ -410,6 +432,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       }
     }
     if (acc === 'csv') exportarCSV();
+    if (acc === 'migrar') { b.disabled = true; await migrarEntregas(true); }
     if (acc === 'revisar') {
       const e = st.entregas.find(x => x.id === st.abierta); if (!e) return;
       PORTAL.revision = { id: e.id, practica: e.practica, montaje: e.datos?.montaje, respuestas: e.datos?.respuestas || {}, comprobacion: e.datos?.comprobacion, nota: e.nota, comentario: e.comentario, fecha: e.fecha, quien: `${nombreGrupo(e.grupo)} · nº ${pad(e.numero)}` };

@@ -284,3 +284,44 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 .pi-tab { width: 100%; border-collapse: collapse; font-size: .85rem; } .pi-tab th, .pi-tab td { text-align: left; padding: 6px 8px; border-top: 1px solid rgba(60, 60, 67, .12); }
 .pi-nueva select, .pi-nueva input { min-height: 40px; box-sizing: border-box; }
 .pi-nueva select { border-radius: 10px; border: 1px solid rgba(60, 60, 67, .25); padding: 0 10px; background: var(--card, #fff); font: inherit; width: 100%; }
+
+/* ---------- Fase 9 · entregas completas ---------- */
+.en-cab { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0 8px; }
+.en-cab h4 { margin: 0; }
+.en-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; background: var(--fill, rgba(120,120,128,.12)); white-space: nowrap; }
+.en-chip .ic { width: 14px; height: 14px; }
+.en-borrador { background: rgba(255, 149, 0, .16); color: #a35a00; }
+.en-entregado { background: rgba(0, 122, 255, .13); color: #0a5bd6; }
+.en-devuelto { background: rgba(255, 59, 48, .14); color: #c0271d; }
+.en-calificado { background: rgba(52, 199, 89, .16); color: #1d7a37; }
+.en-guardado { margin-left: auto; font-size: .82rem; color: var(--sec, #6b6b70); display: inline-flex; align-items: center; gap: 4px; }
+.en-guardado.ok { color: #1d7a37; } .en-guardado.ko { color: #c0271d; }
+.en-guardado .ic { width: 14px; height: 14px; }
+.au-entrega textarea[readonly] { background: var(--fill, #f2f2f7); }
+.en-coms-w { margin-top: 14px; border-radius: 12px; background: var(--card, #fff); border: 1px solid var(--sep, rgba(60,60,67,.18)); padding: 8px 12px; }
+.en-coms-w summary { cursor: pointer; font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.en-coms { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; max-height: 280px; overflow: auto; }
+.en-com { padding: 6px 10px; border-radius: 12px; background: var(--fill, #f2f2f7); max-width: 92%; }
+.en-com.yo { align-self: flex-end; background: rgba(0, 122, 255, .12); }
+.en-comf { display: flex; gap: 6px; align-items: flex-end; margin-top: 6px; }
+.en-comf textarea { flex: 1; min-height: 2.6em; }
+.ap-est { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ap-vers summary, .ap-ver summary { cursor: pointer; }
+.ap-ver { margin: 4px 0 4px 10px; padding: 4px 8px; border-left: 3px solid var(--sep, #ddd); }
+.ap-c.e-borrador { color: #a35a00; } .ap-c.e-devuelto { color: #c0271d; }
+.ap-c .ic { width: 14px; height: 14px; }
+/* «Mis trabajos» */
+.mt-filtros { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.mt-n { opacity: .7; font-variant-numeric: tabular-nums; }
+.mt-wrap { overflow-x: auto; }
+.mt-t td { vertical-align: top; }
+/* Imprimir / guardar como PDF la entrega */
+#enImprimir { display: none; }
+@media print {
+  body.en-imprimiendo > *:not(#enImprimir) { display: none !important; }
+  body.en-imprimiendo #enImprimir { display: block; font: 12pt/1.5 Georgia, serif; color: #000; }
+  #enImprimir h1 { font-size: 18pt; margin: 0 0 4pt; }
+  #enImprimir .en-pmeta { color: #444; font-size: 10pt; margin: 0 0 12pt; }
+  #enImprimir table { border-collapse: collapse; } #enImprimir td, #enImprimir th { border: 1px solid #999; padding: 3pt 6pt; }
+  #enImprimir img { max-width: 100%; }
+}

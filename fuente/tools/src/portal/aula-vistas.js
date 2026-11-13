@@ -10,6 +10,8 @@ import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTip
 import { crearModoExamen } from './modo-examen.js';
 import { montarExplicacion } from './explicacion-ui.js';
 import { montarPiac } from './piac-ui.js';
+import { montarEntrega } from './entrega-ui.js';
+import { estadoTrabajo, ESTADOS_TRABAJO } from '../lms/entrega.js';
 
 // Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
 // registran en window.PORTAL_MOTORES[tipo] = (nodo, item, opciones) => ({ actualizar }).
@@ -43,6 +45,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   const ex = { id: null, examen: null, resp: {}, timer: null, guardado: 0, tGuardar: null, enviando: false, error: '' };
   let actual = null; // {el, tipo: 'lista'|'item', id}
   let motorM = null; // motor montado en la página del elemento
+  let entM = null; // entrega (fase 9) montada en la página del elemento
   // Modo examen (pantalla completa + registro informativo de salidas). Solo alumno.
   const modo = rol === 'alumno' ? crearModoExamen({ db, ses, uid }) : null;
 
@@ -52,7 +55,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (rol === 'profesor') return it.publicado ? ['pub', 'Publicado'] : ['borr', 'Borrador'];
     if (it.tipo === 'material') return ['mat', ''];
     const n = st.notas.get(it.id); const tr = st.trabajos.get(it.id); const now = Date.now();
-    if (n && n.nota != null) return ['nota', `Nota: ${fmtNota(n.nota)}`];
+    if (n && n.nota != null && !['borrador', 'devuelto'].includes(tr?.estado)) return ['nota', `Nota: ${fmtNota(n.nota)}`];
     if (it.tipo === 'examen') {
       if (tr?.estado === 'entregado') return ['ok', 'Entregado'];
       const v = ventana(it);
@@ -62,6 +65,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       if (now <= v.hasta) return ['abierto', 'Disponible ahora'];
       return ['cerr', 'Cerrado'];
     }
+    const e = estadoTrabajo(tr, n);
+    if (e === 'borrador') return ['curso', 'Borrador · sin entregar'];
+    if (e === 'devuelto') return ['tarde', ESTADOS_TRABAJO.devuelto.t];
     if (tr) return ['ok', it.fechaEntrega && tr.fecha > it.fechaEntrega ? 'Entregado (con retraso)' : 'Entregado'];
     if (it.fechaEntrega && now > it.fechaEntrega) return ['tarde', 'Sin entregar · fuera de plazo'];
     return ['pend', it.fechaEntrega ? `Para el ${fFecha(it.fechaEntrega)}` : 'Pendiente'];
@@ -85,20 +91,17 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   function entregaHTML(it) {
     const tr = st.trabajos.get(it.id); const n = st.notas.get(it.id);
     const ta = (v) => esc(v || '');
-    let h = '<h4>Tu entrega</h4>';
-    if (tr) h += `<div class="au-ok">✅ Entregado · ${esc(fFecha(tr.fecha))}${it.fechaEntrega && tr.fecha > it.fechaEntrega ? ' · <b>con retraso</b>' : ''}${tr.pendiente ? ' · enviando…' : ''}</div>`;
-    if (n) return h + notaHTML(it) + (tr ? `<div class="au-mia">${textoHTML(tr.texto)}${(tr.enlaces || []).map((u) => `<div>🔗 <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}</div>` : '');
     const act = it.tipo === 'actividad' && (it.enlaces || []).find((e) => (/^#asig\/[\w-]+\/actividades\/[\w-]+$/.test(e.u) || /^#[a-z0-9]{2,8}\/[a-z0-9-]{2,30}\/[\w-]{1,40}$/.test(e.u)));
-    if (act) return h + `${tr ? `<div class="au-mia">${textoHTML(tr.texto)}</div>` : ''}<div class="au-acts"><a class="btn primary" href="${esc(act.u)}">▶ ${tr ? 'Repetir la actividad' : 'Hacer la actividad'}</a></div><p class="au-small">El resultado se entrega desde la propia actividad, al terminar. Puedes repetirla y volver a entregar hasta que el profesor la califique.</p>`;
-    if (it.tipo === 'pregunta') return h + `<form id="auEntrega" class="au-form" autocomplete="off">
+    // Tareas, proyectos, prácticas… (fase 9): borrador, entregar, anular, devolver, imprimir y comentarios.
+    if (it.tipo !== 'pregunta' && !act) return '<div id="auEntregaM" class="au-entrega"></div>';
+    let h = '<h4>Tu entrega</h4>';
+    if (tr) h += `<div class="au-ok">${ic('circle-check')} Entregado · ${esc(fFecha(tr.fecha))}${it.fechaEntrega && tr.fecha > it.fechaEntrega ? ' · <b>con retraso</b>' : ''}${tr.pendiente ? ' · enviando…' : ''}</div>`;
+    if (n) return h + notaHTML(it) + (tr ? `<div class="au-mia">${textoHTML(tr.texto)}${(tr.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}</div>` : '');
+    if (act) return h + `${tr ? `<div class="au-mia">${textoHTML(tr.texto)}</div>` : ''}<div class="au-acts"><a class="btn primary" href="${esc(act.u)}">${ic('play')} ${tr ? 'Repetir la actividad' : 'Hacer la actividad'}</a></div><p class="au-small">El resultado se entrega desde la propia actividad, al terminar. Puedes repetirla y volver a entregar hasta que el profesor la califique.</p>`;
+    return h + `<form id="auEntrega" class="au-form" autocomplete="off">
       ${it.opciones?.length ? `<fieldset class="au-q"><legend>Elige una respuesta</legend>${it.opciones.map((o) => `<label class="au-op"><input type="radio" name="texto" value="${esc(o)}" ${tr?.texto === o ? 'checked' : ''} required> ${esc(o)}</label>`).join('')}</fieldset>`
         : `<label>Tu respuesta<textarea name="texto" maxlength="3000" rows="3" required placeholder="Escribe tu respuesta. No pongas tu nombre.">${ta(tr?.texto)}</textarea></label>`}
-      <div class="au-acts"><button class="btn primary" type="submit">${tr ? '↻ Cambiar la respuesta' : '📤 Responder'}</button><span class="au-msg" id="auMsg"></span></div></form>`;
-    return h + `<form id="auEntrega" class="au-form" autocomplete="off">
-      <label>Respuesta<textarea name="texto" maxlength="10000" rows="7" placeholder="Escribe aquí tu respuesta. No pongas tu nombre.">${ta(tr?.texto)}</textarea></label>
-      <label>Enlaces (uno por línea: documento, presentación, vídeo…)<textarea name="enlaces" rows="3" maxlength="5000" placeholder="https://docs.google.com/…">${ta((tr?.enlaces || []).join('\n'))}</textarea></label>
-      <div class="au-acts"><button class="btn primary" type="submit">${tr ? '↻ Volver a entregar' : '📤 Entregar'}</button><span class="au-msg" id="auMsg"></span></div>
-      <p class="au-small">Puedes volver a entregar hasta que el profesor lo corrija.</p></form>`;
+      <div class="au-acts"><button class="btn primary" type="submit">${tr ? ic('refresh-cw') + ' Cambiar la respuesta' : ic('send') + ' Responder'}</button><span class="au-msg" id="auMsg"></span></div></form>`;
   }
   function examenInfoHTML(it) {
     const v = ventana(it); const tr = st.trabajos.get(it.id); const now = Date.now();
@@ -136,7 +139,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (!it) { el.innerHTML = barraSup() + `<div class="au-page">${st.listo.items ? '<p class="au-vacio">Este elemento no existe o no está publicado para tu grupo.</p><a class="btn" href="#asignaturas">← Asignaturas</a>' : '<p class="au-small">Cargando…</p>'}</div>`; return; }
     // motor ya montado (explicación, laboratorio…): no se repinta para no perder lo que está haciendo el alumno
     if (motorM && motorM.id === id && motorM.nota === !!st.notas.get(id) && el.contains(motorM.nodo)) { motorM.api?.actualizar?.({ trabajo: st.trabajos.get(id), nota: st.notas.get(id) }); return; }
-    motorM?.api?.destruir?.();
+    if (entM && entM.id === id && el.contains(entM.nodo)) { entM.api.actualizar({ trabajo: st.trabajos.get(id), nota: st.notas.get(id) }); return; }
+    motorM?.api?.destruir?.(); entM?.api?.destruir?.(); entM = null;
     el.innerHTML = barraSup() + `<div class="au-page">${itemHTML(it)}</div>`;
     const nodo = el.querySelector('#auMotor'); motorM = null;
     if (nodo) {
@@ -144,10 +148,13 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       const api = montar(nodo, it, { rol, db, ses, aula: st, trabajo: st.trabajos.get(id), nota: st.notas.get(id), entregar: rol === 'alumno' ? (texto, extra) => entregarActividad(it.id, texto, extra) : null });
       motorM = { id, nodo, api, nota: !!st.notas.get(id) };
     }
+    const nE = el.querySelector('#auEntregaM');
+    if (nE && rol === 'alumno') entM = { id, nodo: nE, api: montarEntrega(nE, it, { db, ses, uid, al, trabajo: st.trabajos.get(id), nota: st.notas.get(id), textoHTML, ...(window.PORTAL_EDITOR_DOC && it.doc !== false ? window.PORTAL_EDITOR_DOC(it) : {}) }) };
   }
   function repintar() {
     if (!actual || !actual.el.isConnected) return;
     if (actual.tipo === 'cal') return renderCalendario(actual.el);
+    if (actual.tipo === 'mis') return renderMisTrabajos(actual.el);
     if (!document.activeElement || !actual.el.contains(document.activeElement) || document.activeElement.tagName === 'BUTTON') renderItem(actual.el, actual.id);
   }
   window.addEventListener('portal-aula', repintar);
@@ -161,7 +168,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (!texto.trim() && !enlaces.length) { msg.textContent = 'Escribe una respuesta o añade un enlace.'; msg.className = 'au-msg ko'; return; }
     btn.disabled = true; msg.textContent = 'Enviando…'; msg.className = 'au-msg';
     try {
-      await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'tarea', texto, enlaces, fecha: serverTimestamp(), estado: 'entregado' });
+      await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'tarea', texto, enlaces, fecha: serverTimestamp(), estado: 'entregado' }, { merge: true });
       msg.textContent = '✔ Entregado'; msg.className = 'au-msg ok';
     } catch (e) {
       msg.textContent = e?.code === 'permission-denied' ? '❌ No se ha aceptado: puede que ya esté corregida o que tu sesión haya caducado.' : '❌ Revisa la conexión y vuelve a intentarlo.'; msg.className = 'au-msg ko';
@@ -271,6 +278,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (b.dataset.au === 'leer') leerEnVoz(b);
     if (b.dataset.au === 'calMes') { cal.mes += +b.dataset.d; renderCalendario(actual.el); }
     if (b.dataset.au === 'calHoy') { cal.mes = 0; renderCalendario(actual.el); }
+    if (b.dataset.au === 'mtF') { mt.f = b.dataset.f; renderMisTrabajos(actual.el); }
   });
   document.addEventListener('submit', (e) => {
     if (!actual?.el.contains(e.target)) return;
@@ -291,7 +299,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   }
   async function entregarActividad(itemId, texto) {
     const it = st.items.get(itemId); if (!it || rol !== 'alumno') throw new Error('sin-tarea');
-    await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'tarea', texto: String(texto).slice(0, 10000), enlaces: [], fecha: serverTimestamp(), estado: 'entregado' });
+    await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'tarea', texto: String(texto).slice(0, 10000), enlaces: [], fecha: serverTimestamp(), estado: 'entregado' }, { merge: true });
   }
 
   // ---------------------------------------------------------------- lectura en voz alta (Web Speech, voz en castellano)
@@ -306,6 +314,34 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     S.cancel(); S.speak(u); b.setAttribute('aria-pressed', 'true'); b.innerHTML = `${ic('circle-stop')} Parar la lectura`;
   }
   window.addEventListener('hashchange', () => { if (voz()) window.speechSynthesis.cancel(); });
+
+  // ---------------------------------------------------------------- «Mis trabajos» (#mis-trabajos, alumno)
+  // Todos sus trabajos de todas las asignaturas: estado, fecha y nota publicada. También los del laboratorio.
+  const mt = { f: 'todos' };
+  function filasMisTrabajos() {
+    const t = Date.now(); const L = [];
+    for (const it of st.items.values()) {
+      if (it.pub && it.pub > t) continue;
+      if (it.tipo === 'material' || !(TIPOS_ENTREGA.includes(it.tipo) || it.tipo === 'examen' || montadorDe(it.tipo))) continue;
+      const tr = st.trabajos.get(it.id); const n = st.notas.get(it.id);
+      let e = it.tipo === 'examen' ? (n && n.nota != null ? 'calificado' : tr?.estado === 'entregado' ? 'entregado' : tr ? 'borrador' : 'sin') : estadoTrabajo(tr, n);
+      L.push({ href: '#trabajo/' + it.id, titulo: it.titulo, asig: it.asig, tipo: it.tipo, e, fecha: tr?.fecha || null, limite: it.tipo === 'examen' ? it.examen?.hasta : it.fechaEntrega, nota: n && n.nota != null ? n.nota : null });
+    }
+    for (const x of window.PORTAL?.entregasLab?.() || []) L.push({ href: null, titulo: x.titulo || x.practica, asig: 'eee', tipo: 'lab', e: x.nota != null ? 'calificado' : 'entregado', fecha: x.fecha, limite: null, nota: x.nota });
+    return L.sort((a, b) => (b.fecha || b.limite || 0) - (a.fecha || a.limite || 0));
+  }
+  function renderMisTrabajos(el) {
+    if (!el) return; actual = { el, tipo: 'mis', id: null };
+    const todos = filasMisTrabajos();
+    const F = { todos: ['Todos', () => true], pend: ['Pendientes', (x) => x.e === 'sin' || x.e === 'borrador' || x.e === 'devuelto'], ent: ['Entregados', (x) => x.e === 'entregado'], cal: ['Calificados', (x) => x.e === 'calificado'] };
+    const L = todos.filter(F[mt.f][1]);
+    const fila = (x) => `<tr><td>${x.href ? `<a href="${esc(x.href)}">${esc(x.titulo)}</a>` : esc(x.titulo)}<div class="au-small">${esc(x.tipo === 'lab' ? 'Laboratorio' : nombreTipo(x.tipo))}</div></td><td>${esc(asignatura(x.asig)?.corto || x.asig)}</td><td>${estadoChipMini(x.e)}</td><td>${esc(x.fecha ? fFecha(x.fecha) : x.limite ? 'Para el ' + fFecha(x.limite) : '—')}</td><td class="c">${x.nota != null ? `<b>${esc(fmtNota(x.nota))}</b>` : '<span class="au-small">—</span>'}</td></tr>`;
+    el.innerHTML = barraSup('mis') + `<div class="au-page mt-page"><h2>${ic('briefcase')} Mis trabajos</h2>
+      <div class="mt-filtros" role="group" aria-label="Filtrar">${Object.entries(F).map(([k, [t, f]]) => `<button class="btn small ${mt.f === k ? 'primary' : ''}" data-au="mtF" data-f="${k}" aria-pressed="${mt.f === k}">${esc(t)} <span class="mt-n">${todos.filter(f).length}</span></button>`).join('')}</div>
+      ${!st.listo.items ? '<p class="au-small">Cargando…</p>' : L.length ? `<div class="mt-wrap"><table class="au-t mt-t"><thead><tr><th>Trabajo</th><th>Asignatura</th><th>Estado</th><th>Fecha</th><th class="c">Nota</th></tr></thead><tbody>${L.map(fila).join('')}</tbody></table></div>` : '<p class="au-vacio">No hay trabajos en esta lista.</p>'}
+      <p class="au-small">Solo ves las notas que tu profesor ha publicado.</p></div>`;
+  }
+  const estadoChipMini = (e) => { const x = ESTADOS_TRABAJO[e] || ESTADOS_TRABAJO.sin; return `<span class="en-chip en-${esc(e)}">${ic(x.ic)} ${esc(x.t)}</span>`; };
 
   // ---------------------------------------------------------------- calendario (#calendario)
   // Alumno: fechas de entrega y exámenes de todas sus asignaturas, con su estado. Profesor: los del curso.
@@ -354,5 +390,5 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (rol === 'alumno' && (!it.publicado || (it.pub && it.pub > Date.now()))) return { noExiste: true };
     return { it, rol, trabajo: st.trabajos.get(id) || null, nota: st.notas.get(id) || null };
   }
-  return { renderItem, estado, examenEnCurso: () => ex.id, asignacionActividad, entregarActividad, elemento, renderCalendario };
+  return { renderItem, estado, examenEnCurso: () => ex.id, asignacionActividad, entregarActividad, elemento, renderCalendario, renderMisTrabajos };
 }
