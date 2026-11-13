@@ -9,6 +9,7 @@ import { leeEnlaces, urlSegura, idTrabajo, fmtNota } from '../lms/modelo.js';
 import { estadoTrabajo, editable, anulable, ESTADOS_TRABAJO, idVersion, horaCorta, elegirBorrador } from '../lms/entrega.js';
 import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
 import { rellenarImagenes } from './doc-editor.js';
+import { modeloHTML, subirModelo, quitarModelo, CON_MODELO } from './modelo3d-ui.js';
 
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const idCom = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
@@ -116,7 +117,7 @@ export function montarEntrega(nodo, it, ctx) {
     let p = document.getElementById('enImprimir'); if (!p) { p = document.createElement('div'); p.id = 'enImprimir'; document.body.appendChild(p); }
     const n = S.nota;
     p.innerHTML = `<h1>${esc(it.titulo)}</h1><p class="en-pmeta">${esc(ses.grupo)} · nº ${esc(ses.numero)} · ${esc(ESTADOS_TRABAJO[estado()].t)}${S.tr?.fecha ? ' · ' + esc(fFecha(S.tr.fecha)) : ''}${n && n.nota != null ? ' · Nota: ' + esc(fmtNota(n.nota)) : ''}</p>
-      ${v.doc ? `<div class="en-pdoc">${limpiarDoc(v.doc)}</div>` : ''}${v.texto && !v.doc ? `<div class="en-ptexto">${ctx.textoHTML(v.texto)}</div>` : ''}
+      ${v.doc ? `<div class="en-pdoc">${ctx.editor?.imprimirHTML ? ctx.editor.imprimirHTML(v.doc) : limpiarDoc(v.doc)}</div>` : ''}${v.texto && !v.doc ? `<div class="en-ptexto">${ctx.textoHTML(v.texto)}</div>` : ''}
       ${(v.enlaces || []).length ? `<h2>Enlaces</h2><ul>${v.enlaces.map((u) => `<li>${esc(u)}</li>`).join('')}</ul>` : ''}`;
     document.body.classList.add('en-imprimiendo');
     rellenarImagenes(p, db, tid);
@@ -152,6 +153,14 @@ export function montarEntrega(nodo, it, ctx) {
     for (let i = 0; i < 100 && S.enVuelo; i++) await new Promise((r) => setTimeout(r, 100));
     if (S.tr) return true; S.sucio = true; await guardarBorrador('imagen'); if (!S.tr) throw new Error('guarda primero el borrador (revisa la conexión)'); return true; }
 
+  // Fase 13: modelo 3D (STL pequeño) en trabajos/{id}/modelos/m1 + resumen en el trabajo
+  async function modelo(f, b) {
+    const msg = nodo.querySelector('#enMsg');
+    try {
+      if (b.dataset.en === 'm3dQuitar') { if (!confirm('¿Quitar el modelo 3D?')) return; await quitarModelo(db, tid); }
+      else { await asegurar(); msg.textContent = 'Subiendo el modelo…'; msg.className = 'au-msg'; const m = await subirModelo(db, tid, f); msg.textContent = `Modelo subido (${Math.round(m.bytes / 1024)} KB).`; msg.className = 'au-msg ok'; }
+    } catch (e) { msg.textContent = 'No se ha podido: ' + (e?.code === 'permission-denied' ? 'permiso denegado (¿ya está calificado?)' : e.message || e); msg.className = 'au-msg ko'; }
+  }
   // ------------------------------------------------------------ pintar
   function pintar() {
     const e = estado(); const ed = editable(e); const tr = S.tr; const n = S.nota;
@@ -167,6 +176,7 @@ export function montarEntrega(nodo, it, ctx) {
     else h += `<label>Respuesta<textarea name="texto" maxlength="10000" rows="8" ${ed ? '' : 'readonly'} placeholder="Escribe aquí tu respuesta. No pongas tu nombre.">${esc(v.texto || '')}</textarea></label>`;
     h += ed ? `<label>Enlaces (uno por línea: presentación, vídeo, archivo grande…)<textarea name="enlaces" rows="2" maxlength="5000" placeholder="https://…">${esc((v.enlaces || []).join('\n'))}</textarea></label>`
       : (v.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('');
+    if (CON_MODELO(it.tipo)) h += modeloHTML(tr, ed, tid);
     h += `<div class="au-acts">`;
     if (ed) h += `<button type="button" class="btn" data-en="guardar">${ic('save')} Guardar</button><button type="button" class="btn primary" data-en="entregar">${ic('send')} ${tr?.nEntregas || e === 'devuelto' ? 'Volver a entregar' : 'Entregar'}</button>`;
     if (anulable(e)) h += `<button type="button" class="btn" data-en="anular">${ic('ban')} Anular la entrega</button>`;
@@ -188,11 +198,14 @@ export function montarEntrega(nodo, it, ctx) {
     if (a === 'anular') anular(b);
     if (a === 'imprimir') imprimir();
     if (a === 'comentar') comentar(b.closest('form'));
+    if (a === 'm3dSubir') nodo.querySelector('.m3-file')?.click();
+    if (a === 'm3dQuitar') modelo(null, b);
   };
   const alSalir = () => { if (S.sucio) guardarBorrador('salir'); };
   const onVis = () => { if (document.visibilityState === 'hidden') alSalir(); };
   const onOnline = () => { if (S.sucio) guardarBorrador('red'); };
   nodo.addEventListener('input', onInput); nodo.addEventListener('click', onClick);
+  nodo.addEventListener('change', (ev) => { const i = ev.target.closest?.('.m3-file'); if (!i) return; const file = i.files?.[0]; i.value = ''; if (file) modelo(file, i); });
   window.addEventListener('pagehide', alSalir); window.addEventListener('hashchange', alSalir); document.addEventListener('visibilitychange', onVis); window.addEventListener('online', onOnline);
   S.tInt = setInterval(() => { if (S.sucio) guardarBorrador('intervalo'); }, 15000);
   pintar();

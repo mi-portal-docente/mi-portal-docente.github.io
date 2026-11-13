@@ -54,7 +54,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await A.pg.evaluate(() => { window.__imp = 0; window.print = () => { window.__imp++; window.__impHTML = document.getElementById('enImprimir')?.innerHTML || ''; }; });
   await A.pg.click('[data-en=imprimir]');
   const imp = await A.pg.evaluate(() => [window.__imp, window.__impHTML]);
-  ok('imprimir / guardar como PDF: hoja con el título, nº y el texto', imp[0] === 1 && /polímetro/.test(imp[1]) && /220 Ω/.test(imp[1]) && /nº 6/.test(imp[1]));
+  ok('imprimir / guardar como PDF: hoja con el título, nº y el texto', imp[0] === 1 && /polímetro/.test(imp[1]) && /220 Ω/.test(imp[1]) && /nº 6/.test(imp[1]), String(imp[0]) + ' ' + String(imp[1]).slice(0, 300));
   // ---- profesor: estados, versiones, devolver con comentario
   await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 15000 });
   await pg.selectOption('[data-ap-f=gGrupo]', T.GE.id); await pg.waitForFunction((g) => document.querySelector('[data-ap-f=gGrupo]')?.value === g && document.querySelector('[data-ap-f=gAsig]'), T.GE.id, { timeout: 15000 });
@@ -92,7 +92,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   // ---- Mis trabajos
   await A.pg.goto(BASE + '#mis-trabajos'); await A.pg.waitForSelector('.mt-t', { timeout: 15000 });
   const mt = await A.pg.textContent('.mt-t');
-  ok('«Mis trabajos»: la tarea con estado «Calificado» y nota 8', mt.includes(TAREA.titulo) && /Calificado/.test(mt) && (await A.pg.textContent('.mt-t tbody tr:first-child td:last-child')).trim() === '8', mt.replace(/\s+/g, ' ').slice(0, 300));
+  ok('«Mis trabajos»: la tarea con estado «Calificado» y nota 8', mt.includes(TAREA.titulo) && /Calificado/.test(mt) && (await A.pg.textContent(`.mt-t tbody tr:has-text("${TAREA.titulo}") td:last-child`)).trim() === '8', mt.replace(/\s+/g, ' ').slice(0, 300));
   await shot(A.pg, 'f9_mis_trabajos');
   // ---- entregas del laboratorio: antigua (ligada al uid) → migrada a grupo + nº
   const viejo = { fields: { uid: { stringValue: 'uidViejo123' }, codigo: { stringValue: T.GE.codigo }, grupo: { stringValue: T.GE.id }, numero: { integerValue: '6' }, practica: { stringValue: 'c2' }, tipo: { stringValue: 'circuitos' }, titulo: { stringValue: 'Práctica 2' }, fecha: { timestampValue: new Date(Date.now() - 864e5).toISOString() }, datos: { mapValue: { fields: { aciertos: { stringValue: '3/4' } } } }, nota: { doubleValue: 7.5 }, comentario: { stringValue: 'Bien montado' } } };

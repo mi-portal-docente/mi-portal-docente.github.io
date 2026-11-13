@@ -3,7 +3,7 @@
 import { CATEGORIAS, TIPOS } from './biblioteca.js';
 import { TIPOS_PREGUNTA } from './preguntas.js';
 
-export const TIPOS_ENTREGA = ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'recuperacion', 'documento'];
+export const TIPOS_ENTREGA = ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'recuperacion', 'documento', 'hoja'];
 export const categoriaDe = (tipo) => (TIPOS[tipo] && TIPOS[tipo].cat) || null;
 export const redondea = (x, d = 2) => Math.round(x * 10 ** d) / 10 ** d;
 export const fmtNota = (n) => (n == null || Number.isNaN(n) ? '' : String(redondea(n)).replace('.', ','));
@@ -112,6 +112,7 @@ export function tipoAdjunto(u) {
   if (/drive\.google\.com/.test(s)) return { ic: '🗂️', t: 'Google Drive' };
   if (/\.pdf($|\?)/.test(s)) return { ic: '📕', t: 'PDF' };
   if (/\.(png|jpe?g|gif|webp|svg)($|\?)/.test(s)) return { ic: '🖼️', t: 'Imagen' };
+  if (/\.(stl|glb|gltf)($|\?)/.test(s)) return { ic: '📦', t: 'Modelo 3D' };
   if (s.startsWith('#')) return { ic: '🔬', t: 'Portal' };
   return { ic: '🔗', t: 'Enlace' };
 }

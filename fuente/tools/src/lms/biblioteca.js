@@ -29,6 +29,7 @@ export const TIPOS = {
   piac: { nombre: 'Proyecto en equipo (PIAC)', icon: '👥', cat: 'proyectos' },
   documento: { nombre: 'Documento', icon: '📃', cat: 'tareas' },
   interactiva: { nombre: 'Actividad interactiva', icon: '🎯', cat: 'tareas' },
+  hoja: { nombre: 'Hoja de cálculo', icon: '📊', cat: 'tareas' },
 };
 export const CATEGORIAS = [
   { id: 'examenes', nombre: 'Exámenes y cuestionarios', peso: 40 },

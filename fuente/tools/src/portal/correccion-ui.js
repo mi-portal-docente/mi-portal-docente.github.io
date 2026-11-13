@@ -9,6 +9,8 @@ import { estadoTrabajo, cuentaComoEntrega } from '../lms/entrega.js';
 import { estadoChipHTML } from './entrega-ui.js';
 import { leerResultado } from '../act/resultado.js';
 import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
+import { hojaLecturaHTML } from './hoja-ui.js';
+import { botonModelo, botonesEnlaces3D, es3D } from './modelo3d-ui.js';
 import { rellenarImagenes, descargarDocx, imagenesParaDocx } from './doc-editor.js';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -43,7 +45,9 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     if (tr.estado === 'borrador') h += '<p class="pn-small">Es un borrador: el alumno todavía no lo ha entregado.</p>';
     const r = leerResultado(tr.texto); if (r) h += `<div class="pn-inf ap-act">${ic('puzzle')} Resultado de la actividad: <b>${r.aciertos}/${r.total}</b> aciertos → nota sugerida <b>${esc(fmtNota(r.nota))}</b></div>`;
     if (window.PORTAL_VISTA_TRABAJO) { const extra = window.PORTAL_VISTA_TRABAJO(C.it, tr); if (extra) h += extra; }
-    if (tr.doc) h += `<div class="co-doc doc-ver">${limpiarDoc(tr.doc)}</div><div class="pn-acts"><span class="pn-small">${contarPalabras(tr.doc)} palabras</span><span class="pn-grow"></span><button type="button" class="btn small" data-co="docx">${ic('file-down')} Descargar .docx</button></div>`;
+    if (tr.modelo || (tr.enlaces || []).some(es3D)) h += `<div class="co-3d pn-acts">${botonModelo(tr, tr.id || ids(C.n))}${botonesEnlaces3D(tr.enlaces)}</div>`;
+    if (tr.doc && C.it.tipo === 'hoja') h += `<div class="co-hoja">${hojaLecturaHTML(C.it, tr.doc)}</div>`;
+    else if (tr.doc) h += `<div class="co-doc doc-ver">${limpiarDoc(tr.doc)}</div><div class="pn-acts"><span class="pn-small">${contarPalabras(tr.doc)} palabras</span><span class="pn-grow"></span><button type="button" class="btn small" data-co="docx">${ic('file-down')} Descargar .docx</button></div>`;
     else h += `<div class="co-texto">${tr.texto ? textoHTML(tr.texto) : '<span class="pn-small">(sin texto)</span>'}</div>`;
     h += (tr.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('');
     if (C.it.tipo === 'documento') h += registroHTML(ids(C.n));

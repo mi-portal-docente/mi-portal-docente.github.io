@@ -13,6 +13,7 @@ import { montarPiac } from './piac-ui.js';
 import { montarInteractiva } from './interactiva-ui.js';
 import { montarEntrega } from './entrega-ui.js';
 import { crearEditorDoc } from './doc-editor.js';
+import { crearEditorHoja } from './hoja-ui.js';
 import { estadoTrabajo, ESTADOS_TRABAJO } from '../lms/entrega.js';
 
 // Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
@@ -37,7 +38,7 @@ const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const nombreTipo = (tipo) => TIPOS[tipo]?.nombre || tipo;
 export function adjuntosHTML(L) {
   if (!L?.length) return '';
-  return `<div class="cl-adjs">${L.map((e) => { const t = tipoAdjunto(e.u); const interno = String(e.u).startsWith('#'); return `<a class="cl-adj-c" href="${esc(urlSegura(e.u))}" ${interno ? '' : 'target="_blank" rel="noopener noreferrer"'}><span class="cl-adj-ic">${t.ic}</span><span><b>${esc(e.t || e.u)}</b><span class="au-small">${esc(t.t)}</span></span></a>`; }).join('')}</div>`;
+  return `<div class="cl-adjs">${L.map((e) => { const t = tipoAdjunto(e.u); const interno = String(e.u).startsWith('#'); return `<a class="cl-adj-c" href="${esc(urlSegura(e.u))}" ${interno ? '' : 'target="_blank" rel="noopener noreferrer"'}${/\.(stl|glb|gltf)($|[?#])/i.test(e.u) ? ` data-v3d-url="${esc(urlSegura(e.u))}"` : ''}><span class="cl-adj-ic">${t.ic}</span><span><b>${esc(e.t || e.u)}</b><span class="au-small">${esc(t.t)}</span></span></a>`; }).join('')}</div>`;
 }
 const barraSup = (activa = 'asig') => `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">SuperProfe · Alumnos</a><div class="scr-ttl">Aula virtual</div>${window.PORTAL?.navHTML ? window.PORTAL.navHTML(activa) : ''}<div class="au-chip">${window.PORTAL?.chipHTML ? window.PORTAL.chipHTML() : ''}</div></header>`;
 
@@ -151,7 +152,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       motorM = { id, nodo, api, nota: !!st.notas.get(id) };
     }
     const nE = el.querySelector('#auEntregaM');
-    if (nE && rol === 'alumno') entM = { id, nodo: nE, api: montarEntrega(nE, it, { db, ses, uid, al, trabajo: st.trabajos.get(id), nota: st.notas.get(id), textoHTML, ...(it.tipo === 'documento' ? { editor: crearEditorDoc(it, { db, ses }) } : {}) }) };
+    if (nE && rol === 'alumno') entM = { id, nodo: nE, api: montarEntrega(nE, it, { db, ses, uid, al, trabajo: st.trabajos.get(id), nota: st.notas.get(id), textoHTML, ...(it.tipo === 'documento' ? { editor: crearEditorDoc(it, { db, ses }) } : it.tipo === 'hoja' ? { editor: crearEditorHoja(it) } : {}) }) };
   }
   function repintar() {
     if (!actual || !actual.el.isConnected) return;

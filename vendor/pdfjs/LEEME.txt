@@ -1,0 +1,2 @@
+pdf.js 3.11.174 (Mozilla, Apache-2.0) · https://github.com/mozilla/pdf.js
+Visor de PDF del portal (se carga solo al abrir un PDF). Se usa con isEvalSupported:false.

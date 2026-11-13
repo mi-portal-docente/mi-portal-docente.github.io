@@ -410,3 +410,50 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 .ia-res { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: var(--r-sm); margin: 10px 0; background: var(--fill); }
 .ia-res.ok { background: color-mix(in srgb, #34c759 14%, var(--card)); } .ia-res.ko { background: color-mix(in srgb, #ff9500 14%, var(--card)); }
 .ia-fin { padding: 14px; border-radius: var(--r-sm); background: var(--fill); display: flex; gap: 8px; align-items: center; }
+
+/* ---- Fase 13 · hoja de cálculo, visor de PDF y visor 3D */
+.hj-wrap { display: grid; gap: 10px; }
+.hj-barra { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm); background: var(--fill); border: 1px solid var(--sep); }
+.hj-ref { min-width: 3.2em; font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; padding: 2px 6px; border-radius: 6px; background: var(--card); }
+.hj-fxi { font-style: italic; color: var(--gris); font-weight: 600; }
+.hj-fx { flex: 1; border: 0; background: transparent; font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px; outline: none; }
+.hj-scroll { overflow: auto; max-height: 60vh; border: 1px solid var(--sep); border-radius: var(--r-sm); background: var(--card); }
+.hj-scroll.ro { max-height: 50vh; }
+.hj-t { border-collapse: collapse; font-size: 13px; }
+.hj-t th { position: sticky; top: 0; background: var(--fill); color: var(--gris); font-weight: 600; min-width: 2.4em; padding: 3px 6px; border: 1px solid var(--sep); z-index: 1; }
+.hj-t tbody th { position: sticky; left: 0; top: auto; z-index: 1; text-align: center; }
+.hj-t td { border: 1px solid var(--sep); padding: 0; min-width: 88px; height: 26px; }
+.hj-ro td { padding: 3px 6px; white-space: nowrap; }
+.hj-ro td.fx { background: color-mix(in srgb, var(--acento, #007aff) 6%, transparent); }
+.hj-c { width: 100%; height: 26px; border: 0; padding: 2px 6px; font: inherit; background: transparent; outline: none; }
+.hj-c:focus { box-shadow: inset 0 0 0 2px var(--acento, #007aff); background: var(--card); text-align: left; }
+.hj-c.n, .hj-t td.n, .hj-piv .n { text-align: right; font-variant-numeric: tabular-nums; }
+.hj-c.err { color: #d70015; }
+.hj-herr { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.hj-det { border: 1px solid var(--sep); border-radius: var(--r-sm); padding: 6px 10px; background: var(--card); }
+.hj-det summary { cursor: pointer; display: flex; gap: 6px; align-items: center; font-weight: 600; font-size: 14px; }
+.hj-retos { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.hj-retos li { display: flex; gap: 8px; align-items: flex-start; padding: 6px 10px; border-radius: var(--r-sm); background: var(--fill); }
+.hj-retos li.ok { background: color-mix(in srgb, #34c759 16%, var(--card)); color: #1d6b33; }
+.hj-svg { width: 100%; max-width: 640px; height: auto; } .hj-gl { stroke: var(--sep); } .hj-gt { font-size: 11px; fill: var(--gris); }
+.hj-ley { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; } .hj-ley i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; }
+.hj-piv { border-collapse: collapse; min-width: 260px; } .hj-piv th, .hj-piv td { border: 1px solid var(--sep); padding: 4px 8px; } .hj-piv thead th, .hj-piv tfoot th { background: var(--fill); }
+.hj-fxl code { font-size: 12px; }
+.m3 { border: 1px dashed var(--sep); border-radius: var(--r-sm); padding: 8px 10px; display: grid; gap: 6px; }
+.m3-h { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; } .m3-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+body.vp-abierto { overflow: hidden; }
+.vp, .v3 { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: rgba(28, 28, 30, .94); color: #fff; }
+.vp-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; padding-top: max(8px, env(safe-area-inset-top)); background: rgba(44, 44, 46, .85); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border-bottom: 1px solid rgba(255,255,255,.08); flex-wrap: wrap; }
+.vp-tit { flex: 1; min-width: 8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.vp-grp { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 10px; background: rgba(255,255,255,.08); }
+.vp-b { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 0; background: transparent; color: #fff; cursor: pointer; text-decoration: none; }
+.vp-b:hover, .vp-b:focus-visible { background: rgba(255,255,255,.16); outline: none; } .vp-b[aria-pressed=true] { background: rgba(10,132,255,.5); }
+.vp-pag { font-variant-numeric: tabular-nums; font-size: 14px; padding: 0 4px; } .vp-n { width: 3em; text-align: center; border-radius: 6px; border: 0; padding: 3px; background: rgba(255,255,255,.14); color: #fff; }
+.vp-zoom { min-width: 4em; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+.vp-pages { flex: 1; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px; outline: none; -webkit-overflow-scrolling: touch; }
+.vp-pg { background: #fff; box-shadow: 0 4px 18px rgba(0,0,0,.4); border-radius: 4px; max-width: none; flex: none; overflow: hidden; }
+.vp-pg canvas { display: block; }
+.vp-msg { margin: auto; padding: 20px; text-align: center; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.v3-lienzo { flex: 1; position: relative; min-height: 0; background: radial-gradient(circle at 50% 35%, #3a3a3c, #1c1c1e); } .v3-lienzo canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.v3-med { font-size: 13px; opacity: .8; font-variant-numeric: tabular-nums; } .v3-ayuda { margin: 0; padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); font-size: 12px; opacity: .7; text-align: center; }
+@media (max-width: 600px) { .vp-tit { order: -1; flex-basis: calc(100% - 50px); } .hj-t td { min-width: 72px; } }

@@ -15,6 +15,7 @@ import { instalarIconos, ic } from './ui/iconos.js';
 import { LABS, PaginaLab } from './labs/pagina.js';
 import './labs/p5-lab.js';
 import './labs/tic-labs.js';
+import './visor3d.js';
 import { montarWeb } from './labs/web-ui.js';
 import { montarInfo } from './labs/info-ui.js';
 import { montarCiber } from './labs/ciber-ui.js';

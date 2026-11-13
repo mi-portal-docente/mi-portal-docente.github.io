@@ -463,7 +463,7 @@ service cloud.firestore {
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
           && (!('unidad' in d) || textoCorto(d.unidad, 40))
-          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac', 'documento', 'interactiva']
+          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac', 'documento', 'interactiva', 'hoja']
           && textoCorto(d.titulo, 150)
           && (!('texto' in d) || textoCorto(d.texto, 20000))
           && (!('enlaces' in d) || listaCorta(d.enlaces, 20))
@@ -660,14 +660,14 @@ service cloud.firestore {
       function item() { return get(ruta('items', request.resource.data.item)).data; }
       function examen() { return get(ruta('examenes', request.resource.data.item)).data; }
       function tipoTarea() {
-        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'documento', 'interactiva'];
+        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'documento', 'interactiva', 'hoja'];
       }
       function tipoExamen() { return request.resource.data.tipo == 'examen' && item().tipo == 'examen'; }
       function trabajoBase(id) {
         let d = request.resource.data;
         let s = miSesion();
         return d.keys().hasOnly(['item', 'curso', 'asig', 'al', 'grupo', 'numero', 'uid', 'tipo', 'texto', 'enlaces', 'respuestas', 'inicio', 'fecha', 'estado',
-                                 'guardado', 'entregadoEn', 'nEntregas', 'devFecha', 'doc', 'registro', 'datos'])
+                                 'guardado', 'entregadoEn', 'nEntregas', 'devFecha', 'doc', 'registro', 'datos', 'modelo'])
           && d.item is string
           && id == d.item + '_' + idAlumno(s)
           && d.al == idAlumno(s) && d.grupo == s.grupo && d.numero == s.numero
@@ -687,6 +687,7 @@ service cloud.firestore {
           && (!('doc' in d) || textoCorto(d.doc, 300000))
           && (!('registro' in d) || d.registro is map)
           && (!('datos' in d) || d.datos is map)
+          && (!('modelo' in d) || (d.modelo is map && d.modelo.keys().hasOnly(['nombre', 'bytes'])))
           && !('respuestas' in d) && !('inicio' in d);
       }
 
@@ -715,6 +716,20 @@ service cloud.firestore {
           && request.resource.data.w is int && request.resource.data.h is int
           && request.resource.data.fecha == request.time;
         allow delete: if esProfesor() || (img.matches('^img[1-3]$') && duenoT());
+      }
+
+      // Modelo 3D de la entrega (fase 13): un STL pequeño (≤ 600 KB) en base64, sin Storage. Solo m1.
+      match /modelos/{m} {
+        function duenoM() { return alumnoOk() && get(ruta('trabajos', id)).data.al == idAlumno(miSesion()); }
+        allow read: if esProfesor() || duenoM();
+        allow create, update: if m == 'm1' && duenoM()
+          && request.resource.data.keys().hasOnly(['data', 'nombre', 'bytes', 'fecha'])
+          && request.resource.data.data is string && request.resource.data.data.size() <= 820000
+          && request.resource.data.data.matches('^[A-Za-z0-9+/=]+$')
+          && textoCorto(request.resource.data.nombre, 120)
+          && request.resource.data.bytes is int && request.resource.data.bytes > 0 && request.resource.data.bytes <= 614400
+          && request.resource.data.fecha == request.time;
+        allow delete: if esProfesor() || (m == 'm1' && duenoM());
       }
       function enVentana() {
         return examen().publicado == true

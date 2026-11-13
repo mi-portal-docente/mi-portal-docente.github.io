@@ -9,6 +9,8 @@ import { crearPanel } from './panel.js';
 import { esc, enHorario, conTimeout } from './util.js';
 import { ic } from './ico.js';
 import { crearAula } from './aula-datos.js';
+import { instalarVisorPDF, abrirPDF } from './visor-pdf.js';
+import { instalarBotones3D } from './modelo3d-ui.js';
 import { crearVistas } from './aula-vistas.js';
 import { crearClase } from './aula-clase.js';
 import { crearDirectoAlumno } from './directo.js';
@@ -502,7 +504,9 @@ async function comprobarProfesor(user, interactivo) {
 
 // ------------------------------------------------------------------ arranque
 export async function arrancar(cfg) {
+  instalarVisorPDF(); window.PORTAL_PDF = abrirPDF;
   try { fb = iniciarFirebase(cfg); } catch (e) { console.error('[portal] Firebase no se ha podido iniciar', e); ACC.fallback?.(); return; }
+  instalarBotones3D(() => fb.db);
   mostrarGate({ cargando: true });
   let errRedir = null, redir = false;
   try { redir = sessionStorage.getItem('portal.redir') === '1'; sessionStorage.removeItem('portal.redir'); } catch (e) { }
