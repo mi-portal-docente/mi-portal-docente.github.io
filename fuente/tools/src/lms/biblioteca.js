@@ -29,15 +29,15 @@ export const ETAPAS = ['Bachillerato', 'CFGB'];
 export const SEMILLAS = { tic1: S_TIC1, cdpc1: S_CDPC1, tic2: S_TIC2, proy2: S_PROY2, eee: S_EEE };
 
 const META = [
-  { id: 'tic1', nombre: 'Tecnologías de la Información y la Comunicación I', corto: 'T.I.Cs 1º Bach', etapa: 'Bachillerato', curso: '1º Bachillerato', icon: '💻', color: '#1f6feb',
+  { id: 'tic1', foto: 'img/fotos/tic1.webp', nombre: 'Tecnologías de la Información y la Comunicación I', corto: 'T.I.Cs 1º Bach', etapa: 'Bachillerato', curso: '1º Bachillerato', icon: '💻', color: '#1f6feb',
     desc: 'Ofimática para el trabajo académico, sociedad de la información, hoja de cálculo y análisis de datos, y cómo funciona el mundo conectado.' },
-  { id: 'cdpc1', nombre: 'Creación digital y pensamiento computacional', corto: 'Creación digital 1º Bach', etapa: 'Bachillerato', curso: '1º Bachillerato', icon: '🎨', color: '#8250df',
+  { id: 'cdpc1', foto: 'img/fotos/cdpc1.webp', nombre: 'Creación digital y pensamiento computacional', corto: 'Creación digital 1º Bach', etapa: 'Bachillerato', curso: '1º Bachillerato', icon: '🎨', color: '#8250df',
     desc: 'Inteligencia artificial generativa, ciberseguridad y programación creativa con p5.js.' },
-  { id: 'tic2', nombre: 'Tecnologías de la Información y la Comunicación II', corto: 'TIC II 2º Bach', etapa: 'Bachillerato', curso: '2º Bachillerato', icon: '🖥️', color: '#0f766e',
+  { id: 'tic2', foto: 'img/fotos/tic2.webp', nombre: 'Tecnologías de la Información y la Comunicación II', corto: 'TIC II 2º Bach', etapa: 'Bachillerato', curso: '2º Bachillerato', icon: '🖥️', color: '#0f766e',
     desc: 'Sociedad digital y el mundo del software.' },
-  { id: 'proy2', nombre: 'Proyecto', corto: 'Proyecto 2º CFGB', etapa: 'CFGB', curso: '2º CFGB', icon: '🏗️', color: '#b45309',
+  { id: 'proy2', foto: 'img/fotos/proy2.webp', nombre: 'Proyecto', corto: 'Proyecto 2º CFGB', etapa: 'CFGB', curso: '2º CFGB', icon: '🏗️', color: '#b45309',
     desc: 'Del proyecto de empresa a la maqueta: investigación, planificación, construcción y presentación (Expoeduca).' },
-  { id: 'eee', nombre: 'Equipos eléctricos y electrónicos', corto: 'EEE 2º CFGB', codigo: '3015', etapa: 'CFGB', curso: '2º CFGB', icon: '⚡', color: '#DC001B', labs: true,
+  { id: 'eee', foto: 'img/fotos/eee.webp', nombre: 'Equipos eléctricos y electrónicos', corto: 'EEE 2º CFGB', codigo: '3015', etapa: 'CFGB', curso: '2º CFGB', icon: '⚡', color: '#DC001B', labs: true,
     desc: 'Electricidad y electrónica básica, componentes, motores y electrodomésticos, laboratorio y programación. Incluye los laboratorios 3D: ESP32, circuitos e instalación de vivienda.' },
 ];
 const TIPOS_SEMILLA = ['material', 'tarea', 'pregunta', 'cuestionario', 'examen'];

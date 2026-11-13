@@ -4,6 +4,9 @@
 import { PROYECTOS, proyecto, pasosDe, modeloPaso, modeloMontar, solucion, comprobarProyecto, medirPrueba, planoSVG, tablaCables, MATERIAL, FOTOS_HERRAMIENTA, aplicar } from './proyectos.js';
 import { HERRAMIENTAS, PUNTAS, herramienta } from './catalogo.js';
 import { FOTOS } from './creditos.js';
+import { FOTOS_PORTAL } from '../ui/fotos.js';
+// Foto real de cada proyecto en su tarjeta (los renders 3D se ven dentro del proyecto).
+const FOTO_PROY = { 1: 'img/viv/fotos/portalamparas.jpg', 2: 'img/viv/fotos/schuko_frente.jpg', 3: 'img/fotos/p3.webp', 4: 'img/viv/fotos/interruptor.jpg', 5: 'img/fotos/p5.webp', 6: 'img/viv/fotos/minutero.jpg', 7: 'img/fotos/cuadro.webp', 8: 'img/fotos/p8.webp' };
 import { partePorId, posParte, sanear, TIPOS } from './modelo.js';
 import { medir } from './sim.js';
 
@@ -33,7 +36,7 @@ const M = {
   // ------------------------------------------------------------ portada (como la del ESP32)
   homeProyHTML() {
     const pr = progreso(); const est = (k) => { const e = portal()?.estadoEntrega?.(k); return e ? `<span class="vv-chip ${e.nota != null ? 'ok' : ''}">${e.nota != null ? 'Nota ' + String(e.nota).replace('.', ',') : '📤 Entregado'}</span>` : ''; };
-    const card = (P) => { const g = pr[P.n] || {}; return `<a class="card vv-pc" href="#eee/vivienda/p${P.n}"><img src="img/viv/proy/p${P.n}.jpg" alt="" loading="lazy"><div class="vv-pcb"><div class="vv-pch"><span class="num">${P.n}</span><b>${esc(P.title)}</b>${g.ok ? '<span class="vv-chip ok">✔ Montado</span>' : ''}</div>
+    const card = (P) => { const g = pr[P.n] || {}; return `<a class="card vv-pc" href="#eee/vivienda/p${P.n}"><img src="${FOTO_PROY[P.n] || `img/viv/proy/p${P.n}.jpg`}" alt="" loading="lazy" decoding="async"><div class="vv-pcb"><div class="vv-pch"><span class="num">${P.n}</span><b>${esc(P.title)}</b>${g.ok ? '<span class="vv-chip ok">✔ Montado</span>' : ''}</div>
       <div class="muted small">${esc(P.level)} · ${esc(P.duration)} · ${esc(P.circuito)}</div><div class="small">${esc(P.short)}</div></div></a>`; };
     return `<div class="vv-hw vv-hw3"><div class="vv-hero3"><h2>Instalación eléctrica de una vivienda · paso a paso</h2>
       <p class="lead">${PROYECTOS.length} proyectos de dificultad creciente, como en el laboratorio ESP32. En cada paso: qué material <b>coges</b>, qué <b>herramienta</b> eliges, dónde va cada cable (con su <b>color y sección</b> reglamentarios) y qué <b>compruebas</b> antes de seguir. Después lo <b>montas tú</b> en el tablero 3D, lo mides con el polímetro y lo pruebas con tensión.</p>
@@ -53,9 +56,13 @@ const M = {
   },
   creditosHTML() {
     const filas = Object.entries(FOTOS).map(([k, f]) => `<tr><td><img src="${esc(f.f)}" alt="" loading="lazy"></td><td><b>${esc(f.t)}</b><div class="small">Autor: ${esc(f.a)}</div></td><td><a href="${esc(f.lu)}" target="_blank" rel="noopener">${esc(f.l)}</a></td><td><a href="${esc(f.u)}" target="_blank" rel="noopener">Wikimedia Commons</a></td></tr>`).join('');
+    const filasPortal = Object.values(FOTOS_PORTAL).map((f) => `<tr><td><img src="${esc(f.f)}" alt="" loading="lazy"></td><td><b>${esc(f.t)}</b><div class="small">Autor: ${esc(f.a)}</div><div class="small muted">${esc(f.uso)}</div></td><td><a href="${esc(f.lu)}" target="_blank" rel="noopener">${esc(f.l)}</a></td><td><a href="${esc(f.u)}" target="_blank" rel="noopener">Wikimedia Commons</a></td></tr>`).join('');
     return `<div class="vv-hw vv-hw3"><p><a href="#eee/vivienda">← Volver a los proyectos</a></p><h2>Créditos de las imágenes</h2>
       <p class="muted">Las <b>fotos reales</b> son de Wikimedia Commons, con licencia libre (CC0, CC BY o CC BY-SA); se muestran reducidas y servidas desde este portal. Las <b>ilustraciones 3D</b> (mecanismos, aparamenta, herramientas y montajes) son modelos propios, genéricos y sin marcas, hechos con las medidas y el marcado de bornes de las fichas técnicas de fabricantes habituales (Schneider, Simon, Niessen, Legrand, Hager, WAGO; herramientas tipo Bahco, Knipex o Wiha).</p>
-      <table class="tbl vv-cred"><tr><th>Foto</th><th>Obra</th><th>Licencia</th><th>Origen</th></tr>${filas}</table></div>`;
+      <table class="tbl vv-cred"><tr><th>Foto</th><th>Obra</th><th>Licencia</th><th>Origen</th></tr>${filas}</table>
+      <h3 class="vv-sec">Fotos del resto del portal</h3><p class="muted small">Tarjetas de asignaturas, laboratorios, actividades y proyectos. Reducidas a 800 px; las de licencia CC BY-SA se comparten con la misma licencia.</p>
+      <table class="tbl vv-cred"><tr><th>Foto</th><th>Obra</th><th>Licencia</th><th>Origen</th></tr>${filasPortal}</table>
+      <h3 class="vv-sec">Iconos</h3><p class="small">Iconos de línea de <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (licencia ISC), incluidos en el propio portal: no se descargan de ningún servidor externo.</p></div>`;
   },
 
   // ------------------------------------------------------------ lección

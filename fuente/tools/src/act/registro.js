@@ -19,7 +19,7 @@ const MM = [5, 8, 11, 14, 20];
 const PELAR = (q, borne, ok, exp, o = {}) => ({ tipo: 'pelar', q, borne, mm: MM, opciones: MM.map((m) => `${m} mm`), correctas: ok.map((m) => MM.indexOf(m)), correcta: MM.indexOf(ok[0]), ayuda: 'El pelacables tiene un tope de longitud: elige cuántos milímetros pelas.', exp, ...o });
 
 const maletin = {
-  id: 'maletin', asig: 'eee', icon: '🧰', color: '#DC001B', tipo: '3D', tema: 'SA1 · Trabajo 1 (Tema 1)', duracion: '12 min', juego: Juego3D,
+  id: 'maletin', foto: 'img/fotos/maletin.webp', asig: 'eee', icon: '🧰', color: '#DC001B', tipo: '3D', tema: 'SA1 · Trabajo 1 (Tema 1)', duracion: '12 min', juego: Juego3D,
   titulo: 'El maletín de herramientas',
   desc: 'Juego 3D en el banco del taller: reconoce cada herramienta del maletín, para qué sirve y supera los retos (punta del tornillo, pelado a medida).',
   intro: 'Tu maletín está abierto en el banco del taller. Supera los tres niveles: reconoce las herramientas, di para qué sirven y resuelve los retos prácticos. Cuanto más rápido y sin fallos, más puntos y estrellas. Pulsa cualquier herramienta para verla de cerca y cómo se usa.',
@@ -65,7 +65,7 @@ const maletin = {
 const R2 = (color, x, z, n) => ({ id: color, n, x, z, crear: (g) => g.add(rollo({ sec: 2.5, color })) });
 const S = (sec, x, z) => ({ id: 's' + String(sec).replace('.', ''), n: `Cable de ${String(sec).replace('.', ',')} mm²`, x, z, y: 1.2, crear: (g) => { const c = conductor({ sec, color: 'negro', len: 14, pelado: [0, 12] }); c.position.y = 0.5; c.rotation.y = Math.PI / 2; c.position.z = 7; g.add(c); } });
 const cables = {
-  id: 'cables', asig: 'eee', icon: '🧵', color: '#0f5e66', tipo: '3D', tema: 'SA1 · Trabajo 2 (Tema 2)', duracion: '10 min', juego: Juego3D, escena: 'cables',
+  id: 'cables', foto: 'img/fotos/cables.webp', asig: 'eee', icon: '🧵', color: '#0f5e66', tipo: '3D', tema: 'SA1 · Trabajo 2 (Tema 2)', duracion: '10 min', juego: Juego3D, escena: 'cables',
   titulo: 'Cables: colores y secciones',
   desc: 'Juego 3D con rollos de H07V-K, muestras de sección, mangueras RV-K y H05VV-F y tubo corrugado: colores, secciones de cada circuito y cableado de una clavija.',
   intro: 'En la mesa tienes rollos de cable unipolar H07V-K de cada color, un muestrario de secciones, dos mangueras, un cable rígido y tubo corrugado. Supera los tres niveles: colores (y cablea una clavija), secciones de cada circuito y mangueras y canalización.',

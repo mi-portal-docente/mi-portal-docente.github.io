@@ -422,12 +422,13 @@ ok('nota sin publicar: el alumno no la ve', !(await A.pg.$('.au-nota')));
 await P.pg.click(`th[data-col="${ID_E}"] [data-ap=publicarNotas]`);
 await P.pg.waitForFunction((id) => !document.querySelector(`th[data-col="${id}"] [data-ap=publicarNotas]`), ID_E, { timeout: 15000 });
 ok('publicar las notas del examen', true);
-const fin = (await P.pg.textContent('.ap-tabla tbody tr:nth-child(5) td.ap-media.fin')).trim();
-ok('media ponderada por categorías (examen 10 · tarea 8 con pesos 40/30 → 9,14)', fin === '9,14', fin);
+// Desde ead2b10 el cuaderno solo muestra la nota de cada actividad (la nota por criterios va en SuperProfe y QE)
+const fila5 = await P.pg.$$eval('.ap-tabla tbody tr:nth-child(5) td.ap-c', (tds) => tds.map((t) => t.textContent.trim()));
+ok('cuaderno: la fila del nº 5 muestra la nota de cada actividad (10 y 8), sin medias ni nota final', fila5.includes('10') && fila5.includes('8') && !(await P.pg.$('.ap-tabla .ap-media')), fila5.join(' | '));
 await P.pg.screenshot({ path: SHOTS + 'aula_cuaderno.png' });
 const [dl] = await Promise.all([P.pg.waitForEvent('download'), P.pg.click('[data-ap=csvNotas]')]);
 const csvTxt = readFileSync(await dl.path(), 'utf8');
-ok('CSV del cuaderno: solo nº de lista, notas y medias', /"05";"8";"10"|"05";"10";"8"/.test(csvTxt) && /9,14/.test(csvTxt) && !/@/.test(csvTxt), csvTxt.split('\r\n')[5]);
+ok('CSV del cuaderno: solo nº de lista y notas', /"05";"8";"10"|"05";"10";"8"/.test(csvTxt) && !/Nota final/.test(csvTxt) && !/@/.test(csvTxt), csvTxt.split('\r\n')[5]);
 
 // ================================================================ 6. alumno ve las notas; desde otro navegador con el PIN
 await A.pg.waitForSelector('.au-nota', { timeout: 15000 });

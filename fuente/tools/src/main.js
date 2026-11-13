@@ -11,6 +11,8 @@ import { bibliotecaHTML, enlazarBiblioteca, tarjetaAsig } from './lms/vistas-bib
 import { asigHTML, pestañas, pestañaPorDefecto } from './asig.js';
 import { Actividad3D } from './act/motor.js';
 import { actividad, enlaceActividad } from './act/registro.js';
+import { instalarIconos, ic } from './ui/iconos.js';
+import { calidad } from './kit3d/base.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -98,7 +100,7 @@ function schematic(L) {
     y += pins.length * RH + 34 + 18;
   }
   const H = Math.max(top + bh, y) + 10, W = 600 + Math.max(0, L.wires.filter(w => !isBoard(w.from) && !isBoard(w.to)).length) * 14;
-  let s = `<svg viewBox="0 0 ${W} ${H}" class="schem" xmlns="http://www.w3.org/2000/svg" font-family="Decima, Arial, sans-serif">`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" class="schem" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif">`;
   s += `<rect x="${bx}" y="${top}" width="${bw}" height="${bh}" rx="8" fill="#15171a"/><text x="${bx + bw / 2}" y="${top + 20}" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">ESP32 Plus · interruptor ${L.switch === '5V' ? '5V' : '3.3V'}</text>`;
   for (const r of boardRefs) s += `<text x="${bx + bw - 10}" y="${yB[r] + 6}" fill="#fff" font-size="13.5" text-anchor="end">${esc(boardShort(r))}</text><circle cx="${bx + bw}" cy="${yB[r] + 2}" r="3.5" fill="#f39900"/>`;
   for (const b of boxes) {
@@ -259,7 +261,7 @@ function coverHTML() {
     <a class="btn-enter" href="#asignaturas">${alumno ? 'Entrar a mis asignaturas' : prof ? 'Mis asignaturas' : 'Entrar'} <span aria-hidden="true">→</span></a>
     ${prof ? '<div class="cov-links"><a href="#biblioteca">🗂 Biblioteca de asignaturas</a><a href="#panel">⚙️ Panel del profesor</a></div>' : ''}
   </main>
-  <div class="cov-foot">Trabajo de clase · Tablón · Laboratorios 3D · Actividades de clase</div>`;
+  <div class="cov-foot">Trabajo de clase · Tablón · Laboratorios 3D · Actividades de clase<span class="cov-cred"> · <a href="#eee/vivienda/creditos">Créditos de las fotos</a></span></div>`;
 }
 // Asignaturas que ve cada uno: alumno → las de su grupo; profesor → las de su curso escolar activo;
 // sin Firebase (código de clase) → toda la biblioteca.
@@ -422,7 +424,7 @@ function buildUI() {
   <main>
     <section class="viewer"><div id="gl"></div><div id="labels"></div>
       <div id="vtitle" class="vtitle"></div>
-      <div class="vtools"><button id="vreset" title="Vista inicial">⟲</button><button id="vtop" title="Vista desde arriba">⊤</button><button id="vlabels" title="Mostrar/ocultar etiquetas">🏷</button><button id="vfull" title="Pantalla completa">⛶</button></div>
+      <div class="vtools"><button id="vreset" title="Vista inicial" aria-label="Vista inicial">${ic('rotate-ccw')}</button><button id="vtop" title="Vista desde arriba" aria-label="Vista desde arriba">${ic('square-arrow-down')}</button><button id="vlabels" title="Mostrar/ocultar etiquetas" aria-label="Mostrar u ocultar etiquetas">${ic('tags')}</button><button id="vfull" title="Pantalla completa" aria-label="Pantalla completa">${ic('maximize')}</button></div>
       <div id="stepbar" class="stepbar"><button id="prev" class="btn">◀ Anterior</button><div class="mid"><div id="stepcount"></div><div id="steptitle"></div><div id="dots" class="dots"></div></div><button id="next" class="btn primary">Siguiente ▶</button></div>
       <div class="hint">Arrastra para girar · rueda para zoom · clic derecho para mover</div>
     </section>
@@ -578,6 +580,9 @@ else {
     const def = actividad(asigActual.id, b.dataset.asignar); if (def) portal()?.aula?.asignarActividad?.({ asig: def.asig, titulo: def.titulo, texto: `${def.desc}\n\nAbre la actividad, complétala y pulsa **📤 Entregar este resultado** al final. Puedes repetirla y entregar de nuevo hasta que la califique.`, enlace: enlaceActividad(def), tituloEnlace: `${def.icon} ${def.titulo} (actividad 3D)` });
   });
 
+  // Estética: iconos de línea en lugar de emoji, y cristal más ligero en ordenadores modestos (Chromebook).
+  instalarIconos(document.body);
+  try { if (calidad().baja) document.documentElement.classList.add('glass-lite'); } catch (e) { /* sin navegador */ }
   buildUI();
   viewer = new Viewer($('#gl'), $('#labels'), { padTop: 0.1, padBottom: 0.2, padX: 0.04 });
   bind(); route();

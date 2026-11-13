@@ -15,7 +15,7 @@ function cabecera(titulo, crumbs, chip, k = '') {
   <nav class="crumbs static" aria-label="Estás en"><div>${crumbs}</div><div class="prof">${chip}</div></nav>`;
 }
 export function tarjetaAsig(a, { marca = '', href = null, alumno = false } = {}) {
-  return `<a class="subj bib-card" href="${href || enlaceAsig(a.id)}" style="border-top-color:${a.color}"><div class="subj-ic" aria-hidden="true">${a.icon}</div>
+  return `<a class="subj bib-card${a.foto ? ' con-foto' : ''}" href="${href || enlaceAsig(a.id)}" style="--c:${a.color};border-top-color:${a.color}">${a.foto ? `<div class="subj-foto"><img src="${a.foto}" alt="" loading="lazy" decoding="async"></div>` : `<div class="subj-ic" aria-hidden="true">${a.icon}</div>`}
     <div class="subj-cod">${esc(a.etapa)} · ${esc(a.curso)}${a.codigo ? ' · Módulo ' + esc(a.codigo) : ''}</div><h3>${esc(a.nombre)}</h3>
     <p>${esc(a.desc)}</p><div class="bib-meta">${alumno ? `Profesor: ${esc(PROFESOR)}` : `${a.unidades.length} unidades · ${cuentaItems(a)} elementos`}${marca ? ` <span class="bib-marca">✔ ${esc(marca)}</span>` : ''}</div><span class="subj-go">Entrar <span aria-hidden="true">→</span></span></a>`;
 }

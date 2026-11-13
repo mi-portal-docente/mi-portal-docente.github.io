@@ -224,6 +224,7 @@ export class CircuitLab {
     this.renderer.setPixelRatio(hq ? Math.min(window.devicePixelRatio || 1, 2) : 1);
     this.renderer.shadowMap.enabled = hq; if (this.dirLight) this.dirLight.castShadow = hq;
     this.scene.traverse(o => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach(m => m.needsUpdate = true); } });
+    if (!hq) document.documentElement.classList.add('glass-lite');
     this.onResize?.(); const b = this.host.querySelector('[data-tool="hq"]'); if (b) b.classList.toggle('on', hq);
   }
   // si el ordenador va lento (Chromebook), baja la calidad automáticamente una vez

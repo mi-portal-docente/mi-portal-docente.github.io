@@ -13,17 +13,17 @@ export const SUBJECTS = [
 export const APARTADOS = {
   eee: [
     {
-      id: 'esp32', nombre: 'ESP32', icon: '🤖', color: '#DC001B', active: true,
+      id: 'esp32', foto: 'img/fotos/esp32.webp', nombre: 'ESP32', icon: '🤖', color: '#DC001B', active: true,
       desc: '8 proyectos paso a paso en 3D con la placa ESP32 Plus y el kit de sensores: semáforo, timbre, farola, termómetro, aparcamiento, barrera, riego y ventilador.',
       tags: ['8 proyectos', 'Programación Arduino', 'Sensores y actuadores'],
     },
     {
-      id: 'circuitos', nombre: 'Circuitos', icon: '🔌', color: '#0f5e66', active: true,
+      id: 'circuitos', foto: 'img/fotos/circuitos.webp', nombre: 'Circuitos', icon: '🔌', color: '#0f5e66', active: true,
       desc: 'Laboratorio 3D para montar circuitos en la protoboard, simularlos y medir con el polímetro: pilas, resistencias, LED, bombillas, interruptores, motores…',
       tags: ['9 prácticas guiadas', 'Modo libre', 'Polímetro V · A · Ω'],
     },
     {
-      id: 'vivienda', nombre: 'Instalación de vivienda', icon: '🏠', color: '#8a5a2b', active: true,
+      id: 'vivienda', foto: 'img/fotos/vivienda.webp', nombre: 'Instalación de vivienda', icon: '🏠', color: '#8a5a2b', active: true,
       desc: 'Laboratorio 3D de instalación eléctrica doméstica en un tablero de madera: cuadro con diferencial y magnetotérmicos, bombillas, interruptores, enchufe con tierra, cajas de empalme, tubo corrugado y cables por colores.',
       tags: ['Ejercicio guiado: el tablero de la SA1', 'Modo libre', 'Averías y lista de materiales'],
     },
