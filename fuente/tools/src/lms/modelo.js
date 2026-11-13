@@ -33,7 +33,10 @@ export function corregirExamen(preguntas, claves, respuestas, manual = {}) {
       got = ok ? p : 0;
       if (!ok && r != null && String(r).trim() !== '') revisar.push(q.id);
     }
-    else if (TIPOS_PREGUNTA[q.tipo]) got = redondea(p * TIPOS_PREGUNTA[q.tipo].corregir(q, k, r), 4); // emparejar, ordenar, huecos (parcial), numérica, zonas
+    else if (TIPOS_PREGUNTA[q.tipo]) {
+      got = redondea(p * TIPOS_PREGUNTA[q.tipo].corregir(q, k, r), 4); // emparejar, ordenar, huecos (parcial), numérica, zonas, clasificar, tabla
+      if (TIPOS_PREGUNTA[q.tipo].revisar?.(q, k, r)) revisar.push(q.id); // respuesta abierta: la corrige el profesor
+    }
     detalle[q.id] = got; puntos += got;
   }
   return { puntos: redondea(puntos), max: redondea(max), nota: max ? redondea((puntos / max) * 10) : 0, detalle, revisar };

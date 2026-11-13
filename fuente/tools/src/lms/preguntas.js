@@ -142,7 +142,74 @@ export const TIPOS_PREGUNTA = {
       return k.some((z) => z.correcta && x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h) ? 1 : 0;
     },
   },
+  // ---- Fase 12: clasificar (arrastrar a grupos), completar una tabla y respuesta abierta (con rúbrica)
+  clasificar: {
+    nombre: 'Clasificar en grupos', parcial: true,
+    // grupos: [{ nombre: 'Conductores', elementos: ['Cobre', 'Hierro'] }, …]  (2–6 grupos, máx. 24 elementos)
+    validar(q, err) {
+      const G = q.grupos;
+      if (!Array.isArray(G) || G.length < 2 || G.some((g) => !g || !esTexto(g.nombre) || !g.nombre.trim() || !listaTextos(g.elementos ?? []))) { err('grupos', '«grupos» tiene que ser una lista de al menos 2 grupos: [{ "nombre": "Conductores", "elementos": ["Cobre", "Hierro"] }, …].'); return null; }
+      if (G.length > 6) err('grupos', 'Máximo 6 grupos.');
+      const grupos = G.slice(0, 6).map((g) => ({ nombre: corto(g.nombre, 80), elementos: (g.elementos || []).map((e) => corto(e, 200)).filter(Boolean) }));
+      const todos = grupos.flatMap((g) => g.elementos);
+      if (todos.length < 2) { err('grupos', 'Pon al menos 2 elementos para clasificar.'); return null; }
+      if (todos.length > 24) err('grupos', 'Máximo 24 elementos en total.');
+      if (new Set(todos.map(normaliza)).size !== todos.length) { err('grupos', 'Hay elementos repetidos: cada elemento va en un solo grupo.'); return null; }
+      if (new Set(grupos.map((g) => normaliza(g.nombre))).size !== grupos.length) { err('grupos', 'Hay dos grupos con el mismo nombre.'); return null; }
+      return { grupos };
+    },
+    // el alumno ve los nombres de los grupos y los elementos barajados; la clave es el grupo de cada elemento
+    separar(q, seed) {
+      const L = q.grupos.flatMap((g, gi) => g.elementos.map((e) => [e, gi])); const orden = barajar(L.map((_, i) => i), seed);
+      return { publica: { grupos: q.grupos.map((g) => g.nombre), elementos: orden.map((i) => L[i][0]) }, clave: orden.map((i) => L[i][1]) };
+    },
+    exportar: (q, k) => ({ grupos: (q.grupos || []).map((nombre, gi) => ({ nombre, elementos: (q.elementos || []).filter((_, i) => (Array.isArray(k) ? k : [])[i] === gi) })) }),
+    corregir(q, k, r) { if (!Array.isArray(k) || !k.length || !Array.isArray(r)) return 0; return k.filter((g, i) => r[i] != null && Number(r[i]) === g).length / k.length; },
+  },
+  tabla: {
+    // columnas: ['Magnitud', 'Unidad']; filas: [['Tensión', '[[voltio|V]]'], …] o [{ c: [...] }]. Las celdas con [[ ]] las completa el alumno.
+    nombre: 'Completar tabla', parcial: true,
+    validar(q, err) {
+      const C = q.columnas; if (!listaTextos(C) || C.length < 1 || C.length > 8) { err('columnas', '«columnas» tiene que ser una lista de 1 a 8 títulos.'); return null; }
+      const F = (Array.isArray(q.filas) ? q.filas : []).map((f) => (Array.isArray(f) ? f : f?.c));
+      if (!F.length || F.length > 30 || F.some((f) => !listaTextos(f))) { err('filas', '«filas» tiene que ser una lista (máx. 30) de filas con textos: [["Tensión", "[[voltio|V]]"], …].'); return null; }
+      if (F.some((f) => f.length !== C.length)) { err('filas', `Cada fila tiene que tener ${C.length} celda(s), una por columna.`); return null; }
+      const n = F.flat().filter((x) => /\[\[[^\]]+\]\]/.test(x)).length;
+      if (!n) { err('filas', 'Marca al menos una celda para completar así: [[respuesta]] o [[respuesta|otra válida]].'); return null; }
+      if (n > 60) err('filas', 'Máximo 60 celdas para completar.');
+      return { columnas: C.map((x) => corto(x, 120)), filas: F.map((f) => ({ c: f.map((x) => corto(x, 300)) })) };
+    },
+    separar(q) {
+      const clave = [];
+      const filas = q.filas.map((f) => ({ c: f.c.map((x) => { const m = /^\s*\[\[([^\]]+)\]\]\s*$/.exec(x) || /\[\[([^\]]+)\]\]/.exec(x); if (!m) return x; clave.push(m[1].split('|').map((y) => y.trim()).filter(Boolean).join('|')); return `[[${clave.length}]]`; }) }));
+      return { publica: { columnas: q.columnas, filas, huecos: clave.length }, clave };
+    },
+    exportar: (q, k) => ({ columnas: q.columnas || [], filas: (q.filas || []).map((f) => ({ c: (f.c || []).map((x) => String(x).replace(/^\[\[(\d+)\]\]$/, (_, n) => `[[${alternativas((Array.isArray(k) ? k : [])[n - 1]).join('|')}]]`)) })) }),
+    corregir(q, k, r) { if (!Array.isArray(k) || !k.length || !Array.isArray(r)) return 0; return k.filter((acc, i) => celdaOk(acc, r[i])).length / k.length; },
+  },
+  abierta: {
+    // extension: 'corta' (unas líneas) | 'larga' (editor con formato); rubrica: [{ c, p, niveles? }] → la corrige el profesor
+    nombre: 'Respuesta abierta', manual: true,
+    validar(q, err) {
+      const extension = q.extension ?? 'corta'; if (!['corta', 'larga'].includes(extension)) { err('extension', '«extension» tiene que ser "corta" o "larga".'); return null; }
+      const R = q.rubrica ?? [];
+      if (!Array.isArray(R) || R.length > 8 || R.some((x) => !x || !esTexto(x.c ?? x.criterio) || !(Number(x.p ?? x.puntos) > 0))) { err('rubrica', '«rubrica» tiene que ser una lista (máx. 8) de criterios: [{ "c": "Explica el porqué", "p": 2 }, …].'); return null; }
+      const rubrica = R.map((x) => ({ c: corto(x.c ?? x.criterio, 200), p: Number(x.p ?? x.puntos), ...(listaTextos(x.niveles) && x.niveles.length === 4 ? { niveles: x.niveles.map((t) => corto(t, 200)) } : {}) }));
+      const o = { extension, ...(rubrica.length ? { rubrica } : {}) };
+      if (rubrica.length) o.puntos = rubrica.reduce((a, x) => a + x.p, 0);
+      return o;
+    },
+    separar: (q) => ({ publica: { extension: q.extension || 'corta', ...(q.rubrica?.length ? { rubrica: q.rubrica } : {}) }, clave: null }),
+    exportar: (q) => ({ extension: q.extension || 'corta', ...(q.rubrica?.length ? { rubrica: q.rubrica } : {}) }),
+    corregir: () => 0,
+    revisar: (q, k, r) => r != null && String(r).replace(/<[^>]*>/g, '').trim() !== '',
+  },
 };
+// Celda o hueco: alguna alternativa igual (sin tildes ni mayúsculas) o el mismo número («0,5» = «0.5»)
+export function celdaOk(acc, r) {
+  if (r == null || String(r).trim() === '') return false;
+  return alternativas(acc).some((a) => normaliza(a) === normaliza(r) || (leeNumero(a) != null && leeNumero(a) === leeNumero(r)));
+}
 // «3,5» o «3.5» → 3.5
 export function leeNumero(r) { if (r == null || String(r).trim() === '') return null; const x = Number(String(r).trim().replace(/\s/g, '').replace(',', '.')); return Number.isFinite(x) ? x : null; }
 
@@ -161,6 +228,7 @@ export function validarPregunta(q, i, err) {
   const extra = T.validar(q, (ruta, t) => err(ruta, /^Pregunta \d/.test(t) ? t : `Pregunta ${i + 1}: ${t}`));
   if (!extra) return null;
   return { id, tipo: q.tipo, enunciado: corto(q.enunciado, 2000), puntos, ...(criterio ? { criterio } : {}), ...extra };
+
 }
 
 // Pregunta del profesor → { publica (para examenes), clave (para claves) }

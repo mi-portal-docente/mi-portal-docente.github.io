@@ -28,6 +28,7 @@ export const TIPOS = {
   recuperacion: { nombre: 'Recuperación', icon: '🔁', cat: 'tareas' },
   piac: { nombre: 'Proyecto en equipo (PIAC)', icon: '👥', cat: 'proyectos' },
   documento: { nombre: 'Documento', icon: '📃', cat: 'tareas' },
+  interactiva: { nombre: 'Actividad interactiva', icon: '🎯', cat: 'tareas' },
 };
 export const CATEGORIAS = [
   { id: 'examenes', nombre: 'Exámenes y cuestionarios', peso: 40 },

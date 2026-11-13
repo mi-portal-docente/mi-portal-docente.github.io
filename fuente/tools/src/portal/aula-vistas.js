@@ -10,13 +10,14 @@ import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTip
 import { crearModoExamen } from './modo-examen.js';
 import { montarExplicacion } from './explicacion-ui.js';
 import { montarPiac } from './piac-ui.js';
+import { montarInteractiva } from './interactiva-ui.js';
 import { montarEntrega } from './entrega-ui.js';
 import { crearEditorDoc } from './doc-editor.js';
 import { estadoTrabajo, ESTADOS_TRABAJO } from '../lms/entrega.js';
 
 // Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
 // registran en window.PORTAL_MOTORES[tipo] = (nodo, item, opciones) => ({ actualizar }).
-const MOTORES_UI = { explicacion: montarExplicacion, piac: montarPiac };
+const MOTORES_UI = { explicacion: montarExplicacion, piac: montarPiac, interactiva: montarInteractiva };
 const montadorDe = (tipo) => MOTORES_UI[tipo] || window.PORTAL_MOTORES?.[tipo] || null;
 
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
@@ -298,9 +299,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (!it) return null; const tr = st.trabajos.get(it.id); const n = st.notas.get(it.id);
     return { itemId: it.id, titulo: it.titulo, fechaEntrega: it.fechaEntrega || null, entregado: !!tr, texto: tr?.texto || '', nota: n && n.nota != null ? fmtNota(n.nota) : null };
   }
-  async function entregarActividad(itemId, texto) {
+  async function entregarActividad(itemId, texto, extra) {
     const it = st.items.get(itemId); if (!it || rol !== 'alumno') throw new Error('sin-tarea');
-    await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'tarea', texto: String(texto).slice(0, 10000), enlaces: [], fecha: serverTimestamp(), estado: 'entregado' }, { merge: true });
+    await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'tarea', texto: String(texto).slice(0, 10000), enlaces: [], fecha: serverTimestamp(), estado: 'entregado', ...(extra?.datos ? { datos: extra.datos } : {}) }, { merge: true });
   }
 
   // ---------------------------------------------------------------- lectura en voz alta (Web Speech, voz en castellano)

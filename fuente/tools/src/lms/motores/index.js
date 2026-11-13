@@ -8,4 +8,5 @@ import './bloques.js';
 import './averia.js';
 import './piac.js';
 import './documento.js';
+import './interactiva.js';
 export { motor, motores } from '../elemento.js';

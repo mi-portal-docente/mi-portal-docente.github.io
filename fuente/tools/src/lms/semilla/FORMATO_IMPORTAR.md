@@ -380,3 +380,48 @@ e `imagenes` (`false` para no dejar subir imágenes).
     "palabrasMin": 150, "palabrasMax": 800 },
   "rubrica": [ { "criterio": "Contenido", "puntos": 6 }, { "criterio": "Presentación", "puntos": 4 } ] }
 ```
+
+## Preguntas nuevas: clasificar, completar tabla y respuesta abierta (fase 12)
+
+Sirven en el **examen** y en la **actividad interactiva** (la respuesta abierta, solo en el examen):
+
+- `clasificar`: `grupos` = `[{ "nombre": "…", "elementos": ["…"] }]` (2–6 grupos, máx. 24 elementos). El alumno
+  arrastra cada elemento a su grupo (o lo elige en el desplegable). Puntuación parcial.
+- `tabla`: `columnas` (títulos) y `filas` (listas de celdas). Las celdas que completa el alumno van entre `[[ ]]`, con
+  otras respuestas válidas separadas por `|`; los números valen con coma o punto. Puntuación parcial.
+- `abierta`: `extension` `"corta"` (unas líneas) o `"larga"` (editor con negrita, cursiva y listas) y `rubrica`
+  opcional `[{ "c": "criterio", "p": puntos }]` (los puntos de la pregunta son la suma). La corriges tú en el cuaderno
+  (botones 1–4 por criterio = Insuficiente → Excelente).
+
+```json
+{ "tipo": "examen", "titulo": "Examen: materiales y magnitudes", "puntos": 10,
+  "examen": { "abre": "2026-11-20T09:00", "cierra": "2026-11-20T10:00", "limiteMin": 45 },
+  "preguntas": [
+    { "id": "cla", "tipo": "clasificar", "enunciado": "Clasifica los materiales", "puntos": 2,
+      "grupos": [ { "nombre": "Conductores", "elementos": ["Cobre", "Aluminio"] }, { "nombre": "Aislantes", "elementos": ["Plástico", "Madera"] } ] },
+    { "id": "tab", "tipo": "tabla", "enunciado": "Completa la tabla", "puntos": 2,
+      "columnas": ["Magnitud", "Unidad", "Símbolo"],
+      "filas": [ ["Tensión", "[[voltio]]", "[[V]]"], ["Intensidad", "[[amperio]]", "[[A]]"] ] },
+    { "id": "abi", "tipo": "abierta", "enunciado": "Explica por qué se funde un fusible", "extension": "larga",
+      "rubrica": [ { "c": "Explica la causa (sobreintensidad)", "p": 2 }, { "c": "Usa el vocabulario técnico", "p": 1 } ] }
+  ] }
+```
+
+## Actividad interactiva (`"tipo": "interactiva"`)
+
+Preguntas de examen **sin tiempo límite y con varios intentos**: el alumno pulsa «Comprobar», ve qué ha acertado (y
+la solución, si `soluciones` no es `false`) y puede volver a intentarlo. Se guarda su **mejor** intento como
+«Aciertos: a/t»; en el cuaderno, «Poner notas» lo pasa a nota. `intentos`: `0` = sin límite (máx. 20). Es práctica:
+las soluciones viajan con la actividad (para evaluar en serio, usa el examen).
+
+```json
+{ "tipo": "interactiva", "titulo": "Repaso: magnitudes eléctricas", "puntos": 10,
+  "contenido": { "intentos": 3, "soluciones": true,
+    "preguntas": [
+      { "id": "q1", "tipo": "test", "enunciado": "¿Qué mide un amperímetro?", "opciones": ["La tensión", "La intensidad", "La resistencia"], "correcta": 1 },
+      { "id": "q2", "tipo": "clasificar", "enunciado": "Clasifica los materiales", "puntos": 2,
+        "grupos": [ { "nombre": "Conductores", "elementos": ["Cobre", "Aluminio"] }, { "nombre": "Aislantes", "elementos": ["Plástico", "Madera"] } ] },
+      { "id": "q3", "tipo": "tabla", "enunciado": "Completa la tabla", "puntos": 2, "columnas": ["Magnitud", "Unidad"],
+        "filas": [ ["Tensión", "[[voltio|V]]"], ["Intensidad", "[[amperio|A]]"] ] }
+    ] } }
+```

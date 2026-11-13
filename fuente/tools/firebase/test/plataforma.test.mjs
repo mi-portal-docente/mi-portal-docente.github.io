@@ -336,3 +336,15 @@ describe('Fase 11 · documento: imágenes y registro informativo', () => {
     await assertSucceeds(getDoc(doc(profe(), 'registros/itemD01_g1_7')));
   });
 });
+
+describe('Fase 12 · actividad interactiva: varios intentos con el mejor resultado', () => {
+  const ITEM_I = { curso: 'c2627', asig: 'eee', tipo: 'interactiva', titulo: 'Act', texto: '', enlaces: [], grupos: ['g1'], visible: ['g1'], publicado: true, contenido: { preguntas: [], claves: {}, intentos: 0, soluciones: true } };
+  const datos = (n) => ({ intentos: n, mejor: 7.5, puntos: 3, max: 4, ultima: 5, resp: { q1: 1, q2: [0, 1, null] } });
+  test('el alumno entrega cada intento (datos con el mejor) mientras no haya nota; luego no', async () => {
+    await sembrar(async (db) => setDoc(doc(db, 'items/itemI01'), ITEM_I));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemI01_g1_7'), tarea('a7', { item: 'itemI01', texto: 'Aciertos: 3/4', datos: datos(1) })));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemI01_g1_7'), tarea('a7', { item: 'itemI01', texto: 'Aciertos: 3/4', datos: datos(2) }), { merge: true }));
+    await sembrar(async (db) => setDoc(doc(db, 'notas/itemI01_g1_7'), { item: 'itemI01', curso: 'c2627', asig: 'eee', al: 'g1_7', grupo: 'g1', numero: 7, nota: 7.5, publicada: false, fecha: 1 }));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemI01_g1_7'), tarea('a7', { item: 'itemI01', texto: 'Aciertos: 4/4', datos: datos(3) }), { merge: true }));
+  });
+});

@@ -253,7 +253,10 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
           const v = r[q.id]; const txt = respuestaTexto(q, v);
           const sol = solucionTexto(q, k[q.id]);
           const p = auto.detalle[q.id]; const okk = p >= (q.puntos || 1);
-          return `<li class="${okk ? 'ok' : p > 0 ? 'med' : 'ko'}"><div>${esc(q.enunciado)}</div><div>➜ <b>${esc(txt)}</b></div><div class="pn-small">Solución: ${esc(sol || '(manual)')}</div>
+          const ab = q.tipo === 'abierta';
+          const resp = ab && q.extension === 'larga' && v != null ? `<div class="ap-ab dc-ro">${limpiarDoc(String(v))}</div>` : `<div>➜ <b>${esc(txt)}</b></div>`;
+          const rub = ab && q.rubrica?.length ? `<table class="pn-t ap-qrub">${q.rubrica.map((rc, i) => `<tr><td>${esc(rc.c)}</td><td class="c"><span class="ap-niv">${[1, 2, 3, 4].map((nv) => `<button type="button" class="btn tiny" data-ap-qn="${esc(q.id)}|${i}|${rc.p * nv / 4}" title="${['Insuficiente', 'Suficiente', 'Bien', 'Excelente'][nv - 1]}">${nv}</button>`).join('')}</span><input type="number" class="ap-qr" data-qid="${esc(q.id)}" data-ri="${i}" min="0" max="${esc(rc.p)}" step="0.25" value="${esc(det[q.id + '_r' + i] ?? '')}"> / ${esc(fmtNota(rc.p))}</td></tr>`).join('')}</table>` : '';
+          return `<li class="${ab && !(q.id in det) ? 'med' : okk ? 'ok' : p > 0 ? 'med' : 'ko'}"><div>${esc(q.enunciado)}</div>${resp}${ab ? '' : `<div class="pn-small">Solución: ${esc(sol || '(manual)')}</div>`}${rub}
             <label class="pn-small">Puntos <input type="number" class="ap-qpts" data-qid="${esc(q.id)}" min="0" max="${esc(q.puntos || 1)}" step="0.25" value="${esc(p)}"> / ${esc(fmtNota(q.puntos || 1))}${auto.revisar.includes(q.id) ? ' · <b>revisar</b>' : ''}</label></li>`;
         }).join('')}</ol>`;
         if (it.examen?.pantallaCompleta || ex.examen?.pantallaCompleta) h += salidasHTML(id);
@@ -339,6 +342,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (nota != null && !(nota >= 0 && nota <= 10)) { msg.textContent = 'La nota va de 0 a 10.'; msg.className = 'pn-msg ko'; return; }
     const detalle = {}; let puntos = null, max = null;
     A.el.querySelectorAll('#apDetalle .ap-rpts').forEach((i) => { if (i.value !== '') detalle['r' + i.dataset.ri] = Number(i.value); });
+    A.el.querySelectorAll('#apDetalle .ap-qr').forEach((i) => { if (i.value !== '') detalle[i.dataset.qid + '_r' + i.dataset.ri] = Number(i.value); });
     if (it.tipo === 'examen' && A.cargaEx.get(it.id)) {
       const ex = A.cargaEx.get(it.id); const manual = {}; A.el.querySelectorAll('#apDetalle .ap-qpts').forEach((i) => { manual[i.dataset.qid] = i.value; });
       const r = corregirExamen(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, A.trabajos.get(idTrabajo(it.id, g.id, ab.n))?.respuestas || {}, manual);
@@ -460,6 +464,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const t = ev.target;
     if (A.sub === 'notas' && A.corr && corr.onClick(ev)) return;
     const cel = t.closest('[data-celda]'); if (cel && A.sub === 'notas') { A.abierta = { k: cel.dataset.celda, n: +cel.dataset.n }; A.el.querySelectorAll('.ap-c.sel').forEach((x) => x.classList.remove('sel')); cel.classList.add('sel'); pintarDetalle(); return; }
+    const qn = t.closest('[data-ap-qn]'); if (qn) { const [qid, ri, v] = qn.dataset.apQn.split('|'); const i = A.el.querySelector(`#apDetalle .ap-qr[data-qid="${CSS.escape(qid)}"][data-ri="${ri}"]`); if (i) { i.value = redondea(+v); sumarRubricaQ(qid); recalcular(); } return; }
     const b = t.closest('[data-ap]'); if (!b || !A.el?.contains(b)) return;
     const acc = b.dataset.ap;
     try {
@@ -501,7 +506,16 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (t.dataset.apF === 'gAsig') { A.gAsig = t.value; A.abierta = null; A.anEx = ''; pintar(); }
     if (t.dataset.apF === 'anEx') { A.anEx = t.value; pintar(); }
   }
-  function onInput(ev) { if (A.sub === 'notas' && A.corr && corr.onInput(ev)) return; if (ev.target.matches?.('.ap-rpts, .ap-qpts')) recalcular(); }
+  function onInput(ev) {
+    if (A.sub === 'notas' && A.corr && corr.onInput(ev)) return;
+    if (ev.target.matches?.('.ap-qr')) sumarRubricaQ(ev.target.dataset.qid);
+    if (ev.target.matches?.('.ap-rpts, .ap-qpts, .ap-qr')) recalcular();
+  }
+  // Fase 12: respuesta abierta con rúbrica → los puntos de la pregunta son la suma de sus criterios
+  function sumarRubricaQ(qid) {
+    const D = $('#apDetalle'); if (!D) return; const L = [...D.querySelectorAll(`.ap-qr[data-qid="${CSS.escape(qid)}"]`)];
+    const t = L.reduce((a, i) => a + (Number(i.value) || 0), 0); const P = D.querySelector(`.ap-qpts[data-qid="${CSS.escape(qid)}"]`); if (P) P.value = redondea(t);
+  }
   function onSubmit(ev) {
     if (A.sub === 'notas' && A.corr && corr.onSubmit(ev)) return true;
     if (ev.target.id === 'apCursoForm') { ev.preventDefault(); guardarCurso(ev.target); return true; }

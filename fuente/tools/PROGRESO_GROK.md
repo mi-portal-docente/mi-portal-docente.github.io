@@ -464,3 +464,27 @@ bloqueado hasta que el profesor ponga la nota nueva o lo vuelva a devolver.
 **Formato JSON**: sección «Documento» en `FORMATO_IMPORTAR.md` (`plantilla`, `palabrasMin`, `palabrasMax`, `imagenes`).
 **Pruebas**: `plataforma_test.mjs` 34/34 · reglas 116/116 · E2E fase 11: 17/17.
 **Capturas**: `f11_plantilla_profesor`, `f11_editor_alumno`, `f11_correccion_documento`.
+
+## Fase 12 · Nuevos tipos de pregunta y actividad interactiva (13/11/2026)
+
+**Hecho**
+- **Clasificar en grupos** (`clasificar`): el alumno arrastra cada elemento a su grupo; también con el desplegable de
+  cada elemento (teclado, lector de pantalla y móvil). Puntuación parcial.
+- **Completar tabla** (`tabla`): celdas `[[respuesta|otra]]` en una tabla; números con coma o punto. Parcial.
+- **Respuesta abierta** (`abierta`) corta o larga (larga = editor con negrita, cursiva y listas, pegado limpio,
+  contador de palabras). Con **rúbrica** opcional por pregunta: en el cuaderno, botones 1–4 por criterio
+  (Insuficiente → Excelente) que suman los puntos de la pregunta; el detalle se guarda en la nota (`qid_rN`).
+  El autocorrector la deja a 0 y marcada «revisar».
+- Editor del profesor: botones «Clasificar», «Tabla», «Respuesta abierta» con campos de texto sencillos.
+- **Actividad interactiva** (`"tipo": "interactiva"`): preguntas de examen sin tiempo límite y con varios intentos
+  (0 = sin límite). «Comprobar» marca cada pregunta (bien / a medias / mal) y enseña la solución de lo que falla
+  (si `soluciones` no es `false`); «Intentar de nuevo» baraja de nuevo. Se guarda el **mejor** intento
+  («Aciertos: a/t» + `datos`), y en el cuaderno «Poner notas» lo pasa a nota. Es práctica: las soluciones van con la
+  actividad (para evaluar en serio, el examen). Se guarda separada en preguntas + claves (Firestore no admite
+  listas dentro de listas); el editor la enseña con las soluciones dentro de cada pregunta.
+- «Aciertos: a/t» admite decimales (3,5/5).
+
+**Reglas**: `interactiva` añadido a los tipos de elemento y de trabajo (sin reglas nuevas). Pruebas: 117/117.
+**Formato JSON**: secciones «Preguntas nuevas…» y «Actividad interactiva» en `FORMATO_IMPORTAR.md`.
+**Pruebas**: `plataforma_test.mjs` 38/38 · reglas 117/117 · E2E fase 12: 21/21 (fase 11: 17/17).
+**Capturas**: `f12_editor_preguntas`, `f12_alumno_examen`, `f12_cuaderno_rubrica`, `f12_interactiva_intento`.

@@ -7,6 +7,6 @@ export function textoResultado(def, aciertos, total, detalle = []) {
 }
 // Lee «Aciertos: a/t» de una entrega de actividad → { aciertos, total, nota } o null
 export function leerResultado(texto) {
-  const m = String(texto || '').match(/Aciertos: (\d+)\/(\d+)/); if (!m) return null;
-  const a = +m[1], t = +m[2]; if (!(t > 0) || a > t) return null; return { aciertos: a, total: t, nota: nota10(a, t) };
+  const m = String(texto || '').match(/Aciertos: (\d+(?:[.,]\d+)?)\/(\d+(?:[.,]\d+)?)/); if (!m) return null;
+  const a = +m[1].replace(',', '.'), t = +m[2].replace(',', '.'); if (!(t > 0) || a > t) return null; return { aciertos: a, total: t, nota: nota10(a, t) };
 }

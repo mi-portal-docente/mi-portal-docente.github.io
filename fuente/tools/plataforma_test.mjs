@@ -418,3 +418,47 @@ test('fase 11: motor «documento» (plantilla limpia y límites de palabras)', a
   const e = []; const o = motor('documento').validar({ plantilla: '<h2>A</h2><script>x</script>', palabrasMin: 10, palabrasMax: 5 }, (r, t) => e.push(r));
   assert.equal(o.plantilla, '<h2>A</h2>'); assert.deepEqual(e, ['palabrasMax']);
 });
+
+// ---------------------------------------------------------------- fase 12 · clasificar, tabla, abierta, actividad interactiva
+import { validarPregunta as VP12, separarPregunta as SP12, unirPregunta as UP12 } from './src/lms/preguntas.js';
+import { corregirExamen as CE12 } from './src/lms/modelo.js';
+import { leerResultado as LR12 } from './src/act/resultado.js';
+import './src/lms/motores/interactiva.js';
+test('fase 12: clasificar (separa sin solución, corrige en parcial y vuelve a la forma del profesor)', () => {
+  const e = []; const q = VP12({ id: 'c', tipo: 'clasificar', enunciado: 'Clasifica', puntos: 4, grupos: [{ nombre: 'Conductores', elementos: ['Cobre', 'Hierro'] }, { nombre: 'Aislantes', elementos: ['Plástico', 'Madera'] }] }, 0, (r, t) => e.push(t));
+  assert.deepEqual(e, []); const s = SP12(q);
+  assert.deepEqual(s.publica.grupos, ['Conductores', 'Aislantes']); assert.equal(s.publica.elementos.length, 4); assert.ok(!JSON.stringify(s.publica).includes('elementos":[["'));
+  const bien = s.publica.elementos.map((x) => (['Cobre', 'Hierro'].includes(x) ? 0 : 1));
+  assert.equal(CE12([s.publica], { c: s.clave }, { c: bien }).nota, 10);
+  const medio = [...bien]; medio[0] = 1 - medio[0];
+  assert.equal(CE12([s.publica], { c: s.clave }, { c: medio }).puntos, 3);
+  assert.deepEqual(UP12(s.publica, s.clave).grupos.map((g) => g.elementos.sort()), [['Cobre', 'Hierro'], ['Madera', 'Plástico']]);
+  const e2 = []; VP12({ tipo: 'clasificar', enunciado: 'x', grupos: [{ nombre: 'A', elementos: ['x'] }, { nombre: 'B', elementos: ['x'] }] }, 0, (r, t) => e2.push(t)); assert.ok(e2.length, 'elementos repetidos');
+});
+test('fase 12: completar tabla (celdas [[ ]] con alternativas y números «0,5» = «0.5»)', () => {
+  const e = []; const q = VP12({ id: 't', tipo: 'tabla', enunciado: 'Completa', puntos: 3, columnas: ['Magnitud', 'Unidad', 'Valor'], filas: [['Tensión', '[[voltio|V]]', '[[0,5]]'], ['Intensidad', '[[amperio|A]]', '2']] }, 0, (r, t) => e.push(t));
+  assert.deepEqual(e, []); const s = SP12(q);
+  assert.deepEqual(s.publica.filas[0].c, ['Tensión', '[[1]]', '[[2]]']); assert.equal(s.publica.huecos, 3); assert.ok(!/voltio/.test(JSON.stringify(s.publica)));
+  assert.ok(s.publica.filas.every((f) => !Array.isArray(f)), 'sin listas dentro de listas (Firestore)');
+  assert.equal(CE12([s.publica], { t: s.clave }, { t: ['V', '0.5', 'amperios'] }).puntos, 2);
+  assert.deepEqual(UP12(s.publica, s.clave).filas[0].c, ['Tensión', '[[voltio|V]]', '[[0,5]]']);
+});
+test('fase 12: respuesta abierta (corta/larga) con rúbrica: puntos = suma y queda para revisar', () => {
+  const e = []; const q = VP12({ id: 'a', tipo: 'abierta', enunciado: 'Explica', extension: 'larga', rubrica: [{ c: 'Causa', p: 2 }, { c: 'Vocabulario', p: 1 }] }, 0, (r, t) => e.push(t));
+  assert.deepEqual(e, []); assert.equal(q.puntos, 3); const s = SP12(q);
+  assert.equal(s.clave, null); assert.equal(s.publica.rubrica.length, 2);
+  const r = CE12([s.publica], {}, { a: '<p>Porque sí</p>' }); assert.equal(r.puntos, 0); assert.deepEqual(r.revisar, ['a']);
+  assert.equal(CE12([s.publica], {}, { a: '<p>x</p>' }, { a: 2.5 }).nota, 8.33);
+});
+test('fase 12: actividad interactiva (separa las claves, rechaza abiertas, edición con soluciones) y «Aciertos» con decimales', async () => {
+  const { motor } = await import('./src/lms/elemento.js'); const M = motor('interactiva');
+  const e = []; const o = M.validar(M.ejemplo, (r, t) => e.push(t)); assert.deepEqual(e, []);
+  assert.equal(o.preguntas.length, 3); assert.ok(o.claves.q1 === 1 && Array.isArray(o.claves.q3)); assert.equal(o.intentos, 0);
+  assert.ok(!JSON.stringify(o).includes('[['.concat('"')), 'sin listas anidadas');
+  const otra = M.validar(o, (r, t) => e.push(t)); assert.deepEqual(e, []); const norm = (x) => JSON.stringify(M.paraEditar(x), (k, v) => (k === 'elementos' && Array.isArray(v) ? [...v].sort() : v));
+  assert.equal(norm(otra), norm(o), 'volver a validar lo guardado no cambia las preguntas ni las soluciones');
+  assert.equal(M.paraEditar(o).preguntas[2].filas[0].c[1], '[[voltio|V]]');
+  const e2 = []; M.validar({ preguntas: [{ tipo: 'abierta', enunciado: 'x' }] }, (r, t) => e2.push(t)); assert.ok(/abierta/.test(e2.join()));
+  assert.deepEqual(LR12('… Aciertos: 3,5/5 · Nota: 7'), { aciertos: 3.5, total: 5, nota: 7 });
+  assert.deepEqual(LR12('Aciertos: 3/4'), { aciertos: 3, total: 4, nota: 7.5 });
+});

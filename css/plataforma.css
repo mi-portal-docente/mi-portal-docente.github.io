@@ -374,3 +374,39 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 .dc-pie { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-top: 1px solid var(--sep, rgba(60,60,67,.12)); font-size: .85rem; flex-wrap: wrap; }
 .dc-fuera { color: #c0271d; font-weight: 600; } .dc-dentro { color: #1d7a37; }
 .dc-pl .dc-ed { min-height: 160px; }
+
+/* ---- Fase 12 · clasificar, tabla, respuesta abierta y actividad interactiva */
+.ex-cl { display: grid; gap: 10px; }
+.ex-cl-pool { display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; padding: 10px; border-radius: var(--r-sm); background: var(--fill); border: 1px dashed var(--sep); }
+.ex-cl-pool:empty::before { content: 'Todo clasificado'; color: var(--gris); font-size: 13px; align-self: center; }
+.ex-cl-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.ex-cl-grupo { min-height: 96px; padding: 8px; border-radius: var(--r-sm); background: var(--card); border: 1px solid var(--sep); display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, background .15s; }
+.ex-cl-grupo.sobre, .ex-cl-pool.sobre { border-color: var(--acento, #007aff); background: color-mix(in srgb, var(--acento, #007aff) 8%, var(--card)); }
+.ex-cl-h { font-weight: 600; font-size: 14px; padding: 2px 4px 6px; border-bottom: 1px solid var(--sep); }
+.ex-cl-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px 6px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--sep); box-shadow: 0 1px 2px rgba(0,0,0,.06); cursor: grab; user-select: none; }
+.ex-cl-chip.arr { opacity: .5; }
+.ex-cl-chip select { font-size: 12px; padding: 2px 4px; border-radius: 8px; border: 1px solid var(--sep); background: var(--fill); max-width: 9em; }
+.ex-tab-w { overflow-x: auto; }
+.ex-tab { border-collapse: collapse; min-width: 60%; }
+.ex-tab th, .ex-tab td { border: 1px solid var(--sep); padding: 6px 8px; text-align: left; }
+.ex-tab th { background: var(--fill); font-weight: 600; }
+.ex-tab .ex-hueco { width: 100%; min-width: 6em; }
+.ex-ab { border: 1px solid var(--sep); border-radius: var(--r-sm); background: var(--card); overflow: hidden; }
+.ex-ab-barra { display: flex; gap: 2px; padding: 4px; background: var(--fill); border-bottom: 1px solid var(--sep); }
+.ex-ab-ed { min-height: 160px; padding: 10px 12px; outline: none; line-height: 1.5; }
+.ex-ab-ed:focus { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--acento, #007aff) 35%, transparent); }
+.ex-ab-pal { padding: 4px 10px 8px; }
+.ex-ab-c { width: 100%; }
+.ex-rub { margin-top: 8px; font-size: 13px; } .ex-rub ul { margin: 6px 0 0; padding-left: 18px; }
+.ap-qrub { margin: 6px 0; } .ap-qrub td { vertical-align: middle; } .ap-niv { display: inline-flex; gap: 3px; margin-right: 6px; }
+.ap-ab { margin: 4px 0; padding: 8px 10px; border-radius: var(--r-sm); background: var(--fill); max-height: 320px; overflow: auto; }
+.ia-cab { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ia-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--fill); font-size: 13px; }
+.ia-chip.ok { background: color-mix(in srgb, #34c759 16%, var(--card)); }
+.ia-form fieldset.ia-ok { border-color: #34c759; } .ia-form fieldset.ia-med { border-color: #ff9500; } .ia-form fieldset.ia-ko { border-color: #ff3b30; }
+.ia-fb { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-weight: 600; font-size: 14px; }
+.ia-fb.ok { color: #248a3d; } .ia-fb.med { color: #c93400; } .ia-fb.ko { color: #d70015; }
+.ia-sol { margin-top: 4px; font-size: 13px; color: var(--gris); display: flex; gap: 6px; align-items: flex-start; }
+.ia-res { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: var(--r-sm); margin: 10px 0; background: var(--fill); }
+.ia-res.ok { background: color-mix(in srgb, #34c759 14%, var(--card)); } .ia-res.ko { background: color-mix(in srgb, #ff9500 14%, var(--card)); }
+.ia-fin { padding: 14px; border-radius: var(--r-sm); background: var(--fill); display: flex; gap: 8px; align-items: center; }
