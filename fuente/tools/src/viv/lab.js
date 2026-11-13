@@ -15,6 +15,7 @@ import { mecanismo3D, bombilla3D, cajaEmpalme3D, modulo3D, cuadro3D, herramienta
 import { Visor } from './visor.js';
 import { entorno, calidad } from '../kit3d/base.js';
 import { aislTex } from '../kit3d/cables.js';
+import { ic } from '../ui/iconos.js';
 const Q_ = calidad();
 import { Taller } from './taller.js';
 import { Montaje } from './montaje.js';
@@ -354,7 +355,7 @@ export class ViviendaLab {
     const box = this.$('#vvLabels'); const C = this.cur(); if (!box || !C.camera) return;
     const w = this.renderer.domElement.clientWidth, h = this.renderer.domElement.clientHeight;
     const L = C === this.taller ? this.taller.etiquetas() : C === this.montaje ? this.montaje.etiquetas() : C.labels || [];
-    const html = L.map((l) => { const v = l.v.clone().project(C.camera); if (v.z > 1 || !Number.isFinite(v.x)) return ''; return `<div class="vv-lb ${l.cls || ''}" style="left:${((v.x + 1) / 2) * w}px;top:${((1 - v.y) / 2) * h}px">${esc(l.txt)}</div>`; }).join('');
+    const html = L.map((l) => { const v = l.v.clone().project(C.camera); if (v.z > 1 || !Number.isFinite(v.x)) return ''; return `<div class="vv-lb ${l.cls || ''}" style="left:${((v.x + 1) / 2) * w}px;top:${((1 - v.y) / 2) * h}px">${l.icono ? ic(l.icono) : ''}${l.icono && l.txt ? ' ' : ''}${esc(l.txt)}</div>`; }).join('');
     if (html !== this._lbHTML) { box.innerHTML = html; this._lbHTML = html; }
   }
 

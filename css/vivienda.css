@@ -47,6 +47,7 @@ body.scr-viv #viv { display: flex; overflow: hidden; }
 .vv-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .vv-lb { position: absolute; transform: translate(-50%, -50%); background: rgba(255,255,255,.92); border-radius: 4px; padding: 1px 6px; font-size: 12px; font-weight: 600; white-space: nowrap; color: #2a2118; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
 .vv-lb.ce { background: transparent; box-shadow: none; font-weight: 800; } .vv-lb.pie { background: #fff; font-weight: 800; } .vv-lb.on { background: #fff6cc; } .vv-lb.peligro { background: #b3121f; color: #fff; }
+.vv-lb .ic { width: 12px; height: 12px; vertical-align: -2px; }
 .vv-lb.guia { background: rgba(255,255,255,.55); color: #6b4a22; font-weight: 600; border: 1px dashed #6b4a22; } .vv-lb.mini { background: none; box-shadow: none; }
 .vv-tools { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; } .vv-tools button { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-size: 16px; }
 .vv-status { position: absolute; left: 10px; bottom: 10px; right: 60px; background: rgba(255,255,255,.94); border-radius: 8px; padding: 6px 10px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }

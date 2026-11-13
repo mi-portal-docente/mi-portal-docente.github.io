@@ -7,6 +7,8 @@ import { CIRCUITOS, CALIBRES, CALIBRES_IGA, CALIBRES_ID, SECCIONES, TUBOS, tuboM
 import { mat } from './modelos3d.js';
 import { entorno } from '../kit3d/base.js';
 import { amueblar, luzCasa, puntoCasa, luzTecho, cuadroCasa } from './casaDeco.js';
+// iconos de línea (Lucide) de las etiquetas de los puntos en la planta
+const ICONO_PUNTO = { luz: 'lightbulb', interruptor: 'power', conmutador: 'arrow-left-right', timbre: 'bell', base16: 'plug', base25: 'plug', caja: 'square' };
 const NORMAL = { S: [0, 1], N: [0, -1], O: [1, 0], E: [-1, 0] };
 const normalDe = (x, y) => NORMAL[pegarPared(x, y).pared] || [0, 1];
 
@@ -53,7 +55,7 @@ export class CasaVista {
       if (p.tipo === 'luz') { const on = sim?.luces.find((l) => l.id === p.id)?.on; G.add(luzTecho(p, PLANO.alto, { on, sel }));
         if (on) { const l = new THREE.PointLight(0xffe7a0, 0.6, 400); l.position.set(p.x, p.y, 220); G.add(l); } }
       else { const [nx, ny] = normalDe(p.x, p.y); G.add(puntoCasa(p, T, { colorCirc: COLOR_CIRC[p.circ] ?? 0x8a8f94, on: !!p.on, sel, nx, ny })); }
-      this.labels.push({ txt: T.icon + (p.circ && p.tipo !== 'luz' && p.tipo !== 'interruptor' && p.tipo !== 'conmutador' && p.tipo !== 'timbre' ? ' ' + p.circ : ''), v: new THREE.Vector3(p.x, p.y, (T.techo ? 250 : T.h) + 14), cls: 'mini' + (sel ? ' sel' : '') + (C.conectado(p.id) ? '' : ' suelto') });
+      this.labels.push({ icono: ICONO_PUNTO[p.tipo], txt: (p.circ && p.tipo !== 'luz' && p.tipo !== 'interruptor' && p.tipo !== 'conmutador' && p.tipo !== 'timbre' ? p.circ : ''), v: new THREE.Vector3(p.x, p.y, (T.techo ? 250 : T.h) + 14), cls: 'mini' + (sel ? ' sel' : '') + (C.conectado(p.id) ? '' : ' suelto') });
     }
     // mando (interruptor → luz): línea discontinua
     for (const s of m.puntos.filter((p) => p.manda)) for (const id of s.manda) { const l = m.puntos.find((q) => q.id === id); if (!l) continue; const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(s.x, s.y, TIPOS_CASA[s.tipo].h + 6), new THREE.Vector3(l.x, l.y, 236)]); const ln = new THREE.Line(g, new THREE.LineDashedMaterial({ color: 0x2b7bff, dashSize: 8, gapSize: 6 })); ln.computeLineDistances(); G.add(ln); }
