@@ -49,3 +49,16 @@
 .bk details > summary { cursor: pointer; font-weight: 500; padding: 4px 0; }
 .bk-g ol { margin: 6px 0; padding-left: 22px; font-size: 14px; }
 .bk-g li { margin: 4px 0; }
+
+/* ---------- Fase 3 · Analítica ---------- */
+.an-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 14px; }
+.an-sec h3 { margin-top: 0; }
+.an-t td { vertical-align: middle; }
+.an-bar { display: inline-block; width: 120px; max-width: 40vw; height: 10px; border-radius: 6px; background: var(--fill); overflow: hidden; vertical-align: middle; margin-right: 6px; }
+.an-bar > span { display: block; height: 100%; border-radius: 6px; background: var(--verde); }
+.an-bar.medio > span { background: var(--naranja); }
+.an-bar.mal > span { background: var(--rojo); }
+.an-pct { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.an-fall { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+.an-fall li { line-height: 1.35; }
+@media (max-width: 640px) { #anPreg .an-t th:nth-child(3), #anPreg .an-t td:nth-child(3), #anPreg .an-t th:nth-child(4), #anPreg .an-t td:nth-child(4) { display: none; } .an-bar { width: 70px; } }

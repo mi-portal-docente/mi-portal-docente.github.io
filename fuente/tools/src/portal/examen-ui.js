@@ -1,13 +1,14 @@
 // Cómo se ve y se responde cada tipo de pregunta en el examen del alumno (y en la vista previa del
 // profesor). Test, V/F y respuesta corta mantienen el marcado de siempre.
 import { esc } from './util.js';
+import { ic } from './ico.js';
 import { barajar, semilla, fmtNota } from '../lms/modelo.js';
 import { textoHTML } from './aula-vistas.js';
 import { TIPOS_PREGUNTA, leeNumero, alternativas } from '../lms/preguntas.js';
 
 export const ayudaTipo = {
   emparejar: 'Elige, para cada elemento de la izquierda, el que le corresponde. Cuenta cada pareja bien hecha.',
-  ordenar: 'Ordena los elementos con los botones ↑ ↓. Cuenta cada posición correcta.',
+  ordenar: 'Ordena los elementos con los botones de subir y bajar. Cuenta cada posición correcta.',
   huecos: 'Escribe la palabra que falta en cada hueco. Cuenta cada hueco bien escrito.',
   numerica: 'Escribe un número (puedes usar coma decimal).',
   zonas: 'Pulsa en la imagen el punto que se pide. Puedes cambiarlo pulsando en otro sitio.',
@@ -29,7 +30,7 @@ export function preguntaHTML(q, r, { n, barajarOps = false, s = 1 } = {}) {
     cuerpo = `<div class="ex-emp">${(q.izquierda || []).map((iz, i) => `<label class="ex-emp-f"><span class="ex-emp-iz">${esc(iz)}</span><select data-emp="${i}" name="${esc(nm)}_${i}"><option value="">— elige —</option>${(q.derecha || []).map((d, j) => `<option value="${j}" ${R[i] === j ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></label>`).join('')}</div>`;
   } else if (q.tipo === 'ordenar') {
     const R = Array.isArray(r) && r.length === (q.elementos || []).length ? r : ordenInicial(q, s);
-    cuerpo = `<ol class="ex-ord" data-orden="${esc(JSON.stringify(R))}">${R.map((i, p) => `<li data-i="${i}"><span class="ex-ord-t">${esc(q.elementos[i])}</span><span class="ex-ord-b"><button type="button" class="btn tiny" data-ord="-1" ${p ? '' : 'disabled'} aria-label="Subir «${esc(q.elementos[i])}»">↑</button><button type="button" class="btn tiny" data-ord="1" ${p < R.length - 1 ? '' : 'disabled'} aria-label="Bajar «${esc(q.elementos[i])}»">↓</button></span></li>`).join('')}</ol>`;
+    cuerpo = `<ol class="ex-ord" data-orden="${esc(JSON.stringify(R))}">${R.map((i, p) => `<li data-i="${i}"><span class="ex-ord-t">${esc(q.elementos[i])}</span><span class="ex-ord-b"><button type="button" class="btn tiny" data-ord="-1" ${p ? '' : 'disabled'} aria-label="Subir «${esc(q.elementos[i])}»">${ic('arrow-up')}</button><button type="button" class="btn tiny" data-ord="1" ${p < R.length - 1 ? '' : 'disabled'} aria-label="Bajar «${esc(q.elementos[i])}»">${ic('arrow-down')}</button></span></li>`).join('')}</ol>`;
   } else if (q.tipo === 'huecos') {
     const R = Array.isArray(r) ? r : [];
     const partes = esc(q.texto || '').replace(/\[\[(\d+)\]\]/g, (_, k) => `<input type="text" class="ex-hueco" data-hueco="${k - 1}" maxlength="120" value="${esc(R[k - 1] || '')}" aria-label="Hueco ${k}" size="10">`);

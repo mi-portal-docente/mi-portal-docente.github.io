@@ -5,6 +5,7 @@
 //    como alternativa de teclado), publicar / programar / borrador, e importar la estructura de Classroom.
 import { collection, doc, getDocs, query, where, writeBatch, updateDoc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { esc } from './util.js';
+import { ic } from './ico.js';
 import { asignatura, TIPOS, SEMILLAS, itemDeSemilla } from '../lms/biblioteca.js';
 import { idItem, ordenEntre, leeEnlaces, categoriaDe, tipoAdjunto, urlSegura, fmtNota } from '../lms/modelo.js';
 import { crearEditor, estadoPub, fFecha, PEND_T } from './aula-editor.js';
@@ -101,7 +102,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const bar = prof ? `<div class="cl-bar"><div class="cl-crear"><button class="btn primary cl-crear-b" data-cl="crear" aria-haspopup="true" aria-expanded="${C.crear}">＋ Crear</button>
         ${C.crear ? `<div class="cl-crear-m" role="menu">${[['tarea', 'Tarea'], ['examen', 'Tarea de cuestionario'], ['pregunta', 'Pregunta'], ['material', 'Material']].map(([t, n]) => `<button role="menuitem" data-cl="nuevo" data-tipo="${t}"><span>${icono(t)}</span>${n}</button>`).join('')}
           <hr><button role="menuitem" data-cl="reutilizar"><span>♻️</span>Reutilizar publicación</button><button role="menuitem" data-cl="nuevoTema"><span>🗂</span>Tema</button></div>` : ''}</div>
-        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">📥 Importar JSON</button><button class="btn" data-cl="banco">🗄 Banco de preguntas</button><span class="pn-grow"></span>
+        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">${ic('upload')} Importar JSON</button><button class="btn" data-cl="banco">${ic('archive')} Banco de preguntas</button><span class="pn-grow"></span>
         <span class="pn-small">${E.items.length} elementos · ${E.items.filter((i) => i.publicado).length} publicados · ${E.items.filter((i) => !i.publicado).length} borradores</span></div>` : '';
     if (!E.items.length && !E.temas.length) return bar + (prof
       ? `<div class="cl-vacio"><p>Aquí aparecerá el trabajo de clase de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}.</p><p>Pulsa <b>⬇ Importar de Classroom</b> para cargar los temas y elementos que tenías en Classroom, o <b>＋ Crear</b> para empezar.</p></div>`
@@ -141,7 +142,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
         <details class="cl-mas"><summary class="btn tiny" aria-label="Más acciones">⋮</summary><div class="cl-menu">
           <button data-cl="editar">✏️ Editar</button><button data-cl="renombrar">🔤 Cambiar el título</button>
           <label>Mover a <select data-cl-mover>${opt('', 'Sin tema', it.tema || '')}${temas.map((t) => opt(t.id, t.nombre, it.tema || '')).join('')}</select></label>
-          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="exportarJSON">⬇ Exportar JSON</button><button data-cl="borrar" class="pn-peligro">🗑 Borrar</button></div></details></span></div>`;
+          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button><button data-cl="borrar" class="pn-peligro">🗑 Borrar</button></div></details></span></div>`;
   }
 
   // ---- Organización (solo profesor): la visión completa de la asignatura, con borradores, pendientes y notas privadas
@@ -154,7 +155,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const anuncios = [...st.anuncios.values()].filter((x) => x.asig === C.asig && x.curso === st.cursoSel).length;
     const filtroOk = (it) => C.orgF === 'todo' || (C.orgF === 'pend' ? it.pendiente : k(it) === C.orgF);
     const stat = (v, t, f) => `<div class="org-stat ${f ? 'e-' + f : ''}"><b>${v}</b><span>${t}</span></div>`;
-    const acciones = `<div class="org-acts"><a class="btn primary" href="#asig/${esc(C.asig)}/trabajo">📚 Editar el trabajo de clase</a><button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">📥 Importar JSON</button><button class="btn" data-cl="reutilizar">♻️ Copiar de otro curso</button><a class="btn" href="#asig/${esc(C.asig)}/tablon">👁 Ver como alumno</a></div>`;
+    const acciones = `<div class="org-acts"><a class="btn primary" href="#asig/${esc(C.asig)}/trabajo">📚 Editar el trabajo de clase</a><button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">${ic('upload')} Importar JSON</button><button class="btn" data-cl="reutilizar">♻️ Copiar de otro curso</button><a class="btn" href="#asig/${esc(C.asig)}/tablon">👁 Ver como alumno</a></div>`;
     const grupos = `<section class="org-box"><h3>👥 Grupos de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}</h3>${gs.length ? `<ul class="org-grupos">${gs.map((g) => `<li><b>${esc(g.nombre)}</b><span class="pn-small">Código <code>${esc(g.codigo || '—')}</code> · ${Number(g.alumnos || 0)} alumnos</span></li>`).join('')}</ul>` : '<p class="pn-small">Todavía no hay grupos con esta asignatura.</p>'}<a class="cl-link" href="#panel/grupos">Gestionar grupos y códigos →</a></section>`;
     const fila = (it) => { const e = estadoPub(it, ahoraT); return `<li class="org-it ${e.k}" data-item="${esc(it.id)}"><span class="cl-ic t-${esc(it.tipo)}" aria-hidden="true">${icono(it.tipo)}</span>
       <span class="cl-tx"><a href="#trabajo/${esc(it.id)}"><b>${esc(it.titulo)}</b></a><span class="cl-meta">${esc(nombreTipo(it.tipo))}${metaItem(it) ? ' · ' + esc(metaItem(it)) : ''}</span>${it.nota ? `<span class="org-nota">🔒 Nota privada: ${esc(it.nota)}</span>` : ''}</span>

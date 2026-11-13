@@ -131,3 +131,42 @@ test('Fase 2 · nada de listas dentro de listas (Firestore no las admite) en exa
     { id: 'e', tipo: 'zonas', enunciado: 'x', imagen: 'img/a.webp', zonas: [{ x: 1, y: 1, w: 10, h: 10 }] }];
   for (const q of Q) { const v = validarPregunta(q, 0, (e) => { throw new Error(e); }); const s = separarPregunta(v); assert.ok(!anidada(s.publica) && !anidada(s.clave), q.tipo); }
 });
+
+// ------------------------------------------------------------------ Fase 3
+test('Fase 3 · nota por criterio de un examen (con detalle, sin detalle, preguntas sin criterio)', async () => {
+  const { notaPorCriterio } = await import('./src/lms/analitica.js');
+  const P = [{ id: 'a', puntos: 2, criterio: 'c1' }, { id: 'b', puntos: 2, criterio: 'c1' }, { id: 'c', puntos: 1, criterio: 'c2' }, { id: 'd', puntos: 1 }];
+  const r = notaPorCriterio(P, { a: 2, b: 1, c: 0, d: 1 }, 6.67, 'cX');
+  assert.deepEqual(r, [{ criterio: 'c1', nota: 7.5 }, { criterio: 'c2', nota: 0 }, { criterio: 'cX', nota: 10 }]);
+  assert.deepEqual(notaPorCriterio(P, null, 6, 'cX'), [{ criterio: 'cX', nota: 6 }]);
+  assert.deepEqual(notaPorCriterio([{ id: 'a' }], { a: 1 }, 10, ''), [{ criterio: '', nota: 10 }]);
+});
+
+test('Fase 3 · CSV por criterio: 5 columnas, sin nombres, nota 0–10 con coma, ordenado', async () => {
+  const { filasCriterios } = await import('./src/lms/analitica.js');
+  const { csv } = await import('./src/lms/modelo.js');
+  const F = filasCriterios([
+    { n: 3, actividad: 'Examen', fecha: new Date(2026, 10, 13, 10).getTime(), nota: 7.5, criterio: 'c1' },
+    { n: 1, actividad: 'Tarea', fecha: new Date(2026, 10, 12, 10).getTime(), nota: 12, criterio: '' },
+    { n: 1, actividad: 'Sin nota', fecha: 1, nota: null, criterio: 'c1' }]);
+  assert.deepEqual(F[0], ['nº de lista', 'actividad', 'fecha', 'nota', 'criterio']);
+  assert.equal(F.length, 3); assert.ok(F.every((f) => f.length === 5));
+  assert.deepEqual(F[1], ['01', 'Tarea', '2026-11-12', '10', '']);
+  assert.deepEqual(F[2], ['03', 'Examen', '2026-11-13', '7,5', 'c1']);
+  assert.match(csv(F), /^\ufeff"nº de lista";"actividad";"fecha";"nota";"criterio"\r\n"01";/);
+});
+
+test('Fase 3 · analítica: % por pregunta y por criterio (parcial incluido), de menor a mayor, más falladas', async () => {
+  const { analizarExamen } = await import('./src/lms/analitica.js');
+  const P = [{ id: 'q1', tipo: 'vf', enunciado: 'Uno', puntos: 1, criterio: 'c1' }, { id: 'q2', tipo: 'test', enunciado: 'Dos', puntos: 1, criterio: 'c2', opciones: ['a', 'b'] },
+    { id: 'q3', tipo: 'ordenar', enunciado: 'Tres', puntos: 2, criterio: 'c2', elementos: ['x', 'y'] }];
+  const K = { q1: true, q2: 1, q3: [1, 0] };
+  const E = [{ respuestas: { q1: true, q2: 0, q3: [1, 0] } }, { respuestas: { q1: true, q2: 1, q3: [0, 1] } }, { respuestas: { q1: false }, detalle: { q1: 1, q2: 0, q3: 1 } }];
+  const R = analizarExamen(P, K, E);
+  assert.equal(R.n, 3);
+  assert.deepEqual(R.porPregunta.map((q) => [q.id, q.pct]), [['q2', 33.3], ['q3', 50], ['q1', 100]]);
+  assert.deepEqual(R.porCriterio.map((c) => [c.criterio, c.pct]), [['c2', 44.4], ['c1', 100]]);
+  assert.deepEqual(R.masFalladas.map((q) => q.id), ['q2', 'q3']);
+  assert.equal(R.porPregunta.find((q) => q.id === 'q2').fallos, 2);
+  assert.equal(analizarExamen(P, K, []).masFalladas.length, 0);
+});

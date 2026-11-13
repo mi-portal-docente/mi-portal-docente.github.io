@@ -3,6 +3,7 @@
 // Sirven al alumno (con su grupo + nº + PIN) y al profesor (vista previa).
 import { doc, setDoc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { esc } from './util.js';
+import { ic } from './ico.js';
 import { asignatura, TIPOS } from '../lms/biblioteca.js';
 import { fmtNota, barajar, semilla, leeEnlaces, urlSegura, idTrabajo, TIPOS_ENTREGA, corregirExamen, tipoAdjunto } from '../lms/modelo.js';
 import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTipoPregunta } from './examen-ui.js';
@@ -101,7 +102,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (tr) return h + '<div class="au-ok">⏱ Se acabó el tiempo. Se han guardado las respuestas que diste.</div>';
     if (now < v.desde) return h + `<p class="au-vacio">El examen se abrirá el ${esc(fFecha(v.desde))}.</p>`;
     if (now > v.hasta) return h + '<p class="au-vacio">El plazo del examen ha terminado.</p>';
-    const me = it.examen?.pantallaCompleta ? '<div class="au-aviso ex-modo-aviso">🛡 <b>Modo examen</b>: se abrirá a pantalla completa. Si sales de la pestaña o de la pantalla completa, queda anotada la hora y cuánto tiempo (lo ve solo tu profesor). No anula el examen.</div>' : '';
+    const me = it.examen?.pantallaCompleta ? '<div class="au-aviso ex-modo-aviso">' + ic('shield-check') + ' <b>Modo examen</b>: se abrirá a pantalla completa. Si sales de la pestaña o de la pantalla completa, queda anotada la hora y cuánto tiempo (lo ve solo tu profesor). No anula el examen.</div>' : '';
     return h + me + `<div class="au-aviso">Solo tienes <b>un intento</b>. ${v.limiteMin ? `Tendrás <b>${v.limiteMin} minutos</b> desde que pulses «Empezar».` : ''} Las respuestas se guardan solas mientras contestas.</div>
       <div class="au-acts"><button class="btn primary" data-au="empezar">▶ Empezar el examen</button><span class="au-msg" id="auMsg"></span></div>`;
   }
@@ -168,7 +169,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     const r = (q) => ex.resp[q.id];
     actual.el.innerHTML = barraSup() + `<div class="au-page au-examen">${cabeceraItem(it)}
       <div class="au-reloj" id="auReloj" role="timer"></div>
-      ${examen.pantallaCompleta ? '<div class="ex-modo" id="exModo" role="status">🛡 Modo examen · las salidas de la pestaña o de la pantalla completa quedan anotadas (solo informativo). <button type="button" class="btn tiny" data-au="pantalla">⛶ Volver a pantalla completa</button></div>' : ''}
+      ${examen.pantallaCompleta ? '<div class="ex-modo" id="exModo" role="status">' + ic('shield-check') + ' Modo examen · las salidas de la pestaña o de la pantalla completa quedan anotadas (solo informativo). <button type="button" class="btn tiny" data-au="pantalla">' + ic('maximize') + ' Volver a pantalla completa</button></div>' : ''}
       <form id="auExamen" class="au-form" autocomplete="off">${qs.map((q, n) => preguntaHTML(q, r(q), { n: n + 1, barajarOps: examen.barajar, s })).join('')}
         <div class="au-acts"><button type="submit" class="btn primary">📤 Entregar el examen</button><span class="au-msg" id="auMsg"></span></div>
         <p class="au-small">Las respuestas se guardan solas. Si se corta la conexión, vuelve a entrar con tu código, tu número y tu PIN: podrás seguir mientras quede tiempo.</p></form></div>`;
@@ -233,7 +234,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       box.innerHTML = pq.length ? `<ol class="au-prev">${pq.map((q) => `<li><div>${textoHTML(q.enunciado)} <span class="au-small">(${esc(fmtNota(q.puntos || 1))} pt)</span></div>
         ${q.criterio ? `<span class="au-crit">${esc(q.criterio)}</span>` : ''}${q.tipo === 'test' ? `<ul>${(q.opciones || []).map((o, i) => `<li class="${Number(k[q.id]) === i ? 'ok' : ''}">${Number(k[q.id]) === i ? '✔ ' : ''}${esc(o)}</li>`).join('')}</ul>`
         : q.tipo === 'vf' ? `<div class="ok">✔ ${k[q.id] ? 'Verdadero' : 'Falso'}</div>` : q.tipo === 'corta' ? `<div class="ok">✔ Se aceptan: ${esc((k[q.id] || []).join(' · ') || '— (corrección manual)')}</div>`
-        : `<div class="au-small">${esc(nombreTipoPregunta(q.tipo))}</div><div class="ok">✔ ${esc(solucionTexto(q, k[q.id]))}</div>`}</li>`).join('')}</ol>
+        : `<div class="au-small">${esc(nombreTipoPregunta(q.tipo))}</div><div class="ok">${ic('check')} ${esc(solucionTexto(q, k[q.id]))}</div>`}</li>`).join('')}</ol>
         <p class="au-small">Total: ${esc(fmtNota(prueba.max))} puntos · ${examen.barajar ? 'preguntas y opciones barajadas para cada alumno' : 'sin barajar'}.</p>` : '<p class="au-vacio">Este examen todavía no tiene preguntas.</p>';
     } catch (e) { box.innerHTML = '<p class="au-vacio">No se han podido cargar las preguntas.</p>'; }
   }

@@ -108,3 +108,41 @@ rama: se repite en la fase 3 para ver si es de tiempo).
 
 **Dudas / pendiente**: en iPhone (Safari) la pantalla completa no existe para páginas; allí solo se anota
 la salida de la pestaña. Las preguntas generadas del banco conservan el criterio.
+
+---
+
+## Fase 3 · Notas y analítica — HECHA
+
+**Qué hay**
+* Cuaderno de calificaciones → **Exportar CSV** (nuevo, por grupo y asignatura): columnas exactamente
+  `nº de lista; actividad; fecha; nota; criterio` (nota 0–10 con coma decimal, fecha AAAA-MM-DD, separador «;»
+  y BOM para Excel). **Sin nombres.** Los exámenes salen con **una fila por criterio** (puntos de las preguntas
+  de ese criterio / máximo × 10; las preguntas sin criterio cuentan para el criterio del examen); las tareas
+  y actividades con su `criterio` (o vacío); las prácticas del laboratorio de EEE con criterio vacío. Solo
+  filas con nota. El CSV de antes (tabla ancha) sigue como «CSV (tabla)».
+* Panel del profesor → **Analítica** (Seguimiento): grupo, asignatura y examen; % de acierto **por criterio**
+  y **por pregunta**, ordenados de menor a mayor, con barra de color, nº de alumnos sin la máxima y en blanco,
+  y la lista de las **5 preguntas más falladas**. Cuenta la puntuación parcial y, si el profesor cambió a mano
+  la puntuación de una pregunta, cuenta la suya. Funciona en móvil (columna de criterio oculta).
+* **Iconos**: lo nuevo de las fases 1–3 usa iconos de línea Lucide (`ic()` de `src/ui/iconos.js`, vía
+  `src/portal/ico.js`) en lugar de emoji. Se han añadido a `iconos-datos.js` (regenerado con `iconos-gen.mjs`
+  y Lucide 1.72.0, la misma versión) los iconos que faltaban: arrow-down, radio, code, upload, table, etc.
+  El menú lateral del panel admite ya nombres de icono Lucide.
+
+**Archivos**: `src/lms/analitica.js` (nuevo, funciones puras), `src/portal/aula-panel.js`, `src/portal/panel.js`,
+`src/portal/ico.js` (nuevo), `src/portal/aula-json.js`, `aula-banco.js`, `aula-clase.js`, `aula-editor.js`,
+`aula-vistas.js`, `examen-ui.js` (iconos), `src/ui/iconos-datos.js`, `iconos-gen.mjs`, `css/plataforma.css`,
+`plataforma_test.mjs`, `e2e/plataforma_f3.mjs`, caché `gp3-20261113`.
+
+**Reglas**: no cambian en esta fase.
+
+**Pruebas**: `plataforma_test.mjs` 19/19 · E2E fases 1+2+3: 34/34 · `aula_e2e` con el estado de esta fase:
+116/116 (el fallo de la fase 2 —«quitar T.I.Cs»— y un tiempo agotado al importar de Classroom en otra
+pasada eran de tiempo con la máquina cargada: con esta fase pasan todas). Regresión completa con el estado
+de la fase 2: placa, circ, circ_pins, viv, viv_modelo, aula_modelo, acceso, extra y reglas ✔; `fb_e2e` 59/59.
+
+**Capturas**: `f3_cuaderno_csv.png`, `f3_analitica.png`, `f3_analitica_movil.png`.
+
+**Dudas / pendiente**: el CSV es por grupo (el nº de lista solo identifica dentro de un grupo); si se
+quiere uno con todos los grupos de la asignatura habría que añadir la columna grupo (no la he puesto
+porque pediste exactamente esas 5 columnas).

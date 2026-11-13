@@ -4,6 +4,7 @@
 // grupos y estado: publicar ahora, programar o borrador. Las soluciones del examen van aparte (claves).
 import { doc, writeBatch, Timestamp } from 'firebase/firestore';
 import { esc } from './util.js';
+import { ic } from './ico.js';
 import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
 import { criterioValido } from '../lms/elemento.js';
 import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta } from '../lms/preguntas.js';
@@ -81,7 +82,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     const entregable = TIPOS_ENTREGA.includes(e.tipo) || e.tipo === 'examen';
     const temas = temasDe(e.curso, e.asig);
     return `<form id="apItemForm" class="pn-form ap-form cl-form" autocomplete="off">
-    <header class="cl-dlg-h"><span class="cl-dlg-ic">${TIPOS[e.tipo]?.icon || '📄'}</span><h3>${e.id ? 'Editar' : 'Crear'}: ${esc(TIPOS[e.tipo]?.nombre || e.tipo)}</h3><span class="pn-small">${esc(a?.corto || e.asig)}</span><span class="pn-grow"></span>${e.id ? '<button class="btn small" type="button" data-ed="exportar" title="Exportar este elemento en JSON (lo guardado)">⬇ JSON</button>' : ''}<button class="btn" type="button" data-ed="cancelar" aria-label="Cerrar">✕</button></header>
+    <header class="cl-dlg-h"><span class="cl-dlg-ic">${TIPOS[e.tipo]?.icon || '📄'}</span><h3>${e.id ? 'Editar' : 'Crear'}: ${esc(TIPOS[e.tipo]?.nombre || e.tipo)}</h3><span class="pn-small">${esc(a?.corto || e.asig)}</span><span class="pn-grow"></span>${e.id ? '<button class="btn small" type="button" data-ed="exportar" title="Exportar este elemento en JSON (lo guardado)">' + ic('download') + ' JSON</button>' : ''}<button class="btn" type="button" data-ed="cancelar" aria-label="Cerrar">✕</button></header>
     <div class="cl-dlg-b"><div class="cl-dlg-main">
       <label class="pn-f">Tipo<select name="tipo">${TIPOS_EDITOR.map((t) => opt(t, `${TIPOS[t].icon} ${TIPOS[t].nombre}`, e.tipo)).join('')}</select></label>
       <label class="pn-f">${e.tipo === 'pregunta' ? 'Pregunta' : 'Título'}<input name="titulo" maxlength="150" required value="${esc(e.titulo)}"></label>
@@ -96,10 +97,10 @@ export function crearEditor({ db, aula, gruposDe }) {
         <div class="ap-fila"><label class="pn-f">Se abre<input type="datetime-local" name="desde" value="${esc(aLocal(ex.desde))}"></label><label class="pn-f">Se cierra<input type="datetime-local" name="hasta" value="${esc(aLocal(ex.hasta))}"></label>
         <label class="pn-f">Tiempo límite (min, vacío = sin límite)<input type="number" name="limiteMin" min="1" max="600" value="${ex.limiteMin || ''}"></label></div>
         <label class="pn-chk"><input type="checkbox" name="barajar" ${ex.barajar !== false ? 'checked' : ''}> Barajar preguntas y opciones para cada alumno</label>
-        <label class="pn-chk"><input type="checkbox" name="pantallaCompleta" ${ex.pantallaCompleta ? 'checked' : ''}> 🛡 Modo examen: pantalla completa y registro de salidas de la pestaña (informativo, solo lo ves tú)</label>
+        <label class="pn-chk"><input type="checkbox" name="pantallaCompleta" ${ex.pantallaCompleta ? 'checked' : ''}> ${ic('shield-check')} Modo examen: pantalla completa y registro de salidas de la pestaña (informativo, solo lo ves tú)</label>
         <p class="pn-small">Las soluciones se guardan aparte (solo las puede leer el profesor). Test y verdadero/falso se corrigen solos; las respuestas cortas se corrigen solas si coinciden con alguna aceptada (sin tildes ni mayúsculas) y si no, las revisas tú.</p>
         <div id="apPreguntas">${e.cargando ? '<p class="pn-small">Cargando preguntas…</p>' : preguntasHTML()}</div>
-        <div class="pn-acts"><button type="button" class="btn small" data-ed="q+test">➕ Test</button><button type="button" class="btn small" data-ed="q+vf">➕ Verdadero/falso</button><button type="button" class="btn small" data-ed="q+corta">➕ Respuesta corta</button><button type="button" class="btn small" data-ed="q+emparejar">➕ Emparejar</button><button type="button" class="btn small" data-ed="q+ordenar">➕ Ordenar</button><button type="button" class="btn small" data-ed="q+huecos">➕ Huecos</button><button type="button" class="btn small" data-ed="q+numerica">➕ Numérica</button><button type="button" class="btn small" data-ed="q+zonas">➕ Imagen con zonas</button><button type="button" class="btn small" data-ed="banco">🗄 Del banco…</button></div></fieldset>` : ''}
+        <div class="pn-acts"><button type="button" class="btn small" data-ed="q+test">${ic('plus')} Test</button><button type="button" class="btn small" data-ed="q+vf">${ic('plus')} Verdadero/falso</button><button type="button" class="btn small" data-ed="q+corta">${ic('plus')} Respuesta corta</button><button type="button" class="btn small" data-ed="q+emparejar">${ic('plus')} Emparejar</button><button type="button" class="btn small" data-ed="q+ordenar">${ic('plus')} Ordenar</button><button type="button" class="btn small" data-ed="q+huecos">${ic('plus')} Huecos</button><button type="button" class="btn small" data-ed="q+numerica">${ic('plus')} Numérica</button><button type="button" class="btn small" data-ed="q+zonas">${ic('plus')} Imagen con zonas</button><button type="button" class="btn small" data-ed="banco">${ic('archive')} Del banco…</button></div></fieldset>` : ''}
       <fieldset class="pn-f cl-nota ${e.pendiente ? 'pend' : ''}"><legend>🔒 Nota privada (solo la ves tú)</legend>
         ${e.pendiente ? `<p class="cl-pend-aviso"><b>⚠ ${PEND_T}.</b> Al importarlo de Classroom no constaban todos los detalles. Añade instrucciones o adjuntos y guarda: el aviso desaparece solo.</p>` : ''}
         <textarea name="nota" rows="2" maxlength="2000" placeholder="Recordatorios para ti; los alumnos no la ven.">${esc(e.nota || '')}</textarea>

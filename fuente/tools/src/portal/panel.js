@@ -4,6 +4,7 @@
 import { collection, doc, onSnapshot, writeBatch, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { esc, offsetLocal, hhmm, DIAS } from './util.js';
 import { nuevoCodigo } from './codigos.js';
+import { ic as lucide } from './ico.js';
 import { crearAulaPanel } from './aula-panel.js';
 import { BIBLIOTECA, asignatura } from '../lms/biblioteca.js';
 
@@ -26,13 +27,14 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   const tituloPractica = (id, fallback) => { if (id === 'v1') return 'Vivienda · Tablero eléctrico de la SA1'; if (id === 'v2') return 'Vivienda · Modo libre'; const c = cat(); const p = c.practicas.find(x => x.id === id); if (p) return `Circuitos ${p.n} · ${p.titulo}`; const q = c.proyectos.find(x => x.id === id); if (q) return `ESP32 ${q.n} · ${q.titulo}`; return fallback || id; };
   const $ = (s) => st.el && st.el.querySelector(s);
   const ap = crearAulaPanel({ db, aula, ps: st, nombreGrupo, tituloPractica });
-  const TABS = ['cursos', 'grupos', 'notas', 'entregas', 'conectados', 'ajustes'];
-  const ALIAS = { limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas', usuarios: 'conectados' };
-  const AULA = ['cursos', 'notas'];
+  const TABS = ['cursos', 'grupos', 'notas', 'analitica', 'entregas', 'conectados', 'ajustes'];
+  const ALIAS = { analítica: 'analitica', estadisticas: 'analitica', limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas', usuarios: 'conectados' };
+  const AULA = ['cursos', 'notas', 'analitica'];
   const DESC = {
     cursos: 'Cada curso escolar eliges qué asignaturas impartes. El curso activo es el que ves en «Curso»; la «Biblioteca» guarda todas las asignaturas, también las de otros años.',
     grupos: 'Cada grupo tiene un código de clase que los alumnos usan para entrar (con su nº de lista y un PIN). Sin nombres.',
     notas: 'Cuaderno por grupo y asignatura: tareas, cuestionarios, actividades y prácticas del laboratorio. Nota de cada actividad (la nota por criterios se calcula en SuperProfe y QE).',
+    analitica: 'Cómo ha ido cada examen: % de acierto por pregunta y por criterio, de menor a mayor, y las preguntas más falladas. Sin nombres: solo cuenta las entregas del grupo.',
     entregas: 'Prácticas entregadas desde los laboratorios 3D (ESP32, Circuitos y Vivienda): revisa el montaje y pon nota.',
     conectados: 'Quién está dentro ahora mismo y todos los números de lista de cada grupo, con su último acceso. Si entra alguien que no debe, cierra su sesión o bloquea el número mientras lo aclaras (solo grupo y nº, sin nombres).',
     ajustes: 'Tu cuenta, el PIN de los alumnos y la limpieza de datos al cerrar el curso.',
@@ -97,11 +99,11 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const sinNota = st.entregas.filter(e => e.nota == null).length;
     const cAct = aula.cursoActivo();
     const G = [['Clases', [['cursos', '📅', 'Cursos escolares', cAct ? cAct.nombre : ''], ['grupos', '👥', 'Grupos y códigos', st.grupos.size]]],
-      ['Seguimiento', [['notas', '📊', 'Cuaderno de calificaciones', ''], ['entregas', '🔬', 'Entregas del laboratorio', sinNota ? `${sinNota} sin nota` : st.entregas.length], ['conectados', '👤', 'Usuarios y conectados', vivos]]],
+      ['Seguimiento', [['notas', '📊', 'Cuaderno de calificaciones', ''], ['analitica', 'chart-column', 'Analítica', ''], ['entregas', '🔬', 'Entregas del laboratorio', sinNota ? `${sinNota} sin nota` : st.entregas.length], ['conectados', '👤', 'Usuarios y conectados', vivos]]],
       ['Ajustes', [['ajustes', '⚙️', 'Ajustes y limpieza', '']]]];
-    $('#pnTabs').innerHTML = G.map(([g, L]) => `<div class="pn-g"><div class="pn-gt">${g}</div>${L.map(([k, ic, t, n]) => `<a href="#panel/${k}" class="${k === st.sub ? 'on' : ''}" data-pn-tab="${k}" ${k === st.sub ? 'aria-current="page"' : ''}><span aria-hidden="true">${ic}</span> ${t}${n !== '' ? ` <span class="pn-n">${esc(n)}</span>` : ''}</a>`).join('')}</div>`).join('');
+    $('#pnTabs').innerHTML = G.map(([g, L]) => `<div class="pn-g"><div class="pn-gt">${g}</div>${L.map(([k, ic, t, n]) => `<a href="#panel/${k}" class="${k === st.sub ? 'on' : ''}" data-pn-tab="${k}" ${k === st.sub ? 'aria-current="page"' : ''}><span aria-hidden="true">${/^[a-z-]+$/.test(ic) ? lucide(ic) : ic}</span> ${t}${n !== '' ? ` <span class="pn-n">${esc(n)}</span>` : ''}</a>`).join('')}</div>`).join('');
     const act = G.flatMap((x) => x[1]).find((x) => x[0] === st.sub);
-    if (act && $('#pnH1')) { $('#pnH1').textContent = `${act[1]} ${act[2]}`; $('#pnDesc').textContent = DESC[st.sub] || ''; $('#pnCrumb').textContent = act[2]; }
+    if (act && $('#pnH1')) { if (/^[a-z-]+$/.test(act[1])) $('#pnH1').innerHTML = `${lucide(act[1])} ${esc(act[2])}`; else $('#pnH1').textContent = `${act[1]} ${act[2]}`; $('#pnDesc').textContent = DESC[st.sub] || ''; $('#pnCrumb').textContent = act[2]; }
   }
   const pintarContadores = () => { if ($('#pnTabs')) pintarTabs(); };
   function pintarTab() {
@@ -125,7 +127,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     if (st.sub === 'conectados' && $('#pnCon')) { $('#pnCon').innerHTML = conectadosHTML(); $('#pnUsuRes').innerHTML = resumenUsuariosHTML(); if (!$('#pnUsuBar').contains(document.activeElement)) $('#pnUsuBar').innerHTML = barraUsuariosHTML(); $('#pnUsu').innerHTML = usuariosHTML(); }
     if (st.sub === 'entregas' && $('#pnTabla')) { $('#pnFiltros').innerHTML = filtrosHTML(); $('#pnTabla').innerHTML = tablaEntregasHTML(); }
     if (st.sub === 'ajustes' && $('#pnLimp')) { $('#pnLimp').innerHTML = limpiezaHTML(); $('#apLimp').innerHTML = ap.limpiezaHTML(); }
-    if (st.sub === 'notas' && st.listo.g) ap.pintar();
+    if ((st.sub === 'notas' || st.sub === 'analitica') && st.listo.g) ap.pintar();
   }
 
   // ------------------------------------------------------------ grupos
