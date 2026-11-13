@@ -68,7 +68,7 @@ const PORTAL = window.PORTAL = {
   // «Curso» = las asignaturas del curso escolar activo; «Biblioteca» = todas las asignaturas trabajadas (archivo).
   navHTML(activa = '') {
     const a = (href, k, t) => `<a class="top-nav-a ${activa === k ? 'on' : ''}" href="${href}" ${activa === k ? 'aria-current="page"' : ''}>${t}</a>`;
-    const cal = vistas ? a('#calendario', 'cal', `${ic('calendar-days')} Calendario`) : '';
+    const cal = a('#calendario', 'cal', `${ic('calendar-days')} Calendario`);
     if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${cal}</nav>`;
     return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${cal}${a('#biblioteca', 'biblio', '🗂 Biblioteca')}${a('#panel', 'panel', '⚙️ Panel del profesor')}</nav>`;
   },
