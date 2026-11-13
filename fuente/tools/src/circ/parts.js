@@ -233,8 +233,8 @@ export const PARTS = {
   },
   meter: {
     name: 'Polímetro', cat: 'Medida', board: false, size: [14, 24], pins: [['com', -3.6, 9.4, 2.6], ['red', 0, 9.4, 2.6]], perms: [['com', 'red']],
-    props: { mode: 'V', jack: 'VΩmA' }, desc: 'Mide tensión (V, en paralelo), corriente (A, en serie) y resistencia (Ω, sin alimentación). Punta negra siempre en COM. Punta roja en VΩmA para V, Ω y corrientes pequeñas (fusible de 200 mA), o en 10A para corrientes grandes.',
-    ui: [{ k: 'mode', label: 'Función (rueda)', type: 'seg', options: ['V', 'A', 'Ω'], live: true }, { k: 'jack', label: 'Borne de la punta roja', type: 'seg', options: ['VΩmA', '10A'], live: true }],
+    props: { mode: 'V', jack: 'VΩmA' }, desc: 'Mide tensión (V, en paralelo), corriente (A, en serie), resistencia (Ω, sin alimentación) y continuidad (·))), pita si hay menos de 50 Ω). Punta negra siempre en COM. Punta roja en VΩmA para V, Ω y corrientes pequeñas (fusible de 200 mA), o en 10A para corrientes grandes.',
+    ui: [{ k: 'mode', label: 'Función (rueda)', type: 'seg', options: ['V', 'A', 'Ω', '·)))'], live: true }, { k: 'jack', label: 'Borne de la punta roja', type: 'seg', options: ['VΩmA', '10A'], live: true }],
     sig: () => 'meter', label: () => 'Polímetro', meter: true, pinNames: { com: 'COM (punta negra)', red: 'punta roja' },
     els: (p, T, st) => {
       if (st.fuse) return [];

@@ -24,6 +24,7 @@ export const TIPOS = {
   info: { nombre: 'Representación de la información', icon: '🔢', cat: 'tareas' },
   ciber: { nombre: 'Ciberseguridad', icon: '🔐', cat: 'tareas' },
   bloques: { nombre: 'Retos por bloques', icon: '🧱', cat: 'tareas' },
+  averia: { nombre: 'Encuentra la avería', icon: '🔧', cat: 'practicas' },
 };
 export const CATEGORIAS = [
   { id: 'examenes', nombre: 'Exámenes y cuestionarios', peso: 40 },

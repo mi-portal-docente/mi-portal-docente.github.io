@@ -30,13 +30,13 @@ export function connectivity(model, opts = {}) {
     // uniones internas fijas (p. ej. las patas 1–2 y 3–4 del pulsador): son físicas, cuentan siempre
     if (def.internal) for (const [x, y] of def.internal(p)) uf.union(termKey(p, x), termKey(p, y));
     if (!opts.structural) {
-      if (def.merges) for (const [x, y] of def.merges(p, opts.runtime?.[p.id] || {})) uf.union(termKey(p, x), termKey(p, y));
+      if (def.merges && !(model.averia?.elemento === p.id && model.averia.tipo === 'abierto')) for (const [x, y] of def.merges(p, opts.runtime?.[p.id] || {})) uf.union(termKey(p, x), termKey(p, y));
     }
     if (def.meter && !opts.structural && p.probes) {
       for (const [pin, k] of [['red', p.probes.red], ['com', p.probes.com]]) if (k) { touch(k); uf.union(termKey(p, pin), k); }
     }
   }
-  for (const w of model.wires) { touch(w.a); touch(w.b); uf.union(w.a, w.b); }
+  for (const w of model.wires) { touch(w.a); touch(w.b); if (opts.structural || model.averia?.elemento !== w.id) uf.union(w.a, w.b); }
   return uf;
 }
 
@@ -53,6 +53,14 @@ export function buildNetlist(model, runtime = {}, opts = {}) {
     let list = def.els(p, (pin) => termKey(p, pin), st, opts);
     if (opts.zeroSources) list = list.map(e => e.k === 'V' ? { ...e, v: 0 } : e);
     if (opts.skipMeters && def.meter) list = [];
+    // «Encuentra la avería»: el elemento averiado se simula abierto, en corto o con otro valor
+    const av = model.averia; if (av && av.elemento === p.id) {
+      const T = (pin) => termKey(p, pin); const pins = def.pins.map((x) => x[0]);
+      if (av.tipo === 'abierto') list = [];
+      else if (av.tipo === 'corto' && pins.length >= 2) list = [{ k: 'R', id: p.id, a: T(pins[0]), b: T(pins[pins.length - 1]), r: 0.01 }];
+      else if (av.tipo === 'valor' && av.valor > 0) list = def.els({ ...p, props: { ...p.props, r: av.valor } }, T, st, opts);
+      if (opts.zeroSources) list = list.map(e => e.k === 'V' ? { ...e, v: 0 } : e);
+    }
     for (const e of list) {
       const en = { ...e, ta: e.a, tb: e.b, a: node(e.a), b: node(e.b), part: p.id };
       if (en.k === 'V' && en.a === en.b) { shorts.push(p.id); if (!opts.zeroSources) continue; }
@@ -72,7 +80,7 @@ export function netEdges(model, runtime = {}) {
     if (def.merges) for (const [x, y] of def.merges(p, runtime[p.id] || {})) E.push({ a: termKey(p, x), b: termKey(p, y), kind: 'contact', part: p.id, pins: [x, y] });
     if (def.meter && p.probes) for (const pin of ['red', 'com']) if (p.probes[pin]) E.push({ a: termKey(p, pin), b: p.probes[pin], kind: 'probe', part: p.id, pin });
   }
-  for (const w of model.wires) E.push({ a: w.a, b: w.b, kind: 'wire', id: w.id });
+  for (const w of model.wires) if (model.averia?.elemento !== w.id) E.push({ a: w.a, b: w.b, kind: 'wire', id: w.id });
   const holes = new Set(); for (const e of E) for (const k of [e.a, e.b]) if (k.startsWith('h:')) holes.add(k);
   for (const h of holes) E.push({ a: h, b: 's:' + stripOf(h.slice(2)), kind: 'strip', hole: h.slice(2) });
   return E;

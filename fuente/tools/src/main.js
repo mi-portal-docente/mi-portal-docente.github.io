@@ -20,6 +20,7 @@ import { montarInfo } from './labs/info-ui.js';
 import { montarCiber } from './labs/ciber-ui.js';
 import { montarBloques } from './labs/bloques-ui.js';
 import { montarP5 } from './labs/p5-ui.js';
+import { montarAveria, defAveria } from './labs/averia-ui.js';
 import { calidad } from './kit3d/base.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -397,7 +398,16 @@ window.PORTAL_MOTORES = Object.assign(window.PORTAL_MOTORES || {}, {
   info: motorItem((n, it, cx) => montarInfo(n, it.contenido, cx)),
   ciber: motorItem((n, it, cx) => montarCiber(n, it.contenido, cx)),
   bloques: motorItem((n, it, cx) => montarBloques(n, it.contenido, cx)),
+  averia: motorItem((n, it, cx) => montarAveria(n, it, cx)),
 });
+// «Encuentra la avería»: #eee/circuitos/averia-<idElemento> (o averia-ejemplo para practicar)
+function abrirAveria(id) {
+  const P = portal(); const e = id === 'ejemplo' ? { ejemplo: true } : P?.aula?.elemento?.(id);
+  if (!e) { lab.show('home'); lab.toast('Cargando la tarea…', 2500); lab._avPend = id; return; }
+  lab._avPend = null;
+  if (e.noExiste || (e.it && e.it.tipo !== 'averia')) { lab.show('home'); lab.toast('Esta tarea no existe o no está publicada para tu grupo.', 5000); return; }
+  lab.averia(defAveria(e, (itemId, texto) => P.aula.entregarActividad(itemId, texto)));
+}
 function motorItem(montar) {
   return (nodo, it, op) => { const c = montar(nodo, it, { clave: `${it.tipo}it:${it.id}`, tarea: it.id, titulo: it.titulo, rol: op.rol, entregar: op.entregar, entregadoTexto: op.trabajo?.texto || '', nota: notaTxt(op.nota) });
     return { actualizar: (o) => c.actualizar?.({ entregadoTexto: o.trabajo?.texto || '', nota: notaTxt(o.nota) }), destruir: () => c.destruir?.() }; };
@@ -592,6 +602,7 @@ function route() {
       if (rev) { lab.review(rev); return; }
       history.replaceState(null, '', portal()?.esProfesor ? '#panel/entregas' : '#eee/circuitos'); return route();
     }
+    if (v.startsWith('averia-')) { abrirAveria(v.slice(7)); return; }
     lab.show(v === 'libre' || /^c\d+$/.test(v) ? v : 'home');
     return;
   }
@@ -637,6 +648,7 @@ else {
     // estado de las actividades asignadas (entregada, nota…)
     if (curScreen === 'asig' && asigActual?.tab === 'actividades') pintarAsig(asigActual);
     if (curScreen === 'act' && act && act.estado?.fase !== 'ronda') act.pintar();
+    if (curScreen === 'circ' && lab?._avPend && location.hash === '#eee/circuitos/averia-' + lab._avPend) route();
   });
   // pestañas de la asignatura: flechas ← → (accesibilidad) y «Asignar como tarea»
   document.addEventListener('keydown', (e) => {

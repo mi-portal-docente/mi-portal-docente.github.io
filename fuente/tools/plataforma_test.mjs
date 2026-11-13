@@ -281,4 +281,33 @@ test('Fase 6 · TIC: validar y comprobar los motores web, info, ciber y bloques'
   assert.equal(W.evaluarWeb({ tipo: 'codigo', en: 'css', contiene: 'COLOR' }, { html: '', css: 'h1{color:red}' }), true);
   assert.equal(W.evaluarWeb({ tipo: 'selector', selector: 'h1', min: 1, texto: 'mi web' }, {}, { n: 1, textos: ['Mi web'] }), true);
   assert.equal(W.evaluarWeb({ tipo: 'estilo', selector: 'h1', propiedad: 'color', valor: 'red' }, {}, { n: 1, coincide: false }), false);
+
+});
+
+test('Fase 7 · polímetro con continuidad y «Encuentra la avería»', async () => {
+  await import('./src/lms/motores/index.js');
+  const { motor } = await import('./src/lms/elemento.js');
+  const { simulate } = await import('./src/circ/engine.js');
+  const AV = await import('./src/lms/motores/averia.js');
+  const base = motor('averia').ejemplo.montaje;
+  const medir = (mod, mode, red, com) => { const M = structuredClone(base); Object.assign(M, mod); const me = M.parts.find((p) => p.id === 'M1'); me.props.mode = mode; me.probes = { red, com }; return simulate(M, {}, {}).res; };
+  assert.equal(medir({}, 'V', 'h:a10', 'h:a14').L1.on, true);
+  const ab = medir({ averia: { elemento: 'R1', tipo: 'abierto' } }, 'V', 'h:a10', 'h:a14'); assert.equal(ab.L1.on, false); assert.ok(ab.M1.meter.value > 6, 'R1 abierta: casi toda la tensión de la pila entre sus patas');
+  const sinPila = { parts: base.parts.filter((p) => p.id !== 'B1'), wires: base.wires.filter((w) => !['w1', 'w2'].includes(w.id)) };
+  const cont = (mod, red, com) => { const M = structuredClone(sinPila); Object.assign(M, mod); const me = M.parts.find((p) => p.id === 'M1'); me.props.mode = '·)))'; me.probes = { red, com }; return simulate(M, {}, {}).res.M1.meter; };
+  assert.equal(cont({}, 'h:tp3', 'h:c10').beep, true, 'un cable bueno pita');
+  assert.equal(cont({ averia: { elemento: 'w3', tipo: 'cable' } }, 'h:tp3', 'h:c10').beep, false, 'un cable cortado no pita');
+  assert.equal(cont({}, 'h:c10', 'h:c14').text, 'OL', '470 Ω no pita');
+  assert.equal(cont({ averia: { elemento: 'R1', tipo: 'corto' } }, 'h:c10', 'h:c14').beep, true, 'resistencia en corto pita');
+  const rv = medir({ averia: { elemento: 'R1', tipo: 'valor', valor: 10000 } }, 'A', null, null); assert.ok(rv.L1.i < 0.001, 'R1 de 10 kΩ: casi sin corriente');
+  assert.equal(medir({}, '·)))', 'h:a10', 'h:a14').M1.meter.powered, true, 'continuidad con alimentación: aviso');
+  assert.deepEqual(validarElemento({ tipo: 'averia', titulo: 'X', contenido: motor('averia').ejemplo }).errores, []);
+  const ea = (c) => validarElemento({ tipo: 'averia', titulo: 'X', contenido: { ...motor('averia').ejemplo, ...c } }).errores.map((e) => e.texto).join(' ');
+  assert.match(ea({ averia: { elemento: 'R9', tipo: 'abierto' } }), /No hay ningún componente ni cable «R9»/);
+  assert.match(ea({ averia: { elemento: 'L1', tipo: 'valor', valor: 5 } }), /solo para resistencias/);
+  assert.match(ea({ averia: { elemento: 'w1', tipo: 'abierto' } }), /tiene que ser "cable"/);
+  assert.match(ea({ montaje: 'no es json' }), /exportado desde el laboratorio/);
+  assert.equal(AV.leerMontaje(JSON.stringify({ app: 'circuitos', model: base })).parts.length, 4);
+  assert.deepEqual(AV.evaluarAveria({ elemento: 'R1', tipo: 'abierto' }, { elemento: 'R1', tipo: 'corto' }), { elemento: true, tipo: false, a: 1, t: 2 });
+  assert.equal(AV.evaluarAveria({ elemento: 'R1', tipo: 'abierto' }, { elemento: 'L1', tipo: 'abierto' }).a, 0);
 });

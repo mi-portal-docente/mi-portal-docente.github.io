@@ -11,6 +11,8 @@ import { simulate } from './engine.js';
 import { PRACTICES, RA_SHORT } from './practices.js';
 import { solutionModel, stepDone, runChecks, makePart } from './guide.js';
 import { RA } from '../common.js';
+import { ic } from '../ui/iconos.js';
+import { TIPOS_AVERIA, leerMontaje } from '../lms/motores/averia.js';
 
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -101,6 +103,7 @@ export class CircuitLab {
     const root = this.$('.cx');
     if (this.running) this.toggleSim(false);
     if (this.readOnly) { this.readOnly = false; this.rev = null; this.view = null; root.classList.remove('is-ro'); }
+    if (this.av) { this.av = null; this.view = null; }
     if (view === 'home') {
       this.view = 'home'; root.classList.add('is-home'); root.classList.remove('is-editor');
       this.$('#cxHome').innerHTML = this.homeHTML(); this.setCrumbs(); this.pause();
@@ -126,11 +129,69 @@ export class CircuitLab {
     }
     this.setCrumbs(); this.resume(); this.onResize();
   }
+  // ------------------------------------------------------------ «Encuentra la avería»
+  // def: { id, titulo, enunciado, montaje, averia:{elemento,tipo,valor?}, pistas, explicacion, calificable, entregada, entregar(resp) → Promise<string> }
+  averia(def) {
+    const root = this.$('.cx');
+    if (this.running) this.toggleSim(false);
+    if (this.readOnly) { this.readOnly = false; this.rev = null; root.classList.remove('is-ro'); }
+    root.classList.remove('is-home'); root.classList.add('is-editor');
+    if (!this.renderer) this.initScene();
+    const view = 'averia-' + def.id; const nuevo = this.view !== view;
+    this.av = def; this.avPista = 0;
+    if (nuevo) {
+      this.view = view; this.pr = null; this.g = null; this.sel = null; this.undoS = []; this.redoS = []; this.runtime = {};
+      this.avResp = def.calificable ? null : (store.get('avr:' + view) || null); this.avTipo = null; this.avMsg = '';
+      const saved = store.get('auto:' + view);
+      this.model = this.sanitize(saved?.model || leerMontaje(def.montaje) || {});
+      if (!this.model.parts.some(p => PARTS[p.type].meter)) this.model.parts.push({ id: 'M' + (1 + this.model.parts.filter(p => p.type === 'meter').length), type: 'meter', pos: [27, 0], rot: 0, props: { mode: 'V', jack: 'VΩmA' }, state: defaultState('meter') });
+      this.tab = 'averia'; this.checkResult = null; this.showAnswers = false; this.qres = null;
+      this.seq = 1 + Math.max(0, ...this.model.parts.map(p => +String(p.id).replace(/\D/g, '') || 0), ...this.model.wires.map(w => +String(w.id).replace(/\D/g, '') || 0));
+      this.$('#cxPTitle').innerHTML = `<span class="cx-pn">${ic('search-check')}</span><span class="cx-ptt">${esc(def.titulo || 'Encuentra la avería')}</span>`;
+    }
+    this.model.averia = def.averia;
+    if (nuevo) { this.onResize(); this.sync(); this.renderInsp(); this.homeView(true); this.status(''); this.updateUndo(); this.renderWBar(); this.toolState(); this.renderPinLabels(); }
+    this.renderSide(); this.setCrumbs(); this.resume(); this.onResize();
+  }
+  averiaHTML() {
+    const d = this.av, s = this.sel; const p = s?.kind === 'part' ? this.part(s.id) : null; const w = s?.kind === 'wire' ? this.model.wires.find(x => x.id === s.id) : null;
+    const nombre = p ? `${esc(p.id)} · ${esc(PARTS[p.type].name)}` : w ? `Cable ${esc(w.id)}` : '';
+    const tipos = Object.entries(TIPOS_AVERIA).filter(([k]) => (w ? k === 'cable' : k !== 'cable'));
+    if (this.avTipo && !tipos.some(([k]) => k === this.avTipo)) this.avTipo = null;
+    const r = this.avResp; const nomTipo = (k) => esc(TIPOS_AVERIA[k] || k);
+    let h = `<h4 class="cx-avh">${ic('search-check')} Encuentra la avería</h4>${d.enunciado ? `<p>${esc(d.enunciado)}</p>` : ''}
+      <ol class="cx-avpasos"><li>Pulsa <b>Iniciar simulación</b> y observa qué falla.</li><li>Mide con el polímetro: tensión (V), corriente (A) y, <b>sin alimentación</b>, resistencia (Ω) o continuidad (·))).</li><li>Haz clic en el componente o cable que crees averiado y elige qué le pasa.</li></ol>`;
+    if (d.pistas?.length) h += `<div class="cx-avpistas">${d.pistas.slice(0, this.avPista).map((t, i) => `<p>${ic('lightbulb')} <b>Pista ${i + 1}:</b> ${esc(t)}</p>`).join('')}${this.avPista < d.pistas.length ? `<button class="cx-btn" data-act="avPista">${ic('lightbulb')} Ver una pista</button>` : ''}</div>`;
+    h += `<div class="cx-avsel" role="status">Elemento señalado: <b>${nombre || 'ninguno (haz clic en un componente o un cable)'}</b></div>`;
+    if (nombre) h += `<fieldset class="cx-avtipos"><legend>¿Qué le pasa?</legend>${tipos.map(([k, t]) => `<label><input type="radio" name="avTipo" value="${k}" ${this.avTipo === k ? 'checked' : ''}> ${esc(t)}</label>`).join('')}</fieldset>`;
+    const listo = !!nombre && !!this.avTipo;
+    if (d.calificable) {
+      if (d.entregada) h += `<p class="cx-avok">${ic('circle-check')} Ya has entregado: ${esc(d.entregada)}</p>`;
+      h += `<div class="cx-ibtns"><button class="cx-sim" data-act="avEntregar" ${listo && !this._entregando ? '' : 'disabled'}>${ic('send')} ${this._entregando ? 'Enviando…' : d.entregada ? 'Volver a entregar' : 'Entregar diagnóstico'}</button></div>
+        <p class="cx-small">Tu profesor verá el elemento y el tipo de avería que señales. ${this.avMsg ? `<b>${esc(this.avMsg)}</b>` : ''}</p>`;
+    } else {
+      h += `<div class="cx-ibtns"><button class="cx-sim" data-act="avComprobar" ${listo ? '' : 'disabled'}>${ic('check')} Comprobar diagnóstico</button></div>`;
+      if (r) h += r.elemento && r.tipo ? `<div class="cx-avres ok" role="status">${ic('circle-check')} <b>¡Avería encontrada!</b> ${esc(d.explicacion || '')}</div>`
+        : `<div class="cx-avres" role="status">${ic('circle-x')} ${r.elemento ? 'Has acertado el elemento, pero no lo que le pasa. Vuelve a medir.' : 'Ese elemento funciona bien. Sigue midiendo.'}</div>`;
+    }
+    return h;
+  }
+  avDiagnostico() { const s = this.sel; if (!s || !this.avTipo) return null; return { elemento: s.id, tipo: this.avTipo }; }
+  avAccion(act) {
+    const d = this.av; if (!d) return;
+    if (act === 'avPista') { this.avPista++; this.renderSide(); return; }
+    const resp = this.avDiagnostico(); if (!resp) return;
+    if (act === 'avComprobar') { const a = d.averia || {}; this.avResp = { elemento: resp.elemento === a.elemento, tipo: resp.elemento === a.elemento && resp.tipo === a.tipo }; store.set('avr:' + this.view, this.avResp); if (this.avResp.tipo) this.toast('¡Avería encontrada!', 4000); this.renderSide(); return; }
+    if (act === 'avEntregar' && d.entregar) {
+      this._entregando = true; this.avMsg = ''; this.renderSide();
+      Promise.resolve(d.entregar(resp)).then((m) => { this._entregando = false; d.entregada = m || 'diagnóstico entregado'; this.avMsg = 'Entregado.'; this.renderSide(); }, (e) => { this._entregando = false; this.avMsg = 'No se ha podido entregar: ' + (e?.message || 'error'); this.renderSide(); });
+    }
+  }
   setCrumbs() {
     const base = `<a href="#inicio">Inicio</a> › <a href="#asignaturas">Asignaturas</a> › <a href="#asig/eee">${esc(this.opts.subject || 'Equipos eléctricos y electrónicos')}</a> › <a href="#asig/eee/laboratorio">Laboratorio</a> › `;
     const v = this.view;
     if (v === 'revision') { this.$('#cxCrumbs').innerHTML = `<a href="#panel">Panel del profesor</a> › <a href="#panel/entregas">Entregas</a> › <span>Revisión</span>`; this.$('#cxProf').innerHTML = portal()?.chipHTML?.() || ''; return; }
-    this.$('#cxCrumbs').innerHTML = base + (v === 'home' ? '<span>Circuitos</span>' : `<a href="#eee/circuitos">Circuitos</a> › <span>${this.pr ? 'Práctica ' + this.pr.n + ': ' + esc(this.pr.title) : 'Modo libre'}</span>`);
+    this.$('#cxCrumbs').innerHTML = base + (v === 'home' ? '<span>Circuitos</span>' : `<a href="#eee/circuitos">Circuitos</a> › <span>${this.av ? 'Encuentra la avería: ' + esc(this.av.titulo || '') : this.pr ? 'Práctica ' + this.pr.n + ': ' + esc(this.pr.title) : 'Modo libre'}</span>`);
     this.$('#cxProf').innerHTML = (this.opts.profesor ? `Profesor: <b>${esc(this.opts.profesor)}</b>` : '') + (portal()?.chipHTML?.() || '');
   }
   homeHTML() {
@@ -147,6 +208,7 @@ export class CircuitLab {
         <h3>${esc(p.title)}</h3><div class="cx-sub">${esc(p.sub)}</div>
         <div class="cx-meta"><span>${esc(p.level)}</span><span>⏱ ${esc(p.duration)}</span><span>${Object.keys(p.ra).map(r => 'RA' + r).join(' · ')}</span></div></a>`).join('')}
         <a class="cx-card free" href="#eee/circuitos/libre"><div class="cx-card-h"><span class="cx-num">∞</span><span class="cx-ic">🛠️</span></div><h3>Modo libre</h3><div class="cx-sub">Monta lo que quieras con todos los componentes</div><div class="cx-meta"><span>Sin guía</span><span>Guarda y exporta</span></div></a>
+        <a class="cx-card free" href="#eee/circuitos/averia-ejemplo"><div class="cx-card-h"><span class="cx-num">${ic('search-check')}</span></div><h3>Encuentra la avería</h3><div class="cx-sub">Un circuito con un componente estropeado: mide con el polímetro y descubre cuál es</div><div class="cx-meta"><span>Ejemplo</span><span>Polímetro y continuidad</span></div></a>
       </div>
       <h2>Cómo se usa</h2>
       <div class="cx-how">
@@ -463,6 +525,7 @@ export class CircuitLab {
     const hasCap = this.model.parts.some(p => p.type === 'cap');
     if (this._acc < 1 / 30 && !this._force) { this.animParts(dt); return; }
     const sdt = Math.max(this._acc, 1 / 60); this._acc = 0; this._force = false;
+    if (this.av) this.model.averia = this.av.averia;
     const r = simulate(this.model, this.runtime, { dt: hasCap ? sdt : Infinity, capV: this.capV, don: this.don });
     this.capV = r.capV; this.don = r.don; this.lastSim = r;
     for (const p of this.model.parts) {
@@ -475,9 +538,10 @@ export class CircuitLab {
     const al = r.warnings.map(w => w.msg);
     for (const p of this.model.parts) if (p.type === 'led' && this.runtime[p.id]?.burnt) al.push('LED fundido: detén la simulación, revisa el circuito y vuelve a probar.');
     for (const p of this.model.parts) if (PARTS[p.type].meter && r.res[p.id]?.meter?.wrongJack) al.push('La punta roja del polímetro está en el borne 10A y la rueda en ' + p.props.mode + ': por ese borne el polímetro es casi un cable. Para medir V u Ω pásala al borne VΩmA.');
-    for (const p of this.model.parts) if (PARTS[p.type].meter && r.res[p.id]?.meter?.powered && p.props.mode === 'Ω') al.push('Para medir resistencias (Ω) quita la alimentación: con tensión la medida no es fiable y el polímetro se puede dañar.');
+    for (const p of this.model.parts) if (PARTS[p.type].meter && r.res[p.id]?.meter?.powered && (p.props.mode === 'Ω' || p.props.mode === '·)))')) al.push(p.props.mode === 'Ω' ? 'Para medir resistencias (Ω) quita la alimentación: con tensión la medida no es fiable y el polímetro se puede dañar.' : 'Para comprobar continuidad (·))) quita la alimentación: con tensión la prueba no es fiable y el polímetro se puede dañar.');
     this.setAlert([...new Set(al)]);
     let vol = 0; for (const p of this.model.parts) if (p.type === 'buzzer' && r.res[p.id]?.on) vol = Math.max(vol, r.res[p.id].vol);
+    for (const p of this.model.parts) if (PARTS[p.type].meter && r.res[p.id]?.meter?.beep) vol = Math.max(vol, 0.6); // continuidad: pita
     this.buzz.set(vol);
     this.animParts(sdt);
     this._gacc = (this._gacc || 0) + sdt; if (this._gacc > 0.25) { this._gacc = 0; this.evalGuide(); this.updateInspLive(); }
@@ -841,6 +905,7 @@ export class CircuitLab {
     const wasWire = this.sel?.kind === 'wire'; this.sel = s;
     if (this.renderer) { if (wasWire || s?.kind === 'wire') this.sync(); else this.syncSelection(); this.renderPinLabels(); }
     if (!quiet) this.renderInsp();
+    if (this.av && this.tab === 'averia' && !this.readOnly) this.renderSide();
   }
 
   // ------------------------------------------------------------ herramientas y teclado
@@ -967,12 +1032,14 @@ export class CircuitLab {
   renderSide() {
     const tabs = [];
     if (this.readOnly) tabs.push(['rev', '📝 Entrega'], ['ayuda', '❔ Ayuda']);
+    else if (this.av) tabs.push(['averia', `${ic('search-check')} Avería`], ['comp', '🧩 Componentes'], ['ayuda', '❔ Ayuda']);
     else { if (this.pr) tabs.push(['guia', '📘 Práctica']); tabs.push(['comp', '🧩 Componentes'], ['ayuda', '❔ Ayuda']); }
     if (!tabs.some(t => t[0] === this.tab)) this.tab = tabs[0][0];
     this.$('#cxTabs').innerHTML = tabs.map(([k, t]) => `<button data-cxtab="${k}" class="${k === this.tab ? 'on' : ''}">${t}</button>`).join('');
     const P = this.$('#cxPanel');
-    P.innerHTML = this.tab === 'rev' ? this.reviewHTML() : this.tab === 'comp' ? this.compHTML() : this.tab === 'ayuda' ? this.helpHTML() : this.guideHTML();
+    P.innerHTML = this.tab === 'averia' ? this.averiaHTML() : this.tab === 'rev' ? this.reviewHTML() : this.tab === 'comp' ? this.compHTML() : this.tab === 'ayuda' ? this.helpHTML() : this.guideHTML();
     const qi = P.querySelector('#cxQ'); if (qi) qi.oninput = () => { this.compQ = qi.value; const pos = qi.selectionStart; this.renderSide(); const n = this.$('#cxQ'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } };
+    P.querySelectorAll('[name=avTipo]').forEach(inp => inp.onchange = () => { this.avTipo = inp.value; this.avResp = null; const b = P.querySelector('[data-act=avComprobar],[data-act=avEntregar]'); if (b && !this._entregando) b.disabled = false; });
     P.querySelectorAll('[data-q]').forEach(inp => inp.oninput = inp.onchange = () => { const i = inp.dataset.q; this.g.answers[i] = inp.type === 'radio' ? +inp.value : inp.value; this.autosave(); });
   }
   thumb(type) { return this.thumbs?.[type] ? `<img src="${this.thumbs[type]}" alt="" draggable="false">` : `<span class="cx-noimg">${esc(PARTS[type].name[0])}</span>`; }
@@ -1085,7 +1152,7 @@ export class CircuitLab {
     if (this.running) this.toggleSim(false);
     root.classList.remove('is-home'); root.classList.add('is-editor', 'is-ro');
     if (!this.renderer) this.initScene();
-    this.readOnly = true; this.view = 'revision'; this.rev = rev;
+    this.av = null; this.readOnly = true; this.view = 'revision'; this.rev = rev;
     this.pr = PRACTICES.find(p => p.id === rev.practica) || null;
     this.sel = null; this.undoS = []; this.redoS = []; this.runtime = {};
     let m = {}; try { m = JSON.parse(rev.montaje || '{}'); } catch (e) { m = {}; }
@@ -1177,6 +1244,7 @@ export class CircuitLab {
     for (const l of [...this.labels, ...this.pinLabels]) { const v = l.pos.clone().project(this.camera); l.el.style.transform = `translate(${(v.x * 0.5 + 0.5) * w}px, ${(-v.y * 0.5 + 0.5) * h}px) translate(-50%, -100%)`; l.el.style.display = v.z < 1 ? '' : 'none'; }
   }
   guideAction(act) {
+    if (act.startsWith('av')) return this.avAccion(act);
     const pr = this.pr, g = this.g;
     if (act === 'desel') return this.select(null);
     if (act === 'toggle') { const p = this.part(this.sel?.id); if (!p) return; const flip = () => { if (p.type === 'switch') p.state.closed = !p.state.closed; else p.state.pos = p.state.pos ? 0 : 1; }; if (!this.running) this.commit(flip); else { flip(); this.stateChanged(p, true); } return; }

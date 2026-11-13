@@ -291,3 +291,30 @@ disponibles: `avanzar`, `girar`, `repetir`, `mientras` (repetir hasta la meta) y
 
 Es una actividad 3D del motor de «Actividades de clase» (`src/act/registro.js`, piezas en `src/kit3d/pc.js`):
 se practica en TIC I → Laboratorio / Actividades de clase y se asigna como tarea desde su tarjeta.
+
+## Encuentra la avería (`"tipo": "averia"`, EEE)
+
+Un montaje del laboratorio de **Circuitos** con una avería escondida. `montaje` es el circuito tal cual lo
+exporta Circuitos (botón Exportar; vale el archivo entero `{app, version, model}`, solo `model`, o el mismo
+JSON escrito como texto). Se guarda como texto porque Firestore no admite listas dentro de listas.
+`averia.elemento` es el id de un componente (`R1`, `L1`…) o de un cable (`w3`); `averia.tipo`:
+`abierto` (no deja pasar la corriente), `corto` (une sus patas), `valor` (solo resistencias, con `valor` en Ω)
+o `cable` (solo cables, cortado por dentro). `pistas` (hasta 6) se muestran una a una; `explicacion` se ve al
+acertar en modo práctica. El alumno abre el circuito, mide con el polímetro (V, A, Ω y continuidad ·))) ),
+señala el elemento y el tipo y entrega «Diagnóstico: R1 · … Aciertos: a/2» (1 por elemento, 1 por tipo);
+en el laboratorio no ve si ha acertado. Si el montaje no tiene polímetro se añade uno.
+
+```json
+{ "formato": "superprofe/elemento@1", "tipo": "averia", "titulo": "El LED no luce", "puntos": 10,
+  "contenido": {
+    "enunciado": "El LED no se enciende. Inicia la simulación, mide y señala el elemento averiado.",
+    "montaje": { "parts": [
+        { "id": "B1", "type": "bat9", "pos": [-23, -5], "rot": 0, "props": {}, "state": {} },
+        { "id": "R1", "type": "resistor", "at": "b10", "rot": 0, "props": { "r": 470 }, "state": {} },
+        { "id": "L1", "type": "led", "at": "e14", "rot": 0, "props": { "color": "rojo" }, "state": {} } ],
+      "wires": [ { "id": "w1", "a": "p:B1:+", "b": "h:tp2", "color": "rojo" }, { "id": "w2", "a": "p:B1:-", "b": "h:tn2", "color": "negro" },
+                 { "id": "w3", "a": "h:tp9", "b": "h:a10", "color": "rojo" }, { "id": "w4", "a": "h:a15", "b": "h:tn15", "color": "negro" } ] },
+    "averia": { "elemento": "R1", "tipo": "abierto" },
+    "pistas": ["Mide la tensión en cada componente: el que se queda con toda la tensión de la pila está abierto."],
+    "explicacion": "R1 está abierta: entre sus patas hay los 9 V de la pila y no circula corriente." } }
+```

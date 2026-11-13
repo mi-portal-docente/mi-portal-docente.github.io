@@ -217,3 +217,12 @@ video.xp-video { display: block; width: 100%; max-height: 420px; }
 .cbl .cb-mapa line { stroke-width: 2; vector-effect: non-scaling-stroke; }
 @media (max-width: 860px) { .cbl .cb-mapa { aspect-ratio: 4 / 3; } .cbl .cb-mapa .cb-nodo { min-width: 44px; padding: 6px; } .cbl .cb-mapa .cb-nodo > span { display: none; } }
 .wl textarea.wl-ta { background: #1e1e24; color: #f2f2f7; }
+
+/* Fase 7 · «Encuentra la avería» en la página del elemento */
+.avi { display: grid; gap: 10px; }
+.avi-enun { font-size: 1.05rem; margin: 0; }
+.avi-small { color: var(--muted, #6e6e73); margin: 0; }
+.avi-abrir { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.avi svg { width: 18px; height: 18px; vertical-align: -4px; }
+.avi-ok { color: #248a3d; margin: 0; }
+.avi-sol { margin: 0; padding: 8px 12px; border-radius: 10px; background: rgba(0, 122, 255, .08); }

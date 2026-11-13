@@ -154,3 +154,16 @@ describe('Fase 6 · laboratorios de TIC (web, info, ciber, bloques)', () => {
   });
 });
 
+
+describe('Fase 7 · «Encuentra la avería»', () => {
+  const contenido = { enunciado: 'El LED no luce', montaje: '{"parts":[],"wires":[]}', averia: { elemento: 'R1', tipo: 'abierto' }, pistas: [], explicacion: '' };
+  test('el profesor guarda una avería y el alumno entrega su diagnóstico', async () => {
+    const it = { ...ITEM_T, tipo: 'averia', titulo: 'Avería', contenido };
+    await assertSucceeds(setDoc(doc(profe(), 'items/itemav01'), it));
+    await sembrar((db) => setDoc(doc(db, 'items/itemav01'), it));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemav01_g1_7'), tarea('a7', { item: 'itemav01', texto: 'Diagnóstico: R1 · abierto. Aciertos: 2/2', enlaces: [] })));
+  });
+  test('ataque: un alumno no puede crear una avería', async () => {
+    await assertFails(setDoc(doc(anon('a7'), 'items/itemav02'), { ...ITEM_T, tipo: 'averia', titulo: 'x', contenido }));
+  });
+});

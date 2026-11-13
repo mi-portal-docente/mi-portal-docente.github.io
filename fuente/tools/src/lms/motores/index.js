@@ -5,4 +5,5 @@ import './web.js';
 import './info.js';
 import './ciber.js';
 import './bloques.js';
+import './averia.js';
 export { motor, motores } from '../elemento.js';

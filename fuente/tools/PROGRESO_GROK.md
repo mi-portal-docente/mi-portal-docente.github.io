@@ -273,3 +273,37 @@ tipo tarea. Regenerado el `para-pegar`.
 **Dudas / pendiente**: Blockly no es del todo accesible con teclado/lector (es la librería pedida); el resto
 sí. El «tamaño de vídeo» es sin compresión (cálculo teórico). La Anatomía del PC es un ejemplo mínimo de 8
 retos; para más niveles hay que añadirlos en `registro.js` (las actividades 3D aún no se importan en JSON).
+
+## Fase 7 · EEE: polímetro y «Encuentra la avería» — HECHA (mínimo sólido)
+
+**Polímetro de Circuitos** (ya tenía V, A, Ω, bornes VΩmA/10A, fusible y avisos): nueva posición de la rueda
+**continuidad «·)))»** (también en el modelo 3D y la pantalla): pita (con el zumbador del laboratorio) por
+debajo de 50 Ω y marca OL por encima; aviso «quita la alimentación» si se usa con tensión (como en Ω), y en ese
+caso no pita.
+
+**«Encuentra la avería»** (tipo de elemento `averia`, importable en JSON): un montaje exportado de Circuitos con
+una avería escondida en un componente (`abierto`, `corto`, `valor` en resistencias) o un cable (`cable`). El
+simulador la aplica sin cambiar el montaje que se ve (`model.averia` en `netlist.js`: el elemento abierto no
+tiene elementos eléctricos, el corto es 0,01 Ω entre patas, el cable cortado no une sus extremos). En la
+página del elemento: enunciado, «Abrir el circuito» y estado de la entrega (el profesor ve la solución).
+En Circuitos (`#eee/circuitos/averia-<id>`) hay una pestaña «Avería»: pasos, pistas una a una, elemento
+señalado con un clic, tipo de avería y «Entregar diagnóstico». El texto entregado es
+«Diagnóstico: R1 · … Aciertos: a/2» (elemento y tipo), que «Poner notas» del cuaderno pasa a nota.
+En la tarea no se muestra si ha acertado. Ejemplo para practicar (con corrección inmediata) en la portada
+de Circuitos: `#eee/circuitos/averia-ejemplo`.
+
+**Archivos**: `src/circ/{parts,engine,netlist,models3d,lab}.js`, `src/lms/motores/averia.js`, `src/labs/averia-ui.js`,
+`src/main.js` (ruta y motor), `src/portal/{aula-vistas,main}.js` (`P.aula.elemento(id)`), `lms/biblioteca.js`,
+`aula-editor.js`, `css/circuitos.css`, `css/plataforma.css`, `FORMATO_IMPORTAR.md`. Caché `gp7-20261113`.
+
+**Reglas (cambian, sin desplegar)**: tipo `averia` en `items` y en las entregas de tipo tarea. Regenerado el `para-pegar`.
+
+**Pruebas**: `plataforma_test.mjs` 26/26 (simulación con cada tipo de avería y continuidad) · reglas 99/99 ·
+E2E fase 7: 19/19.
+
+**Capturas**: `f7_averia_medir`, `f7_continuidad`, `f7_averia_encontrada`, `f7_alumno_elemento`,
+`f7_alumno_entregado`, `f7_alumno_movil`.
+
+**Dudas / pendiente**: como en las fases 5 y 6, el contenido del elemento (también la avería) lo puede leer
+el alumno con las herramientas del navegador; para exámenes de verdad habría que ocultarlo en el servidor
+(Cloud Functions), fuera del alcance. Una avería por montaje.

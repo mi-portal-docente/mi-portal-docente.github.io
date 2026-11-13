@@ -91,6 +91,7 @@ function meterReading(model, runtime, p, V, sol, net) {
   const a = n2.alloc(termKey(p, 'red')), b = n2.alloc(termKey(p, 'com'));
   const s2 = solve(n2.n, [...n2.els, { k: 'I', id: '_ohm', a, b, i: 1e-3 }], {});
   const R = a === b ? 0 : (s2.V[a] - s2.V[b]) / 1e-3;
+  if (mode === '·)))') { const pita = R < 50; return { mode, value: R > 2e7 ? Infinity : R, unit: 'Ω', text: pita ? fmtMeter(R, 'Ω') + ' · pita' : 'OL', att, powered, beep: pita && !powered }; }
   return { mode, value: R > 2e7 ? Infinity : R, unit: 'Ω', text: R > 2e7 ? 'OL' : fmtMeter(R, 'Ω'), att, powered };
 }
 export function fmtMeter(v, unit) {

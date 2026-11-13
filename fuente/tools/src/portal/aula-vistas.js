@@ -287,5 +287,11 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'tarea', texto: String(texto).slice(0, 10000), enlaces: [], fecha: serverTimestamp(), estado: 'entregado' });
   }
 
-  return { renderItem, estado, examenEnCurso: () => ex.id, asignacionActividad, entregarActividad };
+  // Un elemento visible (para laboratorios que se abren fuera de la página del elemento: «Encuentra la avería»).
+  function elemento(id) {
+    const it = st.items.get(id); if (!it) return st.listo.items ? { noExiste: true } : null;
+    if (rol === 'alumno' && (!it.publicado || (it.pub && it.pub > Date.now()))) return { noExiste: true };
+    return { it, rol, trabajo: st.trabajos.get(id) || null, nota: st.notas.get(id) || null };
+  }
+  return { renderItem, estado, examenEnCurso: () => ex.id, asignacionActividad, entregarActividad, elemento };
 }

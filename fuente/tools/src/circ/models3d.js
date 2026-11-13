@@ -374,14 +374,14 @@ const B = {
     rbox(12.4, 0.1, 22.4, 1.2, M(0x2b2f35, { roughness: 0.6 }), 0, 2.4, 0, p);
     const disp = canvasTex(256, 110, (g) => drawMeter(g, '', ''));
     mesh(new THREE.PlaneGeometry(10, 4.3), new THREE.MeshBasicMaterial({ map: disp }), 0, 2.56, -7.2, p).rotation.x = -Math.PI / 2;
-    const dialLab = canvasTex(256, 256, (g) => { g.fillStyle = '#f2f2f2'; g.font = '700 40px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; const L = [['OFF', -150], ['V', -60], ['A', 30], ['Ω', 120]]; for (const [t, a] of L) { const r = a * Math.PI / 180; g.fillText(t, 128 + Math.cos(r) * 100, 128 + Math.sin(r) * 100); } });
+    const dialLab = canvasTex(256, 256, (g) => { g.fillStyle = '#f2f2f2'; g.font = '700 40px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; const L = [['OFF', -150], ['V', -60], ['A', 30], ['Ω', 120], ['·)))', 165]]; for (const [t, a] of L) { const r = a * Math.PI / 180; g.fillText(t, 128 + Math.cos(r) * 100, 128 + Math.sin(r) * 100); } });
     mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshBasicMaterial({ map: dialLab, transparent: true }), 0, 2.53, 1.5, p).rotation.x = -Math.PI / 2;
     const dial = new THREE.Group(); dial.position.set(0, 2.5, 1.5); p.add(dial);
     cyl(2.6, 0.8, M(0x1c1d20, { roughness: 0.4 }), 0, 0, 0, dial, 28); box(0.5, 0.15, 2.4, M(0xf2f2f2), 0, 0.8, -1.2, dial);
     for (const [x, c] of [[-3.6, 0x111111], [0, 0xd42a2a], [3.6, 0xd42a2a]]) { cyl(0.85, 0.3, M(c, { roughness: 0.4 }), x, 2.4, 9.4, p, 18); cyl(0.42, 0.32, M(0x050505), x, 2.42, 9.4, p, 12); }
     const lab = canvasTex(256, 48, (g) => { g.fillStyle = '#f2f2f2'; g.font = '700 22px system-ui'; g.textAlign = 'center'; g.fillText('COM', 62, 34); g.fillText('VΩmA', 128, 34); g.fillText('10A', 194, 34); });
     mesh(new THREE.PlaneGeometry(13.5, 1.9), new THREE.MeshBasicMaterial({ map: lab, transparent: true }), 0, 2.53, 7.6, p).rotation.x = -Math.PI / 2;
-    const ang = { V: -60, A: 30, 'Ω': 120 };
+    const ang = { V: -60, A: 30, 'Ω': 120, '·)))': 165 };
     let last = '';
     p.userData.update = (r) => {
       const a = ang[part.props.mode] ?? -150; dial.rotation.y = -(a + 90) * Math.PI / 180;
@@ -412,7 +412,7 @@ function drawMeter(g, txt, mode) {
   g.fillStyle = '#9fb59a'; g.fillRect(0, 0, 256, 110); g.fillStyle = '#b6ccb0'; g.fillRect(6, 6, 244, 98);
   g.fillStyle = '#1b2418'; g.textAlign = 'right'; g.font = '700 52px ui-monospace, Consolas, monospace';
   g.fillText(txt || (mode ? '----' : ''), 244, 72);
-  g.font = '700 20px system-ui'; g.textAlign = 'left'; g.fillText(mode ? (mode === 'Ω' ? 'Ω' : mode === 'V' ? 'V ⎓' : 'A ⎓') : 'OFF', 12, 28);
+  g.font = '700 20px system-ui'; g.textAlign = 'left'; g.fillText(mode ? (mode === 'Ω' ? 'Ω' : mode === '·)))' ? '·)))' : mode === 'V' ? 'V ⎓' : 'A ⎓') : 'OFF', 12, 28);
 }
 
 export function buildPart(part) {

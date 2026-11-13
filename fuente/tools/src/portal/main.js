@@ -89,6 +89,7 @@ const PORTAL = window.PORTAL = {
       clase.editor.abrir(null, { tipo: 'actividad', asig, curso: aula.st.cursoSel, titulo, texto, enlaces: [{ t: tituloEnlace || titulo, u: enlace }], puntos: 10 });
     },
     asignacionActividad(url) { return vistas?.asignacionActividad?.(url) || null; },
+    elemento(id) { return vistas?.elemento?.(id) || null; },
     entregarActividad(itemId, texto) { return vistas ? vistas.entregarActividad(itemId, texto) : Promise.reject(new Error('sin-sesion')); },
     // Estado de una actividad para su tarjeta (HTML corto) o null.
     actividadEstado(url) {

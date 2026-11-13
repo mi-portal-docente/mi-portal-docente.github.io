@@ -213,3 +213,16 @@ body.scr-apartados #apartados { display: flex; }
 .cx-search input { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line); margin: 2px 0 6px; }
 .cx-comp em { font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--mut); }
 @media (max-width: 760px) { .cx-wbar { bottom: 34px; max-width: calc(100% - 16px); gap: 4px; padding: 4px 6px; } .cx-wb-n { display: none; } .cx-wb-k button { min-width: 36px; } .cx-kico { width: 26px; } }
+
+/* «Encuentra la avería» (Fase 7) */
+.cx-avh { display: flex; align-items: center; gap: 6px; }
+.cx-avh svg, .cx-avsel svg, .cx-avres svg, .cx-avok svg, .cx-avpistas svg, .cx .cx-ibtns button svg { width: 18px; height: 18px; vertical-align: -4px; flex: none; }
+.cx-avpasos { padding-left: 20px; margin: 8px 0; line-height: 1.45; }
+.cx-avpistas p { margin: 6px 0; padding: 8px 10px; border-radius: 10px; background: rgba(255, 204, 0, .14); }
+.cx-avsel { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: rgba(0, 122, 255, .08); }
+.cx-avtipos { border: 0; padding: 0; margin: 8px 0 12px; display: grid; gap: 6px; }
+.cx-avtipos legend { font-weight: 600; margin-bottom: 4px; }
+.cx-avtipos label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(127, 127, 127, .3); cursor: pointer; min-height: 44px; box-sizing: border-box; }
+.cx-avres { margin: 12px 0; padding: 10px 12px; border-radius: 12px; box-shadow: inset 0 0 0 1.5px #ff3b30; }
+.cx-avres.ok { box-shadow: inset 0 0 0 1.5px #34c759; }
+.cx-avok { color: #248a3d; }
