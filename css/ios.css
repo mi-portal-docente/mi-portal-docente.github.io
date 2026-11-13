@@ -1,11 +1,11 @@
 /* =====================================================================================
-   Portal docente · capa de diseño «iOS» (2026-11)
+   Super Profe Pablo · capa de diseño «iOS» (2026-11)
    Va la última: re-estiliza todas las pantallas sin tocar su funcionamiento.
    - Tipografía del sistema, fondos agrupados (#f2f2f7), tarjetas de 12–20 px.
    - Cristal (backdrop-filter) en barras, pestañas, hojas y menús, con relleno sólido si no hay soporte
      y cristal ligero en ordenadores modestos (html.glass-lite, Chromebook).
    - Iconos de línea (Lucide) en lugar de emoji: .ic / .ic-e (ver src/ui/iconos.js).
-   - Modo oscuro con prefers-color-scheme en las pantallas del portal; los laboratorios 3D
+   - Modo oscuro (data-theme en <html>, elegido con el botón de tema; «Automático» sigue al sistema) en las pantallas del portal; los laboratorios 3D
      conservan su banco de trabajo claro para que los colores de cables y piezas se vean fieles.
    ===================================================================================== */
 :root {
@@ -653,8 +653,8 @@ pre.code { background: #1c1c1e; }
 /* =====================================================================================
    Modo oscuro (pantallas del portal). Los laboratorios 3D mantienen su banco claro.
    ===================================================================================== */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Modo oscuro: lo activa js/tema.js (data-theme="dark" en <html>), por elección o siguiendo al sistema en «Automático» */
+html[data-theme="dark"] {
     color-scheme: dark;
     --acc: #e5162d; --acc-t: #ff6b6b; --acc-tint: rgba(255, 69, 58, .16); --acc-ring: rgba(255, 105, 97, .45);
     --fondo: #000; --card: #1c1c1e; --card2: #2c2c2e; --tinta: #f5f5f7; --gris: #a1a1a6; --gris2: #8e8e93;
@@ -663,29 +663,50 @@ pre.code { background: #1c1c1e; }
     --glass: rgba(28, 28, 30, .72); --glass-fuerte: rgba(36, 36, 38, .82); --glass-borde: rgba(255, 255, 255, .08); --glass-osc: rgba(44, 44, 46, .86);
     --sh1: 0 0 0 .5px rgba(255, 255, 255, .06); --sh2: 0 0 0 .5px rgba(255, 255, 255, .08), 0 12px 32px rgba(0, 0, 0, .5); --sh3: 0 0 0 .5px rgba(255, 255, 255, .1), 0 30px 80px rgba(0, 0, 0, .6);
   }
-  .gate { background: linear-gradient(180deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .85)), url('../img/fotos/eee.webp') center / cover no-repeat, #000; }
-  .gate-tabs button.on, .bib-chip.on, .as-tabs a.on, .tabs button.on { background: #636366; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); }
-  .as-tabs a:hover { background: rgba(255, 255, 255, .06); }
-  .cov-band .pchip-who, .cov-band .pchip-b { background: rgba(28, 28, 30, .8); color: #f5f5f7; }
-  .cl-preview-t button.on { background: #636366; color: #fff; }
-  .cl-preview-h { background: rgba(44, 44, 46, .9); }
-  .pn-tabs a.on { background: #f5f5f7; color: #000; }
-  .portal-red { background: rgba(60, 40, 10, .9); color: #ffd28a; }
-  .pn-aviso { color: #ff9a9a; }
-  .au-est.e-tarde, .vv-chip.ko { color: #ff8a80; }
-  .pn-chk input[type=checkbox] { background: rgba(120, 120, 128, .36); }
-  .pn-chk input[type=checkbox]:checked { background: #30d158; }
-  .tbl th, .au-t th, .pn-t th { background: #2c2c2e !important; }
-  pre.code { background: #0f0f10; }
-  .ap-c.e-entregado { background: rgba(10, 132, 255, .14); } .ap-c.e-curso { background: rgba(255, 159, 10, .14); } .ap-c:hover { background: var(--fill2); }
-  .ap-media, td.ap-media.fin { background: #2c2c2e; color: var(--tinta); }
-  .cl-it.borr .cl-tx b, .org-it.borr .cl-tx b { color: var(--gris); }
-  .ap-it.borr { background: transparent; }
-  .ap-it { border-color: var(--sep2); }
-  .cl-misan-it, .cl-prox li, .org-it, .org-grupos li { border-color: var(--sep); }
-  img { filter: brightness(.94); }
-  /* Laboratorios: el banco de trabajo 3D sigue claro (colores fieles de cables, bornes y piezas) */
-  #circ, #viv, #act, header.top, body > .crumbs, body > main, .lesson-strip, .overlay {
+html[data-theme="dark"] .gate { background: linear-gradient(180deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .85)), url('../img/fotos/eee.webp') center / cover no-repeat, #000; }
+html[data-theme="dark"] .gate-tabs button.on,
+html[data-theme="dark"] .bib-chip.on,
+html[data-theme="dark"] .as-tabs a.on,
+html[data-theme="dark"] .tabs button.on { background: #636366; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); }
+html[data-theme="dark"] .as-tabs a:hover { background: rgba(255, 255, 255, .06); }
+html[data-theme="dark"] .cov-band .pchip-who,
+html[data-theme="dark"] .cov-band .pchip-b { background: rgba(28, 28, 30, .8); color: #f5f5f7; }
+html[data-theme="dark"] .cl-preview-t button.on { background: #636366; color: #fff; }
+html[data-theme="dark"] .cl-preview-h { background: rgba(44, 44, 46, .9); }
+html[data-theme="dark"] .pn-tabs a.on { background: #f5f5f7; color: #000; }
+html[data-theme="dark"] .portal-red { background: rgba(60, 40, 10, .9); color: #ffd28a; }
+html[data-theme="dark"] .pn-aviso { color: #ff9a9a; }
+html[data-theme="dark"] .au-est.e-tarde,
+html[data-theme="dark"] .vv-chip.ko { color: #ff8a80; }
+html[data-theme="dark"] .pn-chk input[type=checkbox] { background: rgba(120, 120, 128, .36); }
+html[data-theme="dark"] .pn-chk input[type=checkbox]:checked { background: #30d158; }
+html[data-theme="dark"] .tbl th,
+html[data-theme="dark"] .au-t th,
+html[data-theme="dark"] .pn-t th { background: #2c2c2e !important; }
+html[data-theme="dark"] pre.code { background: #0f0f10; }
+html[data-theme="dark"] .ap-c.e-entregado { background: rgba(10, 132, 255, .14); }
+html[data-theme="dark"] .ap-c.e-curso { background: rgba(255, 159, 10, .14); }
+html[data-theme="dark"] .ap-c:hover { background: var(--fill2); }
+html[data-theme="dark"] .ap-media,
+html[data-theme="dark"] td.ap-media.fin { background: #2c2c2e; color: var(--tinta); }
+html[data-theme="dark"] .cl-it.borr .cl-tx b,
+html[data-theme="dark"] .org-it.borr .cl-tx b { color: var(--gris); }
+html[data-theme="dark"] .ap-it.borr { background: transparent; }
+html[data-theme="dark"] .ap-it { border-color: var(--sep2); }
+html[data-theme="dark"] .cl-misan-it,
+html[data-theme="dark"] .cl-prox li,
+html[data-theme="dark"] .org-it,
+html[data-theme="dark"] .org-grupos li { border-color: var(--sep); }
+html[data-theme="dark"] img { filter: brightness(.94); }
+html[data-theme="dark"] /* Laboratorios: el banco de trabajo 3D sigue claro (colores fieles de cables, bornes y piezas) */
+  #circ,
+html[data-theme="dark"] #viv,
+html[data-theme="dark"] #act,
+html[data-theme="dark"] header.top,
+html[data-theme="dark"] > body > .crumbs,
+html[data-theme="dark"] > body > main,
+html[data-theme="dark"] .lesson-strip,
+html[data-theme="dark"] .overlay {
     color-scheme: light;
     --acc: #DC001B; --acc-t: #c40018; --acc-tint: rgba(220, 0, 27, .09); --acc-ring: rgba(220, 0, 27, .28);
     --fondo: #f2f2f7; --card: #fff; --card2: #f7f7fa; --tinta: #1d1d1f; --gris: #6e6e73; --gris2: #8e8e93;
@@ -695,12 +716,16 @@ pre.code { background: #1c1c1e; }
     --sh1: 0 1px 2px rgba(0, 0, 0, .04), 0 2px 10px rgba(0, 0, 0, .04); --sh2: 0 2px 6px rgba(0, 0, 0, .05), 0 12px 32px rgba(0, 0, 0, .08); --sh3: 0 10px 30px rgba(0, 0, 0, .12), 0 30px 80px rgba(0, 0, 0, .18);
     color: var(--tinta);
   }
-  body:not([class*="scr-"]) { background: #f2f2f7; }
-  #circ img, #viv img, #act img, body > main img { filter: none; }
-  :is(#circ, #viv, #act, body > main) .tabs button.on { background: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04); }
-  :is(#circ, #viv, #act, body > main) :is(.tbl th, .au-t th, .pn-t th) { background: var(--card2) !important; }
-  :is(#circ, #viv, #act, body > main) pre.code { background: #1d1d1f; }
-}
+html[data-theme="dark"] > body:not([class*="scr-"]) { background: #f2f2f7; }
+html[data-theme="dark"] #circ img,
+html[data-theme="dark"] #viv img,
+html[data-theme="dark"] #act img,
+html[data-theme="dark"] > body > main img { filter: none; }
+html[data-theme="dark"] :is(#circ, #viv, #act, body > main) .tabs button.on { background: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04); }
+html[data-theme="dark"] :is(#circ, #viv, #act, body > main) :is(.tbl th, .au-t th, .pn-t th) { background: var(--card2) !important; }
+html[data-theme="dark"] :is(#circ, #viv, #act, body > main) pre.code { background: #1d1d1f; }
+html[data-theme="light"] { color-scheme: light; }
+
 .cx-sim, .cx-sim:visited, .cx-sim:hover { color: #fff !important; }
 .vv .crumbs a, .vv-crumbs a, #viv .crumbs a { text-decoration: none; }
 /* Móvil: los proyectos de vivienda apilan vista 3D y guía (antes la vista quedaba a 0 px de ancho) */
@@ -712,3 +737,40 @@ pre.code { background: #1c1c1e; }
 }
 .cl-dlg > :first-child { border-top-left-radius: var(--r-lg); border-top-right-radius: var(--r-lg); }
 .cl-dlg > :last-child { border-bottom-left-radius: var(--r-lg); border-bottom-right-radius: var(--r-lg); }
+
+/* ---------- botón de tema (esquina superior derecha; js/tema.js) ---------- */
+.tema-caja { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); z-index: 10000; }
+.tema-btn { width: 36px; height: 36px; display: inline-grid; place-items: center; padding: 0; border-radius: 999px; cursor: pointer;
+  color: var(--tinta); background: var(--glass); border: .5px solid var(--sep2); box-shadow: var(--sh1);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); transition: transform .15s ease, background-color .2s ease; }
+.tema-btn:hover { background: var(--glass-fuerte); }
+.tema-btn:active { transform: scale(.94); }
+.tema-btn:focus-visible, .tema-menu button:focus-visible { outline: 3px solid var(--acc-ring); outline-offset: 2px; }
+.tema-btn .ic { width: 18px; height: 18px; }
+.tema-menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 232px; padding: 6px; border-radius: 14px;
+  background: var(--glass-fuerte); border: .5px solid var(--sep); box-shadow: var(--sh3);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); animation: temaMenu .16s ease-out; transform-origin: top right; }
+.tema-menu[hidden] { display: none; }
+.tema-tit { font-size: 12px; font-weight: 600; color: var(--gris); text-transform: uppercase; letter-spacing: .04em; padding: 6px 10px 4px; }
+.tema-menu button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 10px; border: 0; border-radius: 9px;
+  background: transparent; color: var(--tinta); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.tema-menu button:hover, .tema-menu button:focus-visible { background: var(--fill); }
+.tema-menu button .ic { width: 18px; height: 18px; flex: none; color: var(--gris); }
+.tema-menu button span:not(.tema-ok) { flex: 1; }
+.tema-ok { display: inline-flex; color: var(--acc); visibility: hidden; }
+.tema-menu button[aria-checked="true"] .tema-ok { visibility: visible; }
+.tema-menu button[aria-checked="true"] > .ic { color: var(--acc); }
+@keyframes temaMenu { from { opacity: 0; transform: scale(.96) translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tema-menu { animation: none; } .tema-btn { transition: none; } }
+html.glass-lite .tema-btn, html.glass-lite .tema-menu { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .tema-btn, .tema-menu { background: var(--card); } }
+@media (pointer: coarse) { .tema-btn { width: 44px; height: 44px; } .tema-menu button { min-height: 44px; } }
+/* solo en las pantallas del portal y en la entrada; los laboratorios 3D tienen su propio aspecto (siempre claro) */
+body:not(.is-gate):not([class*="scr-"]) .tema-caja, body.scr-act .tema-caja, body.scr-circ .tema-caja, body.scr-viv .tema-caja,
+body.cl-modal-abierto .tema-caja { display: none; }
+/* hueco en la barra para que el botón no tape la navegación */
+body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .scr-top { padding-right: 64px; }
+@media (pointer: coarse) { body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .scr-top { padding-right: 72px; } }
+body.scr-cover .cov-top { right: 60px; top: 13px; }
+@media (pointer: coarse) { body.scr-cover .cov-top { right: 68px; top: 15px; } }
+.tema-menu { min-width: 250px; } .tema-menu button span:not(.tema-ok) { white-space: nowrap; }

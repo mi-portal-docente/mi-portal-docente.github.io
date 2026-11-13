@@ -85,7 +85,7 @@ async function enterCode(pg, code) {
   const { ctx, pg, errs } = await fresh();
   await goto(pg, '', 900);
   const g = await gateVisible(pg);
-  ok('sin código aparece la pantalla de acceso', g.gate && g.title === 'Portal docente' && g.hasCodeLabel, JSON.stringify(g));
+  ok('sin código aparece la pantalla de acceso', g.gate && g.title === 'Super Profe Pablo' && g.hasCodeLabel, JSON.stringify(g));
   ok('sin código no se ve contenido del portal', !g.leak && !g.app && !g.circ && !g.cover, JSON.stringify(g));
   await pg.screenshot({ path: SHOTS + 'codigo_clase.png' });
   ok('captura codigo_clase.png', true, SHOTS + 'codigo_clase.png');

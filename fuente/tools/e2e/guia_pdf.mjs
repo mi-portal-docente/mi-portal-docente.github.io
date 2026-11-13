@@ -22,5 +22,5 @@ li{margin:3px 0}
 writeFileSync(TMP, html);
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
 const pg = await b.newPage(); await pg.goto('file://' + TMP); await pg.waitForTimeout(500);
-await pg.pdf({ path: PDF, format: 'A4', margin: { top: '16mm', bottom: '16mm', left: '16mm', right: '16mm' }, printBackground: true, displayHeaderFooter: true, headerTemplate: '<span></span>', footerTemplate: '<div style="font-size:8pt;color:#888;width:100%;text-align:center">Portal docente · Guía del panel del profesor · <span class="pageNumber"></span>/<span class="totalPages"></span></div>' });
+await pg.pdf({ path: PDF, format: 'A4', margin: { top: '16mm', bottom: '16mm', left: '16mm', right: '16mm' }, printBackground: true, displayHeaderFooter: true, headerTemplate: '<span></span>', footerTemplate: '<div style="font-size:8pt;color:#888;width:100%;text-align:center">Super Profe Pablo · Guía del panel del profesor · <span class="pageNumber"></span>/<span class="totalPages"></span></div>' });
 await b.close(); console.log('ok');

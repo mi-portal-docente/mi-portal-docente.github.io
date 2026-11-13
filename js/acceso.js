@@ -7,7 +7,7 @@
 (function () {
   'use strict';
   var LS_KEY = 'portal.acceso';
-  var APP_SRC = 'js/app.js?v=ios1-20261113';
+  var APP_SRC = 'js/app.js?v=ios2-20261113';
 
   function cfg() { return window.PORTAL_ACCESO || {}; }
 
@@ -118,7 +118,7 @@
     return (
       '<div class="gate" id="gate" role="dialog" aria-labelledby="gate-title">' +
         '<div class="gate-card">' +
-          '<h1 id="gate-title">Portal docente</h1>' +
+          '<h1 id="gate-title">Super Profe Pablo</h1>' +
           '<form id="gate-form" autocomplete="off">' +
             '<label for="gate-code">Código de clase</label>' +
             '<input id="gate-code" name="codigo" type="text" inputmode="text" autocapitalize="off" autocomplete="off" spellcheck="false" autofocus>' +
@@ -131,7 +131,7 @@
   }
 
   function showGate() {
-    document.title = 'Portal docente';
+    document.title = 'Super Profe Pablo';
     document.body.classList.add('is-gate');
     document.body.classList.remove('is-unlocked');
     var loading = document.querySelector('.loading');
@@ -229,7 +229,7 @@
 
   function cargarFirebase() {
     var s = document.createElement('script');
-    s.src = 'js/portal-fb.js?v=ios1-20261113';
+    s.src = 'js/portal-fb.js?v=ios2-20261113';
     s.onerror = function () {
       document.body.insertAdjacentHTML('afterbegin', '<p class="loading">No se ha podido cargar el control de acceso. Comprueba la conexión y recarga la página.</p>');
     };

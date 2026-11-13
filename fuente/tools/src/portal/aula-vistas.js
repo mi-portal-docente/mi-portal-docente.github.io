@@ -25,7 +25,7 @@ export function adjuntosHTML(L) {
   if (!L?.length) return '';
   return `<div class="cl-adjs">${L.map((e) => { const t = tipoAdjunto(e.u); const interno = String(e.u).startsWith('#'); return `<a class="cl-adj-c" href="${esc(urlSegura(e.u))}" ${interno ? '' : 'target="_blank" rel="noopener noreferrer"'}><span class="cl-adj-ic">${t.ic}</span><span><b>${esc(e.t || e.u)}</b><span class="au-small">${esc(t.t)}</span></span></a>`; }).join('')}</div>`;
 }
-const barraSup = () => `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">Portal docente</a><div class="scr-ttl">Aula virtual</div>${window.PORTAL?.navHTML ? window.PORTAL.navHTML('asig') : ''}<div class="au-chip">${window.PORTAL?.chipHTML ? window.PORTAL.chipHTML() : ''}</div></header>`;
+const barraSup = () => `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">Super Profe Pablo</a><div class="scr-ttl">Aula virtual</div>${window.PORTAL?.navHTML ? window.PORTAL.navHTML('asig') : ''}<div class="au-chip">${window.PORTAL?.chipHTML ? window.PORTAL.chipHTML() : ''}</div></header>`;
 
 export function crearVistas({ db, aula, rol, ses, uid }) {
   const st = aula.st;

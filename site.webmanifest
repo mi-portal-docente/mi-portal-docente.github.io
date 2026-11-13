@@ -1,0 +1,14 @@
+{
+  "name": "Super Profe Pablo",
+  "short_name": "Super Profe",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "browser",
+  "background_color": "#f2f2f7",
+  "theme_color": "#DC001B",
+  "icons": [
+    { "src": "img/icono-portal-v2.png", "sizes": "64x64", "type": "image/png" },
+    { "src": "apple-touch-icon.png", "sizes": "64x64", "type": "image/png" }
+  ]
+}

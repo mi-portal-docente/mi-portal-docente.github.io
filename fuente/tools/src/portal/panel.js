@@ -76,7 +76,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     if (!st.unsubs.length) iniciar();
     if (nuevo) {
       el.innerHTML = `<div class="pn">
-        <header class="scr-top"><a href="#inicio" class="brand" title="Inicio">Portal docente</a><div class="scr-ttl">Panel del profesor</div>${PORTAL.navHTML('panel')}<div class="pn-who">${esc(email || '')}</div></header>
+        <header class="scr-top"><a href="#inicio" class="brand" title="Inicio">Super Profe Pablo</a><div class="scr-ttl">Panel del profesor</div>${PORTAL.navHTML('panel')}<div class="pn-who">${esc(email || '')}</div></header>
         <nav class="crumbs static" aria-label="Estás en"><div><a href="#inicio">Inicio</a> › <a href="#panel">Panel del profesor</a> › <span id="pnCrumb" aria-current="page"></span></div><div class="prof">${PORTAL.chipHTML()}</div></nav>
         <div class="pn-wrap pn-layout">
           <nav class="pn-nav" id="pnTabs" aria-label="Secciones del panel"></nav>

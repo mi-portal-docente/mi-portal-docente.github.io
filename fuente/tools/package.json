@@ -5,10 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm run build:app && npm run build:portal && npm run build:placa",
+    "build": "npm run build:tema && npm run build:app && npm run build:portal && npm run build:placa",
     "build:app": "esbuild src/main.js --bundle --minify --loader:.ino=text --outfile=../../js/app.js",
     "build:portal": "esbuild src/portal/main.js --bundle --minify --format=iife --target=es2019 --legal-comments=linked --outfile=../../js/portal-fb.js",
-    "build:placa": "esbuild src/placa/main.js --bundle --minify --format=iife --target=es2020 --legal-comments=linked --outfile=../../js/placa.js"
+    "build:placa": "esbuild src/placa/main.js --bundle --minify --format=iife --target=es2020 --legal-comments=linked --outfile=../../js/placa.js",
+    "build:tema": "esbuild src/tema/main.js --bundle --minify --format=iife --target=es2019 --outfile=../../js/tema.js"
   },
   "keywords": [],
   "author": "",
