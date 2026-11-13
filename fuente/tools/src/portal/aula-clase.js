@@ -7,7 +7,7 @@ import { collection, doc, getDocs, query, where, writeBatch, updateDoc, deleteDo
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { asignatura, TIPOS, SEMILLAS, itemDeSemilla } from '../lms/biblioteca.js';
-import { idItem, ordenEntre, leeEnlaces, categoriaDe, tipoAdjunto, urlSegura, fmtNota } from '../lms/modelo.js';
+import { idItem, ordenEntre, leeEnlaces, categoriaDe, tipoAdjunto, urlSegura, fmtNota, visibleAlDe } from '../lms/modelo.js';
 import { crearEditor, estadoPub, fFecha, PEND_T } from './aula-editor.js';
 import { textoHTML } from './aula-vistas.js';
 import { crearJson } from './aula-json.js';
@@ -18,6 +18,7 @@ const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const nombreTipo = (tipo) => TIPOS[tipo]?.nombre || tipo;
 const idTema = () => 't' + Array.from({ length: 12 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join('');
 const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
+const aLocalCl = (t) => { const d = new Date(t); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 async function enLotes(db, ops) { for (let i = 0; i < ops.length; i += 400) { const b = writeBatch(db); ops.slice(i, i + 400).forEach((f) => f(b)); await b.commit(); } }
 // «2026/27» → «26/27» (los elementos de la semilla dicen en qué cursos estaban)
 export const cursoCorto = (nombre) => { const m = String(nombre || '').match(/(\d{2})(\d{2})\/(\d{2})/); return m ? `${m[2]}/${m[3]}` : String(nombre || ''); };
@@ -125,6 +126,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     if (it.tipo === 'examen' && it.examen?.hasta) m.push('Cierra ' + fFecha(it.examen.hasta));
     else if (it.fechaEntrega) m.push('Fecha de entrega: ' + fFecha(it.fechaEntrega));
     if (it.puntos) m.push(`${fmtNota(it.puntos)} puntos`);
+    if (it.tipo === 'recuperacion' && (it.para || []).length && prof) m.push('Solo nº ' + it.para.join(', '));
     if (prof) m.push((it.grupos || []).length + ' grupo' + ((it.grupos || []).length === 1 ? '' : 's'));
     return m.join(' · ');
   }
@@ -144,7 +146,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
         <details class="cl-mas"><summary class="btn tiny" aria-label="Más acciones">⋮</summary><div class="cl-menu">
           <button data-cl="editar">✏️ Editar</button><button data-cl="renombrar">🔤 Cambiar el título</button>
           <label>Mover a <select data-cl-mover>${opt('', 'Sin tema', it.tema || '')}${temas.map((t) => opt(t.id, t.nombre, it.tema || '')).join('')}</select></label>
-          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button><button data-cl="borrar" class="pn-peligro">🗑 Borrar</button></div></details></span></div>`;
+          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="duplicarEn">${ic('copy-plus')} Duplicar en otro grupo o curso…</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button><button data-cl="borrar" class="pn-peligro">🗑 Borrar</button></div></details></span></div>`;
   }
 
   // ---- Organización (solo profesor): la visión completa de la asignatura, con borradores, pendientes y notas privadas
@@ -177,7 +179,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   // ---- Lo que ve el alumno. Para el profesor es una VISTA PREVIA fiel de un grupo: solo lo publicado y ya
   // visible para ese grupo, sin borradores, notas privadas, pendientes ni soluciones, y sin enlaces de gestión.
   function datosAlumno(grupo) {
-    const t = ahora(); const vis = (x) => !prof || !grupo || (x.visible || []).includes(grupo);
+    const t = ahora(); const vis = (x) => !prof || !grupo || (x.visible || []).includes(grupo) || (x.tipo === 'recuperacion' && x.publicado && (x.grupos || []).includes(grupo));
     const items = itemsAsig(C.asig).filter((it) => it.publicado && !(it.pub && it.pub > t) && vis(it));
     const ids = new Set(items.map((i) => i.tema));
     const temas = [...st.temas.values()].filter((x) => x.asig === C.asig && (!prof || x.curso === st.cursoSel) && ids.has(x.id)).sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, 'es'));
@@ -218,9 +220,10 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const form = `<form id="clAnuncio" class="cl-anuncio-f pn-form" autocomplete="off"><label class="pn-f">Anuncia algo a tu clase<textarea name="texto" rows="3" maxlength="5000" required placeholder="Escribe un aviso para tus alumnos…"></textarea></label>
       <label class="pn-f">Adjuntos (opcional, uno por línea: «Título | https://…»)<textarea name="enlaces" rows="2" maxlength="3000"></textarea></label>
       <div class="cl-an-g">Para: ${gs.map((g) => `<label class="pn-chk"><input type="checkbox" name="grupos" value="${esc(g.id)}" checked> ${esc(g.nombre)}</label>`).join('') || '<span class="pn-small">No hay grupos de esta asignatura en este curso.</span>'}</div>
+      <div class="cl-an-prog"><label class="pn-chk"><input type="checkbox" name="programar"> ${ic('alarm-clock')} Programar para</label><input type="datetime-local" name="pubAn" value="${esc(aLocalCl(Date.now() + 864e5))}" aria-label="Fecha y hora de publicación del aviso"></div>
       <div class="pn-acts"><button class="btn primary" type="submit" ${gs.length ? '' : 'disabled'}>📣 Publicar</button><span class="pn-msg" id="clAnMsg"></span></div></form>`;
     const mios = [...st.anuncios.values()].filter((a) => a.asig === C.asig && a.curso === st.cursoSel).sort((x, y) => (y.pub || y.fecha || 0) - (x.pub || x.fecha || 0));
-    const misAnuncios = `<details class="org-box cl-misan"><summary>Tus anuncios (${mios.length})</summary>${mios.map((a) => `<div class="cl-misan-it" data-anuncio="${esc(a.id)}"><span>${esc(String(a.texto || '').slice(0, 90))}${String(a.texto || '').length > 90 ? '…' : ''}<br><span class="pn-small">${esc(fFecha(a.pub || a.fecha))} · ${esc((a.grupos || []).map((g) => st.grupos.get(g)?.nombre || g).join(', '))}</span></span><button class="btn tiny pn-peligro" data-cl="anDel" aria-label="Borrar el anuncio">🗑</button></div>`).join('') || '<p class="pn-small">Ninguno todavía.</p>'}</details>`;
+    const misAnuncios = `<details class="org-box cl-misan"><summary>Tus anuncios (${mios.length})</summary>${mios.map((a) => `<div class="cl-misan-it" data-anuncio="${esc(a.id)}"><span>${esc(String(a.texto || '').slice(0, 90))}${String(a.texto || '').length > 90 ? '…' : ''}<br><span class="pn-small">${a.pub && a.pub > Date.now() ? `<span class="cl-an-progr">${ic('alarm-clock')} Programado · </span>` : ''}${esc(fFecha(a.pub || a.fecha))} · ${esc((a.grupos || []).map((g) => st.grupos.get(g)?.nombre || g).join(', '))}</span></span><button class="btn tiny pn-peligro" data-cl="anDel" aria-label="Borrar el anuncio">🗑</button></div>`).join('') || '<p class="pn-small">Ninguno todavía.</p>'}</details>`;
     const D = datosAlumno(C.verGrupo);
     const prev = `<section class="cl-preview" aria-label="Vista previa del alumno"><div class="cl-preview-h"><span>👁 <b>Vista del alumno</b></span>
       ${gs.length ? `<label>Grupo <select data-cl-f="vergrupo">${gs.map((g) => opt(g.id, g.nombre, C.verGrupo)).join('')}</select></label>` : '<span class="pn-small">(sin grupos: lo publicado)</span>'}
@@ -333,6 +336,11 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     if (!it.publicado && !(it.grupos || []).length) { const gs = gruposDe(it.curso, it.asig).map((g) => g.id); if (!gs.length) { alert('No hay grupos de esta asignatura en este curso: créalos en el panel → «Grupos y códigos».'); return; } it = { ...it, grupos: gs }; }
     if (!it.publicado && it.tipo === 'examen' && !(it.examen?.n > 0)) { alert('Este cuestionario no tiene preguntas todavía. Edítalo para añadirlas.'); return; }
     const pub = !it.publicado; const b = writeBatch(db);
+    if (it.tipo === 'recuperacion') {
+      if (pub && !(it.para || []).length) { alert('Edita la recuperación y escribe los nº de lista que la hacen.'); return; }
+      b.update(doc(db, 'items', it.id), { publicado: pub, grupos: it.grupos, visible: [], visibleAl: pub ? visibleAlDe(it.grupos, it.para) : [], pub: null, actualizado: Date.now() });
+      return b.commit();
+    }
     b.update(doc(db, 'items', it.id), { publicado: pub, grupos: it.grupos, visible: pub ? it.grupos : [], pub: null, actualizado: Date.now() });
     if (it.tipo === 'examen') b.update(doc(db, 'examenes', it.id), { publicado: pub, grupos: it.grupos });
     await b.commit(); aula.olvidarExamen(it.id);
@@ -344,7 +352,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   async function copiar(it, destino = {}) {
     const id = idItem(); const b = writeBatch(db);
     const datos = Object.fromEntries(Object.entries(it).filter(([k]) => k !== 'id'));
-    b.set(doc(db, 'items', id), { ...datos, curso: destino.curso || it.curso, tema: destino.tema !== undefined ? destino.tema : it.tema ?? null, titulo: (destino.titulo || it.titulo).slice(0, 150), orden: destino.orden ?? (it.orden ?? 0) + 0.5, grupos: destino.grupos || it.grupos || [], publicado: false, visible: [], pub: null, actualizado: Date.now() });
+    b.set(doc(db, 'items', id), { ...datos, curso: destino.curso || it.curso, tema: destino.tema !== undefined ? destino.tema : it.tema ?? null, titulo: (destino.titulo || it.titulo).slice(0, 150), orden: destino.orden ?? (it.orden ?? 0) + 0.5, grupos: destino.grupos || it.grupos || [], publicado: false, visible: [], pub: null, actualizado: Date.now(), ...('visibleAl' in it ? { visibleAl: [] } : {}) });
     if (it.tipo === 'examen') { const { examen, claves } = await aula.examen(it.id, { claves: true }); if (examen) b.set(doc(db, 'examenes', id), { ...examen, desde: Timestamp.fromMillis(examen.desde), hasta: Timestamp.fromMillis(examen.hasta), grupos: destino.grupos || examen.grupos || [], publicado: false }); b.set(doc(db, 'claves', id), claves || { respuestas: {} }); }
     await b.commit(); return id;
   }
@@ -362,6 +370,27 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     m.addEventListener('change', (ev) => onAccion('change', ev.target, m));
     m.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') cerrarModal(); });
     document.body.appendChild(m); C.modal = m; document.body.classList.add('cl-modal-abierto'); return m;
+  }
+  // Duplicar una actividad en otro grupo o en otro curso escolar (queda como borrador para revisarla)
+  function duplicarEn(it) {
+    const cursos = [...st.cursos.values()].sort((a, b) => String(b.id).localeCompare(String(a.id)));
+    let cur = it.curso;
+    const gruposHTML = () => { const gs = gruposDe(cur, it.asig); return gs.map((g) => `<label class="pn-chk"><input type="checkbox" name="dupG" value="${esc(g.id)}"> ${esc(g.nombre)}</label>`).join('') || '<p class="pn-small">Ese curso no tiene grupos de esta asignatura: se copiará sin grupo.</p>'; };
+    modal(`<header class="cl-dlg-h"><span class="cl-dlg-ic">${ic('copy-plus')}</span><h3>Duplicar «${esc(it.titulo)}»</h3></header>
+      <div class="cl-dlg-b1"><label class="pn-f">Título<input data-dup="titulo" maxlength="150" value="${esc(it.titulo)}"></label>
+      <label class="pn-f">Curso escolar<select data-dup="curso">${cursos.map((c) => opt(c.id, c.nombre || c.id, cur)).join('')}</select></label>
+      <fieldset class="pn-f"><legend>Para los grupos</legend><div data-dup="grupos">${gruposHTML()}</div></fieldset>
+      <p class="pn-small">La copia se guarda como <b>borrador</b>${it.tipo === 'recuperacion' ? ' (revisa los nº de lista)' : it.tipo === 'piac' ? ' (configura sus equipos)' : ''}. Revísala y publícala cuando quieras.</p>
+      <p class="pn-msg" data-dup="msg" role="status"></p></div>
+      <footer class="cl-dlg-f"><span class="pn-grow"></span><button class="btn" data-m="cerrar">Cancelar</button><button class="btn primary" data-m="dupOk">${ic('copy')} Duplicar</button></footer>`, async (acc, b, m) => {
+      if (acc === 'change' && b.dataset.dup === 'curso') { cur = b.value; m.querySelector('[data-dup=grupos]').innerHTML = gruposHTML(); return; }
+      if (acc !== 'dupOk') return;
+      const grupos = [...m.querySelectorAll('[name=dupG]:checked')].map((x) => x.value);
+      const titulo = m.querySelector('[data-dup=titulo]').value.trim() || it.titulo;
+      b.disabled = true; m.querySelector('[data-dup=msg]').textContent = 'Duplicando…';
+      try { await copiar(it, { curso: cur, grupos, titulo, tema: cur === it.curso ? it.tema ?? null : null }); cerrarModal(); }
+      catch (e) { b.disabled = false; m.querySelector('[data-dup=msg]').textContent = 'No se ha podido duplicar (' + (e?.code || 'error') + ').'; }
+    });
   }
   function cerrarModal() { C.modal?.remove(); C.modal = null; if (!editor?.abierto()) document.body.classList.remove('cl-modal-abierto'); }
 
@@ -499,6 +528,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'editar') return editor.abrir(it);
       if (acc === 'renombrar') return renombrar(it);
       if (acc === 'duplicar') return copiar(it, { titulo: it.titulo + ' (copia)' });
+      if (acc === 'duplicarEn') { b.closest('details')?.removeAttribute('open'); return duplicarEn(it); }
       if (acc === 'exportarJSON') { b.closest('details')?.removeAttribute('open'); return json.exportar(it); }
       if (acc === 'borrar') return borrar(it);
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || e?.message || 'error') + ').'); }
@@ -514,8 +544,10 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const f = ev.target; const fd = new FormData(f); const msg = f.querySelector('#clAnMsg');
     const texto = String(fd.get('texto') || '').trim().slice(0, 5000); const grupos = fd.getAll('grupos').map(String);
     if (!texto || !grupos.length) { msg.textContent = 'Escribe el aviso y marca al menos un grupo.'; msg.className = 'pn-msg ko'; return; }
-    msg.textContent = 'Publicando…'; msg.className = 'pn-msg';
-    try { await setDoc(doc(db, 'anuncios', idItem()), { curso: st.cursoSel, asig: C.asig, texto, enlaces: leeEnlaces(fd.get('enlaces'), 10), grupos, visible: grupos, fecha: Date.now(), pub: null }); f.reset(); pintar(); }
+    const pub = fd.get('programar') ? (fd.get('pubAn') ? new Date(String(fd.get('pubAn'))).getTime() : null) : null;
+    if (fd.get('programar') && !(pub > Date.now())) { msg.textContent = 'La fecha del aviso programado tiene que ser futura.'; msg.className = 'pn-msg ko'; return; }
+    msg.textContent = pub ? 'Programando…' : 'Publicando…'; msg.className = 'pn-msg';
+    try { await setDoc(doc(db, 'anuncios', idItem()), { curso: st.cursoSel, asig: C.asig, texto, enlaces: leeEnlaces(fd.get('enlaces'), 10), grupos, visible: grupos, fecha: Date.now(), pub }); f.reset(); pintar(); }
     catch (e) { msg.textContent = '❌ No se ha podido publicar (' + (e?.code || 'error') + ').'; msg.className = 'pn-msg ko'; }
   }
   window.addEventListener('portal-aula', () => { if (C.el?.isConnected && !C.drag) pintar(); });

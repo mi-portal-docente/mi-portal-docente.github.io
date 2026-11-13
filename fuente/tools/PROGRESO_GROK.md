@@ -307,3 +307,45 @@ E2E fase 7: 19/19.
 **Dudas / pendiente**: como en las fases 5 y 6, el contenido del elemento (también la avería) lo puede leer
 el alumno con las herramientas del navegador; para exámenes de verdad habría que ocultarlo en el servidor
 (Cloud Functions), fuera del alcance. Una avería por montaje.
+
+## Fase 8 · PIAC, recuperación, calendario, avisos programados, duplicar, rúbrica y voz — HECHA (mínimo sólido)
+
+* **Proyecto en equipo (PIAC)** (tipo `piac`, importable en JSON): en la página del elemento el alumno ve su
+  equipo y tiene tres pestañas: **Tablero** (pendiente / en curso / hecho; cada tarea con responsable por nº de
+  lista y fecha, se mueve con botones accesibles), **Diario** del equipo (entradas con fecha y nº, no se editan)
+  y **Evaluación** (autoevaluación y coevaluación de cada compañero con la rúbrica, 1–4 por criterio).
+  El profesor configura los equipos («Nombre: 1, 4, 7» por grupo) y ve, por equipo, las tareas por estado,
+  el tablero y el diario, y una tabla por alumno con autoevaluación, media de coevaluación y la autoría según
+  el equipo. Colecciones nuevas `piac` y `piacEval` (solo nº de lista; nada de nombres).
+* **Recuperación** (tipo `recuperacion`): tarea que solo ven los nº de lista elegidos (`para` + `visibleAl`);
+  el resto del grupo no la recibe ni la abre con el enlace. Se publica, programa, entrega y califica como una tarea.
+* **Calendario del alumno** (`#calendario`, enlace «Calendario» en la barra): próximos 15 días y mes con las
+  fechas de entrega y exámenes de todas sus asignaturas y su estado (entregado, nota…). El profesor ve el del curso.
+* **Avisos programados en el tablón**: «Programar para» fecha y hora (campo `pub`, ya admitido por las reglas);
+  el alumno no lo ve hasta esa hora; en «Tus anuncios» sale como «Programado».
+* **Duplicar en otro grupo o curso**: menú ⋮ del elemento → elige curso escolar y grupos; la copia queda en borrador.
+* **Plantilla de rúbrica** de 5 criterios ponderados con uno de **autoría** (`src/lms/rubrica.js`): botón en el
+  editor (campo Rúbrica) y rúbrica por defecto del PIAC.
+* **Leer en voz alta**: botón en la página de cada elemento con instrucciones (voz del navegador en castellano;
+  se para al cambiar de página).
+
+**Archivos**: `src/lms/{rubrica,modelo,biblioteca}.js`, `src/lms/motores/piac.js`, `src/portal/{piac-ui,aula-datos,
+aula-vistas,aula-editor,aula-clase,main}.js`, `src/main.js` (ruta `#calendario`), `css/plataforma.css`,
+`FORMATO_IMPORTAR.md`. Caché `gp8-20261113`.
+
+**Reglas (cambian, sin desplegar)**: `items` admite `para` y `visibleAl` y los tipos `recuperacion` y `piac`;
+el alumno lee un item si su grupo está en `visible` **o** su `grupo_nº` está en `visibleAl`; una recuperación
+publicada tiene `visible` vacío y `visibleAl` con alumnos. Las entregas (`trabajos`) aceptan `recuperacion` y
+comprueban `visibleAl`. Nuevas `piac/{id}` (solo miembros del equipo: leen, crean, mueven y borran tareas; el
+diario solo se crea) y `piacEval/{item_grupo_de_a}` (cada alumno solo escribe y lee lo que puntúa él, y solo a
+miembros de su equipo). Regenerado el `para-pegar`.
+
+**Pruebas**: `plataforma_test.mjs` 27/27 · reglas 105/105 · E2E fase 8: 19/19.
+
+**Capturas**: `f8_piac_tablero`, `f8_piac_evaluacion`, `f8_piac_profesor`, `f8_recuperacion_alumno`,
+`f8_calendario`, `f8_calendario_movil`, `f8_aviso_programado`, `f8_duplicar`.
+
+**Dudas / pendiente**: los avisos e items programados llegan al navegador del alumno antes de la hora (se
+ocultan en la interfaz; las reglas no comparan con la hora) — igual que ya pasaba con los items programados.
+La auto/coevaluación no pasa sola al cuaderno: el profesor la ve en el resumen y pone la nota del proyecto.
+La lectura en voz alta depende de las voces instaladas en el dispositivo.

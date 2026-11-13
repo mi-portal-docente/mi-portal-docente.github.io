@@ -423,20 +423,23 @@ service cloud.firestore {
     // alumno solo puede consultar con where('visible', 'array-contains', grupo).
     // Nunca contiene respuestas correctas (están en claves/{id}).
     match /items/{id} {
+      // «Recuperación» (fase 8): no se publica para el grupo entero sino para algunos nº de lista
+      // (visibleAl = ['grupo_nº', …]); el alumno la consulta con where('visibleAl', 'array-contains', 'grupo_nº').
       allow read: if esProfesor()
-        || (alumnoOk() && miSesion().grupo in resource.data.visible);
+        || (alumnoOk() && miSesion().grupo in resource.data.visible)
+        || (alumnoOk() && 'visibleAl' in resource.data && idAlumno(miSesion()) in resource.data.visibleAl);
       allow delete: if esProfesor();
       allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}$') && itemOk(request.resource.data);
 
       function itemOk(d) {
         return d.keys().hasOnly(['curso', 'asig', 'tema', 'unidad', 'tipo', 'titulo', 'texto', 'enlaces', 'fechaEntrega', 'puntos', 'rubrica',
                                  'categoria', 'grupos', 'visible', 'publicado', 'pub', 'orden', 'origen', 'examen', 'opciones', 'pendiente', 'nota', 'actualizado',
-                                 'criterio', 'contenido'])
+                                 'criterio', 'contenido', 'para', 'visibleAl'])
           && d.keys().hasAll(['curso', 'asig', 'tipo', 'titulo', 'grupos', 'visible', 'publicado'])
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
           && (!('unidad' in d) || textoCorto(d.unidad, 40))
-          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia']
+          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac']
           && textoCorto(d.titulo, 150)
           && (!('texto' in d) || textoCorto(d.texto, 20000))
           && (!('enlaces' in d) || listaCorta(d.enlaces, 20))
@@ -449,7 +452,13 @@ service cloud.firestore {
           && (!('contenido' in d) || d.contenido == null || d.contenido is map)
           && listaCorta(d.grupos, 40) && listaCorta(d.visible, 40)
           && d.publicado is bool
-          && ((d.publicado == true && d.visible == d.grupos) || (d.publicado == false && d.visible.size() == 0));
+          && (!('para' in d) || d.para == null || listaCorta(d.para, 40))
+          && (!('visibleAl' in d) || listaCorta(d.visibleAl, 200))
+          && ((d.tipo != 'recuperacion'
+               && d.get('visibleAl', []).size() == 0
+               && ((d.publicado == true && d.visible == d.grupos) || (d.publicado == false && d.visible.size() == 0)))
+            || (d.tipo == 'recuperacion' && d.visible.size() == 0
+               && ((d.publicado == true && d.get('visibleAl', []).size() > 0) || (d.publicado == false && d.get('visibleAl', []).size() == 0))));
       }
     }
 
@@ -615,7 +624,7 @@ service cloud.firestore {
       function item() { return get(ruta('items', request.resource.data.item)).data; }
       function examen() { return get(ruta('examenes', request.resource.data.item)).data; }
       function tipoTarea() {
-        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia'];
+        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion'];
       }
       function tipoExamen() { return request.resource.data.tipo == 'examen' && item().tipo == 'examen'; }
       function trabajoBase(id) {
@@ -626,7 +635,7 @@ service cloud.firestore {
           && id == d.item + '_' + idAlumno(s)
           && d.al == idAlumno(s) && d.grupo == s.grupo && d.numero == s.numero
           && d.uid == request.auth.uid
-          && s.grupo in item().visible
+          && (s.grupo in item().visible || idAlumno(s) in item().get('visibleAl', []))
           && d.curso == item().curso && d.asig == item().asig;
       }
       function tareaOk() {
@@ -660,6 +669,57 @@ service cloud.firestore {
         && textoCorto(request.resource.data.get('comentario', ''), 2000)
         && request.resource.data.publicada is bool
         && (!('detalle' in request.resource.data) || request.resource.data.detalle is map);
+    }
+
+    // Proyecto en equipo (PIAC, fase 8). Los equipos están en el elemento (items/{item}.contenido):
+    // miembros = { equipo: [nº, …] } y grupoDe = { equipo: grupo }. Solo los miembros del equipo
+    // leen y escriben su tablero (clase 'tarea') y su diario (clase 'diario'); el profesor, todo.
+    function miembroPiac(itemId, equipo) {
+      let it = get(ruta('items', itemId)).data;
+      return it.tipo == 'piac' && miSesion().grupo in it.visible
+        && it.contenido.grupoDe[equipo] == miSesion().grupo
+        && miSesion().numero in it.contenido.miembros[equipo];
+    }
+    function numeroLista(n) { return n == null || (n is int && n >= 1 && n <= 99); }
+    match /piac/{id} {
+      allow read: if esProfesor()
+        || (alumnoOk() && resource.data.grupo == miSesion().grupo && miembroPiac(resource.data.item, resource.data.equipo));
+      allow delete: if esProfesor()
+        || (alumnoOk() && resource.data.clase == 'tarea' && resource.data.grupo == miSesion().grupo && miembroPiac(resource.data.item, resource.data.equipo));
+      allow create: if alumnoOk() && id.matches('^[A-Za-z0-9]{6,30}$') && piacOk(request.resource.data)
+        && request.resource.data.autor == miSesion().numero;
+      allow update: if alumnoOk() && piacOk(request.resource.data) && resource.data.clase == 'tarea'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['texto', 'estado', 'resp', 'fecha', 'actualizado']);
+      function piacOk(d) {
+        return d.keys().hasOnly(['item', 'equipo', 'grupo', 'clase', 'texto', 'estado', 'resp', 'fecha', 'autor', 'creado', 'actualizado'])
+          && d.keys().hasAll(['item', 'equipo', 'grupo', 'clase', 'texto', 'autor', 'creado'])
+          && d.item is string && d.equipo is string && d.grupo == miSesion().grupo
+          && miembroPiac(d.item, d.equipo)
+          && d.clase in ['tarea', 'diario']
+          && textoCorto(d.texto, 2000) && d.texto.size() > 0
+          && (d.clase == 'diario' || d.estado in ['pendiente', 'encurso', 'hecho'])
+          && numeroLista(d.get('resp', null))
+          && (d.get('fecha', null) == null || esNumero(d.fecha))
+          && esNumero(d.creado) && (d.get('actualizado', null) == null || esNumero(d.actualizado));
+      }
+    }
+    // Autoevaluación (de == a) y coevaluación entre miembros del mismo equipo con la rúbrica del elemento.
+    // El alumno solo ve lo que ha puntuado él; el profesor ve todo.
+    match /piacEval/{id} {
+      allow read: if esProfesor()
+        || (alumnoOk() && resource.data.grupo == miSesion().grupo && resource.data.de == miSesion().numero);
+      allow delete: if esProfesor();
+      allow create, update: if alumnoOk() && evalOk(request.resource.data)
+        && id == request.resource.data.item + '_' + request.resource.data.grupo + '_' + string(request.resource.data.de) + '_' + string(request.resource.data.a);
+      function evalOk(d) {
+        return d.keys().hasOnly(['item', 'equipo', 'grupo', 'de', 'a', 'puntos', 'comentario', 'fecha'])
+          && d.keys().hasAll(['item', 'equipo', 'grupo', 'de', 'a', 'puntos', 'fecha'])
+          && d.item is string && d.equipo is string && d.grupo == miSesion().grupo
+          && d.de == miSesion().numero && miembroPiac(d.item, d.equipo)
+          && d.a in get(ruta('items', d.item)).data.contenido.miembros[d.equipo]
+          && d.puntos is map && d.puntos.size() <= 10
+          && textoCorto(d.get('comentario', ''), 1000) && esNumero(d.fecha);
+      }
     }
 
     // Cualquier otra ruta: prohibida.

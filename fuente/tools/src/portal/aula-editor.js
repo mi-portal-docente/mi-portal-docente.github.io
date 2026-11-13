@@ -9,14 +9,16 @@ import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
 import { criterioValido, motor } from '../lms/elemento.js';
 import '../lms/motores/index.js';
 import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta } from '../lms/preguntas.js';
-import { categoriaDe, idItem, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, TIPOS_ENTREGA, enlaceValido } from '../lms/modelo.js';
+import { categoriaDe, idItem, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, TIPOS_ENTREGA, enlaceValido, visibleAlDe } from '../lms/modelo.js';
+import { rubricaPlantillaTexto } from '../lms/rubrica.js';
+import { completarPiac } from '../lms/motores/piac.js';
 
 export const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const aLocal = (t) => { if (!t) return ''; const d = new Date(t); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 const deLocal = (v) => (v ? new Date(v).getTime() : null);
 const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
 export const TIPOS_CREAR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario'];
-const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia'];
+const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac'];
 const entregableDe = (t) => TIPOS_ENTREGA.includes(t) || t === 'examen' || !!motor(t)?.entregable;
 export const PEND = 'Contenido pendiente de subir.';
 export const PEND_T = 'Pendiente de completar';
@@ -111,8 +113,10 @@ export function crearEditor({ db, aula, gruposDe }) {
         ${e.pendiente ? `<p class="cl-pend-aviso"><b>⚠ ${PEND_T}.</b> Al importarlo de Classroom no constaban todos los detalles. Añade instrucciones o adjuntos y guarda: el aviso desaparece solo.</p>` : ''}
         <textarea name="nota" rows="2" maxlength="2000" placeholder="Recordatorios para ti; los alumnos no la ven.">${esc(e.nota || '')}</textarea>
         ${e.pendiente ? '<label class="pn-chk"><input type="checkbox" name="quitarPend"> Ya está completo: quitar el aviso «Pendiente de completar»</label>' : ''}</fieldset>
-      ${entregable && e.tipo !== 'examen' ? `<label class="pn-f">Rúbrica (opcional, una línea por criterio: «Criterio | puntos»)<textarea name="rubrica" rows="3" maxlength="5000" placeholder="Contenido completo y correcto | 4&#10;Presentación y formato | 3&#10;Entrega en plazo | 3">${esc(rubricaTexto(e.rubrica))}</textarea></label>` : ''}
+      ${entregable && e.tipo !== 'examen' ? `<div class="pn-f"><label class="pn-f">Rúbrica (opcional, una línea por criterio: «Criterio | puntos»)<textarea name="rubrica" rows="3" maxlength="5000" placeholder="Contenido completo y correcto | 4&#10;Presentación y formato | 3&#10;Entrega en plazo | 3">${esc(rubricaTexto(e.rubrica))}</textarea></label>
+        <div class="pn-acts"><button type="button" class="btn small" data-ed="plantillaRubrica">${ic('list-checks')} Plantilla: 5 criterios ponderados (con autoría)</button></div></div>` : ''}
     </div><aside class="cl-dlg-side">
+      ${e.tipo === 'recuperacion' ? `<label class="pn-f">${ic('user-check')} Solo para los nº de lista<input name="para" inputmode="numeric" maxlength="200" placeholder="p. ej. 3, 7, 12" value="${esc((e.para || []).join(', '))}"><span class="pn-small">Solo la ven estos alumnos de los grupos marcados. El resto del grupo no sabe que existe.</span></label>` : ''}
       <fieldset class="pn-f"><legend>Para</legend>${gs.map((g) => `<label class="pn-chk"><input type="checkbox" name="grupos" value="${esc(g.id)}" ${(e.grupos || []).includes(g.id) ? 'checked' : ''}> ${esc(g.nombre)}</label>`).join('') || '<span class="pn-small">No hay grupos de esta asignatura en este curso: créalos en el panel → «Grupos y códigos».</span>'}</fieldset>
       ${entregable ? `<label class="pn-f">Puntos<input type="number" name="puntos" min="1" max="1000" step="0.5" placeholder="Sin calificar" value="${e.puntos ?? ''}"></label>` : ''}
       ${entregable && e.tipo !== 'examen' ? `<label class="pn-f">Fecha de entrega<input type="datetime-local" name="fechaEntrega" value="${esc(aLocal(e.fechaEntrega))}"></label>` : ''}
@@ -177,6 +181,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (f.elements.rubrica) e.rubrica = leeRubrica(fd.get('rubrica'));
     if (f.elements.categoria) e.categoria = String(fd.get('categoria'));
     if (f.elements.contenido) e.contenidoTxt = String(fd.get('contenido') || '');
+    if (f.elements.para) e.para = [...new Set(String(fd.get('para') || '').split(/[,;\s]+/).filter(Boolean).map(Number))].filter((n) => Number.isInteger(n) && n >= 1 && n <= 99).slice(0, 40);
     if (f.elements.criterio) e.criterio = String(fd.get('criterio') || '').trim().slice(0, 60) || null;
     if (f.elements.opciones) e.opciones = String(fd.get('opciones') || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 10).map((s) => s.slice(0, 300));
     if (f.elements.desde) e.examen = { desde: deLocal(fd.get('desde')), hasta: deLocal(fd.get('hasta')), limiteMin: parseInt(fd.get('limiteMin'), 10) || null, barajar: !!fd.get('barajar'), pantallaCompleta: !!fd.get('pantallaCompleta'), n: E.preguntas.length };
@@ -188,6 +193,8 @@ export function crearEditor({ db, aula, gruposDe }) {
     const publicado = e.estado !== 'borrador';
     if (publicado && !e.grupos.length) return err('Para publicarlo, marca al menos un grupo en «Para».');
     if (e.estado === 'programar' && !(e.pub > Date.now())) return err('La fecha de publicación programada tiene que ser futura.');
+    const esRec = e.tipo === 'recuperacion';
+    if (esRec && publicado && !(e.para || []).length) return err('Escribe los nº de lista que hacen la recuperación (p. ej. 3, 7, 12).');
     const esEx = e.tipo === 'examen';
     if (e.criterio && !criterioValido(e.criterio)) return err('El criterio solo puede llevar letras, números, «_», «.» o «-» (sin espacios), p. ej. eee_c1_1.');
     for (const [i, q] of (esEx ? E.preguntas : []).entries()) if (q.criterio && !criterioValido(q.criterio)) return err(`Pregunta ${i + 1}: el criterio solo puede llevar letras, números, «_», «.» o «-» (sin espacios).`);
@@ -207,7 +214,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       if (!j || typeof j !== 'object' || Array.isArray(j)) return err('El contenido tiene que ser un objeto JSON { … }.');
       const errs = []; const limpio = M.validar(j, (r, t) => errs.push(`contenido${r ? '.' + r : ''}: ${t}`));
       if (errs.length) return err(errs.slice(0, 3).join(' · '));
-      e.contenido = limpio;
+      e.contenido = e.tipo === 'piac' ? completarPiac(limpio, e.grupos) : limpio;
     }
     msg.textContent = 'Guardando…'; msg.className = 'pn-msg';
     const id = e.id || idItem();
@@ -215,10 +222,11 @@ export function crearEditor({ db, aula, gruposDe }) {
     const data = { curso: e.curso, asig: e.asig, tema: e.tema || null, tipo: e.tipo, titulo: e.titulo, texto: e.texto, enlaces: e.enlaces,
       fechaEntrega: entregable && !esEx ? e.fechaEntrega || null : null, puntos: entregable ? e.puntos ?? null : null,
       rubrica: entregable && !esEx ? e.rubrica || [] : [], categoria: entregable ? e.categoria || categoriaDe(e.tipo) : null, opciones: e.tipo === 'pregunta' ? e.opciones || [] : null,
-      grupos: e.grupos, visible: publicado ? e.grupos : [], publicado, pub: e.estado === 'programar' ? e.pub : null,
+      grupos: e.grupos, visible: publicado && !esRec ? e.grupos : [], publicado, pub: e.estado === 'programar' ? e.pub : null,
       orden: e.orden ?? 1000, origen: e.origen || null, pendiente: !!e.pendiente && !e.texto.replace(PEND, '').trim() && !e.enlaces.length, nota: e.nota || null,
       examen: esEx ? { desde: e.examen.desde, hasta: e.examen.hasta, limiteMin: e.examen.limiteMin, n: E.preguntas.length, ...(e.examen.pantallaCompleta ? { pantallaCompleta: true } : {}) } : null, actualizado: Date.now() };
     if (e.unidad) data.unidad = e.unidad;
+    if (esRec) { data.para = e.para || []; data.visibleAl = publicado ? visibleAlDe(e.grupos, data.para) : []; }
     if (e.criterio && entregable && !esEx) data.criterio = e.criterio;
     if (e.contenido && M) data.contenido = e.contenido;
     try {
@@ -240,6 +248,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     const acc = b.dataset.ed;
     if (acc === 'cancelar') return cerrar();
     if (acc === 'ejemplo') { const M = motor(E.edit.tipo); const ta = b.form?.elements.contenido; if (M && ta && (!ta.value.trim() || confirm('¿Cambiar el contenido por el ejemplo?'))) { ta.value = JSON.stringify(M.ejemplo || {}, null, 2); E.edit.contenidoTxt = ta.value; } return; }
+    if (acc === 'plantillaRubrica') { const ta = b.form?.elements.rubrica; if (ta && (!ta.value.trim() || confirm('¿Cambiar la rúbrica por la plantilla de 5 criterios?'))) ta.value = rubricaPlantillaTexto(); return; }
     if (acc === 'exportar') { const it = st.items.get(E.edit?.id); if (it) api.exportar?.(it); return; }
     if (acc === 'adj') {
       const f = b.form; const u = f.adjU.value.trim(); const t = f.adjT.value.trim();

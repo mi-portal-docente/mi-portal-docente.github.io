@@ -25,6 +25,8 @@ export const TIPOS = {
   ciber: { nombre: 'Ciberseguridad', icon: '🔐', cat: 'tareas' },
   bloques: { nombre: 'Retos por bloques', icon: '🧱', cat: 'tareas' },
   averia: { nombre: 'Encuentra la avería', icon: '🔧', cat: 'practicas' },
+  recuperacion: { nombre: 'Recuperación', icon: '🔁', cat: 'tareas' },
+  piac: { nombre: 'Proyecto en equipo (PIAC)', icon: '👥', cat: 'proyectos' },
 };
 export const CATEGORIAS = [
   { id: 'examenes', nombre: 'Exámenes y cuestionarios', peso: 40 },

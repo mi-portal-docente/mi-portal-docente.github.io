@@ -9,10 +9,11 @@ import { fmtNota, barajar, semilla, leeEnlaces, urlSegura, idTrabajo, TIPOS_ENTR
 import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTipoPregunta } from './examen-ui.js';
 import { crearModoExamen } from './modo-examen.js';
 import { montarExplicacion } from './explicacion-ui.js';
+import { montarPiac } from './piac-ui.js';
 
 // Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
 // registran en window.PORTAL_MOTORES[tipo] = (nodo, item, opciones) => ({ actualizar }).
-const MOTORES_UI = { explicacion: montarExplicacion };
+const MOTORES_UI = { explicacion: montarExplicacion, piac: montarPiac };
 const montadorDe = (tipo) => MOTORES_UI[tipo] || window.PORTAL_MOTORES?.[tipo] || null;
 
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
@@ -34,7 +35,7 @@ export function adjuntosHTML(L) {
   if (!L?.length) return '';
   return `<div class="cl-adjs">${L.map((e) => { const t = tipoAdjunto(e.u); const interno = String(e.u).startsWith('#'); return `<a class="cl-adj-c" href="${esc(urlSegura(e.u))}" ${interno ? '' : 'target="_blank" rel="noopener noreferrer"'}><span class="cl-adj-ic">${t.ic}</span><span><b>${esc(e.t || e.u)}</b><span class="au-small">${esc(t.t)}</span></span></a>`; }).join('')}</div>`;
 }
-const barraSup = () => `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">SuperProfe · Alumnos</a><div class="scr-ttl">Aula virtual</div>${window.PORTAL?.navHTML ? window.PORTAL.navHTML('asig') : ''}<div class="au-chip">${window.PORTAL?.chipHTML ? window.PORTAL.chipHTML() : ''}</div></header>`;
+const barraSup = (activa = 'asig') => `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">SuperProfe · Alumnos</a><div class="scr-ttl">Aula virtual</div>${window.PORTAL?.navHTML ? window.PORTAL.navHTML(activa) : ''}<div class="au-chip">${window.PORTAL?.chipHTML ? window.PORTAL.chipHTML() : ''}</div></header>`;
 
 export function crearVistas({ db, aula, rol, ses, uid }) {
   const st = aula.st;
@@ -118,7 +119,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (rol === 'profesor') h += `<div class="au-prof">${!it.publicado ? '⚪ Borrador' : it.pub && it.pub > Date.now() ? '🕒 Programado para el ' + esc(fFecha(it.pub)) : '🟢 Publicado'} · ${esc((it.grupos || []).length)} grupo(s) <button class="btn small" data-au="editar">✏️ Editar</button></div>`;
     if (rol === 'profesor' && (it.pendiente || it.nota)) h += `<div class="cl-nota-v ${it.pendiente ? 'pend' : ''}">🔒 <b>${it.pendiente ? 'Pendiente de completar' : 'Nota privada'}</b>${it.nota ? ' · ' + esc(it.nota) : ''} <span class="muted small">(solo la ves tú)</span></div>`;
     if (it.fechaEntrega && it.tipo !== 'examen') h += `<div class="au-fecha">📅 Fecha de entrega: <b>${esc(fFecha(it.fechaEntrega))}</b></div>`;
-    h += `<div class="au-texto">${it.texto ? textoHTML(it.texto) : '<p class="au-small">Sin instrucciones.</p>'}</div>`;
+    if (it.tipo === 'recuperacion' && rol === 'profesor') h += `<div class="au-aviso">${ic('user-check')} Solo la ven los nº de lista <b>${esc((it.para || []).join(', ') || '—')}</b> de sus grupos.</div>`;
+    if (it.texto || !(it.contenido && montadorDe(it.tipo))) h += `<div class="au-texto">${it.texto ? textoHTML(it.texto) : '<p class="au-small">Sin instrucciones.</p>'}</div>`;
+    if (it.texto && voz()) h += `<div class="au-voz"><button class="btn small" data-au="leer" aria-pressed="false">${ic('volume-2')} Leer en voz alta</button></div>`;
     if (it.enlaces?.length) h += `<h4>Adjuntos</h4>${adjuntosHTML(it.enlaces)}`;
     h += rubricaHTML(it, st.notas.get(it.id));
     if (it.tipo === 'examen') h += examenInfoHTML(it);
@@ -138,12 +141,13 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     const nodo = el.querySelector('#auMotor'); motorM = null;
     if (nodo) {
       const montar = montadorDe(it.tipo);
-      const api = montar(nodo, it, { rol, trabajo: st.trabajos.get(id), nota: st.notas.get(id), entregar: rol === 'alumno' ? (texto, extra) => entregarActividad(it.id, texto, extra) : null });
+      const api = montar(nodo, it, { rol, db, ses, aula: st, trabajo: st.trabajos.get(id), nota: st.notas.get(id), entregar: rol === 'alumno' ? (texto, extra) => entregarActividad(it.id, texto, extra) : null });
       motorM = { id, nodo, api, nota: !!st.notas.get(id) };
     }
   }
   function repintar() {
     if (!actual || !actual.el.isConnected) return;
+    if (actual.tipo === 'cal') return renderCalendario(actual.el);
     if (!document.activeElement || !actual.el.contains(document.activeElement) || document.activeElement.tagName === 'BUTTON') renderItem(actual.el, actual.id);
   }
   window.addEventListener('portal-aula', repintar);
@@ -264,6 +268,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); if (it?.examen?.pantallaCompleta) modo?.pedirPantalla(); b.disabled = true; abrirExamen(it).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }
     if (b.dataset.au === 'verPreguntas') verPreguntas();
     if (b.dataset.au === 'editar') window.PORTAL?.aula?.editar?.(actual.id);
+    if (b.dataset.au === 'leer') leerEnVoz(b);
+    if (b.dataset.au === 'calMes') { cal.mes += +b.dataset.d; renderCalendario(actual.el); }
+    if (b.dataset.au === 'calHoy') { cal.mes = 0; renderCalendario(actual.el); }
   });
   document.addEventListener('submit', (e) => {
     if (!actual?.el.contains(e.target)) return;
@@ -287,11 +294,65 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'tarea', texto: String(texto).slice(0, 10000), enlaces: [], fecha: serverTimestamp(), estado: 'entregado' });
   }
 
+  // ---------------------------------------------------------------- lectura en voz alta (Web Speech, voz en castellano)
+  function voz() { return typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined'; }
+  function leerEnVoz(b) {
+    const S = window.speechSynthesis;
+    if (S.speaking || b.getAttribute('aria-pressed') === 'true') { S.cancel(); b.setAttribute('aria-pressed', 'false'); b.innerHTML = `${ic('volume-2')} Leer en voz alta`; return; }
+    const txt = actual.el.querySelector('.au-texto')?.innerText || ''; if (!txt.trim()) return;
+    const u = new SpeechSynthesisUtterance(txt.slice(0, 20000)); u.lang = 'es-ES'; u.rate = 0.95;
+    const v = S.getVoices().find((x) => /^es(-|_)ES/i.test(x.lang)) || S.getVoices().find((x) => /^es/i.test(x.lang)); if (v) u.voice = v;
+    u.onend = u.onerror = () => { if (b.isConnected) { b.setAttribute('aria-pressed', 'false'); b.innerHTML = `${ic('volume-2')} Leer en voz alta`; } };
+    S.cancel(); S.speak(u); b.setAttribute('aria-pressed', 'true'); b.innerHTML = `${ic('circle-stop')} Parar la lectura`;
+  }
+  window.addEventListener('hashchange', () => { if (voz()) window.speechSynthesis.cancel(); });
+
+  // ---------------------------------------------------------------- calendario (#calendario)
+  // Alumno: fechas de entrega y exámenes de todas sus asignaturas, con su estado. Profesor: los del curso.
+  const cal = { mes: 0 };
+  function eventosCal() {
+    const t = Date.now(); const L = [];
+    for (const it of st.items.values()) {
+      if (rol === 'alumno' && it.pub && it.pub > t) continue;
+      if (rol === 'profesor' && !it.publicado) continue;
+      const f = it.tipo === 'examen' ? it.examen?.desde : it.fechaEntrega; if (!f) continue;
+      const [k, txt] = estado(it);
+      L.push({ t: f, it, k, txt, ex: it.tipo === 'examen' });
+    }
+    return L.sort((a, b) => a.t - b.t);
+  }
+  function renderCalendario(el) {
+    if (!el) return; actual = { el, tipo: 'cal', id: null };
+    const ev = eventosCal(); const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const base = new Date(hoy.getFullYear(), hoy.getMonth() + cal.mes, 1);
+    const ini = new Date(base); ini.setDate(1 - ((base.getDay() + 6) % 7));
+    const clave = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const porDia = new Map(); for (const e of ev) { const d = new Date(e.t); const k = clave(d); if (!porDia.has(k)) porDia.set(k, []); porDia.get(k).push(e); }
+    const evHTML = (e) => `<a class="ca-ev ${e.ex ? 'ex' : ''} e-${esc(e.k)}" href="#trabajo/${esc(e.it.id)}" title="${esc(e.it.titulo)}">${ic(e.ex ? 'clipboard-check' : e.k === 'ok' || e.k === 'nota' ? 'circle-check' : 'file-text')}<span>${esc(e.it.titulo)}</span></a>`;
+    let celdas = '';
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(ini); d.setDate(ini.getDate() + i); if (i >= 35 && d.getMonth() !== base.getMonth()) break;
+      const L = porDia.get(clave(d)) || [];
+      celdas += `<div class="ca-dia ${d.getMonth() !== base.getMonth() ? 'fuera' : ''} ${+d === +hoy ? 'hoy' : ''}" role="gridcell" aria-label="${esc(d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }))}${L.length ? ', ' + L.length + ' entrega' + (L.length === 1 ? '' : 's') : ''}"><span class="ca-n">${d.getDate()}</span>${L.map(evHTML).join('')}</div>`;
+    }
+    const prox = ev.filter((e) => e.t >= +hoy && e.t < +hoy + 15 * 864e5);
+    const asig = (e) => asignatura(e.it.asig)?.corto || e.it.asig;
+    const mesTxt = base.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }); const mesT = mesTxt.charAt(0).toUpperCase() + mesTxt.slice(1);
+    el.innerHTML = barraSup('cal') + `<div class="au-page ca">
+      <div class="au-crumbs"><a href="#inicio">Inicio</a> › <a href="#asignaturas">Asignaturas</a> › <span aria-current="page">Calendario</span></div>
+      <h2>${ic('calendar-days')} Calendario</h2>
+      <p class="au-small">${rol === 'profesor' ? 'Fechas de entrega y exámenes publicados del curso.' : 'Tus fechas de entrega y exámenes de todas las asignaturas.'}</p>
+      <section class="ca-prox" aria-label="Próximos 15 días"><h3>Próximos 15 días</h3>${prox.length ? `<ul>${prox.map((e) => `<li><a href="#trabajo/${esc(e.it.id)}"><span class="ca-f">${esc(new Date(e.t).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }))}</span><b>${esc(e.it.titulo)}</b><span class="au-small">${esc(asig(e))}${e.ex ? ' · examen' : ''}</span>${e.txt ? `<span class="au-est e-${esc(e.k)}">${esc(e.txt)}</span>` : ''}</a></li>`).join('')}</ul>` : '<p class="au-vacio">Nada en los próximos 15 días.</p>'}</section>
+      <div class="ca-cab"><button class="btn small" data-au="calMes" data-d="-1" aria-label="Mes anterior">${ic('chevron-left')}</button><h3 aria-live="polite">${esc(mesT)}</h3><button class="btn small" data-au="calMes" data-d="1" aria-label="Mes siguiente">${ic('chevron-right')}</button>${cal.mes ? `<button class="btn small" data-au="calHoy">Hoy</button>` : ''}</div>
+      <div class="ca-grid" role="grid"><div class="ca-sem" role="row">${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((x) => `<span role="columnheader">${x}</span>`).join('')}</div><div class="ca-dias" role="row">${celdas}</div></div>
+    </div>`;
+  }
+
   // Un elemento visible (para laboratorios que se abren fuera de la página del elemento: «Encuentra la avería»).
   function elemento(id) {
     const it = st.items.get(id); if (!it) return st.listo.items ? { noExiste: true } : null;
     if (rol === 'alumno' && (!it.publicado || (it.pub && it.pub > Date.now()))) return { noExiste: true };
     return { it, rol, trabajo: st.trabajos.get(id) || null, nota: st.notas.get(id) || null };
   }
-  return { renderItem, estado, examenEnCurso: () => ex.id, asignacionActividad, entregarActividad, elemento };
+  return { renderItem, estado, examenEnCurso: () => ex.id, asignacionActividad, entregarActividad, elemento, renderCalendario };
 }

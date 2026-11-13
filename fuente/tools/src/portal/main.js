@@ -7,6 +7,7 @@ import { iniciarFirebase } from './fb.js';
 import { normalizaCodigo, formatoCodigo } from './codigos.js';
 import { crearPanel } from './panel.js';
 import { esc, enHorario, conTimeout } from './util.js';
+import { ic } from './ico.js';
 import { crearAula } from './aula-datos.js';
 import { crearVistas } from './aula-vistas.js';
 import { crearClase } from './aula-clase.js';
@@ -67,8 +68,9 @@ const PORTAL = window.PORTAL = {
   // «Curso» = las asignaturas del curso escolar activo; «Biblioteca» = todas las asignaturas trabajadas (archivo).
   navHTML(activa = '') {
     const a = (href, k, t) => `<a class="top-nav-a ${activa === k ? 'on' : ''}" href="${href}" ${activa === k ? 'aria-current="page"' : ''}>${t}</a>`;
-    if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}</nav>`;
-    return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${a('#biblioteca', 'biblio', '🗂 Biblioteca')}${a('#panel', 'panel', '⚙️ Panel del profesor')}</nav>`;
+    const cal = vistas ? a('#calendario', 'cal', `${ic('calendar-days')} Calendario`) : '';
+    if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${cal}</nav>`;
+    return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${cal}${a('#biblioteca', 'biblio', '🗂 Biblioteca')}${a('#panel', 'panel', '⚙️ Panel del profesor')}</nav>`;
   },
   estadoEntrega(practica) { return entregas.get(practica) || null; },
   entregar,
@@ -106,6 +108,7 @@ const PORTAL = window.PORTAL = {
     importar(asig) { clase?.importar(asig); },
     reutilizar(asig) { clase?.reutilizar(asig); },
     renderItem(el, id) { if (vistas) vistas.renderItem(el, id); },
+    renderCalendario(el) { if (vistas) vistas.renderCalendario(el); },
     // Profesor: asignaturas del curso escolar activo (null si aún no hay curso) y, de cada asignatura,
     // los otros cursos escolares en los que estuvo (para el archivo de la Biblioteca).
     asignaturasCurso() {

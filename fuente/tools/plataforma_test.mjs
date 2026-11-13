@@ -311,3 +311,29 @@ test('Fase 7 · polímetro con continuidad y «Encuentra la avería»', async ()
   assert.deepEqual(AV.evaluarAveria({ elemento: 'R1', tipo: 'abierto' }, { elemento: 'R1', tipo: 'corto' }), { elemento: true, tipo: false, a: 1, t: 2 });
   assert.equal(AV.evaluarAveria({ elemento: 'R1', tipo: 'abierto' }, { elemento: 'L1', tipo: 'abierto' }).a, 0);
 });
+
+test('Fase 8 · PIAC, rúbrica ponderada y recuperación', async () => {
+  await import('./src/lms/motores/index.js');
+  const { motor } = await import('./src/lms/elemento.js');
+  const R = await import('./src/lms/rubrica.js');
+  const P = await import('./src/lms/motores/piac.js');
+  const { visibleAlDe, leeRubrica } = await import('./src/lms/modelo.js');
+  assert.equal(R.RUBRICA_PLANTILLA.length, 5); assert.equal(R.RUBRICA_PLANTILLA.reduce((a, c) => a + c.peso, 0), 100);
+  assert.equal(R.RUBRICA_PLANTILLA.filter((c) => c.autoria).length, 1);
+  const rub = leeRubrica(R.rubricaPlantillaTexto()); assert.equal(rub.length, 5); assert.equal(rub.reduce((a, c) => a + c.p, 0), 10);
+  assert.equal(R.notaPonderada(R.RUBRICA_PLANTILLA, Object.fromEntries(R.RUBRICA_PLANTILLA.map((c) => [c.id, 4]))), 10);
+  assert.equal(R.notaPonderada(R.RUBRICA_PLANTILLA, { contenido: 2 }), 5);
+  assert.equal(R.notaPonderada(R.RUBRICA_PLANTILLA, {}), null);
+  const ej = validarElemento({ tipo: 'piac', titulo: 'P', contenido: motor('piac').ejemplo });
+  assert.deepEqual(ej.errores, []); assert.equal(ej.el.contenido.criterios.length, 5);
+  const c = P.completarPiac(ej.el.contenido, ['g1']); assert.deepEqual(c.miembros, { e1: [1, 2, 3], e2: [4, 5, 6] }); assert.deepEqual(c.grupoDe, { e1: 'g1', e2: 'g1' });
+  const ep = (x) => validarElemento({ tipo: 'piac', titulo: 'P', contenido: x }).errores.map((e) => e.texto).join(' ');
+  assert.match(ep({ equipos: [{ miembros: [1, 2] }, { miembros: [2, 3] }] }), /El nº 2 ya está en el equipo/);
+  assert.match(ep({ criterios: [{ c: 'Contenido', peso: 50 }] }), /criterio de autoría/);
+  assert.match(ep({ equipos: [{ miembros: [] }] }), /al menos 1/);
+  const eqs = P.leerEquiposTexto('Los rápidos: 1, 4, 7\nEquipo 2: 2 5 8', 'g1'); assert.equal(eqs.length, 2); assert.deepEqual(eqs[0], { nombre: 'Los rápidos', grupo: 'g1', miembros: [1, 4, 7] });
+  assert.equal(P.equiposTexto(eqs, 'g1'), 'Los rápidos: 1, 4, 7\nEquipo 2: 2, 5, 8');
+  assert.deepEqual(visibleAlDe(['g1', 'g2'], [3, 7]), ['g1_3', 'g1_7', 'g2_3', 'g2_7']);
+  assert.deepEqual(validarElemento({ tipo: 'recuperacion', titulo: 'Recuperación', texto: 'Repite la práctica 2' }).errores, []);
+});
+

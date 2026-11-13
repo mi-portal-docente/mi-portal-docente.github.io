@@ -318,3 +318,32 @@ en el laboratorio no ve si ha acertado. Si el montaje no tiene polímetro se añ
     "pistas": ["Mide la tensión en cada componente: el que se queda con toda la tensión de la pila está abierto."],
     "explicacion": "R1 está abierta: entre sus patas hay los 9 V de la pila y no circula corriente." } }
 ```
+
+## Recuperación (`"tipo": "recuperacion"`)
+
+Una tarea normal (instrucciones, adjuntos, puntos, fecha, rúbrica) que **solo ven algunos nº de lista**.
+Los nº no van en el JSON: se escriben al editarla («Solo para los nº de lista», p. ej. `3, 7, 12`) junto con
+los grupos. En Firestore se guarda `para` (los nº) y `visibleAl` (`grupo_nº`); `visible` queda vacío, así el
+resto del grupo no la recibe ni puede abrirla con el enlace. Entrega y nota como cualquier tarea.
+
+```json
+{ "formato": "superprofe/elemento@1", "tipo": "recuperacion", "titulo": "Recuperación: práctica de soldadura",
+  "texto": "Repite la práctica y entrega una foto del resultado.", "puntos": 10 }
+```
+
+## Proyecto en equipo (`"tipo": "piac"`)
+
+Tablero del equipo (pendiente / en curso / hecho, con responsable por nº de lista y fecha), diario del
+equipo y autoevaluación + coevaluación con rúbrica ponderada (escala 1–4 → nota sobre 10).
+`criterios` (opcional, 1–8): `{ "id", "c", "peso", "autoria": true }`; uno tiene que ser de autoría. Si no se
+pone, se usa la plantilla de 5 criterios (contenido 30 %, proceso 20 %, comunicación 20 %, herramientas y
+fuentes 15 %, autoría 15 %). `equipos` (opcional, máx. 30): `{ "id", "nombre", "miembros": [nº…], "grupo"? }`.
+Sin `grupo`, al guardar se asignan al grupo del elemento si solo hay uno; si no, el profesor los configura en
+la página del elemento («Equipos»: una línea «Nombre: 1, 4, 7» por equipo y grupo). Solo nº de lista, nunca nombres.
+
+```json
+{ "formato": "superprofe/elemento@1", "tipo": "piac", "titulo": "Proyecto: estación meteorológica",
+  "contenido": { "instrucciones": "Organizad el proyecto en el tablero y escribid el diario cada sesión.",
+    "equipos": [ { "id": "e1", "nombre": "Equipo 1", "miembros": [1, 2, 3] },
+                 { "id": "e2", "nombre": "Equipo 2", "miembros": [4, 5, 6] } ] } }
+```

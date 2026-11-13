@@ -167,3 +167,59 @@ describe('Fase 7 · «Encuentra la avería»', () => {
     await assertFails(setDoc(doc(anon('a7'), 'items/itemav02'), { ...ITEM_T, tipo: 'averia', titulo: 'x', contenido }));
   });
 });
+
+describe('Fase 8 · recuperación, PIAC y avisos programados', () => {
+  const REC = { ...ITEM_T, tipo: 'recuperacion', titulo: 'Recuperación T1', grupos: ['g1'], visible: [], para: [7], visibleAl: ['g1_7'], publicado: true };
+  test('recuperación: el profesor la publica solo para algunos nº de lista', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'items/itemR001'), REC));
+    await assertSucceeds(setDoc(doc(profe(), 'items/itemR002'), { ...REC, publicado: false, visibleAl: [] }));
+    await assertFails(setDoc(doc(profe(), 'items/itemR003'), { ...REC, visible: ['g1'] }), 'no se publica para el grupo entero');
+    await assertFails(setDoc(doc(profe(), 'items/itemR004'), { ...ITEM_T, visibleAl: ['g1_7'] }), 'visibleAl solo en recuperación');
+    await assertFails(setDoc(doc(profe(), 'items/itemR005'), { ...REC, visibleAl: [] }), 'publicada sin alumnos');
+  });
+  test('recuperación: la ve y la entrega el nº elegido; otro alumno del grupo no', async () => {
+    await sembrar((db) => setDoc(doc(db, 'items/itemR001'), REC));
+    await assertSucceeds(getDoc(doc(anon('a7'), 'items/itemR001')));
+    await assertSucceeds(getDocs(query(collection(anon('a7'), 'items'), where('visibleAl', 'array-contains', 'g1_7'))));
+    await assertSucceeds(getDocs(query(collection(anon('a7'), 'items'), where('visible', 'array-contains', 'g1'))));
+    await assertFails(getDoc(doc(anon('a9'), 'items/itemR001')));
+    await assertFails(getDocs(query(collection(anon('a9'), 'items'), where('visibleAl', 'array-contains', 'g1_7'))));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemR001_g1_7'), tarea('a7', { item: 'itemR001' })));
+    await assertFails(setDoc(doc(anon('a9'), 'trabajos/itemR001_g1_9'), tarea('a9', { item: 'itemR001', al: 'g1_9', numero: 9 })));
+  });
+  const PIAC = { ...ITEM_T, tipo: 'piac', titulo: 'Proyecto', contenido: { equipos: [{ id: 'e1', nombre: 'Equipo 1', grupo: 'g1', miembros: [7, 9] }, { id: 'e2', nombre: 'Equipo 2', grupo: 'g1', miembros: [3] }], miembros: { e1: [7, 9], e2: [3] }, grupoDe: { e1: 'g1', e2: 'g1' }, criterios: [] } };
+  const T1 = (o = {}) => ({ item: 'itemP001', equipo: 'e1', grupo: 'g1', clase: 'tarea', texto: 'Hacer el esquema', estado: 'pendiente', resp: 9, fecha: null, autor: 7, creado: 1, ...o });
+  test('PIAC: los miembros crean, mueven y leen las tareas de su equipo', async () => {
+    await sembrar((db) => setDoc(doc(db, 'items/itemP001'), PIAC));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'piac/tareaA001'), T1()));
+    await assertSucceeds(updateDoc(doc(anon('a9'), 'piac/tareaA001'), { estado: 'encurso', actualizado: 2 }));
+    await assertSucceeds(getDocs(query(collection(anon('a9'), 'piac'), where('item', '==', 'itemP001'), where('grupo', '==', 'g1'), where('equipo', '==', 'e1'))));
+    await assertSucceeds(setDoc(doc(anon('a9'), 'piac/diarioA01'), T1({ clase: 'diario', texto: 'Hoy hemos montado la fuente.', estado: null, resp: null, autor: 9 })));
+    await assertFails(updateDoc(doc(anon('a9'), 'piac/diarioA01'), { texto: 'otro' }), 'el diario no se edita');
+    await assertSucceeds(deleteDoc(doc(anon('a9'), 'piac/tareaA001')));
+  });
+  test('PIAC ataques: otro equipo, autor falso, otro grupo, estado inventado', async () => {
+    await sembrar((db) => setDoc(doc(db, 'items/itemP001'), PIAC));
+    await sembrar((db) => setDoc(doc(db, 'piac/tareaB001'), T1({ equipo: 'e2', autor: 3 })));
+    await assertFails(setDoc(doc(anon('a7'), 'piac/tareaA002'), T1({ equipo: 'e2' })));
+    await assertFails(getDocs(query(collection(anon('a7'), 'piac'), where('item', '==', 'itemP001'), where('grupo', '==', 'g1'), where('equipo', '==', 'e2'))));
+    await assertFails(getDoc(doc(anon('a7'), 'piac/tareaB001')));
+    await assertFails(setDoc(doc(anon('a7'), 'piac/tareaA003'), T1({ autor: 9 })));
+    await assertFails(setDoc(doc(anon('b5'), 'piac/tareaA004'), T1({ grupo: 'g2', autor: 5 })));
+    await assertFails(setDoc(doc(anon('a7'), 'piac/tareaA005'), T1({ estado: 'olvidada' })));
+  });
+  test('PIAC: auto y coevaluación solo dentro del equipo; cada uno ve solo lo suyo', async () => {
+    await sembrar((db) => setDoc(doc(db, 'items/itemP001'), PIAC));
+    const ev = (de, a, o = {}) => ({ item: 'itemP001', equipo: 'e1', grupo: 'g1', de, a, puntos: { c1: 3, c2: 4 }, comentario: '', fecha: 1, ...o });
+    await assertSucceeds(setDoc(doc(anon('a7'), 'piacEval/itemP001_g1_7_7'), ev(7, 7)));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'piacEval/itemP001_g1_7_9'), ev(7, 9)));
+    await assertFails(setDoc(doc(anon('a7'), 'piacEval/itemP001_g1_7_3'), ev(7, 3)), 'no es de su equipo');
+    await assertFails(setDoc(doc(anon('a7'), 'piacEval/itemP001_g1_9_7'), ev(9, 7)), 'no puede firmar por otro');
+    await assertSucceeds(getDocs(query(collection(anon('a7'), 'piacEval'), where('item', '==', 'itemP001'), where('grupo', '==', 'g1'), where('de', '==', 7))));
+    await assertFails(getDoc(doc(anon('a9'), 'piacEval/itemP001_g1_7_9')), 'el evaluado no ve quién le ha puntuado');
+    await assertSucceeds(getDocs(query(collection(profe(), 'piacEval'), where('item', '==', 'itemP001'))));
+  });
+  test('tablón: aviso programado (pub en el futuro)', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'anuncios/anunP001'), { curso: 'c2627', asig: 'eee', texto: 'Mañana, examen', grupos: ['g1'], visible: ['g1'], fecha: 1, pub: ahora() + 864e5 }));
+  });
+});

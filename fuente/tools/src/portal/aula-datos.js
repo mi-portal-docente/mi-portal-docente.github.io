@@ -14,9 +14,11 @@ export function crearAula({ db, rol, ses }) {
   const err = (e) => { st.error = e?.code || 'error'; avisar(); };
   const al = ses ? `${ses.grupo}_${ses.numero}` : null;
 
-  function leerItems(qs) {
-    st.items = new Map();
-    qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); st.items.set(d.id, { id: d.id, ...x }); });
+  // El alumno junta dos consultas: los del grupo y los de «Recuperación» para su nº de lista.
+  const fuentes = { g: new Map(), r: new Map() };
+  function leerItems(qs, f = 'g') {
+    const m = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); m.set(d.id, { id: d.id, ...x }); });
+    fuentes[f] = m; st.items = new Map([...fuentes.g, ...fuentes.r]);
     st.listo.items = true; avisar();
   }
   function leerTemas(qs) { st.temas = new Map(); qs.forEach((d) => st.temas.set(d.id, { id: d.id, ...d.data() })); st.listo.temas = true; avisar(); }
@@ -27,6 +29,7 @@ export function crearAula({ db, rol, ses }) {
     st.unsubs.push(onSnapshot(qT, leerTemas, err));
     st.unsubs.push(onSnapshot(query(collection(db, 'anuncios'), where('visible', 'array-contains', ses.grupo)), leerAnuncios, err));
     st.unsubs.push(onSnapshot(query(collection(db, 'items'), where('visible', 'array-contains', ses.grupo)), leerItems, err));
+    st.unsubs.push(onSnapshot(query(collection(db, 'items'), where('visibleAl', 'array-contains', al)), (qs) => leerItems(qs, 'r'), err));
     st.unsubs.push(onSnapshot(query(collection(db, 'trabajos'), where('al', '==', al)), (qs) => {
       st.trabajos = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); st.trabajos.set(x.item, { id: d.id, ...x, inicio: ms(x.inicio), fecha: ms(x.fecha), pendiente: d.metadata.hasPendingWrites }); });
       st.listo.trabajos = true; avisar();
@@ -51,7 +54,7 @@ export function crearAula({ db, rol, ses }) {
     st.cursoSel = id; st.unsubItems?.(); st.unsubItems = null; st.unsubCurso.forEach((f) => f()); st.unsubCurso = [];
     st.items = new Map(); st.temas = new Map(); st.anuncios = new Map(); st.listo.items = st.listo.temas = st.listo.anuncios = false;
     if (!id) { st.listo.items = st.listo.temas = st.listo.anuncios = true; avisar(); return; }
-    st.unsubItems = onSnapshot(query(collection(db, 'items'), where('curso', '==', id)), leerItems, err);
+    st.unsubItems = onSnapshot(query(collection(db, 'items'), where('curso', '==', id)), (qs) => leerItems(qs), err);
     st.unsubCurso.push(onSnapshot(query(collection(db, 'temas'), where('curso', '==', id)), leerTemas, err));
     st.unsubCurso.push(onSnapshot(query(collection(db, 'anuncios'), where('curso', '==', id)), leerAnuncios, err));
   }

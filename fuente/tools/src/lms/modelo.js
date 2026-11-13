@@ -3,7 +3,7 @@
 import { CATEGORIAS, TIPOS } from './biblioteca.js';
 import { TIPOS_PREGUNTA } from './preguntas.js';
 
-export const TIPOS_ENTREGA = ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto'];
+export const TIPOS_ENTREGA = ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'recuperacion'];
 export const categoriaDe = (tipo) => (TIPOS[tipo] && TIPOS[tipo].cat) || null;
 export const redondea = (x, d = 2) => Math.round(x * 10 ** d) / 10 ** d;
 export const fmtNota = (n) => (n == null || Number.isNaN(n) ? '' : String(redondea(n)).replace('.', ','));
@@ -136,3 +136,5 @@ export function csv(filas) {
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   return '\ufeff' + filas.map((r) => r.map(q).join(';')).join('\r\n');
 }
+// «Recuperación» (fase 8): ids 'grupo_nº' de los alumnos que la ven
+export const visibleAlDe = (grupos, para) => (grupos || []).flatMap((g) => (para || []).map((n) => `${g}_${n}`)).slice(0, 200);
