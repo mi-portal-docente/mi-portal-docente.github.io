@@ -28,6 +28,18 @@ export function cil(r, d, m, x, y, z, par, s = 20, r2) { const o = new THREE.Mes
 // cilindro con el eje en y
 export function cilY(r, h, m, x, y, z, par, s = 16, r2) { const o = new THREE.Mesh(gCyl(r, h, s, r2), m); o.position.set(x, y + h / 2, z); o.castShadow = true; par?.add(o); return o; }
 const tc = new Map();
+// Símbolos impresos dibujados con trazos (nada de emoji): campana (pulsador), flechas (conmutador), cruce, reloj, tierra
+export function simboloTex(tipo, color = '#9aa1a6') {
+  const k = 'sim|' + tipo + '|' + color; if (tc.has(k)) return tc.get(k);
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 9; g.lineCap = 'round'; g.lineJoin = 'round';
+  if (tipo === 'campana') { g.beginPath(); g.moveTo(30, 92); g.quadraticCurveTo(38, 84, 38, 62); g.quadraticCurveTo(40, 30, 64, 28); g.quadraticCurveTo(88, 30, 90, 62); g.quadraticCurveTo(90, 84, 98, 92); g.closePath(); g.stroke(); g.beginPath(); g.arc(64, 102, 8, 0, Math.PI * 2); g.fill(); g.beginPath(); g.moveTo(64, 28); g.lineTo(64, 18); g.stroke(); }
+  else if (tipo === 'flechas') { for (const [x, d] of [[44, -1], [84, 1]]) { g.beginPath(); g.moveTo(x, 64 - d * 38); g.lineTo(x, 64 + d * 38); g.moveTo(x - 16, 64 + d * 22); g.lineTo(x, 64 + d * 38); g.lineTo(x + 16, 64 + d * 22); g.stroke(); } }
+  else if (tipo === 'cruce') { g.beginPath(); g.moveTo(30, 30); g.lineTo(98, 98); g.moveTo(98, 30); g.lineTo(30, 98); g.stroke(); }
+  else if (tipo === 'reloj') { g.beginPath(); g.arc(64, 66, 40, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.moveTo(64, 66); g.lineTo(64, 40); g.moveTo(64, 66); g.lineTo(84, 76); g.stroke(); }
+  else if (tipo === 'tierra') { g.beginPath(); g.moveTo(64, 14); g.lineTo(64, 60); g.moveTo(28, 60); g.lineTo(100, 60); g.moveTo(40, 80); g.lineTo(88, 80); g.moveTo(52, 100); g.lineTo(76, 100); g.stroke(); }
+  const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; tc.set(k, tx); return tx;
+}
+function simbolo(tipo, w, x, y, z, par, color) { const m = new THREE.Mesh(geo(`p${w}|${w}`, () => new THREE.PlaneGeometry(w, w)), (() => { const kk = 'simM|' + tipo + color; if (!mc.has(kk)) { const mm = new THREE.MeshBasicMaterial({ map: simboloTex(tipo, color), transparent: true, depthWrite: false }); mm.userData.compartido = true; mc.set(kk, mm); } return mc.get(kk); })()); m.position.set(x, y, z); par?.add(m); return m; }
 export function texto(t, { color = '#1d2329', bg = null, w = 128, h = 64, font = 'bold 40px system-ui, sans-serif' } = {}) {
   const k = [t, color, bg, w, h, font].join('|'); if (tc.has(k)) return tc.get(k);
   const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
@@ -135,12 +147,12 @@ export function mecanismo3D(tipo, o = {}) {
   } else if (tipo === 'minutero') {
     const t = bloqueRedondo(4.1, 4.1, 0.45, 0.4, PLAST(), tc2, 0.1); t.position.z = z0 + 0.3;
     const pomo = cil(1.0, 0.5, PLAST_MATE(), 0, 0.4, z0 + 0.5, tc2, 28); void pomo; caja(0.2, 0.8, 0.1, MAT.grisOsc(), 0, 0.75, z0 + 1.0, tc2);
-    rotulo('⏱ 1–7 min', 3.6, 0.8, 0, -1.4, z0 + 0.56, tc2, { color: '#6b7278', w: 256, h: 56, font: 'bold 36px system-ui, sans-serif' });
+    simbolo('reloj', 0.75, -1.25, -1.4, z0 + 0.57, tc2, '#6b7278'); rotulo('1–7 min', 2.6, 0.8, 0.45, -1.4, z0 + 0.56, tc2, { color: '#6b7278', w: 192, h: 56, font: 'bold 36px system-ui, sans-serif' });
   } else {
     const on = tipo === 'interruptor' || tipo === 'pulsador' ? !!o.on : !!o.pos;
     const t = bloqueRedondo(4.1, 4.1, 0.45, 0.45, PLAST(), tc2, 0.12); t.position.z = z0 + 0.35; t.rotation.x = on ? -0.07 : 0.07;
-    const sim = { conmutador: '⇅', cruzamiento: '✕', pulsador: '🔔', interruptor: '' }[tipo];
-    if (sim) rotulo(sim, 1.0, 1.0, 1.3, -1.3, z0 + 0.62, tc2, { color: '#9aa1a6', w: 64, h: 64, font: 'bold 48px system-ui, sans-serif' });
+    const sim = { conmutador: 'flechas', cruzamiento: 'cruce', pulsador: 'campana', interruptor: '' }[tipo];
+    if (sim) simbolo(sim, 0.9, 1.3, -1.3, z0 + 0.62, tc2, '#a3aaaf');
     caja(2.6, 0.1, 0.04, MAT.gris(), 0, on ? -1.5 : 1.5, z0 + 0.6, tc2);
     if (tipo === 'pulsador') { const led = cil(0.18, 0.05, pbr(0x6fb6ff, { emissive: 0x2a7fff, emissiveIntensity: 0.6 }), 0, 1.5, z0 + 0.6, tc2, 12); void led; }
   }
@@ -168,16 +180,29 @@ export function bombilla3D(luz = 0, o = {}) {
 // ---------------------------------------------------------------- fichas de empalme
 export function ficha3D(tipo) {
   const f = FICHAS[tipo]; const G = new THREE.Group(); if (!f) return G;
-  const w = f.ancho, n = f.vias;
-  if (f.kind === 'palanca') { // cuerpo transparente con palancas naranjas
-    caja(w, 1.86, 0.84, MAT.transp(), 0, 0, 0, G);
-    for (let i = 0; i < n; i++) { const x = -w / 2 + (w / n) * (i + 0.5); caja(w / n - 0.12, 1.3, 0.22, MAT.naranja(), x, 0.2, 0.84, G); caja(w / n - 0.3, 0.12, 0.6, MAT.cobre(), x, -0.9, 0.12, G); }
-  } else if (f.kind === 'insercion') {
-    caja(w, 1.3, 0.75, MAT.transp(), 0, 0, 0, G); caja(w, 0.5, 0.78, MAT.gris(), 0, 0.42, 0, G);
-    for (let i = 0; i < n; i++) cil(0.14, 0.05, MAT.hueco(), -w / 2 + (w / n) * (i + 0.5), -0.62, 0.3, G, 8);
-  } else { // regleta de tornillo
-    caja(w, 1.6, 0.9, MAT.blanco(), 0, 0, 0, G); tornillo(0, 0.4, 0.9, G, 0.28, 'plano'); tornillo(0, -0.4, 0.9, G, 0.28, 'plano');
-    caja(0.5, 0.5, 0.5, MAT.laton(), 0, 0, 0.2, G);
+  const w = f.ancho, n = f.vias; const pv = w / n;
+  if (f.kind === 'palanca') { // tipo 221: cuerpo transparente, pinza de acero con barra de cobre estañado, palancas naranjas con estrías y ranura de prueba
+    const cu = bloqueRedondo(w, 1.86, 0.82, 0.12, pbr(0xe6eef2, { roughness: 0.08, transparent: true, opacity: 0.42, depthWrite: false, clearcoat: 1 }), G, 0.04); cu.position.z = 0.41;
+    caja(w - 0.12, 1.1, 0.12, MAT.cobre(), 0, -0.25, 0.12, G); // barra de corriente
+    for (let i = 0; i < n; i++) { const x = -w / 2 + pv * (i + 0.5);
+      const lev = new THREE.Group(); lev.position.set(x, 0.55, 0.74); lev.rotation.x = -0.06; G.add(lev);
+      const pl = bloqueRedondo(pv - 0.1, 1.3, 0.2, 0.06, pbr(0xff7a12, { roughness: 0.38, clearcoat: 0.3 }), lev, 0.03); pl.position.set(0, -0.3, 0.05);
+      for (let k = 0; k < 4; k++) caja(pv - 0.16, 0.04, 0.05, pbr(0xe66a08, { roughness: 0.5 }), 0, 0.05 + k * 0.1, 0.15, lev);
+      caja(pv - 0.22, 0.12, 0.42, MATS.acero(), x, -0.55, 0.22, G); // pinza (resorte)
+      cil(0.15, 0.06, MAT.hueco(), x, -0.93, 0.3, G, 10).rotation.x = 0; // boca del cable
+      caja(0.1, 0.24, 0.03, MAT.hueco(), x, -0.35, 0.83, G); } // ranura de prueba
+  } else if (f.kind === 'insercion') { // tipo 2273: carcasa transparente con tapa de color y entradas redondas
+    const cu = bloqueRedondo(w, 1.3, 0.75, 0.1, pbr(0xe6eef2, { roughness: 0.08, transparent: true, opacity: 0.45, depthWrite: false, clearcoat: 1 }), G, 0.03); cu.position.z = 0.375;
+    const tp = bloqueRedondo(w + 0.02, 0.5, 0.78, 0.1, pbr(n >= 5 ? 0xf2c200 : n === 3 ? 0xff7a12 : 0xcfd3d6, { roughness: 0.4 }), G, 0.03); tp.position.set(0, 0.42, 0.39);
+    caja(w - 0.12, 0.7, 0.1, MAT.cobre(), 0, -0.15, 0.1, G);
+    for (let i = 0; i < n; i++) { const x = -w / 2 + pv * (i + 0.5); cil(0.13, 0.05, MAT.hueco(), x, -0.62, 0.3, G, 10); caja(pv - 0.12, 0.08, 0.36, MATS.acero(), x, -0.38, 0.2, G); }
+  } else { // regleta (clema) de polietileno: casquillo de latón pasante y dos tornillos, uno por lado
+    const cu = bloqueRedondo(w, 1.6, 0.9, 0.12, pbr(0xf2f1ec, { roughness: 0.45, clearcoat: 0.2 }), G, 0.05); cu.position.z = 0.45;
+    for (const sx of [-1, 1]) caja(0.08, 1.62, 0.95, pbr(0xe4e2da, { roughness: 0.5 }), sx * (w / 2 - 0.04), 0, 0, G); // tabiques
+    cil(0.34, 0.04, MAT.hueco(), 0, 0.4, 0.88, G, 14); cil(0.34, 0.04, MAT.hueco(), 0, -0.4, 0.88, G, 14);
+    tornillo(0, 0.4, 0.72, G, 0.28, 'plano'); tornillo(0, -0.4, 0.72, G, 0.28, 'plano');
+    const cs = new THREE.Mesh(gCyl(0.3, 1.7, 16), MAT.laton()); cs.position.set(0, 0, 0.42); G.add(cs); // casquillo
+    for (const sy of [-0.86, 0.86]) { const b = new THREE.Mesh(gCyl(0.2, 0.02, 12), MAT.hueco()); b.position.set(0, sy, 0.42); G.add(b); }
   }
   return G;
 }
@@ -193,35 +218,54 @@ export function cajaEmpalme3D(tam, fichas = {}, posiciones = [], o = {}) {
   const cono = mat(0x8e959b, { roughness: 0.7 });
   const conos = [[0, W / 2], [0, -W / 2], [-W / 2, 0], [W / 2, 0]];
   for (const [cx, cy] of conos) { const r = new THREE.Mesh(gCyl(0.9, 0.5, 18, 1.1), cono); r.position.set(cx, cy, D / 2); if (cx === 0) r.rotation.set(0, 0, cy > 0 ? 0 : Math.PI); else r.rotation.set(0, 0, cx > 0 ? -Math.PI / 2 : Math.PI / 2); G.add(r); }
-  if (o.tapa) { const t = caja(W + 0.2, W + 0.2, 0.4, mat(0xc9ced2, { transparent: true, opacity: 0.35, depthWrite: false }), 0, 0, D, G); t.name = 'tapa'; }
+  for (const s2 of [-1, 1]) for (const k of [-0.25, 0.25]) { caja(0.12, 0.5, D - 0.8, gris, k * W, s2 * (W / 2 - e - 0.25), 0.2, G); caja(0.5, 0.12, D - 0.8, gris, s2 * (W / 2 - e - 0.25), k * W, 0.2, G); } // nervios interiores
+  if (o.tapa) { const t = caja(W + 0.2, W + 0.2, 0.4, mat(0xc9ced2, { transparent: true, opacity: 0.35, depthWrite: false }), 0, 0, D, G); t.name = 'tapa';
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) tornillo(sx * (W / 2 - 0.9), sy * (W / 2 - 0.9), D + 0.4, t.parent, 0.3, 'pz'); }
   posiciones.forEach(([px, py], i) => { const t = 'B' + (i + 1); const tp = fichas[t]; if (!tp) return; const f = ficha3D(tp); f.position.set(px, py, e); G.add(f); });
   G.userData.D = D; return G;
 }
 
 // ---------------------------------------------------------------- aparamenta modular (IGA, ID, magnetotérmico)
+const perfilDIN = new Map();
+function cuerpoDIN(W) { // perfil lateral (y, z) de un aparato modular: base, hombros de los bornes y frente de 45 mm
+  if (perfilDIN.has(W)) return perfilDIN.get(W);
+  const P = [[-4.25, 0], [4.25, 0], [4.25, 3.0], [4.02, 3.25], [3.98, 4.2], [3.78, 4.4], [2.3, 4.45], [2.25, 6.2], [2.05, 6.4], [-2.05, 6.4], [-2.25, 6.2], [-2.3, 4.45], [-3.78, 4.4], [-3.98, 4.2], [-4.02, 3.25], [-4.25, 3.0]];
+  const s = new THREE.Shape(); P.forEach(([y, z], i) => (i ? s.lineTo(z, y) : s.moveTo(z, y)));
+  const g = new THREE.ExtrudeGeometry(s, { depth: W - 0.08, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0, bevelOffset: 0, bevelSegments: 1 });
+  g.rotateY(-Math.PI / 2); g.translate((W - 0.08) / 2, 0, 0); g.userData.compartida = true; perfilDIN.set(W, g); return g;
+}
 export function modulo3D(tipo, o = {}) {
   // Perfil DIN real (como Hager, Schneider iC60 o Legrand DX³): cuerpo de 85 mm con escalón frontal de 45 mm, bornes de
-  // caja arriba (ENTRADA 1 · N) y abajo (SALIDA 2 · N) con su tornillo PZ2 y la boca del cable, palanca con I-ON / O-OFF,
-  // calibre y curva impresos; el diferencial lleva además el botón T de prueba.
+  // caja arriba (ENTRADA 1 · N) y abajo (SALIDA 2 · N) con su tornillo PZ2 hundido y la boca del cable, palanca con
+  // estrías e I-ON / O-OFF, calibre y curva impresos bajo una ventana, y la pestaña de enganche al carril; el
+  // diferencial lleva además el botón T de prueba.
   const mods = tipo === 'iga' || tipo === 'id' ? 2 : 1; const W = mods * 1.8 - 0.06; const G = new THREE.Group();
-  const B = pbr(0xf4f4f1, { roughness: 0.42 });
-  caja(W, 8.5, 3.2, B, 0, 0, 0, G); // base sobre el carril
-  caja(W, 6.6, 1.2, B, 0, 0, 3.2, G); // hombros de los bornes
-  caja(W, 4.5, 2.0, B, 0, 0, 4.4, G); // frente
+  const B = pbr(0xf1f1ed, { roughness: 0.42, clearcoat: 0.15 });
+  const cu = new THREE.Mesh(cuerpoDIN(W), B); cu.castShadow = true; cu.receiveShadow = true; G.add(cu);
+  for (let i = 1; i < mods; i++) caja(0.04, 8.4, 6.3, pbr(0xd9d9d3, { roughness: 0.6 }), -W / 2 + i * 1.8 - 0.03, 0, 0.02, G); // junta entre módulos
   const on = o.on !== false;
-  const lev = caja(Math.min(1.25, W - 0.4), 1.2, 0.9, mat(tipo === 'id' ? 0x1f5fd6 : tipo === 'iga' ? 0xb3121f : 0x2b2b2b, { roughness: 0.4 }), 0, on ? 0.6 : -0.6, 6.4, G); lev.name = 'palanca';
+  caja(Math.min(1.45, W - 0.3), 2.7, 0.12, MAT.hueco(), 0, 0, 6.32, G); // hueco de la palanca
+  const colP = tipo === 'id' ? 0x1f5fd6 : tipo === 'iga' ? 0xb3121f : 0x2b2b2b;
+  const lev = new THREE.Group(); lev.name = 'palanca'; lev.position.set(0, on ? 0.6 : -0.6, 6.4); G.add(lev);
+  const lw = Math.min(1.25, W - 0.4); const lb = bloqueRedondo(lw, 1.2, 0.85, 0.18, pbr(colP, { roughness: 0.38, clearcoat: 0.3 }), lev, 0.05); lb.position.z = 0.43;
+  for (let k = 0; k < 3; k++) caja(lw - 0.15, 0.07, 0.06, pbr(colP, { roughness: 0.6 }), 0, -0.3 + k * 0.3, 0.86, lev);
   rotulo('I-ON  O-OFF', W - 0.15, 0.4, 0, 1.95, 6.42, G, { color: '#c81e1e', w: 192, h: 40, font: 'bold 28px system-ui, sans-serif' });
   const et = tipo === 'id' ? `ID ${o.In || 40} A\nIΔn 30 mA` : tipo === 'iga' ? `IGA\nC${o.In || 25}` : `${o.curva || 'C'}${o.In || 16}\n${o.circ || ''}`;
   rotulo(et, W - 0.2, 0.9, 0, -1.72, 6.42, G, { bg: '#ffffff', w: 128, h: 72, font: 'bold 28px system-ui, sans-serif' });
+  caja(W - 0.12, 1.0, 0.05, pbr(0xeef4f8, { roughness: 0.05, transparent: true, opacity: 0.25, depthWrite: false }), 0, -1.72, 6.42, G); // ventana del rótulo
   if (tipo === 'id') { cil(0.32, 0.35, MAT.amarillo(), W / 2 - 0.45, 0.9, 6.4, G, 14); rotulo('T', 0.5, 0.5, W / 2 - 0.45, 0.9, 6.77, G, { color: '#1d2329', w: 48, h: 48, font: 'bold 40px system-ui, sans-serif' }); }
   if (o.disparado) caja(0.5, 0.5, 0.1, mat(0xe02020, { emissive: 0xff0000, emissiveIntensity: 0.8 }), -W / 2 + 0.45, 1.9, 6.4, G);
+  // pestaña de enganche al carril (abajo) con su ranura para el destornillador
+  caja(Math.min(1.0, W - 0.5), 0.5, 0.9, pbr(0x8d949a, { roughness: 0.55 }), 0, -4.45, 0.15, G); caja(0.5, 0.08, 0.05, MAT.hueco(), 0, -4.6, 1.06, G);
   const polos = mods === 2 ? [-0.9, 0.9] : [-0.45, 0.45];
   polos.forEach((px, i) => {
     const n = i === 1; const col = n ? '#1f5fd6' : '#7a4a22';
     for (const [y, mk] of [[3.4, n ? 'N' : '1'], [-3.4, n ? 'N' : '2']]) {
-      tornillo(px, y, 4.4, G, 0.26, 'pz');
+      cil(0.36, 0.04, MAT.hueco(), px, y, 4.38, G, 16); // pozo del tornillo
+      tornillo(px, y, 4.3, G, 0.26, 'pz');
       caja(0.62, 0.42, 0.6, MAT.hueco(), px, y + (y > 0 ? 0.62 : -0.62), 3.3, G); // boca del borne de caja
-      rotulo(mk, 0.62, 0.52, px, y > 0 ? 2.55 : -2.55, 4.42, G, { color: col, bg: '#ffffff', w: 64, h: 52, font: 'bold 42px system-ui, sans-serif' });
+      caja(0.46, 0.06, 0.4, MATS.acero(), px, y + (y > 0 ? 0.62 : -0.62), 3.42, G); // jaula del borne
+      rotulo(mk, 0.62, 0.52, px, y > 0 ? 2.55 : -2.55, 4.47, G, { color: col, bg: '#ffffff', w: 64, h: 52, font: 'bold 42px system-ui, sans-serif' });
     }
   });
   return G;
@@ -230,9 +274,16 @@ export function modulo3D(tipo, o = {}) {
 export function cuadro3D(w = 30, h = 24) {
   const G = new THREE.Group(); const B = MAT.blanco();
   caja(w, h, 1.2, B, 0, 0, 0, G); caja(w, 1.2, 8, B, 0, h / 2 - 0.6, 0, G); caja(w, 1.2, 8, B, 0, -h / 2 + 0.6, 0, G); caja(1.2, h, 8, B, -w / 2 + 0.6, 0, 0, G); caja(1.2, h, 8, B, w / 2 - 0.6, 0, 0, G);
-  caja(23, 3.5, 0.75, MAT.acero(), 0, 1, 1.2, G); // carril DIN 35 mm
+  { // carril DIN 35 × 7,5 mm (perfil de sombrero) con ranuras alargadas
+    const sh = new THREE.Shape(); const P = [[-1.75, 0], [-1.75, 0.1], [-1.25, 0.1], [-1.25, 0.75], [1.25, 0.75], [1.25, 0.1], [1.75, 0.1], [1.75, 0], [1.15, 0], [1.15, 0.65], [-1.15, 0.65], [-1.15, 0]];
+    P.forEach(([y, z], i) => (i ? sh.lineTo(z, y) : sh.moveTo(z, y)));
+    const g = new THREE.ExtrudeGeometry(sh, { depth: 23, bevelEnabled: false }); g.rotateY(-Math.PI / 2); g.translate(11.5, 1, 1.2);
+    const rail = new THREE.Mesh(g, pbr(0xc9ced3, { metalness: 0.9, roughness: 0.32 })); rail.castShadow = true; rail.receiveShadow = true; G.add(rail);
+    for (let i = 0; i < 9; i++) caja(1.5, 0.5, 0.03, MAT.hueco(), -10 + i * 2.5, 1, 1.95, G);
+  }
   caja(6, 1.2, 1, MAT.laton(), 12, 8.6, 1.2, G); for (let i = 0; i < 4; i++) tornillo(9.8 + i * 1.5, 8.6, 2.2, G, 0.22, 'plano');
-  rotulo('⏚', 1.2, 1, 8.2, 8.6, 1.25, G, { color: '#2f9e44' });
+  for (const sx of [9.5, 14.5]) caja(0.6, 1.6, 1.2, pbr(0x2f9e44, { roughness: 0.5 }), sx, 8.6, 0.6, G); // soportes aislantes de la barra de tierra
+  simbolo('tierra', 1.1, 8.2, 8.6, 1.26, G, '#2f9e44');
   return G;
 }
 

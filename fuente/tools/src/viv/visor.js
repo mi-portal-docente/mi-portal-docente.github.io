@@ -1,6 +1,7 @@
 // Visor de detalle: muestra una pieza en 3D (girar, despiece, cables en sus bornes, fase/neutro/tierra).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { estudio, camaraSuave } from '../kit3d/escena.js';
 import { entorno } from '../kit3d/base.js';
 import { conductor } from '../kit3d/cables.js';
 
@@ -24,8 +25,9 @@ export class Visor {
     try { this.r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); } catch (e) { return false; }
     this.r.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1)); this.r.outputColorSpace = THREE.SRGBColorSpace; this.el.querySelector('.vv-vis-gl').appendChild(this.r.domElement);
     const s = this.s = new THREE.Scene(); s.background = new THREE.Color(0xf4f1ec); entorno(this.r, s, 0.6);
-    s.add(new THREE.HemisphereLight(0xffffff, 0x8a7a66, 1.7)); const d = new THREE.DirectionalLight(0xffffff, 1.5); d.position.set(20, 30, 40); s.add(d); const d2 = new THREE.DirectionalLight(0xffffff, 0.8); d2.position.set(-20, -10, -40); s.add(d2);
-    this.cam = new THREE.PerspectiveCamera(35, 1, 0.5, 500); this.ctl = new OrbitControls(this.cam, this.r.domElement); this.ctl.enableDamping = true;
+    estudio(null, s, { escala: 20, dir: [20, 30, 40], intPrincipal: 1.7, intCielo: 1.8, intRelleno: 0.7, suelo: 0x8a7a66, sombras: false, entorno: false });
+    const d2 = new THREE.DirectionalLight(0xffffff, 0.5); d2.position.set(-20, -10, -40); s.add(d2);
+    this.cam = new THREE.PerspectiveCamera(35, 1, 0.5, 500); this.ctl = camaraSuave(new OrbitControls(this.cam, this.r.domElement), { polarMax: false });
     this.raiz = new THREE.Group(); s.add(this.raiz); this.cab = new THREE.Group(); this.reloj = new THREE.Clock();
     return true;
   }

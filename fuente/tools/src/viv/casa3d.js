@@ -1,6 +1,7 @@
 // Vista 3D e interfaz del modo «Vivienda real» (planta con tabiques, muebles, puntos, tubos y cuadro).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { camaraSuave } from '../kit3d/escena.js';
 import { PLANO, TIPOS_CASA, PALETA_CASA, area, estancia, estanciaEn, pegarPared, posPunto, ALTO_TUBO, casaVacia, sanearCasa, comprobarCasa, simularCasa, materialesCasa, caminos, minimos, circDefecto, solucionCasa, largoTuboCasa } from './casa.js';
 import { CIRCUITOS, CALIBRES, CALIBRES_IGA, CALIBRES_ID, SECCIONES, TUBOS, tuboMinimo } from './catalogo.js';
 import { mat, MAT, caja } from './modelos3d.js';
@@ -18,7 +19,7 @@ export class CasaVista {
     const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xe8ecef); entorno(renderer, s, 0.35);
     s.add(new THREE.HemisphereLight(0xffffff, 0x8a7a66, 1.5)); const d = new THREE.DirectionalLight(0xffffff, 1.3); d.position.set(200, -300, 900); s.add(d);
     const cam = this.camera = new THREE.PerspectiveCamera(38, 1, 5, 6000); cam.up.set(0, 0, 1);
-    const c = this.controls = new OrbitControls(cam, renderer.domElement); c.enableDamping = true; c.enabled = false; c.minDistance = 120; c.maxDistance = 2200; c.maxPolarAngle = 1.35; c.screenSpacePanning = true;
+    const c = this.controls = new OrbitControls(cam, renderer.domElement); camaraSuave(c, { polarMax: 1.35, min: 120, max: 2200 }); c.enabled = false;
     c.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
     // suelo por estancias
     const colores = { vestibulo: 0xd9cbb3, pasillo: 0xd9cbb3, salon: 0xc9a77c, cocina: 0xdfe3e6, bano: 0xcfe3ea, dormitorio: 0xc9a77c };

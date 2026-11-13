@@ -3,6 +3,7 @@
 // se corta y se grapa, cables por color y sección, herramientas), taller de herramientas y vivienda real.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { estudio, camaraSuave } from '../kit3d/escena.js';
 import { M, canvasTex, glowTexture } from '../circ/models3d.js';
 import { TIPOS, PALETA, COLORES, SECCIONES, CARGAS, fmtSec, vacio, partePorId, posParte, bornes, posBorne, nombreBorne, grupo, slotLibre, siguienteNombre, nuevoId,
   rutaTubo, rutaCable, tuboEntre, sanear, solucionTablero, averia, AVERIAS, REFERENCIA, TUBOS_REF, materiales, presupuesto, clone, dims, TAMANOS_TABLERO, ZT, ZMOD,
@@ -127,18 +128,17 @@ export class ViviendaLab {
     if (this.renderer) { this.onResize(); return; }
     const el = this.$('#vvGL');
     let r; try { r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); } catch (e) { el.innerHTML = '<p class="vv-small">Este navegador no puede mostrar 3D (WebGL).</p>'; return; }
-    this.renderer = r; r.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
-    r.outputColorSpace = THREE.SRGBColorSpace; el.appendChild(r.domElement);
-    const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xe9eef0); entorno(r, s, 0.35);
+    this.renderer = r; r.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1)); el.appendChild(r.domElement);
+    const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xe9eef0);
     this.camera = new THREE.PerspectiveCamera(32, 1, 1, 2000);
-    s.add(new THREE.HemisphereLight(0xffffff, 0x8a7a66, 1.6));
-    const d = this.sol = new THREE.DirectionalLight(0xffffff, 1.6); d.position.set(30, 110, 160); d.castShadow = true; d.shadow.mapSize.set(1536, 1536);
-    Object.assign(d.shadow.camera, { left: -110, right: 110, top: 90, bottom: -90, near: 10, far: 400 }); s.add(d, d.target);
+    // luz de estudio común (la del laboratorio ESP32): cielo, principal con sombra suave, relleno y contraluz
+    const est = estudio(r, s, { escala: 110, entorno: 0.4, dir: [30, 110, 160], objetivo: [60, 40, 0], sombraR: 115, intPrincipal: 1.9, intCielo: 1.7, suelo: 0x8a7a66, sombrasSiempre: true, mapa: 2048 });
+    const d = this.sol = est.principal;
     const pared = new THREE.Mesh(new THREE.PlaneGeometry(800, 500), M(0xdfe5e8)); pared.position.set(60, 40, -3); pared.receiveShadow = true; s.add(pared);
     this.T = new THREE.Group(); s.add(this.T);
     this.G = new THREE.Group(); s.add(this.G); this.ghost = new THREE.Group(); s.add(this.ghost); this.tmp = new THREE.Group(); s.add(this.tmp); this.actor = new THREE.Group(); s.add(this.actor);
     const c = this.controls = new OrbitControls(this.camera, r.domElement);
-    c.target.set(60, 40, 0); c.enableDamping = true; c.dampingFactor = 0.12; c.minDistance = 15; c.maxDistance = 360;
+    c.target.set(60, 40, 0); camaraSuave(c, { polarMax: false, min: 15, max: 360 });
     c.minAzimuthAngle = -1.2; c.maxAzimuthAngle = 1.2; c.minPolarAngle = 0.6; c.maxPolarAngle = 2.3;
     c.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }; c.screenSpacePanning = true;
     this.ray = new THREE.Raycaster(); this.ndc = new THREE.Vector2(); this.plano = new THREE.Plane(new THREE.Vector3(0, 0, 1), -ZT);
@@ -281,6 +281,7 @@ export class ViviendaLab {
         const col = ini ? 0x19c37d : hov ? 0x3aa0ff : mA ? 0xd01a1a : mb === 'ko' ? 0xe23b3b : mb === 'aviso' ? 0xff9a1f : 0xc9a45a;
         const s = new THREE.Mesh(this.geoBorne(), M(col, { metalness: 0.7, roughness: 0.3, emissive: ini || hov || mb ? col : 0x000000, emissiveIntensity: 0.35 }));
         s.userData.compartida = true; const z = zBorne(m, ref); s.position.set(pb.x, pb.y, z); G.add(s);
+        const cz = new THREE.Mesh(this.geoCruz(), M(0x3a2e12, { roughness: 0.8 })); s.add(cz);
         if (p.type !== 'caja' && p.type !== 'cuadro' && !T.modulo) { const mk = MARCA(p.type, b.t); rotulo(mk, 1.3, 0.9, pb.x, pb.y + (b.dy < 0 ? -1.15 : 1.05), Math.max(0.05, z - 0.3), G, { color: COL_MARCA(b.t === 'PE' ? 'PE' : mk), bg: '#fff8e6', w: 96, h: 64, font: 'bold 50px system-ui, sans-serif' }); }
       }
     }
@@ -314,7 +315,9 @@ export class ViviendaLab {
     if (this.sel?.k === 'cable') { const c = m.cables.find((x) => x.id === this.sel.id); const o = c && P.get(c.id); if (o) for (const lado of ['a', 'b']) { const q = posBorne(m, c[lado]); if (q && o[lado] !== 'ok') lbl('⚠ ' + TXT_PUNTA[o[lado]], q.x, q.y, zBorne(m, c[lado]) + 1.5, 'mini aviso'); } }
     this.pintarGuias();
   }
-  geoBorne() { if (!this._gb) { this._gb = new THREE.SphereGeometry(0.5, 12, 8); this._gb.userData.compartida = true; } return this._gb; }
+  // borne: cabeza de tornillo de latón (con su cruz PZ) en vez de una bola; se elige por cercanía en pantalla, no por su forma
+  geoBorne() { if (!this._gb) { this._gb = new THREE.LatheGeometry([[0, -0.2], [0.5, -0.2], [0.53, -0.1], [0.52, 0.06], [0.44, 0.17], [0.16, 0.2], [0.16, 0.08], [0, 0.08]].map(([r, y]) => new THREE.Vector2(r, y)), 20); this._gb.rotateX(Math.PI / 2); this._gb.userData.compartida = true; } return this._gb; }
+  geoCruz() { if (!this._gx) { const a = new THREE.BoxGeometry(0.62, 0.11, 0.06), b = new THREE.BoxGeometry(0.11, 0.62, 0.06); const pos = [...a.toNonIndexed().attributes.position.array, ...b.toNonIndexed().attributes.position.array]; this._gx = new THREE.BufferGeometry(); this._gx.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); this._gx.computeVertexNormals(); this._gx.translate(0, 0, 0.18); this._gx.userData.compartida = true; } return this._gx; }
   geoGrapa() { if (this._gg) return this._gg; const parts = [[2.6, 0.5, 0.25, 0, 0, 1.8], [0.25, 0.5, 1.8, -1.2, 0, 0.9], [0.25, 0.5, 1.8, 1.2, 0, 0.9]]; const pos = [];
     for (const [w, h, d, x, y, z] of parts) { const g = new THREE.BoxGeometry(w, h, d); g.translate(x, y, z); pos.push(...g.toNonIndexed().attributes.position.array); g.dispose(); }
     const r = new THREE.BufferGeometry(); r.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); r.computeVertexNormals(); r.userData.compartida = true; return (this._gg = r); }

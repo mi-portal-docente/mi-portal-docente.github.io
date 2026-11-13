@@ -2,6 +2,7 @@
 // ficha de cada herramienta, animación de uso y un test rápido (qué herramienta / qué punta).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { estudio, camaraSuave } from '../kit3d/escena.js';
 import { HERRAMIENTAS, herramienta, PUNTAS, REFERENCIAS } from './catalogo.js';
 import { herramienta3D, punta3D, mecanismo3D, cajaEmpalme3D, modulo3D, caja, cil, mat, MAT, rotulo } from './modelos3d.js';
 import { posicionesCaja } from './modelo.js';
@@ -26,11 +27,10 @@ export class Taller {
   constructor(lab) { this.lab = lab; this.sel = null; this.punta = 'PZ1'; this.test = null; this.labels = []; }
   init(renderer) {
     if (this.scene) return;
-    const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xe7e2da); entorno(renderer, s, 0.45);
-    s.add(new THREE.HemisphereLight(0xffffff, 0x7a6a56, 1.6)); const d = new THREE.DirectionalLight(0xffffff, 1.5); d.position.set(60, 260, 220); d.castShadow = true; d.shadow.mapSize.set(1024, 1024);
-    Object.assign(d.shadow.camera, { left: -150, right: 150, top: 150, bottom: -60, near: 10, far: 600 }); s.add(d);
+    const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xe7e2da);
+    estudio(null, s, { escala: 150, dir: [60, 260, 220], objetivo: [0, 60, 0], sombraR: 155, intPrincipal: 1.8, intCielo: 1.6, suelo: 0x7a6a56, entorno: false, mapa: 1536 }); entorno(renderer, s, 0.45);
     this.camera = new THREE.PerspectiveCamera(38, 1, 2, 3000);
-    const c = this.controls = new OrbitControls(this.camera, renderer.domElement); c.enableDamping = true; c.minDistance = 30; c.maxDistance = 520; c.enabled = false;
+    const c = this.controls = new OrbitControls(this.camera, renderer.domElement); camaraSuave(c, { polarMax: false, min: 30, max: 520 }); c.enabled = false;
     c.minPolarAngle = 0.4; c.maxPolarAngle = 1.75; c.minAzimuthAngle = -1.1; c.maxAzimuthAngle = 1.1;
     // sala: suelo, pared, panel perforado, banco
     const suelo = new THREE.Mesh(new THREE.PlaneGeometry(800, 600), mat(0xbfb6a8, { roughness: 0.9 })); suelo.rotation.x = -Math.PI / 2; suelo.receiveShadow = true; s.add(suelo);

@@ -4,6 +4,7 @@
 // y se pueden entregar al profesor (práctica v4).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { estudio, camaraSuave } from '../kit3d/escena.js';
 import { entorno, pbr, MATS, maderaTex, caja as cajaK, calidad } from '../kit3d/base.js';
 import { conductor, tuboCorrugado, grapa, manguera, rollo } from '../kit3d/cables.js';
 import { KIT_HERRAMIENTAS } from '../kit3d/herramientas.js';
@@ -97,12 +98,12 @@ export class Montaje {
   init(renderer) {
     if (this.scene) return;
     this.renderer = renderer; const Q = calidad();
-    const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xd9dde0); entorno(renderer, s, 0.5); s.fog = new THREE.Fog(0xd9dde0, 420, 900);
-    s.add(new THREE.HemisphereLight(0xffffff, 0x7a6a56, 0.9));
-    const d = new THREE.DirectionalLight(0xfff4e6, 2.0); d.position.set(80, 260, 220); d.castShadow = Q.sombras; d.shadow.mapSize.set(Q.baja ? 1024 : 2048, Q.baja ? 1024 : 2048); d.shadow.bias = -0.0004;
-    Object.assign(d.shadow.camera, { left: -120, right: 120, top: 120, bottom: -100, near: 10, far: 700 }); s.add(d, d.target); d.target.position.set(0, 120, 0);
+    const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0xd9dde0); s.fog = new THREE.Fog(0xd9dde0, 420, 900);
+    // luz de estudio común (referencia: laboratorio ESP32), con la sombra suave centrada en el tablero
+    const est = estudio(null, s, { escala: 130, dir: [80, 260, 220], objetivo: [0, 120, 0], sombraR: 125, intPrincipal: 2.0, intCielo: 1.15, suelo: 0x7a6a56, colorPrincipal: 0xfff4e6, bias: -0.0004, sombras: Q.sombras, entorno: false });
+    entorno(renderer, s, 0.5); const d = est.principal;
     this.camera = new THREE.PerspectiveCamera(36, 1, 1, 2000);
-    const c = this.controls = new OrbitControls(this.camera, renderer.domElement); c.enableDamping = true; c.dampingFactor = 0.1; c.minDistance = 18; c.maxDistance = 330; c.enabled = false;
+    const c = this.controls = new OrbitControls(this.camera, renderer.domElement); camaraSuave(c, { polarMax: false, min: 18, max: 330 }); c.enabled = false;
     c.minPolarAngle = 0.5; c.maxPolarAngle = 2.0; c.minAzimuthAngle = -1.0; c.maxAzimuthAngle = 1.0; c.screenSpacePanning = true;
     c.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     // sala: suelo, pared y banco de trabajo con los materiales
