@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:reglas": "node prepara-reglas.mjs profe@test.es && firebase emulators:exec --only firestore \"node --test --test-concurrency=1 test/reglas.test.mjs test/aula.test.mjs\"",
+    "test:reglas": "node prepara-reglas.mjs profe@test.es && firebase emulators:exec --only firestore \"node --test --test-concurrency=1 test/reglas.test.mjs test/aula.test.mjs test/usuarios.test.mjs\"",
     "emuladores": "firebase emulators:start --only auth,firestore --project demo-portal"
   },
   "dependencies": {

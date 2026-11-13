@@ -11,13 +11,16 @@ import { crearAula } from './aula-datos.js';
 import { crearVistas } from './aula-vistas.js';
 import { crearClase } from './aula-clase.js';
 import { pinValido, hashPin } from '../lms/modelo.js';
+import { montarChipSesion, resumenDispositivo } from './sesion-chip.js';
 
 const ACC = window.__portalAcceso || {};
 const AVISO_KEY = 'portal.aviso';
-const LATIDO_MS = 60000;      // latido normal
+const LATIDO_MS = 60000;      // latido normal (solo con la pestaña visible)
+const ACCESO_MS = 10 * 60000; // «último acceso» del nº de lista, como mucho cada 10 min
 const MIN_PAGINA_MS = 15000;  // al cambiar de página, como mucho un aviso cada 15 s
 const AVISOS = {
   expulsado: 'El profesor ha cerrado tu sesión.',
+  bloqueado: 'Tu número de lista está bloqueado por el profesor. Habla con él para que lo desbloquee.',
   codigo_cambiado: 'El código del grupo ha cambiado. Pide el nuevo al profesor.',
   cerrado: 'El profesor ha cerrado el acceso de tu grupo.',
   horario: 'Tu grupo está fuera del horario de acceso.',
@@ -30,6 +33,7 @@ const ERR = {
   horario: 'Este grupo está fuera de su horario de acceso.',
   numero: 'Elige tu número de lista.',
   pin: 'Escribe tu PIN: de 4 a 8 cifras.',
+  bloqueado: 'Este número de lista está bloqueado por el profesor. Habla con él para que lo desbloquee.',
   pinMal: 'Ese número de lista ya tiene otro PIN. Si lo has olvidado (o no eres tú), pide al profesor que lo reinicie.',
   red: 'No se puede conectar con el portal. Comprueba la conexión a Internet y vuelve a intentarlo.',
   limite: 'Demasiados intentos seguidos desde esta red. Espera unos minutos y vuelve a intentarlo.',
@@ -40,7 +44,9 @@ const ERR = {
 
 let fb = null, rol = null, ses = null, codDoc = null, panel = null, aula = null, vistas = null, clase = null;
 const entregas = new Map();
-let unsubs = [], timer = null, ultimoLatido = 0, timerPagina = null, cerrando = false;
+let unsubs = [], timer = null, ultimoLatido = 0, ultimoAcceso = 0, timerPagina = null, cerrando = false, chip = null;
+const idAl = (grupo, numero) => `${grupo}_${numero}`;
+async function estaBloqueado(grupo, numero) { try { return (await getDoc(doc(fb.db, 'bloqueos', idAl(grupo, numero)))).exists(); } catch (e) { return false; } }
 
 const pad = (n) => String(n).padStart(2, '0');
 const esRed = (e) => /network|unavailable|deadline|offline/i.test(String(e?.code || e?.message || ''));
@@ -214,17 +220,19 @@ async function entrarComoAlumno() {
     const m = motivoCodigo(snap);
     if (m) { ocupado(false, btn); fallo('alumno', m === 'cerrado' ? ERR.cerrado : m === 'horario' ? ERR.horario : ERR.codigo); input.focus(); input.select(); return; }
     const c = snap.data();
+    if (await estaBloqueado(c.grupo, numero)) { ocupado(false, btn); fallo('alumno', ERR.bloqueado); pinEl.value = ''; return; }
     const h = await hashPin(c.grupo, numero, pin);
     try {
-      await setDoc(doc(db, 'sesiones', user.uid), { codigo, grupo: c.grupo, numero, pagina: PORTAL.pagina(), desde: serverTimestamp(), latido: serverTimestamp(), revocada: false, pin: h });
+      await setDoc(doc(db, 'sesiones', user.uid), { codigo, grupo: c.grupo, numero, pagina: PORTAL.pagina(), desde: serverTimestamp(), latido: serverTimestamp(), revocada: false, pin: h, disp: resumenDispositivo() });
     } catch (e) {
-      if (e?.code === 'permission-denied') { ocupado(false, btn); fallo('alumno', ERR.pinMal); pinEl.value = ''; pinEl.focus(); return; }
+      if (e?.code === 'permission-denied') { ocupado(false, btn); fallo('alumno', (await estaBloqueado(c.grupo, numero)) ? ERR.bloqueado : ERR.pinMal); pinEl.value = ''; pinEl.focus(); return; }
       throw e;
     }
     // PIN: si este nº aún no tenía, se registra ahora (la primera vez). Si otro se adelantó con otro PIN, no se entra.
     const nuevo = await registrarPin(c.grupo, numero, h);
     if (nuevo === null) { await deleteDoc(doc(db, 'sesiones', user.uid)).catch(() => { }); ocupado(false, btn); fallo('alumno', ERR.pinMal); pinEl.value = ''; return; }
     if (nuevo) { try { sessionStorage.setItem('portal.pinNuevo', '1'); } catch (er) { } }
+    registrarAcceso(c.grupo, numero);
     entrarAlumno(user.uid, { codigo, grupo: c.grupo, numero }, c);
   } catch (e) {
     ocupado(false, btn);
@@ -241,6 +249,12 @@ async function registrarPin(grupo, numero, h) {
   try { await setDoc(ref, { h, creado: serverTimestamp() }); return true; } catch (e) { return null; }
 }
 
+// Último acceso de este nº de lista (para el panel «Usuarios»): hora del servidor y dispositivo, sin datos personales.
+function registrarAcceso(grupo, numero) {
+  ultimoAcceso = Date.now();
+  setDoc(doc(fb.db, 'accesos', idAl(grupo, numero)), { ultimo: serverTimestamp(), disp: resumenDispositivo() }).catch(() => { });
+}
+
 function entrarAlumno(uid, s, c) {
   rol = 'alumno'; PORTAL.rol = 'alumno'; PORTAL.esProfesor = false;
   ses = { uid, ...s, grupoNombre: c.nombre }; codDoc = c;
@@ -252,8 +266,13 @@ function entrarAlumno(uid, s, c) {
   try { if (sessionStorage.getItem('portal.pinNuevo')) { sessionStorage.removeItem('portal.pinNuevo'); setTimeout(() => banner(`PIN guardado para el nº ${pad(s.numero)}. Apúntalo: lo necesitarás para entrar la próxima vez.`, 9000), 600); } } catch (e) { }
   const { db } = fb;
   unsubs.push(onSnapshot(doc(db, 'sesiones', uid), (snap) => {
-    if (!snap.exists()) expulsar('caducada'); else if (snap.data().revocada) expulsar('expulsado');
+    if (!snap.exists()) expulsar('caducada');
+    else if (snap.data().revocada) estaBloqueado(s.grupo, s.numero).then((b) => expulsar(b ? 'bloqueado' : 'expulsado'));
   }, () => { }));
+  // bloqueo del nº de lista por el profesor: fuera al momento, con su aviso
+  unsubs.push(onSnapshot(doc(db, 'bloqueos', idAl(s.grupo, s.numero)), (snap) => { if (snap.exists()) expulsar('bloqueado'); }, () => { }));
+  chip = montarChipSesion({ rol: 'alumno', grupo: c.nombre, numero: s.numero, desde: Date.now(), salir });
+  if (!ultimoAcceso) ultimoAcceso = Date.now();
   unsubs.push(onSnapshot(doc(db, 'codigos', s.codigo), (snap) => {
     const m = motivoCodigo(snap, s.grupo); if (m) return expulsar(m);
     codDoc = snap.data();
@@ -270,7 +289,7 @@ function entrarAlumno(uid, s, c) {
     window.dispatchEvent(new Event('portal-entregas'));
   }, () => { }));
   ultimoLatido = Date.now();
-  timer = setInterval(() => { if (Date.now() - ultimoLatido >= LATIDO_MS) latido(); }, 5000);
+  timer = setInterval(() => { if (document.visibilityState !== 'hidden' && Date.now() - ultimoLatido >= LATIDO_MS) latido(); }, 5000);
   window.addEventListener('hashchange', alCambiarPagina);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - ultimoLatido > LATIDO_MS / 2) latido(); });
   window.addEventListener('offline', () => banner('Sin conexión con el portal. Reintentando…'));
@@ -288,6 +307,7 @@ async function diagnosticar() {
   try {
     const s = await getDoc(doc(fb.db, 'sesiones', ses.uid));
     if (!s.exists()) return 'caducada';
+    if (await estaBloqueado(ses.grupo, ses.numero)) return 'bloqueado';
     if (s.data().revocada) return 'expulsado';
     return motivoCodigo(await getDoc(doc(fb.db, 'codigos', ses.codigo)), ses.grupo);
   } catch (e) { return null; }
@@ -300,7 +320,7 @@ function latido() {
   clearTimeout(timerPagina);
   ultimoLatido = Date.now();
   updateDoc(doc(fb.db, 'sesiones', ses.uid), { latido: serverTimestamp(), pagina: PORTAL.pagina() })
-    .then(() => banner(''), async (e) => {
+    .then(() => { banner(''); if (Date.now() - ultimoAcceso >= ACCESO_MS) registrarAcceso(ses.grupo, ses.numero); }, async (e) => {
       if (e?.code === 'permission-denied') { const m = await diagnosticar(); if (m) expulsar(m); }
       else banner('Sin conexión con el portal. Reintentando…');
     });
@@ -346,7 +366,7 @@ async function limpiarAlumno({ borrarUsuario }) {
 async function expulsar(motivo) {
   if (cerrando) return; cerrando = true;
   try { sessionStorage.setItem(AVISO_KEY, motivo); } catch (e) { }
-  await limpiarAlumno({ borrarUsuario: motivo === 'expulsado' || motivo === 'salida' });
+  await limpiarAlumno({ borrarUsuario: motivo === 'expulsado' || motivo === 'salida' || motivo === 'bloqueado' });
   location.reload();
 }
 
@@ -365,6 +385,7 @@ async function reanudarAlumno(user) {
     const s = await getDoc(doc(db, 'sesiones', user.uid));
     if (!s.exists()) return mostrarGate();
     const d = s.data();
+    if (await estaBloqueado(d.grupo, d.numero)) { await limpiarAlumno({ borrarUsuario: true }); return mostrarGate({ aviso: 'bloqueado' }); }
     if (d.revocada) { await limpiarAlumno({ borrarUsuario: true }); return mostrarGate({ aviso: 'expulsado' }); }
     if (!d.pin) { await limpiarAlumno({ borrarUsuario: false }); return mostrarGate({ aviso: 'caducada' }); }
     const c = await getDoc(doc(db, 'codigos', d.codigo));
@@ -419,6 +440,7 @@ async function comprobarProfesor(user, interactivo) {
   clase = crearClase({ db: fb.db, aula, rol: 'profesor', ses: null, estado: vistas.estado });
   window.__clase = clase;
   panel = crearPanel({ db: fb.db, auth: fb.auth, email: user.email, PORTAL, aula });
+  chip = montarChipSesion({ rol: 'profesor', email: user.email, nombre: user.displayName, desde: Date.parse(user.metadata?.lastSignInTime || '') || Date.now(), salir });
   if (interactivo && (!location.hash || location.hash === '#' || location.hash === '#inicio')) history.replaceState(null, '', '#panel');
   ACC.loadApp();
 }

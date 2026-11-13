@@ -26,8 +26,12 @@ rules_version = '2';
 //   codigos/{CODIGO}    {grupo, nombre, asignaturas, apartados,
 //                        activo, horario}                   get: cualquiera con sesión
 //                                                           list/escritura: profesor
-//   sesiones/{uid}      {codigo, grupo, numero, pagina,
-//                        desde, latido, revocada}           el propio alumno / profesor
+//   sesiones/{uid}      {codigo, grupo, numero, pagina, disp,
+//                        desde, latido, revocada, pin}      el propio alumno / profesor
+//                       (disp = navegador y sistema, p. ej. «Chrome · ChromeOS»: sin datos personales)
+//   accesos/{grupo_nº}  {ultimo, disp}  último acceso de cada nº de lista   lo escribe el alumno; lee el profesor
+//   bloqueos/{grupo_nº} {desde}  nº de lista bloqueado por el profesor: no puede entrar
+//                                ni leer ni escribir nada                  profesor; get: cualquiera con sesión
 //   entregas/{uid_grupo_nº_práctica}
 //                       {uid, codigo, grupo, numero, practica, tipo,
 //                        titulo, fecha, datos, nota, comentario}
@@ -123,7 +127,11 @@ service cloud.firestore {
         && sesionOk(get(ruta('sesiones', request.auth.uid)).data);
     }
     function sesionOk(s) {
-      return s.revocada == false && codigoVigente(s.codigo, s.grupo);
+      return s.revocada == false && codigoVigente(s.codigo, s.grupo) && !bloqueado(s);
+    }
+    // Nº de lista bloqueado por el profesor (bloqueos/{grupo_nº}): sin acceso a nada.
+    function bloqueado(s) {
+      return exists(ruta('bloqueos', s.grupo + '_' + string(s.numero)));
     }
     function miSesion() {
       return get(ruta('sesiones', request.auth.uid)).data;
@@ -237,7 +245,8 @@ service cloud.firestore {
       // marcarse como no revocado si ya existía (eso sería update).
       allow create: if esAnonimo()
         && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['codigo', 'grupo', 'numero', 'pagina', 'desde', 'latido', 'revocada', 'pin'])
+        && request.resource.data.keys().hasOnly(['codigo', 'grupo', 'numero', 'pagina', 'desde', 'latido', 'revocada', 'pin', 'disp'])
+        && textoCorto(request.resource.data.get('disp', ''), 60)
         && request.resource.data.keys().hasAll(['codigo', 'grupo', 'numero', 'pagina', 'desde', 'latido', 'revocada', 'pin'])
         && hashValido(request.resource.data.pin)
         && pinCoincideOLibre(request.resource.data)
@@ -249,7 +258,8 @@ service cloud.firestore {
         && request.resource.data.desde == request.time
         && request.resource.data.latido == request.time
         && request.resource.data.revocada == false
-        && codigoVigente(request.resource.data.codigo, request.resource.data.grupo);
+        && codigoVigente(request.resource.data.codigo, request.resource.data.grupo)
+        && !bloqueado(request.resource.data);
 
       // Actualizar:
       //  · el alumno: solo el latido (hora del servidor) y la página,
@@ -331,6 +341,36 @@ service cloud.firestore {
                 && textoCorto(d.datos.informe.get('problemas', ''), 3000)
                 && textoCorto(d.datos.informe.get('conclusiones', ''), 3000)));
       }
+    }
+
+    // ---------------------------------------------------------------
+    //  accesos/{grupo_nº}: último acceso de cada nº de lista (para el
+    //  panel «Usuarios»). Lo escribe el propio alumno con sesión válida,
+    //  solo para su nº, con la hora del servidor. Sin datos personales.
+    // ---------------------------------------------------------------
+    match /accesos/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if sesionValida()
+        && id == idAlumno(miSesion())
+        && request.resource.data.keys().hasOnly(['ultimo', 'disp'])
+        && request.resource.data.ultimo == request.time
+        && textoCorto(request.resource.data.get('disp', ''), 60);
+    }
+
+    // ---------------------------------------------------------------
+    //  bloqueos/{grupo_nº}: el profesor bloquea un nº de lista mientras
+    //  aclara quién ha entrado. Bloqueado = no puede crear sesión, ni
+    //  enviar latidos, ni leer o escribir nada del aula (sesionOk).
+    //  Cualquiera con sesión puede consultar UNO (get) para saber si su
+    //  nº está bloqueado y ver el aviso; listar y escribir, solo el profesor.
+    // ---------------------------------------------------------------
+    match /bloqueos/{id} {
+      allow get: if request.auth != null;
+      allow list, delete: if esProfesor();
+      allow create, update: if esProfesor()
+        && id.matches('^[A-Za-z0-9_-]{1,40}_[0-9]{1,2}$')
+        && request.resource.data.keys().hasOnly(['desde'])
+        && request.resource.data.desde == request.time;
     }
 
     // ===============================================================

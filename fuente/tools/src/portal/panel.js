@@ -1,7 +1,7 @@
 // Panel del profesor, en tres bloques: Clases (cursos escolares, grupos y códigos), Seguimiento (cuaderno de
 // calificaciones, entregas del laboratorio, conectados ahora) y Ajustes (cuenta, PIN y limpieza de datos).
 // El contenido de cada asignatura NO está aquí: se gestiona en la propia asignatura (Organización / Trabajo de clase).
-import { collection, doc, onSnapshot, writeBatch, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, onSnapshot, writeBatch, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { esc, offsetLocal, hhmm, DIAS } from './util.js';
 import { nuevoCodigo } from './codigos.js';
 import { crearAulaPanel } from './aula-panel.js';
@@ -20,21 +20,21 @@ function hace(t) {
 const nuevoId = () => 'g' + Math.random().toString(36).slice(2, 10);
 
 export function crearPanel({ db, PORTAL, email, aula }) {
-  const st = { grupos: new Map(), sesiones: [], entregas: [], listo: { g: false, s: false, e: false }, sub: 'grupos', el: null, unsubs: [], tick: null, editando: null, abierta: null, verTodos: false, dstHecho: false, f: { grupo: '', practica: '', estado: '' } };
+  const st = { grupos: new Map(), sesiones: [], entregas: [], pines: new Set(), accesos: new Map(), bloqueos: new Set(), uGrupo: '', uTodos: false, listo: { g: false, s: false, e: false }, sub: 'grupos', el: null, unsubs: [], tick: null, editando: null, abierta: null, verTodos: false, dstHecho: false, f: { grupo: '', practica: '', estado: '' } };
   const cat = () => window.PORTAL_CATALOGO || { practicas: [], proyectos: [], subjects: [], apartados: {} };
   const nombreGrupo = (id) => st.grupos.get(id)?.nombre || '(grupo borrado)';
   const tituloPractica = (id, fallback) => { if (id === 'v1') return 'Vivienda · Tablero eléctrico de la SA1'; if (id === 'v2') return 'Vivienda · Modo libre'; const c = cat(); const p = c.practicas.find(x => x.id === id); if (p) return `Circuitos ${p.n} · ${p.titulo}`; const q = c.proyectos.find(x => x.id === id); if (q) return `ESP32 ${q.n} · ${q.titulo}`; return fallback || id; };
   const $ = (s) => st.el && st.el.querySelector(s);
   const ap = crearAulaPanel({ db, aula, ps: st, nombreGrupo, tituloPractica });
   const TABS = ['cursos', 'grupos', 'notas', 'entregas', 'conectados', 'ajustes'];
-  const ALIAS = { limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas' };
+  const ALIAS = { limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas', usuarios: 'conectados' };
   const AULA = ['cursos', 'notas'];
   const DESC = {
     cursos: 'Cada curso escolar eliges qué asignaturas impartes. El curso activo es el que ves en «Mis asignaturas».',
     grupos: 'Cada grupo tiene un código de clase que los alumnos usan para entrar (con su nº de lista y un PIN). Sin nombres.',
     notas: 'Cuaderno por grupo y asignatura: tareas, cuestionarios, actividades y prácticas del laboratorio. Nota de cada actividad (la nota por criterios se calcula en SuperProfe y QE).',
     entregas: 'Prácticas entregadas desde los laboratorios 3D (ESP32, Circuitos y Vivienda): revisa el montaje y pon nota.',
-    conectados: 'Quién está dentro ahora mismo y en qué página (solo grupo y nº).',
+    conectados: 'Quién está dentro ahora mismo y todos los números de lista de cada grupo, con su último acceso. Si entra alguien que no debe, cierra su sesión o bloquea el número mientras lo aclaras (solo grupo y nº, sin nombres).',
     ajustes: 'Tu cuenta, el PIN de los alumnos y la limpieza de datos al cerrar el curso.',
   };
 
@@ -51,6 +51,9 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       st.entregas = []; qs.forEach(d => { const x = d.data({ serverTimestamps: 'estimate' }); st.entregas.push({ id: d.id, ...x, fecha: ms(x.fecha) }); });
       st.entregas.sort((a, b) => b.fecha - a.fecha); st.listo.e = true; pintarLuego();
     }, (e) => errorDatos(e)));
+    st.unsubs.push(onSnapshot(collection(db, 'pines'), (qs) => { st.pines = new Set(qs.docs.map((d) => d.id)); pintarLuego(); }, () => { }));
+    st.unsubs.push(onSnapshot(collection(db, 'accesos'), (qs) => { st.accesos = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); st.accesos.set(d.id, { ultimo: ms(x.ultimo), disp: x.disp || '' }); }); pintarLuego(); }, () => { }));
+    st.unsubs.push(onSnapshot(collection(db, 'bloqueos'), (qs) => { st.bloqueos = new Set(qs.docs.map((d) => d.id)); pintarLuego(); }, () => { }));
     st.tick = setInterval(() => { if (st.sub === 'conectados') pintarDatos(); else pintarContadores(); }, 15000);
   }
   function parar() { st.unsubs.forEach(f => { try { f(); } catch (e) { } }); st.unsubs = []; clearInterval(st.tick); st.tick = null; ap.parar(); }
@@ -94,7 +97,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const sinNota = st.entregas.filter(e => e.nota == null).length;
     const cAct = aula.cursoActivo();
     const G = [['Clases', [['cursos', '📅', 'Cursos escolares', cAct ? cAct.nombre : ''], ['grupos', '👥', 'Grupos y códigos', st.grupos.size]]],
-      ['Seguimiento', [['notas', '📊', 'Cuaderno de calificaciones', ''], ['entregas', '🔬', 'Entregas del laboratorio', sinNota ? `${sinNota} sin nota` : st.entregas.length], ['conectados', '🟢', 'Conectados ahora', vivos]]],
+      ['Seguimiento', [['notas', '📊', 'Cuaderno de calificaciones', ''], ['entregas', '🔬', 'Entregas del laboratorio', sinNota ? `${sinNota} sin nota` : st.entregas.length], ['conectados', '👤', 'Usuarios y conectados', vivos]]],
       ['Ajustes', [['ajustes', '⚙️', 'Ajustes y limpieza', '']]]];
     $('#pnTabs').innerHTML = G.map(([g, L]) => `<div class="pn-g"><div class="pn-gt">${g}</div>${L.map(([k, ic, t, n]) => `<a href="#panel/${k}" class="${k === st.sub ? 'on' : ''}" data-pn-tab="${k}" ${k === st.sub ? 'aria-current="page"' : ''}><span aria-hidden="true">${ic}</span> ${t}${n !== '' ? ` <span class="pn-n">${esc(n)}</span>` : ''}</a>`).join('')}</div>`).join('');
     const act = G.flatMap((x) => x[1]).find((x) => x[0] === st.sub);
@@ -104,7 +107,10 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   function pintarTab() {
     const B = $('#pnBody'); if (!B) return;
     if (st.sub === 'grupos') B.innerHTML = `<section class="pn-card"><h3 id="pnFormT">${st.editando ? 'Editar grupo' : 'Nuevo grupo'}</h3><div id="pnForm">${formHTML(st.editando ? st.grupos.get(st.editando) : null)}</div></section><div id="pnLista" class="pn-grupos"></div>`;
-    if (st.sub === 'conectados') B.innerHTML = `<div class="pn-bar"><label><input type="checkbox" id="pnVerTodos" ${st.verTodos ? 'checked' : ''}> Mostrar también desconectados</label><span class="pn-small">Se actualiza solo · latido cada 60 s</span></div><div id="pnCon"></div>`;
+    if (st.sub === 'conectados') B.innerHTML = `<div id="pnUsuRes" class="pn-usu-res"></div>
+      <section class="pn-sec"><h3 class="pn-h3">Conectados ahora</h3>
+      <div class="pn-bar"><label class="pn-chk"><input type="checkbox" id="pnVerTodos" ${st.verTodos ? 'checked' : ''}> Mostrar también desconectados</label><span class="pn-small">Se actualiza solo · señal cada 60 s mientras la página está abierta</span></div><div id="pnCon"></div></section>
+      <section class="pn-sec"><h3 class="pn-h3">Usuarios por grupo</h3><div class="pn-bar" id="pnUsuBar"></div><div id="pnUsu"></div></section>`;
     if (st.sub === 'entregas') B.innerHTML = `<div class="pn-bar" id="pnFiltros"></div><div class="pn-ent"><div id="pnTabla" class="pn-tabla"></div><aside id="pnDetalle" class="pn-det"></aside></div>`;
     if (st.sub === 'ajustes') B.innerHTML = `<section class="pn-card"><h3>Tu cuenta</h3><p>Has entrado como profesor con Google: <b>${esc(email || '')}</b>. Solo esta cuenta puede gestionar el portal.</p>
       <div class="pn-acts"><a class="btn" href="#biblioteca">🗂 Biblioteca de asignaturas</a><a class="btn" href="#panel/cursos">📅 Cursos escolares</a><button class="btn" data-portal="salir">Cerrar sesión</button></div></section><div id="pnLimp"></div><div id="apLimp"></div>`;
@@ -116,7 +122,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     if (!st.el || !$('#pnBody')) return;
     pintarTabs();
     if (st.sub === 'grupos' && $('#pnLista')) $('#pnLista').innerHTML = listaGruposHTML();
-    if (st.sub === 'conectados' && $('#pnCon')) $('#pnCon').innerHTML = conectadosHTML();
+    if (st.sub === 'conectados' && $('#pnCon')) { $('#pnCon').innerHTML = conectadosHTML(); $('#pnUsuRes').innerHTML = resumenUsuariosHTML(); if (!$('#pnUsuBar').contains(document.activeElement)) $('#pnUsuBar').innerHTML = barraUsuariosHTML(); $('#pnUsu').innerHTML = usuariosHTML(); }
     if (st.sub === 'entregas' && $('#pnTabla')) { $('#pnFiltros').innerHTML = filtrosHTML(); $('#pnTabla').innerHTML = tablaEntregasHTML(); }
     if (st.sub === 'ajustes' && $('#pnLimp')) { $('#pnLimp').innerHTML = limpiezaHTML(); $('#apLimp').innerHTML = ap.limpiezaHTML(); }
     if (st.sub === 'notas' && st.listo.g) ap.pintar();
@@ -248,10 +254,72 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       .sort((a, b) => nombreGrupo(a.s.grupo).localeCompare(nombreGrupo(b.s.grupo), 'es') || a.s.numero - b.s.numero || b.s.latido - a.s.latido);
     if (!filas.length) return '<p class="pn-vacio">Ahora mismo no hay nadie conectado.</p>';
     const rep = new Map(); filas.forEach(({ s, e }) => { if (e[0] === 'vivo' || e[0] === 'quieto') { const k = s.grupo + '#' + s.numero; rep.set(k, (rep.get(k) || 0) + 1); } });
-    return `<table class="pn-t"><thead><tr><th>Grupo</th><th>Nº</th><th>Dónde está</th><th>Desde</th><th>Última señal</th><th>Estado</th><th></th></tr></thead><tbody>${filas.map(({ s, e }) => `
+    return `<table class="pn-t"><thead><tr><th>Grupo</th><th>Nº</th><th>Dónde está</th><th>Dispositivo</th><th>Desde</th><th>Última señal</th><th>Estado</th><th></th></tr></thead><tbody>${filas.map(({ s, e }) => `
       <tr class="st-${e[0]}" data-uid="${esc(s.uid)}"><td>${esc(nombreGrupo(s.grupo))}</td><td class="c"><b>${pad(s.numero)}</b>${rep.get(s.grupo + '#' + s.numero) > 1 ? ' <span class="pn-rep" title="Dos sesiones con el mismo número">⚠ repetido</span>' : ''}</td>
-      <td>${esc(String(s.pagina || '').replace(/\s*\(#.*\)$/, ''))}</td><td>${fHora(s.desde)}</td><td>${hace(s.latido)}</td><td>${e[1]}</td>
-      <td>${s.revocada ? '' : '<button class="btn small" data-pn="expulsar">Expulsar</button>'}</td></tr>`).join('')}</tbody></table>`;
+      <td>${esc(String(s.pagina || '').replace(/\s*\(#.*\)$/, ''))}</td><td class="pn-small">${esc(s.disp || '—')}</td><td>${fHora(s.desde)}</td><td>${hace(s.latido)}</td><td>${e[1]}</td>
+      <td>${s.revocada ? '' : '<button class="btn small" data-pn="expulsar" title="Sacarle del portal ahora mismo">Cerrar sesión</button>'}</td></tr>`).join('')}</tbody></table>`;
+  }
+
+  // ------------------------------------------------------------ usuarios por grupo (nº de lista registrados)
+  const vivo = (s) => !s.revocada && Date.now() - s.latido < VIVO_MS;
+  function resumenUsuariosHTML() {
+    const enLinea = st.sesiones.filter((s) => vivo(s) && estadoSesion(s)[0] === 'vivo').length;
+    const regs = new Set([...st.pines, ...st.accesos.keys()]).size;
+    return `<div class="pn-kpi"><b>${enLinea}</b><span>en línea ahora</span></div><div class="pn-kpi"><b>${regs}</b><span>números registrados</span></div><div class="pn-kpi ${st.bloqueos.size ? 'ko' : ''}"><b>${st.bloqueos.size}</b><span>bloqueados</span></div>`;
+  }
+  function grupoUsu() {
+    const gs = [...st.grupos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    if (!st.grupos.has(st.uGrupo)) st.uGrupo = gs[0]?.id || '';
+    return gs;
+  }
+  function barraUsuariosHTML() {
+    const gs = grupoUsu(); if (!gs.length) return '';
+    return `<label>Grupo <select data-pn-u="grupo">${gs.map((g) => `<option value="${esc(g.id)}" ${g.id === st.uGrupo ? 'selected' : ''}>${esc(g.nombre)}</option>`).join('')}</select></label>
+      <label class="pn-chk"><input type="checkbox" data-pn-u="todos" ${st.uTodos ? 'checked' : ''}> Ver todos los números de la lista</label>`;
+  }
+  function usuariosHTML() {
+    if (!st.listo.s || !st.listo.g) return '<p class="pn-small">Cargando…</p>';
+    const gs = grupoUsu(); const g = st.grupos.get(st.uGrupo);
+    if (!g) return '<p class="pn-vacio">Todavía no hay grupos. Créalos en «Grupos y códigos».</p>';
+    const pre = g.id + '_'; const nums = new Set();
+    for (const k of [...st.pines, ...st.accesos.keys(), ...st.bloqueos]) if (k.startsWith(pre)) nums.add(+k.slice(pre.length));
+    st.sesiones.forEach((s) => { if (s.grupo === g.id) nums.add(s.numero); });
+    if (st.uTodos) for (let i = 1; i <= (g.alumnos || 30); i++) nums.add(i);
+    const L = [...nums].filter((n) => n >= 1 && n <= 40).sort((a, b) => a - b);
+    if (!L.length) return `<p class="pn-vacio">En ${esc(g.nombre)} todavía no ha entrado nadie.</p>`;
+    return `<table class="pn-t pn-usu"><thead><tr><th>Nº</th><th>Estado</th><th>Último acceso</th><th>Dispositivo</th><th>PIN</th><th>Acciones</th></tr></thead><tbody>${L.map((n) => {
+      const id = pre + n; const ss = st.sesiones.filter((s) => s.grupo === g.id && s.numero === n);
+      const abiertas = ss.filter((s) => !s.revocada && s.codigo === g.codigo && Date.now() - s.latido < ANTIGUA_MS);
+      const enLinea = ss.some((s) => vivo(s) && estadoSesion(s)[0] === 'vivo');
+      const acc = st.accesos.get(id); const ult = Math.max(acc?.ultimo || 0, ...ss.map((s) => s.latido || 0));
+      const disp = ss.sort((a, b) => b.latido - a.latido)[0]?.disp || acc?.disp || '';
+      const bloq = st.bloqueos.has(id); const pin = st.pines.has(id);
+      const est = bloq ? '<span class="pn-est ko">⛔ Bloqueado</span>' : enLinea ? '<span class="pn-est ok">🟢 En línea</span>' : abiertas.length ? '<span class="pn-est">🟡 Sin señal</span>' : ult ? '<span class="pn-est off">Desconectado</span>' : '<span class="pn-est off">Sin entrar</span>';
+      return `<tr data-usu="${esc(id)}" class="${bloq ? 'st-bloq' : enLinea ? 'st-vivo' : ''}"><td class="c"><b>${pad(n)}</b>${abiertas.length > 1 ? ' <span class="pn-rep" title="Más de una sesión abierta con este número">⚠ ' + abiertas.length + ' sesiones</span>' : ''}</td><td>${est}</td>
+        <td>${ult ? `${fFecha(ult)} <span class="pn-small">(${hace(ult)})</span>` : '—'}</td><td class="pn-small">${esc(disp || '—')}</td><td>${pin ? 'Registrado' : '<span class="pn-small">Sin PIN</span>'}</td>
+        <td class="pn-acc">${abiertas.length && !bloq ? `<button class="btn small" data-pn="cerrarNum">Cerrar sesión</button>` : ''}${bloq ? '<button class="btn small" data-pn="desbloquear">🔓 Desbloquear</button>' : '<button class="btn small pn-peligro" data-pn="bloquear">⛔ Bloquear</button>'}${pin ? '<button class="btn small" data-pn="pinNum">🔑 Reiniciar PIN</button>' : ''}</td></tr>`;
+    }).join('')}</tbody></table>
+    <p class="pn-small">Bloquear un número lo saca del portal al momento y no le deja volver a entrar, ni leer ni entregar nada, hasta que lo desbloquees (lo comprueba el servidor). Reiniciar el PIN deja que la próxima vez elija uno nuevo.</p>`;
+  }
+  async function accionUsuario(acc, id, b) {
+    const i = id.lastIndexOf('_'); const gid = id.slice(0, i); const n = +id.slice(i + 1); const g = st.grupos.get(gid); const quien = `el nº ${pad(n)} de ${g?.nombre || 'este grupo'}`;
+    const abiertas = st.sesiones.filter((s) => s.grupo === gid && s.numero === n && !s.revocada);
+    try {
+      if (acc === 'cerrarNum') {
+        if (!confirm(`¿Cerrar la sesión de ${quien}?\n\nSaldrá del portal al momento. Podrá volver a entrar con su código, su nº y su PIN.`)) return;
+        const bt = writeBatch(db); abiertas.forEach((s) => bt.update(doc(db, 'sesiones', s.uid), { revocada: true })); await bt.commit();
+      }
+      if (acc === 'bloquear') {
+        if (!confirm(`¿Bloquear ${quien}?\n\nSe cerrarán sus sesiones al momento y no podrá entrar hasta que lo desbloquees.`)) return;
+        b.disabled = true; const bt = writeBatch(db); bt.set(doc(db, 'bloqueos', id), { desde: serverTimestamp() });
+        abiertas.forEach((s) => bt.update(doc(db, 'sesiones', s.uid), { revocada: true })); await bt.commit();
+      }
+      if (acc === 'desbloquear') { b.disabled = true; await deleteDoc(doc(db, 'bloqueos', id)); }
+      if (acc === 'pinNum') {
+        if (!confirm(`¿Reiniciar el PIN de ${quien}?\n\nLa próxima vez que entre con ese número podrá elegir un PIN nuevo.`)) return;
+        await deleteDoc(doc(db, 'pines', id));
+      }
+    } catch (e) { b.disabled = false; alert('No se ha podido hacer (' + (e?.code || 'error') + ').'); }
   }
 
   // ------------------------------------------------------------ entregas
@@ -329,6 +397,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const fila = t.closest('[data-ent]'); if (fila && !t.closest('button')) { st.abierta = fila.dataset.ent; $('#pnTabla').innerHTML = tablaEntregasHTML(); pintarDetalle(); return; }
     const b = t.closest('[data-pn]'); if (!b) return;
     const acc = b.dataset.pn;
+    const usu = b.closest('[data-usu]')?.dataset.usu; if (usu) return accionUsuario(acc, usu, b);
     const g = st.grupos.get(b.closest('[data-grupo]')?.dataset.grupo || '');
     if (g) return accionGrupo(acc, g);
     if (acc === 'cancelar') { st.editando = null; pintarTab(); }
@@ -361,6 +430,8 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   function onChange(ev) {
     const t = ev.target;
     if (t.id === 'pnVerTodos') { st.verTodos = t.checked; pintarDatos(); }
+    if (t.dataset.pnU === 'grupo') { st.uGrupo = t.value; $('#pnUsu').innerHTML = usuariosHTML(); }
+    if (t.dataset.pnU === 'todos') { st.uTodos = t.checked; $('#pnUsu').innerHTML = usuariosHTML(); }
     if (t.dataset.pnF) { st.f[t.dataset.pnF] = t.value; pintarDatos(); }
     if (t.name === 'conHorario') t.form.querySelector('.pn-hor').classList.toggle('off', !t.checked);
     if (t.name === 'asig' && t.form?.id === 'pnGrupoForm') t.form.querySelector('.pn-aps').classList.toggle('off', !t.form.querySelector('[name=asig][value=eee]')?.checked);

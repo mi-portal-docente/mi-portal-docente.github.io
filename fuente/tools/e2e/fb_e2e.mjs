@@ -123,7 +123,7 @@ ok('chip del alumno: «1ºA · nº 07»', /1ºA · nº 07/.test(await A.pg.textC
 // datos guardados: sin nombre ni correo
 const sesDocs = await (await fetch(`http://127.0.0.1:8080/v1/projects/${PROJ}/databases/(default)/documents/sesiones`, { headers: { Authorization: 'Bearer owner' } })).json();
 const claves = Object.keys(sesDocs.documents?.[0]?.fields || {}).sort().join(',');
-ok('la sesión guardada solo tiene grupo, nº, código, página, horas y el hash del PIN (cero datos personales)', claves === 'codigo,desde,grupo,latido,numero,pagina,pin,revocada', claves);
+ok('la sesión guardada solo tiene grupo, nº, código, página, dispositivo (navegador · sistema), horas y el hash del PIN (cero datos personales)', claves === 'codigo,desde,disp,grupo,latido,numero,pagina,pin,revocada', claves);
 await P.pg.goto(BASE + '#panel/conectados');
 await P.pg.waitForFunction(() => /práctica 2/.test(document.querySelector('#pnCon')?.textContent || ''), null, { timeout: 30000 });
 ok('panel «Conectados»: aparece el nº 07 de 1ºA en «Circuitos · práctica 2» (latido)', /1ºA\s*07/.test((await P.pg.textContent('#pnCon')).replace(/\s+/g, ' ')) || /07/.test(await P.pg.textContent('#pnCon')));
@@ -208,6 +208,70 @@ ok('el panel muestra la sesión como «Expulsado»', true);
 await loginAlumno(B2.pg, COD_B, 12);
 await B2.pg.waitForSelector('#asig a.ap-card, #cover .btn-enter', { timeout: 30000 });
 ok('el expulsado puede volver a entrar solo con el código vigente (nueva sesión)', true);
+
+// ================================================================ 8b. sesión en la esquina, «Usuarios» y bloqueo de un nº
+await B2.pg.waitForSelector('#sesBtn', { timeout: 20000 });
+ok('alumno: chip de sesión en la esquina con grupo y nº', /2ºB · nº 12/.test(await B2.pg.textContent('#sesBtn')) && /Sesión iniciada/.test(await B2.pg.getAttribute('#sesBtn', 'aria-label')));
+await B2.pg.click('#sesBtn'); await B2.pg.waitForSelector('#sesMenu:not([hidden])'); await B2.pg.waitForTimeout(400);
+const menuB = await B2.pg.textContent('#sesMenu');
+ok('alumno: el menú dice rol, grupo, «Sesión iniciada» y «Cerrar sesión» (sin nombre)', /Alumno · nº 12/.test(menuB) && /Grupo 2ºB/.test(menuB) && /Sesión iniciada/.test(menuB) && /Cerrar sesión/.test(menuB));
+await B2.pg.screenshot({ path: SHOTS + 'sesion_alumno_menu_claro.png' });
+await B2.pg.evaluate(() => window.portalTema?.elegir('dark')); await B2.pg.waitForTimeout(300);
+await B2.pg.screenshot({ path: SHOTS + 'sesion_alumno_menu_oscuro.png' });
+await B2.pg.evaluate(() => window.portalTema?.elegir('auto'));
+await B2.pg.keyboard.press('Escape');
+ok('alumno: Escape cierra el menú y devuelve el foco', await B2.pg.evaluate(() => document.getElementById('sesMenu').hidden && document.activeElement?.id === 'sesBtn'));
+await P.pg.goto(BASE + '#panel/usuarios');
+await P.pg.waitForSelector('#sesBtn', { timeout: 20000 });
+ok('profesor: chip «Profesor» en la esquina', /Profesor/.test(await P.pg.textContent('#sesBtn')));
+await P.pg.click('#sesBtn'); await P.pg.waitForSelector('#sesMenu:not([hidden])'); await P.pg.waitForTimeout(400);
+ok('profesor: el menú muestra su cuenta, «Sesión iniciada» y «Cerrar sesión»', /profe@test\.es/.test(await P.pg.textContent('#sesMenu')) && /Cerrar sesión/.test(await P.pg.textContent('#sesMenu')));
+await P.pg.screenshot({ path: SHOTS + 'sesion_profesor_menu_claro.png' });
+await P.pg.evaluate(() => window.portalTema?.elegir('dark')); await P.pg.waitForTimeout(300);
+await P.pg.screenshot({ path: SHOTS + 'sesion_profesor_menu_oscuro.png' });
+await P.pg.keyboard.press('Escape');
+await P.pg.waitForSelector('#pnUsu [data-pn-u], #pnUsuBar [data-pn-u="grupo"]', { timeout: 15000 });
+await P.pg.selectOption('#pnUsuBar [data-pn-u="grupo"]', { label: '2ºB' });
+const filaB = '#pnUsu tr[data-usu$="_12"]';
+await P.pg.waitForSelector(`${filaB}:has-text("En línea")`, { timeout: 20000 });
+const txtFila = (await P.pg.textContent(filaB)).replace(/\s+/g, ' ');
+ok('Usuarios: el nº 12 de 2ºB aparece «En línea», con último acceso, dispositivo y PIN registrado', /Chrome/.test(txtFila) && /hace/.test(txtFila) && /Registrado/.test(txtFila), txtFila);
+ok('Usuarios: resumen con conectados, registrados y bloqueados', /en línea ahora/.test(await P.pg.textContent('#pnUsuRes')));
+await P.pg.screenshot({ path: SHOTS + 'sesion_panel_usuarios_oscuro.png', fullPage: true });
+await P.pg.evaluate(() => window.portalTema?.elegir('auto')); await P.pg.waitForTimeout(300);
+await P.pg.screenshot({ path: SHOTS + 'sesion_panel_usuarios_claro.png', fullPage: true });
+await P.pg.click(`${filaB} [data-pn="bloquear"]`);
+await B2.pg.waitForSelector('#gate-note:not([hidden])', { timeout: 20000 });
+ok('bloquear: el alumno sale al momento con el aviso de bloqueo', /bloqueado por el profesor/.test(await B2.pg.textContent('#gate-note')));
+await B2.pg.screenshot({ path: SHOTS + 'sesion_alumno_bloqueado.png' });
+await P.pg.waitForSelector(`${filaB}:has-text("Bloqueado")`, { timeout: 15000 });
+ok('Usuarios: el nº 12 aparece «Bloqueado»', true);
+await loginAlumno(B2.pg, COD_B, 12);
+await B2.pg.waitForSelector('#gate-err-a:not([hidden])', { timeout: 20000 });
+ok('bloqueado: no puede volver a entrar aunque su PIN sea correcto', /bloqueado/.test(await B2.pg.textContent('#gate-err-a')));
+await B2.pg.screenshot({ path: SHOTS + 'sesion_alumno_bloqueado_entrar.png' });
+{
+  // las reglas lo impiden también sin la web: una sesión nueva con ese nº es rechazada
+  const r = await fetch(`http://127.0.0.1:8080/v1/projects/${PROJ}/databases/(default)/documents/bloqueos`, { headers: { Authorization: 'Bearer owner' } });
+  ok('el bloqueo se guarda en bloqueos/{grupo_nº} (sin datos personales)', ((await r.json()).documents || []).some((d) => /_12$/.test(d.name)));
+}
+await P.pg.click(`${filaB} [data-pn="desbloquear"]`);
+await P.pg.waitForSelector(`${filaB} [data-pn="bloquear"]`, { timeout: 15000 });
+await loginAlumno(B2.pg, COD_B, 12);
+await B2.pg.waitForSelector('#asig a.ap-card, #cover .btn-enter', { timeout: 30000 });
+ok('desbloquear: vuelve a poder entrar', true);
+{
+  const { ctx, pg } = await contexto('movil-ses', { viewport: { width: 390, height: 844 } });
+  await pg.goto(BASE + '#asignaturas'); await loginAlumno(pg, COD_B, 13);
+  await pg.waitForSelector('#sesBtn', { timeout: 30000 }); await pg.waitForTimeout(500);
+  await pg.screenshot({ path: SHOTS + 'sesion_movil_chip.png' });
+  await pg.click('#sesBtn'); await pg.waitForSelector('#sesMenu:not([hidden])'); await pg.waitForTimeout(400);
+  await pg.screenshot({ path: SHOTS + 'sesion_movil_menu.png' });
+  await pg.click('#sesSalir');
+  await pg.waitForSelector('#gate-note:not([hidden])', { timeout: 20000 });
+  ok('«Cerrar sesión» desde el menú de la esquina: vuelve a la entrada', /Has salido/.test(await pg.textContent('#gate-note')));
+  await ctx.close();
+}
 
 // ================================================================ 9. reiniciar código expulsa a quien tenía el viejo
 await P.pg.goto(BASE + '#panel/grupos');
