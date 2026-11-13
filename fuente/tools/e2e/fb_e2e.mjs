@@ -4,18 +4,19 @@
 import { chromium } from 'playwright-core';
 import { readFileSync } from 'fs';
 import { SHOTS, codigoClase } from '../rutas.mjs';
+const FSP = process.env.E2E_FS_PORT || '8080', AUP = process.env.E2E_AUTH_PORT || '9099'; // puertos de los emuladores (ALT: otros puertos si otro proyecto usa los de siempre)
 
 const BASE = process.env.PORTAL_BASE || 'http://127.0.0.1:8765/index.html';
 const PROJ = 'demo-portal';
-const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:9099',firestoreHost:'127.0.0.1',firestorePort:8080};`;
+const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:${AUP}',firestoreHost:'127.0.0.1',firestorePort:${FSP}};`;
 
 const results = [];
 const ok = (name, cond, info = '') => { results.push({ name, ok: !!cond, info }); console.log((cond ? 'OK  ' : 'FAIL') + ' ' + name + (info ? ' · ' + info : '')); };
 const errores = [];
 const benigno = (t) => /favicon|Download the React DevTools|WebGL|GPU stall|swiftshader|GroupMarkerNotSet/i.test(t);
 
-await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${PROJ}/databases/(default)/documents`, { method: 'DELETE' });
-await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PROJ}/accounts`, { method: 'DELETE' });
+await fetch(`http://127.0.0.1:${FSP}/emulator/v1/projects/${PROJ}/databases/(default)/documents`, { method: 'DELETE' });
+await fetch(`http://127.0.0.1:${AUP}/emulator/v1/projects/${PROJ}/accounts`, { method: 'DELETE' });
 
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 async function contexto(nombre, { firebase = true, viewport = { width: 1440, height: 900 } } = {}) {
@@ -121,7 +122,7 @@ await A.pg.waitForFunction(() => window.__circ && window.__circ.view === 'c2', n
 ok('alumno entra (código en minúsculas y con espacio) y el enlace profundo #eee/circuitos/c2 abre la práctica 2', A.pg.url().endsWith('#eee/circuitos/c2'));
 ok('chip del alumno: «1ºA · nº 07»', /1ºA · nº 07/.test(await A.pg.textContent('#cxProf')));
 // datos guardados: sin nombre ni correo
-const sesDocs = await (await fetch(`http://127.0.0.1:8080/v1/projects/${PROJ}/databases/(default)/documents/sesiones`, { headers: { Authorization: 'Bearer owner' } })).json();
+const sesDocs = await (await fetch(`http://127.0.0.1:${FSP}/v1/projects/${PROJ}/databases/(default)/documents/sesiones`, { headers: { Authorization: 'Bearer owner' } })).json();
 const claves = Object.keys(sesDocs.documents?.[0]?.fields || {}).sort().join(',');
 ok('la sesión guardada solo tiene grupo, nº, código, página, dispositivo (navegador · sistema), horas y el hash del PIN (cero datos personales)', claves === 'codigo,desde,disp,grupo,latido,numero,pagina,pin,revocada', claves);
 await P.pg.goto(BASE + '#panel/conectados');
@@ -252,7 +253,7 @@ ok('bloqueado: no puede volver a entrar aunque su PIN sea correcto', /bloqueado/
 await B2.pg.screenshot({ path: SHOTS + 'sesion_alumno_bloqueado_entrar.png' });
 {
   // las reglas lo impiden también sin la web: una sesión nueva con ese nº es rechazada
-  const r = await fetch(`http://127.0.0.1:8080/v1/projects/${PROJ}/databases/(default)/documents/bloqueos`, { headers: { Authorization: 'Bearer owner' } });
+  const r = await fetch(`http://127.0.0.1:${FSP}/v1/projects/${PROJ}/databases/(default)/documents/bloqueos`, { headers: { Authorization: 'Bearer owner' } });
   ok('el bloqueo se guarda en bloqueos/{grupo_nº} (sin datos personales)', ((await r.json()).documents || []).some((d) => /_12$/.test(d.name)));
 }
 await P.pg.click(`${filaB} [data-pn="desbloquear"]`);

@@ -5,20 +5,21 @@
 import { chromium } from 'playwright-core';
 import { readFileSync } from 'fs';
 import { SHOTS } from '../rutas.mjs';
+const FSP = process.env.E2E_FS_PORT || '8080', AUP = process.env.E2E_AUTH_PORT || '9099'; // puertos de los emuladores (ALT: otros puertos si otro proyecto usa los de siempre)
 
 const BASE = process.env.PORTAL_BASE || 'http://127.0.0.1:8765/index.html';
 const PROJ = 'demo-portal';
-const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:9099',firestoreHost:'127.0.0.1',firestorePort:8080};`;
+const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:${AUP}',firestoreHost:'127.0.0.1',firestorePort:${FSP}};`;
 const results = [];
 const PROMPT = []; // respuestas para los prompt() (nombre de tema, título…)
 const ok = (name, cond, info = '') => { results.push({ name, ok: !!cond, info }); console.log((cond ? 'OK  ' : 'FAIL') + ' ' + name + (info ? ' · ' + info : '')); };
 const errores = [];
 const benigno = (t) => /favicon|WebGL|GPU stall|swiftshader|GroupMarkerNotSet/i.test(t);
-const REST = `http://127.0.0.1:8080/v1/projects/${PROJ}/databases/(default)/documents`;
+const REST = `http://127.0.0.1:${FSP}/v1/projects/${PROJ}/databases/(default)/documents`;
 const owner = { headers: { Authorization: 'Bearer owner' } };
 
-await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${PROJ}/databases/(default)/documents`, { method: 'DELETE' });
-await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PROJ}/accounts`, { method: 'DELETE' });
+await fetch(`http://127.0.0.1:${FSP}/emulator/v1/projects/${PROJ}/databases/(default)/documents`, { method: 'DELETE' });
+await fetch(`http://127.0.0.1:${AUP}/emulator/v1/projects/${PROJ}/accounts`, { method: 'DELETE' });
 
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 async function contexto(nombre, viewport = { width: 1440, height: 900 }) {
@@ -489,7 +490,7 @@ for (;;) {
   else if (nR === 0) await E.pg.click(`[data-ac=pieza][data-id="${R.mal}"]`); // un fallo a propósito
   else if (!clic3d) { const p = await E.pg.evaluate((id) => window.__act.pantallaDe(id), R.ok[0]); await E.pg.mouse.click(p.x, p.y); clic3d = true; }
   else await E.pg.click(`[data-ac=pieza][data-id="${R.ok[0]}"]`);
-  await E.pg.waitForSelector('.ac-fb');
+  await E.pg.waitForSelector('.ac-fb', { timeout: 15000 }).catch(async (e) => { console.log('DEPURA ronda', nR, JSON.stringify(R), 'clic3d', clic3d, await E.pg.evaluate(() => ({ fase: window.__act.estado.fase, resp: !!window.__act.estado.resp, vp: [innerWidth, innerHeight] }))); throw e; });
   nR++; await E.pg.click('[data-ac=sig]');
 }
 const resTxt = await E.pg.textContent('#acLado');

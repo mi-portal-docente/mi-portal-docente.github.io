@@ -575,3 +575,35 @@ Reglas para pegar (sin desplegar): `/workspace/portal-acceso/firestore.rules.par
 - Límites conocidos: el STL subido es de 600 KB como máximo (para más, enlace); la hoja tiene 100 × 26 celdas; la
   actividad interactiva lleva las soluciones en el navegador (es práctica, no examen); el cristal (backdrop-filter)
   pesa más en ordenadores lentos y en headless.
+
+## Realismo 3D · todos los laboratorios al nivel del ESP32 (rama grok-3d, 13/11/2026)
+
+Referencia: la placa ESP32 (`src/scene.js`): luz de estudio suave, sombras de contacto, cámara con inercia.
+**Común**: `kit3d/escena.js` — `estudio()` (hemisférica + clave con sombra suave + relleno + contraluz + suelo de
+sombra, entorno RoomEnvironment), `camaraSuave()` (inercia 0,12, zoom hacia el cursor, paneo en pantalla) y `volar()`
+(transición suave de cámara solo desde los botones/teclas; las pruebas siguen colocando la cámara al instante).
+Calidad baja (Chromebook / ≤ 4 núcleos / ≤ 4 GB o `kit3d:calidad=baja`): menos segmentos, sin transmisión en el LED,
+sombras solo donde hacen falta.
+
+**Circuitos** (`circ/detalle.js`, `models3d.js`): resistencia en hueso de perro con bandas que siguen el perfil, LED
+de 5 mm con brida, yunque, poste y hilo; TO-92 con cara plana rotulada; relé, condensador con funda y respiradero,
+pila 9 V con broches, portapilas AA con muelles, polímetro con funda, rueda estriada, anillo de escalas y bornes de
+4 mm; puntas con guarda; Dupont con enganche, cocodrilo con mordazas dentadas y funda, banana. Protoboard con canal
+central real. Patas y bornes en las mismas posiciones (52/52 en `circ_pins_test`).
+**Vivienda** (`viv/modelos3d.js`, `lab.js`…): aparamenta con perfil DIN (palanca estriada, ventana del rótulo, pozos de
+tornillo, pestaña de carril), carril DIN de sombrero, fichas de palanca / inserción / regleta de tornillo, cajas con
+nervios y tornillos de tapa, bornes con cabeza PZ; símbolos dibujados (campana, flechas, cruce, reloj, tierra) en vez
+de emojis. `viv_test` más estable: comprobaciones con reintento hasta 6 s y clics que esperan al botón.
+**Actividades 3D**: el polímetro del kit (maletín y taller) es el modelo detallado de Circuitos escalado a cm.
+**Anatomía del PC** (`kit3d/pc.js`): placa ATX con serigrafía y pistas, zócalo LGA, VRM, DIMM, PCIe reforzadas, SATA,
+pila, cabezales; CPU con IHS; RAM con disipador y muesca; gráfica con radiador, heatpipes y ventiladores de aspas
+curvas; fuente con rejilla, IEC, etiqueta y haz de cables; SSD, HDD y M.2. Las piezas repetidas que comparten
+material se fusionan (una malla por material) para que el banco siga ligero.
+**Librerías / modelos**: ninguno nuevo (todo procedural). Caché: `r3d-20261113`.
+**Capturas** (fuente/capturas, ignoradas por git): `real3d_antes_*` / `real3d_despues_*` (circ_*, viv_*, act_*, pc_*).
+**Nota de pruebas**: `viv_test`, `circ_test` y los E2E usan `PORTAL_BASE` (por defecto :8765). Si otro árbol ya sirve
+:8765, lanza un servidor propio y pasa `PORTAL_BASE=http://127.0.0.1:<puerto>/index.html`. `fb_e2e` y `aula_e2e` aceptan
+ahora `E2E_FS_PORT` / `E2E_AUTH_PORT` (como `plataforma_e2e`): la inestabilidad de `aula_e2e` («.ac-fb» que no
+llegaba) venía de compartir los emuladores 8080/9099 con otro árbol que borraba los datos a la vez. `pantallaDe()` de
+las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en una rejilla sobre la pieza).
+`circ_test`: la portada tiene 12 prácticas + 2 tarjetas libres (modo libre y avería); la prueba esperaba 13.

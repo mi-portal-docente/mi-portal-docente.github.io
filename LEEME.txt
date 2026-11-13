@@ -110,4 +110,6 @@ LIBRERÍAS DE TERCEROS (aula virtual · solo MIT, BSD o Apache)
 - Exportación .docx del editor de documentos: código propio (sin librería).
 - pdf.js 3.11.174 de Mozilla (Apache-2.0): visor de PDF del portal, en vendor/pdfjs/ (licencia en LICENCIA.txt).
 - Visor 3D: cargadores STL y GLTF y OrbitControls de three.js (MIT), dentro de js/app.js.
+- Laboratorios y actividades 3D: modelos 100 % procedurales (código propio con three.js; RoomEnvironment y
+  BufferGeometryUtils de los ejemplos de three.js, MIT). Sin modelos ni texturas externas.
 - Hoja de cálculo (fórmulas, gráficos y tabla dinámica): código propio (sin librería).

@@ -47,7 +47,7 @@ ok('#eee/esp32 muestra el inicio ESP32', st.h === '#eee/esp32' && !st.l && st.ho
 
 // 3) Portada del laboratorio + modo libre con ratón real
 await go('#eee/circuitos', 1200);
-ok('Portada de Circuitos con 12 prácticas + modo libre', await pg.evaluate(() => document.querySelectorAll('.cx-card').length === 13));
+ok('Portada de Circuitos con 12 prácticas + modo libre', await pg.evaluate(() => document.querySelectorAll('.cx-card:not(.free)').length === 12 && !!document.querySelector('.cx-card.free[href="#eee/circuitos/libre"]')));
 ok('Sin logotipo salesiano dentro de Circuitos', await pg.evaluate(() => !document.querySelector('#circ img[src*="salesian"]') && !/salesian/i.test(document.querySelector('#circ').innerHTML)));
 await go('#eee/circuitos/libre', 2500);
 await pg.click('[data-cxtab="comp"]').catch(() => {}); await wait(300);

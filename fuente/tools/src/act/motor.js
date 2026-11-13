@@ -150,7 +150,16 @@ export class Actividad3D {
     for (const m of mallas) {
       const v = new THREE.Box3().setFromObject(m).getCenter(new THREE.Vector3()).project(this.camera);
       const p = { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height, clientX: 0, clientY: 0 }; p.clientX = p.x; p.clientY = p.y;
-      if (this.pick(p) === id) return { x: p.x, y: p.y };
+      const tapa = typeof document !== 'undefined' && document.elementFromPoint ? document.elementFromPoint(p.x, p.y) : null; // que no lo tape una etiqueta HTML
+      if (this.pick(p) === id && (!tapa || tapa === this.renderer.domElement)) return { x: p.x, y: p.y };
+    }
+    // si los centros están tapados, busca en una rejilla sobre la caja de la pieza
+    const B = new THREE.Box3().setFromObject(x.g), v = new THREE.Vector3();
+    for (let a = 1; a < 8; a++) for (let c = 1; c < 8; c++) {
+      v.set(B.min.x + (B.max.x - B.min.x) * a / 8, B.max.y, B.min.z + (B.max.z - B.min.z) * c / 8).project(this.camera);
+      const p = { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height }; p.clientX = p.x; p.clientY = p.y;
+      const tapa = document.elementFromPoint?.(p.x, p.y);
+      if (this.pick(p) === id && (!tapa || tapa === this.renderer.domElement)) return { x: p.x, y: p.y };
     }
     return null;
   }
