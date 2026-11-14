@@ -305,7 +305,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (b.dataset.au === 'empezarPrueba') { const it = st.items.get(actual.id); const m = document.getElementById('pbMsg'); b.disabled = true;
       pantallaObligatoria(it, m).then(async (ok) => { if (!ok) { b.disabled = false; return; } try { await modo.asegurarPrueba(it); modo.empezar(it); renderItem(actual.el, it.id); } catch (e) { b.disabled = false; if (m) m.textContent = 'Revisa la conexión y vuelve a intentarlo.'; } }); }
     if (b.dataset.au === 'pantalla') modo?.pedirPantalla();
-    if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); b.disabled = true; pantallaObligatoria(it, document.getElementById('auMsg')).then((ok) => { if (!ok) { b.disabled = false; return; } abrirExamen(it).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }); }
+    // Seguir: se intenta la pantalla completa; si el navegador no la concede, la prueba se abre BLOQUEADA (código del profesor).
+    if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); b.disabled = true; pantallaObligatoria(it, null).then(() => abrirExamen(it)).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }
     if (b.dataset.au === 'verPreguntas') verPreguntas();
     if (b.dataset.au === 'editar') window.PORTAL?.aula?.editar?.(actual.id);
     if (b.dataset.au === 'leer') leerEnVoz(b);

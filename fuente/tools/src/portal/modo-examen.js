@@ -94,14 +94,17 @@ export function crearModoExamen({ db, ses, uid }) {
     M.unsub = onSnapshot(doc(db, 'pruebas', idP()), { includeMetadataChanges: true }, (d) => {
       const x = d.exists() ? d.data() : null;
       if (d.metadata.hasPendingWrites && M.prueba?.bloqueado && x && !x.bloqueado) return;
-      M.prueba = x; ponerCapa();
+      M.prueba = x;
+      // Si vuelve a la prueba sin pantalla completa (el navegador no la ha concedido), empieza bloqueada.
+      if (M.exigir && x && !d.metadata.hasPendingWrites) { M.exigir = false; if (!x.bloqueado && !document.fullscreenElement) { bloquear('pantalla'); return; } }
+      ponerCapa();
     }, () => { });
   }
 
   // opciones.bloqueo: «prueba sin elementos externos»
   function empezar(it, { bloqueo = !!(it.sinExternos || it.examen?.sinExternos) } = {}) {
     if (M.activo && M.it?.id === it.id) { banner(); ponerCapa(); return; }
-    parar(); M.it = it; M.activo = true; M.estuvo = !!document.fullscreenElement; M.bloqueo = bloqueo;
+    parar(); M.it = it; M.activo = true; M.estuvo = !!document.fullscreenElement; M.bloqueo = bloqueo; M.exigir = bloqueo && !document.fullscreenElement;
     document.addEventListener('visibilitychange', onVis); document.addEventListener('fullscreenchange', onFs); window.addEventListener('blur', onBlur);
     if (bloqueo) { for (const ev of ['paste', 'drop', 'contextmenu', 'dragstart']) document.addEventListener(ev, sinExternos, true); escuchar(); }
     banner();
