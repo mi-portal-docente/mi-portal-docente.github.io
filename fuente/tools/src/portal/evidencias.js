@@ -10,7 +10,7 @@ import { ic } from './ico.js';
 import { aJSON } from '../lms/copia.js';
 import { fmtNota, semillaAlumno } from '../lms/modelo.js';
 import { limpiarDoc } from '../lms/doc-html.js';
-import { valoresAlumno } from '../lms/formula.js';
+import { valoresAlumno, sustituir } from '../lms/formula.js';
 import { resumenSalidas } from './modo-examen.js';
 
 export const FORMATO_EVIDENCIAS = 'superprofe/evidencias@1';
@@ -67,6 +67,7 @@ const CSS = `.ev-capa{position:fixed;inset:0;z-index:2147482000;overflow:auto;ba
 .ev-al h3{margin:0 0 6px}.ev-al table{border-collapse:collapse;width:100%;font-size:.9rem}.ev-al td,.ev-al th{border-bottom:1px solid rgba(0,0,0,.08);padding:4px 6px;text-align:left;vertical-align:top}
 .ev-doc{border:1px solid rgba(0,0,0,.12);border-radius:10px;padding:10px;max-height:420px;overflow:auto;background:#fff;color:#1d1d1f}
 @media print{body.ev-imp>*:not(.ev-capa){display:none!important}.ev-capa{position:static;overflow:visible;padding:0;background:#fff;color:#000}.ev-cab,.ev-al:not(.ev-sel),.ev-noimp{display:none!important}.ev-doc{max-height:none}}`;
+const respTxt = (q, r) => { if (r == null || r === '') return '—'; if (q.tipo === 'test') return (q.opciones || [])[r] ?? String(r); if (q.tipo === 'vf') return r ? 'Verdadero' : 'Falso'; return typeof r === 'string' ? r : JSON.stringify(r); };
 function alumnoHTML(E, a) {
   const t = a.trabajo; const n = a.nota; const el = E.elemento;
   const sal = resumenSalidas(a.incidencias || []);
@@ -84,7 +85,7 @@ function alumnoHTML(E, a) {
       <tr><th>Versiones</th><td>${a.versiones.map((v) => `${v.n}.ª · ${f(v.fecha)}`).join(' · ') || '—'}</td></tr>
       <tr><th>Comentarios</th><td>${a.comentarios.map((c) => `${f(c.fecha)} ${esc(c.autor)}: ${esc(c.texto)}`).join('<br>') || '—'}</td></tr>
     </tbody></table>
-    ${t?.respuestas ? `<h4>Respuestas</h4><ol>${(el.examen?.preguntas || []).map((q) => `<li>${esc(q.enunciado)}<br><b>${esc(JSON.stringify(t.respuestas[q.id] ?? '—'))}</b>${n?.detalle?.[q.id] != null ? ` · ${esc(fmtNota(n.detalle[q.id]))} pt` : ''}</li>`).join('')}</ol>` : ''}
+    ${t?.respuestas ? `<h4>Respuestas</h4><ol>${(el.examen?.preguntas || []).map((q) => `<li>${esc(q.tipo === 'variables' && a.datosExamen?.[q.id] ? sustituir(q.enunciado, a.datosExamen[q.id]) : q.enunciado)}<br><b>${esc(respTxt(q, t.respuestas[q.id]))}</b>${n?.detalle?.[q.id] != null ? ` · ${esc(fmtNota(n.detalle[q.id]))} pt` : ''}</li>`).join('')}</ol>` : ''}
     ${t?.doc ? `<h4>Documento entregado</h4><div class="ev-doc">${String(t.doc).startsWith('{"v":1') ? '<p class="pn-small">(hoja de cálculo: ver en el portal)</p>' : limpiarDoc(t.doc)}</div>` : t?.texto ? `<h4>Respuesta</h4><div class="ev-doc">${esc(t.texto).replace(/\n/g, '<br>')}</div>` : ''}
   </section>`;
 }
