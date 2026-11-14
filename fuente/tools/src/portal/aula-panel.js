@@ -480,7 +480,9 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (A.sub === 'notas' && A.corr && corr.onClick(ev)) return;
     const cel = t.closest('[data-celda]'); if (cel && A.sub === 'notas') { A.abierta = { k: cel.dataset.celda, n: +cel.dataset.n }; A.el.querySelectorAll('.ap-c.sel').forEach((x) => x.classList.remove('sel')); cel.classList.add('sel'); pintarDetalle(); return; }
     const qn = t.closest('[data-ap-qn]'); if (qn) { const [qid, ri, v] = qn.dataset.apQn.split('|'); const i = A.el.querySelector(`#apDetalle .ap-qr[data-qid="${CSS.escape(qid)}"][data-ri="${ri}"]`); if (i) { i.value = redondea(+v); sumarRubricaQ(qid); recalcular(); } return; }
-    const b = t.closest('[data-ap]'); if (!b || !A.el?.contains(b)) return;
+    const b = t.closest('[data-ap]'); if (!b) return;
+    // En «Ajustes y limpieza» el bloque del aula se pinta sin render(): A.el puede no estar puesto (al entrar directamente).
+    if (!A.el?.contains(b)) { const pn = b.closest('.pn'); if (!pn) return; A.el = pn; }
     const acc = b.dataset.ap;
     try {
       const c = st.cursos.get(b.closest('[data-curso]')?.dataset.curso || ''); if (c) return accionCurso(acc, c);
