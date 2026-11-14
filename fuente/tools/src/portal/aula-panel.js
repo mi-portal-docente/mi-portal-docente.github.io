@@ -1,6 +1,7 @@
 // Panel del profesor · aula virtual: cursos escolares, contenido (biblioteca → curso, editor de
 // materiales, tareas, proyectos y exámenes) y calificaciones (cuaderno por grupo con categorías y pesos).
-import { getDoc, collection, doc, getDocs, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, Timestamp, orderBy, serverTimestamp } from 'firebase/firestore';
+import { getDoc, collection, doc, getDocs, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, Timestamp, orderBy, serverTimestamp, deleteField } from 'firebase/firestore';
+import { confirmar, avisar, pedirTexto } from './dialogo.js';
 import { leerResultado } from '../act/resultado.js';
 import { esc } from './util.js';
 import { ic } from './ico.js';
@@ -82,10 +83,10 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       </form></section>`;
     const lista = cursos().map((x) => {
       const nG = [...ps.grupos.values()].filter((g) => g.curso === x.id).length;
-      return `<article class="pn-grupo ${x.activo ? '' : 'off'}" data-curso="${esc(x.id)}"><div class="pn-gh"><h3>📅 ${esc(x.nombre)}</h3><span class="pn-est ${x.activo ? 'si' : 'no'}">${x.activo ? 'Curso activo' : 'Archivado'}</span></div>
+      return `<article class="pn-grupo ${x.activo ? '' : 'off'}" data-curso="${esc(x.id)}"><div class="pn-gh"><h3>📅 ${esc(x.nombre)}</h3><span class="pn-est ${x.activo ? 'si' : 'no'}">${x.activo ? 'Curso activo' : x.cerrado ? `Cerrado el ${fFecha(x.cerrado.toMillis?.() ?? x.cerrado)}` : 'Archivado'}</span></div>
         <div class="ap-chips">${(x.asignaturas || []).map((id) => { const a = asignatura(id); return `<span class="ap-chip" style="--c:${a?.color || '#888'}">${a?.icon || ''} ${esc(a?.corto || id)}</span>`; }).join('') || '<span class="pn-small">Sin asignaturas</span>'}</div>
         <div class="pn-small">👥 ${nG} grupo${nG === 1 ? '' : 's'}${x.id === st.cursoSel ? ` · 📚 ${st.items.size} elemento${st.items.size === 1 ? '' : 's'}` : ''}</div>
-        <div class="pn-acts">${x.activo ? '' : '<button class="btn" data-ap="cursoActivar">▶ Hacer activo</button>'}<button class="btn" data-ap="cursoEditar">✏️ Asignaturas</button><a class="btn" href="#asignaturas" data-ap="cursoVer">📅 Ver en Curso</a><button class="btn pn-peligro" data-ap="cursoBorrar">🗑 Borrar</button></div></article>`;
+        <div class="pn-acts">${x.activo ? '' : '<button class="btn" data-ap="cursoActivar">▶ Hacer activo</button>'}<button class="btn" data-ap="cursoEditar">✏️ Asignaturas</button><a class="btn" href="#asignaturas" data-ap="cursoVer">📅 Ver en Curso</a>${x.cerrado ? '' : '<button class="btn" data-ap="cursoCerrar" title="Fin de curso: las evidencias se conservan 6 meses desde el cierre">🔒 Cerrar curso</button>'}</div></article>`;
     }).join('');
     return form + `<div class="pn-grupos">${lista || '<p class="pn-vacio">Todavía no hay cursos escolares. Crea el primero arriba.</p>'}</div>`;
   }
@@ -99,7 +100,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     msg.textContent = 'Guardando…'; msg.className = 'pn-msg';
     try {
       const b = writeBatch(db); const prev = st.cursos.get(id);
-      b.set(doc(db, 'cursos', id), { nombre, asignaturas, activo, pesos: prev?.pesos || {}, creado: prev?.creado || Date.now() });
+      b.set(doc(db, 'cursos', id), { nombre, asignaturas, activo, pesos: prev?.pesos || {}, creado: prev?.creado || Date.now(), ...(prev?.cerrado && !activo ? { cerrado: prev.cerrado } : {}) });
       if (activo) for (const x of st.cursos.values()) if (x.id !== id && x.activo) b.update(doc(db, 'cursos', x.id), { activo: false });
       await b.commit();
       const copiar = fd.get('copiar'); let n = 0;
@@ -137,13 +138,15 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     try {
       if (acc === 'cursoEditar') { A.cursoEdit = c.id; A.msg = ''; pintar(); A.el.scrollIntoView?.({ block: 'start' }); return; }
       if (acc === 'cursoVer') { aula.elegirCurso(c.id); return; }
-      if (acc === 'cursoActivar') { const b = writeBatch(db); for (const x of st.cursos.values()) b.update(doc(db, 'cursos', x.id), { activo: x.id === c.id }); await b.commit(); aula.elegirCurso(c.id); return; }
-      if (acc === 'cursoBorrar') {
-        const nG = [...ps.grupos.values()].filter((g) => g.curso === c.id).length;
-        const nI = (await getDocs(query(collection(db, 'items'), where('curso', '==', c.id)))).size;
-        if (nG || nI) { alert(`No se puede borrar ${c.nombre}: tiene ${nG} grupo(s) y ${nI} elemento(s). Bórralos antes (o déjalo archivado).`); return; }
-        if (!confirm(`¿Borrar el curso escolar ${c.nombre}?`)) return;
-        await deleteDoc(doc(db, 'cursos', c.id));
+      if (acc === 'cursoActivar') {
+        if (c.cerrado && !(await confirmar(`${c.nombre} está cerrado. ¿Volver a abrirlo y hacerlo activo?\n\nEl plazo de conservación de 6 meses empezará de nuevo cuando lo vuelvas a cerrar.`, { aceptar: 'Reabrir' }))) return;
+        const b = writeBatch(db); for (const x of st.cursos.values()) b.update(doc(db, 'cursos', x.id), x.id === c.id ? { activo: true, cerrado: deleteField() } : { activo: false }); await b.commit(); aula.elegirCurso(c.id); return;
+      }
+      // P1: un curso no se borra; se CIERRA. Las evidencias se conservan como mínimo 6 meses desde el cierre
+      // (Manual de evaluación del centro, §11.2) y solo entonces se puede hacer la «Limpieza».
+      if (acc === 'cursoCerrar') {
+        if (!(await confirmar(`¿Cerrar el curso escolar ${c.nombre}?\n\nDejará de ser el curso activo. Todas las entregas, notas y registros se conservan. La limpieza solo será posible pasados 6 meses desde hoy y después de exportar la copia.`, { aceptar: 'Cerrar curso' }))) return;
+        await updateDoc(doc(db, 'cursos', c.id), { activo: false, cerrado: serverTimestamp() });
       }
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || 'error') + ').'); }
   }
@@ -156,7 +159,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   async function copiarDe(asig) {
     const otros = cursos().filter((c) => c.id !== st.cursoSel);
     if (!otros.length) { alert('No hay otro curso escolar del que copiar.'); return; }
-    const nombre = prompt(`¿De qué curso copio el contenido de ${asignatura(asig)?.corto}? Escribe el curso (${otros.map((c) => c.nombre).join(', ')}).`, otros[0].nombre);
+    const nombre = await pedirTexto(`¿De qué curso copio el contenido de ${asignatura(asig)?.corto}? Escribe el curso (${otros.map((c) => c.nombre).join(', ')}).`, { valor: otros[0].nombre });
     const o = otros.find((c) => c.nombre === String(nombre || '').trim()); if (!o) return;
     const n = await copiarCurso(o.id, st.cursoSel, [asig]);
     alert(`✔ ${n} elementos copiados como borrador.`);
@@ -279,7 +282,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       <label class="pn-chk"><input type="checkbox" name="publicada" ${nt ? (nt.publicada ? 'checked' : '') : ''}> Publicar la nota al alumno</label>
       <div class="pn-acts"><button class="btn primary" type="submit">💾 Guardar nota</button>${nt ? '<button class="btn" type="button" data-ap="borrarNota">Quitar nota</button>' : ''}<span class="pn-msg" id="apNotaMsg"></span></div></form>
       ${tr?.tipo === 'tarea' ? seguimientoHTML(id, tr) : ''}
-      <div class="pn-acts">${it.tipo !== 'examen' ? `<button class="btn small" data-ap="corregirAl">${ic('clipboard-check')} Vista de corrección</button>` : ''}${tr ? `<button class="btn small" data-ap="repetir" title="Borra la entrega para que pueda volver a entregar o repetir el examen">↺ Permitir repetir</button>` : ''}${pinB}</div>`;
+      <div class="pn-acts">${it.tipo !== 'examen' ? `<button class="btn small" data-ap="corregirAl">${ic('clipboard-check')} Vista de corrección</button>` : ''}${tr && it.tipo !== 'examen' && (tr.estado || 'entregado') === 'entregado' ? `<button class="btn small" data-ap="repetir" title="Devuelve la entrega para que la corrija y la vuelva a entregar (lo entregado se conserva)">↺ Permitir repetir</button>` : ''}${pinB}</div>`;
     D.innerHTML = h;
   }
   // Fase 9: devolver para corregir, comentarios privados y últimas versiones entregadas.
@@ -384,7 +387,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   }
   async function publicarNotas(itemId) {
     const L = [...A.notas.values()].filter((n) => n.item === itemId && !n.publicada && n.nota != null);
-    if (!L.length || !confirm(`¿Publicar ${L.length} nota(s)? Los alumnos las verán al momento.`)) return;
+    if (!L.length || !await confirmar(`¿Publicar ${L.length} nota(s)? Los alumnos las verán al momento.`)) return;
     await enLotes(L.map((n) => ({ db, fn: (b) => b.update(doc(db, 'notas', n.id), { publicada: true }) })));
   }
   function exportarCSV() {
@@ -453,7 +456,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const gs = [...ps.grupos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     return `<section class="pn-card"><h3>PIN de los alumnos</h3><p class="pn-small">Cada nº de lista elige un PIN la primera vez. Si un alumno lo olvida, reinícialo desde el «Cuaderno de calificaciones» (casilla del alumno) o aquí todos los del grupo: la próxima vez que entre elegirá uno nuevo.</p>
       <div class="pn-acts"><select id="apPinGrupo">${gs.map((g) => opt(g.id, g.nombre, '')).join('')}</select><button class="btn" data-ap="pinesGrupo" ${gs.length ? '' : 'disabled'}>🔑 Reiniciar todos los PIN del grupo</button><span class="pn-msg" id="apPinMsg"></span></div></section>
-      <section class="pn-card" id="apCopia"><h3>${ic('archive')} Curso escolar: copia y limpieza</h3><p class="pn-small">«Exportar todo» descarga un JSON con todo el curso: elementos, temas, anuncios, exámenes, trabajos (con comentarios, imágenes y modelos 3D), versiones, notas y registros. Al cerrar el curso, «Limpiar curso escolar» descarga antes esa copia y después borra los datos del alumnado (doble confirmación). El contenido se conserva salvo que marques la casilla.</p>
+      <section class="pn-card" id="apCopia"><h3>${ic('archive')} Curso escolar: copia y limpieza</h3><p class="pn-small">«Exportar todo» descarga un JSON con todo el curso: elementos, temas, anuncios, exámenes, trabajos (con comentarios, imágenes y modelos 3D), versiones, notas y registros. Mientras el curso está abierto no se borra ninguna evidencia (los elementos «borrados» van a la Papelera). «Limpiar curso escolar» solo funciona con el curso <b>cerrado hace más de 6 meses</b> (Manual de evaluación, §11.2): descarga antes la copia y después borra los datos del alumnado (doble confirmación). El contenido se conserva salvo que marques la casilla.</p>
       <div class="pn-acts"><select id="apBorrarCurso" aria-label="Curso escolar">${cursos().map((c) => opt(c.id, c.nombre, prev.c || '')).join('')}</select><button class="btn" data-ap="exportarCurso" ${st.cursos.size ? '' : 'disabled'}>${ic('download')} Exportar todo (JSON)</button></div>
       <div class="pn-acts"><label class="pn-chk"><input type="checkbox" id="apBorrarContenido" ${prev.x ? 'checked' : ''}> Borrar también el contenido (elementos, temas, anuncios y exámenes)</label></div>
       <div class="pn-acts"><button class="btn pn-peligro" data-ap="limpiarCurso" ${st.cursos.size ? '' : 'disabled'}>${ic('trash')} Limpiar curso escolar…</button><span class="pn-msg" id="apBorrarMsg" role="status" aria-live="polite">${esc(prev.m)}</span></div></section>`;
@@ -493,14 +496,24 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
         const g = grupoSel(); const p = {}; A.el.querySelectorAll('[data-peso]').forEach((i) => { p[i.dataset.peso] = Math.max(0, Math.min(100, Number(i.value) || 0)); });
         await updateDoc(doc(db, 'cursos', g.curso), { [`pesos.${A.gAsig}`]: p }); $('#apPesosMsg').textContent = '✔ Guardado';
       }
-      if (acc === 'borrarNota') { const g = grupoSel(); if (confirm('¿Quitar la nota?')) { await deleteDoc(doc(db, 'notas', idTrabajo(A.abierta.k, g.id, A.abierta.n))); pintarDetalle(); } }
-      if (acc === 'repetir') { const g = grupoSel(); if (confirm(`¿Borrar la entrega del nº ${pad(A.abierta.n)} para que pueda repetirla? (La nota, si la hay, también se quita.)`)) { const bt = writeBatch(db); const id = idTrabajo(A.abierta.k, g.id, A.abierta.n); bt.delete(doc(db, 'trabajos', id)); bt.delete(doc(db, 'notas', id)); await bt.commit(); pintarDetalle(); } }
-      if (acc === 'pinReset') { const g = grupoSel(); if (confirm(`¿Reiniciar el PIN del nº ${pad(A.abierta.n)} de ${g.nombre}?\n\nLa próxima vez que entre con ese número podrá elegir un PIN nuevo.`)) { await deleteDoc(doc(db, 'pines', `${g.id}_${A.abierta.n}`)); alert('✔ PIN reiniciado.'); } }
+      // P1: «Quitar nota» deja la nota en blanco y sin publicar; el documento (y su historial) se conserva.
+      if (acc === 'borrarNota') { const g = grupoSel(); if (await confirmar('¿Quitar la nota? Quedará en blanco y sin publicar.', { aceptar: 'Quitar nota' })) { await updateDoc(doc(db, 'notas', idTrabajo(A.abierta.k, g.id, A.abierta.n)), { nota: null, publicada: false, fecha: Date.now() }); pintarDetalle(); } }
+      // P1: la entrega ya no se borra. Una tarea se «devuelve para corregir» (se conserva lo entregado en Versiones);
+      // un examen no se repite sobre el mismo intento: se crea una «Recuperación» para ese nº de lista.
+      if (acc === 'repetir') {
+        const g = grupoSel(); const it = st.items.get(A.abierta.k); const id = idTrabajo(A.abierta.k, g.id, A.abierta.n);
+        if (it?.tipo === 'examen') { await avisar('El intento de un examen no se borra (es la evidencia). Si el alumno tiene que repetirlo, crea una «Recuperación» solo para su nº de lista.'); return; }
+        if (!(await confirmar(`¿Devolver la entrega del nº ${pad(A.abierta.n)} para que la corrija y la vuelva a entregar?\n\nLo entregado se conserva en el historial. La nota, si la hay, queda en blanco y sin publicar.`, { aceptar: 'Devolver' }))) return;
+        const bt = writeBatch(db); bt.update(doc(db, 'trabajos', id), { estado: 'devuelto', devFecha: Date.now() });
+        if ((await getDoc(doc(db, 'notas', id))).exists()) bt.update(doc(db, 'notas', id), { nota: null, publicada: false, fecha: Date.now() });
+        await bt.commit(); A.vers?.delete(id); pintarDetalle();
+      }
+      if (acc === 'pinReset') { const g = grupoSel(); if (await confirmar(`¿Reiniciar el PIN del nº ${pad(A.abierta.n)} de ${g.nombre}?\n\nLa próxima vez que entre con ese número podrá elegir un PIN nuevo.`)) { await deleteDoc(doc(db, 'pines', `${g.id}_${A.abierta.n}`)); alert('✔ PIN reiniciado.'); } }
       if (acc === 'pinesGrupo') {
         const gid = $('#apPinGrupo').value; const g = ps.grupos.get(gid); if (!g) return;
         const qs = await getDocs(collection(db, 'pines')); const L = qs.docs.filter((d) => d.id.startsWith(gid + '_'));
         if (!L.length) { $('#apPinMsg').textContent = 'Ese grupo no tiene PIN registrados.'; return; }
-        if (!confirm(`¿Reiniciar ${L.length} PIN de ${g.nombre}?`)) return;
+        if (!await confirmar(`¿Reiniciar ${L.length} PIN de ${g.nombre}?`)) return;
         await enLotes(L.map((d) => ({ db, fn: (bt) => bt.delete(d.ref) }))); $('#apPinMsg').textContent = `✔ ${L.length} PIN reiniciados.`;
       }
       if (acc === 'exportarCurso' || acc === 'limpiarCurso') { b.disabled = true; try { await copiaCurso(acc); } finally { b.disabled = false; } }

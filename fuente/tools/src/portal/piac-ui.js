@@ -6,6 +6,7 @@ import { ic } from './ico.js';
 import { idItem, fmtNota } from '../lms/modelo.js';
 import { ESTADOS_PIAC, leerEquiposTexto, equiposTexto, derivar } from '../lms/motores/piac.js';
 import { NIVELES_RUBRICA, notaPonderada } from '../lms/rubrica.js';
+import { confirmar } from './dialogo.js';
 
 const fDia = (t) => (t ? new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '');
 const aDia = (t) => { if (!t) return ''; const d = new Date(t); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
@@ -100,7 +101,7 @@ export function montarPiac(nodo, it, op) {
       if (a === 'vista') { S.vista = b.dataset.v; return pintar(); }
       if (a === 'abrir') { S.abiertos[b.dataset.eq] = !S.abiertos[b.dataset.eq]; return pintar(); }
       if (a === 'mover') { const id = b.closest('[data-pt]').dataset.pt; return await updateDoc(doc(db, 'piac', id), { estado: b.dataset.e, actualizado: Date.now() }); }
-      if (a === 'borrar') { const id = b.closest('[data-pt]').dataset.pt; if (confirm('¿Borrar esta tarea del tablero?')) await deleteDoc(doc(db, 'piac', id)); return; }
+      if (a === 'borrar') { const id = b.closest('[data-pt]').dataset.pt; if (await confirmar('¿Borrar esta tarea del tablero?')) await deleteDoc(doc(db, 'piac', id)); return; }
       if (a === 'guardarEquipos') {
         const errs = []; let equipos = [];
         for (const ta of nodo.querySelectorAll('[data-pg]')) equipos.push(...leerEquiposTexto(ta.value, ta.dataset.pg, (t) => errs.push(`${nombreGrupo(ta.dataset.pg)}: ${t}`)));

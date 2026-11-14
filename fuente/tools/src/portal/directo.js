@@ -7,6 +7,7 @@ import { collection, doc, setDoc, updateDoc, onSnapshot, query, where, serverTim
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { idItem } from '../lms/modelo.js';
+import { confirmar } from './dialogo.js';
 
 const LETRAS = 'ABCDEF';
 export function recuentoDe(respuestas, nOpciones) {
@@ -79,7 +80,7 @@ export function crearDirectoProfe({ db, aula, gruposDe }) {
     ov.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-d]'); if (!b || b.tagName === 'INPUT') return;
       const a = b.dataset.d;
-      if (a === 'cerrar') { if (q?.abierta && !confirm('¿Cerrar la ventana? La pregunta se cerrará para los alumnos.')) return; if (q?.abierta) await updateDoc(doc(db, 'directo', q.id), { abierta: false }).catch(() => { }); cerrar(); }
+      if (a === 'cerrar') { if (q?.abierta && !await confirmar('¿Cerrar la ventana? La pregunta se cerrará para los alumnos.')) return; if (q?.abierta) await updateDoc(doc(db, 'directo', q.id), { abierta: false }).catch(() => { }); cerrar(); }
       if (a === 'cerrarP' && q) { q.abierta = false; await updateDoc(doc(db, 'directo', q.id), { abierta: false }); pintar(); }
       if (a === 'abrirP' && q) { q.abierta = true; await updateDoc(doc(db, 'directo', q.id), { abierta: true }); pintar(); }
       if (a === 'nueva') { if (q?.abierta) await updateDoc(doc(db, 'directo', q.id), { abierta: false }).catch(() => { }); unsub?.(); unsub = null; q = null; pintar(); }

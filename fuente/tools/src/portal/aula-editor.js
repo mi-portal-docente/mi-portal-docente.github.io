@@ -13,6 +13,7 @@ import { categoriaDe, idItem, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto
 import { rubricaPlantillaTexto } from '../lms/rubrica.js';
 import { completarPiac } from '../lms/motores/piac.js';
 import { plantillaHTML, leerPlantilla, accionPlantilla } from './doc-editor.js';
+import { confirmar } from './dialogo.js';
 
 export const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const aLocal = (t) => { if (!t) return ''; const d = new Date(t); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
@@ -250,19 +251,19 @@ export function crearEditor({ db, aula, gruposDe }) {
         const qs = E.preguntas.map((q, i) => sep[i] ? sep[i].publica : ({ id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.tipo === 'test' ? { opciones: q.opciones } : {}) }));
         b.set(doc(db, 'examenes', id), { grupos: e.grupos, publicado, desde: Timestamp.fromMillis(e.examen.desde), hasta: Timestamp.fromMillis(e.examen.hasta), limiteMin: e.examen.limiteMin, barajar: e.examen.barajar, preguntas: qs, ...(e.examen.pantallaCompleta ? { pantallaCompleta: true } : {}) });
         b.set(doc(db, 'claves', id), { respuestas: Object.fromEntries(E.preguntas.map((q, i) => [q.id, sep[i] ? sep[i].clave : q.correcta])) });
-      } else if (e.id && st.items.get(e.id)?.tipo === 'examen') { b.delete(doc(db, 'examenes', id)); b.delete(doc(db, 'claves', id)); }
+      } else if (e.id && st.items.get(e.id)?.tipo === 'examen') { b.update(doc(db, 'examenes', id), { publicado: false }); } // P1: las preguntas y claves de un examen no se borran (evidencia)
       await b.commit(); aula.olvidarExamen(id);
       const cb = E.alGuardar; cerrar(); cb?.(id);
     } catch (er) { err('❌ No se ha podido guardar (' + (er?.code || er?.message || 'error') + ').'); }
   }
-  function onClick(ev) {
-    if (ev.target === E.el) { if (confirm('¿Cerrar sin guardar?')) cerrar(); return; }
+  async function onClick(ev) {
+    if (ev.target === E.el) { if (await confirmar('¿Cerrar sin guardar?')) cerrar(); return; }
     const bp = ev.target.closest('[data-dp]'); if (bp) { ev.preventDefault(); accionPlantilla(bp); return; }
     const b = ev.target.closest('[data-ed]'); if (!b) return;
     const acc = b.dataset.ed;
     if (acc === 'cancelar') return cerrar();
-    if (acc === 'ejemplo') { const M = motor(E.edit.tipo); const ta = b.form?.elements.contenido; if (M && ta && (!ta.value.trim() || confirm('¿Cambiar el contenido por el ejemplo?'))) { ta.value = JSON.stringify(M.ejemplo || {}, null, 2); E.edit.contenidoTxt = ta.value; } return; }
-    if (acc === 'plantillaRubrica') { const ta = b.form?.elements.rubrica; if (ta && (!ta.value.trim() || confirm('¿Cambiar la rúbrica por la plantilla de 5 criterios?'))) ta.value = rubricaPlantillaTexto(); return; }
+    if (acc === 'ejemplo') { const M = motor(E.edit.tipo); const ta = b.form?.elements.contenido; if (M && ta && (!ta.value.trim() || await confirmar('¿Cambiar el contenido por el ejemplo?'))) { ta.value = JSON.stringify(M.ejemplo || {}, null, 2); E.edit.contenidoTxt = ta.value; } return; }
+    if (acc === 'plantillaRubrica') { const ta = b.form?.elements.rubrica; if (ta && (!ta.value.trim() || await confirmar('¿Cambiar la rúbrica por la plantilla de 5 criterios?'))) ta.value = rubricaPlantillaTexto(); return; }
     if (acc === 'exportar') { const it = st.items.get(E.edit?.id); if (it) api.exportar?.(it); return; }
     if (acc === 'adj') {
       const f = b.form; const u = f.adjU.value.trim(); const t = f.adjT.value.trim();
@@ -276,7 +277,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       leerPreguntas(); const P = E.preguntas;
       if (acc === 'qUp' && qi > 0) [P[qi - 1], P[qi]] = [P[qi], P[qi - 1]];
       if (acc === 'qDown' && qi < P.length - 1) [P[qi + 1], P[qi]] = [P[qi], P[qi + 1]];
-      if (acc === 'qDel' && confirm('¿Quitar esta pregunta?')) P.splice(qi, 1);
+      if (acc === 'qDel' && await confirmar('¿Quitar esta pregunta?')) P.splice(qi, 1);
       if (acc === 'op+' && P[qi].opciones.length < 8) P[qi].opciones.push('');
       if (acc === 'op-' && P[qi].opciones.length > 2) { P[qi].opciones.pop(); if (P[qi].correcta >= P[qi].opciones.length) P[qi].correcta = 0; }
       E.el.querySelector('#apPreguntas').innerHTML = preguntasHTML();

@@ -15,6 +15,7 @@ import { montarEntrega } from './entrega-ui.js';
 import { crearEditorDoc } from './doc-editor.js';
 import { crearEditorHoja } from './hoja-ui.js';
 import { estadoTrabajo, ESTADOS_TRABAJO } from '../lms/entrega.js';
+import { confirmar } from './dialogo.js';
 
 // Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
 // registran en window.PORTAL_MOTORES[tipo] = (nodo, item, opciones) => ({ actualizar }).
@@ -238,7 +239,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   async function entregarExamen(auto) {
     if (!ex.id || ex.enviando) return;
     const f = document.getElementById('auExamen'); if (f) leerRespuestas(f);
-    if (!auto && !confirm('¿Entregar el examen? Después ya no podrás cambiar las respuestas.')) return;
+    if (!auto && !await confirmar('¿Entregar el examen? Después ya no podrás cambiar las respuestas.')) return;
     ex.enviando = true; clearTimeout(ex.tGuardar);
     const msg = document.getElementById('auMsg'); if (msg) msg.textContent = 'Entregando…';
     const id = ex.id;

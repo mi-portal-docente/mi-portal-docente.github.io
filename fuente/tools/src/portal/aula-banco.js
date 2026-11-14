@@ -9,6 +9,7 @@ import { asignatura } from '../lms/biblioteca.js';
 import { porCriterio, generarExamen, leerPreguntasBanco } from '../lms/banco.js';
 import { unirPregunta, validarPregunta, TIPOS_PREGUNTA } from '../lms/preguntas.js';
 import { documentosDe } from './aula-json.js';
+import { confirmar } from './dialogo.js';
 
 // Firestore no guarda listas dentro de listas: las parejas de «emparejar» van como {i, d}
 const aBanco = (q) => (Array.isArray(q.pares) ? { ...q, pares: q.pares.map((p) => ({ i: p[0], d: p[1] })) } : q);
@@ -73,7 +74,7 @@ export function crearBanco({ db, aula, modal, cerrarModal, gruposDe }) {
           const m2 = m.querySelector('#bkGenMsg'); if (m2) { m2.textContent = `${ok.length} preguntas copiadas al banco${sin ? ` (${sin} sin criterio, no copiadas)` : ''}.`; m2.className = 'pn-msg ok'; }
         } catch (e) { msg.textContent = 'No se ha podido leer el examen.'; msg.className = 'pn-msg ko'; }
       }
-      if (acc === 'borrar') { const id = b.closest('[data-bk]').dataset.bk; if (!confirm('¿Quitar esta pregunta del banco?')) return; await deleteDoc(doc(db, 'banco', id)); banco = banco.filter((x) => x.id !== id); repintar(); }
+      if (acc === 'borrar') { const id = b.closest('[data-bk]').dataset.bk; if (!await confirmar('¿Quitar esta pregunta del banco?')) return; await deleteDoc(doc(db, 'banco', id)); banco = banco.filter((x) => x.id !== id); repintar(); }
       if (acc === 'generar') {
         const pedir = Object.fromEntries([...m.querySelectorAll('[data-bk-n]')].map((i) => [i.dataset.bkN, Number(i.value) || 0]));
         const r = generarExamen(banco, pedir); const msg = m.querySelector('#bkGenMsg');

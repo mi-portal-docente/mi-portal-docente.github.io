@@ -3,6 +3,7 @@
 // laboratorio (#cdpc1/p5) y los elementos «Laboratorio p5.js» de Trabajo de clase.
 import { ic } from '../ui/iconos.js';
 import { evaluarComprobacion, textoComprobacion, traducirError } from '../lms/motores/p5.js';
+import { confirmar } from '../portal/dialogo.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const P5_URL = () => new URL('vendor/p5/p5.min.js?v=1.11.13', document.baseURI).href;
@@ -132,7 +133,7 @@ export function montarP5(nodo, retos, ctx = {}) {
     else if (a === 'parar') { parar(); $('[data-p5="lienzo"]').innerHTML = '<p class="muted">Programa parado.</p>'; }
     else if (a === 'comprobar') comprobar();
     else if (a === 'pista') { if (est.pistas < r.pistas.length) est.pistas++; $('[data-p5="pistas"]').innerHTML = r.pistas.slice(0, est.pistas).map((p, i) => `<p class="p5-pista">${ic('lightbulb')} <b>Pista ${i + 1}:</b> ${esc(p)}</p>`).join(''); if (est.pistas >= r.pistas.length) b.disabled = true; }
-    else if (a === 'reiniciar') { if (confirm('¿Volver al código inicial del reto? Se perderán tus cambios.')) { ta.value = r.codigo; numerar(); guardar(`${clave}:${r.id}`, ta.value); } }
+    else if (a === 'reiniciar') { if (await confirmar('¿Volver al código inicial del reto? Se perderán tus cambios.')) { ta.value = r.codigo; numerar(); guardar(`${clave}:${r.id}`, ta.value); } }
     else if (a === 'entregar') {
       const m = $('.p5-entmsg'); b.disabled = true; m.textContent = 'Entregando…';
       try { guardar(`${clave}:${r.id}`, ta.value); const t = textoEntrega(); await ctx.entregar(t); ctx.entregadoTexto = t; pintarEnt(); $('.p5-entmsg').textContent = 'Entregado. Tu profesor verá el código en el cuaderno.'; }

@@ -480,3 +480,21 @@ html.glass-lite .dir-al, html.glass-lite .xp, html.glass-lite .p5-izq, html.glas
 @media (prefers-reduced-transparency: reduce) {
   .dir-al, .xp, .p5-izq, .p5-der, .cb-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card, #fff); }
 }
+
+/* ---------- P5 · contraste de «Mis trabajos» y de las etiquetas de estado (AA en claro y oscuro) ---------- */
+.mt-t td, .mt-t th { color: var(--tinta, #1d1d1f); }
+.mt-t td a { color: var(--tinta, #1d1d1f); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.mt-t .au-small { color: var(--gris, #5c5c60); }
+.mt-n { opacity: 1; }
+.en-chip { color: var(--tinta, #1d1d1f); }
+.en-borrador { color: #7a4100; } .en-entregado { color: #0849a8; } .en-devuelto { color: #a3150c; } .en-calificado { color: #145c28; }
+html[data-theme="dark"] .en-borrador { background: rgba(255, 159, 10, .22); color: #ffc46b; }
+html[data-theme="dark"] .en-entregado { background: rgba(10, 132, 255, .24); color: #9cc8ff; }
+html[data-theme="dark"] .en-devuelto { background: rgba(255, 69, 58, .24); color: #ffaaa4; }
+html[data-theme="dark"] .en-calificado { background: rgba(48, 209, 88, .22); color: #8ff0a8; }
+html[data-theme="dark"] .en-guardado.ok { color: #8ff0a8; } html[data-theme="dark"] .en-guardado.ko { color: #ffaaa4; }
+/* Papelera del Trabajo de clase (P1) */
+.cl-papelera { margin: 18px 0 6px; padding: 10px 14px; border-radius: 14px; background: var(--fill2, rgba(118,118,128,.08)); }
+.cl-papelera summary { cursor: pointer; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
+.cl-pap-l { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.cl-pap-l li { display: flex; gap: 10px; align-items: center; justify-content: space-between; }

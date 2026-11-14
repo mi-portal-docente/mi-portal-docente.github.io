@@ -401,3 +401,85 @@ describe('Revisión Claude · las evidencias solo crecen', () => {
     await assertSucceeds(setDoc(doc(db, 'registros/itemD01_g1_7'), reg({ seg: 200 })));
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// P1 · Protección de evidencias: nada se borra con el curso abierto; limpieza solo con el curso
+// cerrado hace más de 6 meses, exportación del día y ventana de 2 h como máximo.
+// ---------------------------------------------------------------------------------------------
+describe('P1 · Protección de evidencias', () => {
+  const DIA = 86400e3;
+  const CURSO = (o = {}) => ({ nombre: '2026/27', asignaturas: ['eee'], activo: true, creado: 1, ...o });
+  const LIMPIEZA = (o = {}) => ({ curso: 'c2627', exportado: ts(ahora() - 3600e3), hasta: ts(ahora() + 3600e3), ...o });
+  async function sembrarEvidencias() {
+    await sembrar(async (db) => {
+      await setDoc(doc(db, 'trabajos/itemT01_g1_7'), { ...tarea('a7'), fecha: 1 });
+      await setDoc(doc(db, 'trabajos/itemT01_g1_7/comentarios/c000001'), { autor: 'profesor', texto: 'Hola', fecha: 1 });
+      await setDoc(doc(db, 'trabajos/itemT01_g1_7/imagenes/img1'), { data: 'x', w: 1, h: 1, fecha: 1 });
+      await setDoc(doc(db, 'notas/itemT01_g1_7'), nota());
+      await setDoc(doc(db, 'versiones/itemT01_g1_7_v1'), { trabajo: 'itemT01_g1_7', item: 'itemT01', curso: 'c2627', n: 1, fecha: 1 });
+      await setDoc(doc(db, 'registros/itemT01_g1_7'), { item: 'itemT01', seg: 10 });
+      await setDoc(doc(db, 'incidencias/itemE01_g1_7'), { item: 'itemE01', salidas: [] });
+    });
+  }
+  const RUTAS = ['trabajos/itemT01_g1_7', 'trabajos/itemT01_g1_7/comentarios/c000001', 'trabajos/itemT01_g1_7/imagenes/img1',
+    'notas/itemT01_g1_7', 'versiones/itemT01_g1_7_v1', 'registros/itemT01_g1_7', 'incidencias/itemE01_g1_7',
+    'items/itemT01', 'examenes/itemE01', 'claves/itemE01'];
+
+  test('curso abierto: el profesor NO puede borrar ninguna evidencia', async () => {
+    await sembrar((db) => setDoc(doc(db, 'cursos/c2627'), CURSO()));
+    await sembrarEvidencias();
+    for (const r of RUTAS) await assertFails(deleteDoc(doc(profe(), r)));
+    await assertFails(deleteDoc(doc(profe(), 'cursos/c2627')));
+  });
+  test('«Quitar la nota» = nota vacía y sin publicar (se conserva el documento)', async () => {
+    await sembrarEvidencias();
+    await assertSucceeds(updateDoc(doc(profe(), 'notas/itemT01_g1_7'), { nota: null, publicada: false }));
+  });
+  test('Papelera: un elemento solo va a la papelera sin publicar; se puede restaurar', async () => {
+    await assertFails(updateDoc(doc(profe(), 'items/itemT01'), { papelera: true }));
+    await assertSucceeds(updateDoc(doc(profe(), 'items/itemT01'), { papelera: true, visible: [], publicado: false }));
+    await assertSucceeds(updateDoc(doc(profe(), 'items/itemT01'), { papelera: false }));
+    await assertFails(updateDoc(doc(profe(), 'items/itemT01'), { papelera: 'si' }));
+  });
+  test('cerrar curso: «cerrado» = hora del servidor y solo con activo = false', async () => {
+    await sembrar((db) => setDoc(doc(db, 'cursos/c2627'), CURSO()));
+    await assertFails(updateDoc(doc(profe(), 'cursos/c2627'), { cerrado: serverTimestamp() }));
+    await assertFails(updateDoc(doc(profe(), 'cursos/c2627'), { activo: false, cerrado: ts(ahora() - 400 * DIA) }));
+    await assertSucceeds(updateDoc(doc(profe(), 'cursos/c2627'), { activo: false, cerrado: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(profe(), 'cursos/c2627'), { nombre: '2026/27 (cerrado)' }));
+  });
+  test('ventana de limpieza: curso abierto, cerrado hace < 180 días, sin exportación reciente o > 2 h → denegada', async () => {
+    await sembrar((db) => setDoc(doc(db, 'cursos/c2627'), CURSO()));
+    await assertFails(setDoc(doc(profe(), 'config/limpieza'), LIMPIEZA()));
+    await sembrar((db) => setDoc(doc(db, 'cursos/c2627'), CURSO({ activo: false, cerrado: ts(ahora() - 30 * DIA) })));
+    await assertFails(setDoc(doc(profe(), 'config/limpieza'), LIMPIEZA()));
+    await sembrar((db) => setDoc(doc(db, 'cursos/c2627'), CURSO({ activo: false, cerrado: ts(ahora() - 200 * DIA) })));
+    await assertFails(setDoc(doc(profe(), 'config/limpieza'), LIMPIEZA({ exportado: ts(ahora() - 2 * DIA) })));
+    await assertFails(setDoc(doc(profe(), 'config/limpieza'), LIMPIEZA({ hasta: ts(ahora() + 5 * 3600e3) })));
+    await assertFails(setDoc(doc(anon('a7'), 'config/limpieza'), LIMPIEZA()));
+    await assertSucceeds(setDoc(doc(profe(), 'config/limpieza'), LIMPIEZA()));
+  });
+  test('con la ventana abierta: se borran las evidencias de ESE curso, no las de otro', async () => {
+    await sembrar(async (db) => {
+      await setDoc(doc(db, 'cursos/c2627'), CURSO({ activo: false, cerrado: ts(ahora() - 200 * DIA) }));
+      await setDoc(doc(db, 'notas/itemX01_g1_7'), nota({ item: 'itemX01', curso: 'c2728' }));
+    });
+    await sembrarEvidencias();
+    await assertSucceeds(setDoc(doc(profe(), 'config/limpieza'), LIMPIEZA()));
+    await assertFails(deleteDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7')));
+    await assertFails(deleteDoc(doc(profe(), 'notas/itemX01_g1_7')));
+    for (const r of RUTAS) await assertSucceeds(deleteDoc(doc(profe(), r)));
+    await assertSucceeds(deleteDoc(doc(profe(), 'cursos/c2627')));
+  });
+  test('ventana caducada → ya no se puede borrar', async () => {
+    await sembrarEvidencias();
+    await sembrar((db) => setDoc(doc(db, 'config/limpieza'), LIMPIEZA({ hasta: ts(ahora() - 60e3) })));
+    await assertFails(deleteDoc(doc(profe(), 'notas/itemT01_g1_7')));
+  });
+  test('el alumno solo quita sus imágenes mientras el trabajo está en borrador o devuelto', async () => {
+    await sembrarEvidencias();
+    await assertFails(deleteDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/imagenes/img1')));
+    await sembrar((db) => updateDoc(doc(db, 'trabajos/itemT01_g1_7'), { estado: 'devuelto' }));
+    await assertSucceeds(deleteDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/imagenes/img1')));
+  });
+});

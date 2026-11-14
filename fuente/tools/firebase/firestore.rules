@@ -186,6 +186,23 @@ service cloud.firestore {
     function esNumero(x) { return x is int || x is float; }
     function notaOk(n) { return n == null || (esNumero(n) && n >= 0 && n <= 10); }
 
+    // --- Protección de evidencias (Claude, P1) -------------------------------------------------------
+    // Ninguna evidencia (trabajos, notas, versiones, registros, incidencias, entregas, exámenes, claves,
+    // elementos, PIAC…) se puede borrar mientras su curso escolar esté abierto, ni siquiera el profesor.
+    // Solo se borra durante una «limpieza» autorizada: config/limpieza {curso, exportado, hasta}, que solo
+    // se puede crear si el curso está cerrado (activo == false y «cerrado») desde hace más de 180 días y
+    // con una exportación de menos de 24 h. La ventana dura como mucho 2 horas. Los documentos que llevan
+    // «curso» deben ser de ese curso; los que no lo llevan (subcolecciones, incidencias, registros,
+    // entregas de laboratorio) solo se pueden borrar dentro de la ventana.
+    function limpiezaActiva() {
+      return exists(ruta('config', 'limpieza')) && request.time < get(ruta('config', 'limpieza')).data.hasta;
+    }
+    function cursoLimpieza() { return get(ruta('config', 'limpieza')).data.curso; }
+    function borrarEvidencia() {
+      return esProfesor() && limpiezaActiva() && resource.data.get('curso', cursoLimpieza()) == cursoLimpieza();
+    }
+    function borrarEnVentana() { return esProfesor() && limpiezaActiva(); }
+
     // ---------------------------------------------------------------
     //  config/profesores: lista de correos con rol de profesor
     // ---------------------------------------------------------------
@@ -202,6 +219,23 @@ service cloud.firestore {
       allow write: if esProfesor()
         && request.resource.data.keys().hasOnly(['lista'])
         && listaCorta(request.resource.data.lista, 60);
+    }
+    // Ventana de limpieza de un curso escolar cerrado (ver «Protección de evidencias»).
+    match /config/limpieza {
+      allow read, delete: if esProfesor();
+      allow create, update: if esProfesor()
+        && request.resource.data.keys().hasOnly(['curso', 'exportado', 'hasta'])
+        && request.resource.data.curso is string
+        && exists(ruta('cursos', request.resource.data.curso))
+        && get(ruta('cursos', request.resource.data.curso)).data.activo == false
+        && get(ruta('cursos', request.resource.data.curso)).data.get('cerrado', null) is timestamp
+        && request.time > get(ruta('cursos', request.resource.data.curso)).data.cerrado + duration.value(180, 'd')
+        && request.resource.data.exportado is timestamp
+        && request.resource.data.exportado <= request.time
+        && request.resource.data.exportado > request.time - duration.value(24, 'h')
+        && request.resource.data.hasta is timestamp
+        && request.resource.data.hasta > request.time
+        && request.resource.data.hasta <= request.time + duration.value(2, 'h');
     }
     match /config/{otro} {
       allow read, write: if false;
@@ -334,7 +368,7 @@ service cloud.firestore {
                   && request.resource.data.nota >= 0 && request.resource.data.nota <= 10))
           && textoCorto(request.resource.data.comentario, 1000)
         );
-      allow delete: if esProfesor();
+      allow delete: if borrarEnVentana();
 
       // Migración (la hace el profesor): copia de una entrega antigua al ID por grupo + nº, con su
       // fecha, nota y comentario originales y la referencia a la original (que no se borra).
@@ -432,10 +466,18 @@ service cloud.firestore {
 
     // cursos/{id}: curso escolar (2026/27…) con las asignaturas que se imparten.
     match /cursos/{id} {
-      allow read, delete: if esProfesor();
+      allow read: if esProfesor();
+      // Un curso solo se borra durante su propia limpieza.
+      allow delete: if esProfesor() && limpiezaActiva() && cursoLimpieza() == id;
       allow create, update: if esProfesor()
         && id.matches('^[A-Za-z0-9_-]{1,40}$')
-        && request.resource.data.keys().hasOnly(['nombre', 'asignaturas', 'activo', 'pesos', 'creado'])
+        && request.resource.data.keys().hasOnly(['nombre', 'asignaturas', 'activo', 'pesos', 'creado', 'cerrado'])
+        // «cerrado» = fecha de cierre (la pone el servidor al cerrar). Un curso activo no puede tenerla
+        // y no se puede adelantar: o se pone ahora o se conserva la que había.
+        && (!('cerrado' in request.resource.data)
+            || (request.resource.data.activo == false
+                && (request.resource.data.cerrado == request.time
+                    || (resource != null && resource.data.get('cerrado', null) == request.resource.data.cerrado))))
         && textoCorto(request.resource.data.nombre, 30)
         && listaCorta(request.resource.data.asignaturas, 20)
         && request.resource.data.activo is bool
@@ -452,15 +494,17 @@ service cloud.firestore {
       allow read: if esProfesor()
         || (alumnoOk() && miSesion().grupo in resource.data.visible)
         || (alumnoOk() && 'visibleAl' in resource.data && idAlumno(miSesion()) in resource.data.visibleAl);
-      allow delete: if esProfesor();
+      // Los elementos no se borran en un curso abierto: van a la Papelera (papelera = true, sin publicar).
+      allow delete: if borrarEvidencia();
       allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}$') && itemOk(request.resource.data);
 
       function itemOk(d) {
         return d.keys().hasOnly(['curso', 'asig', 'tema', 'unidad', 'tipo', 'titulo', 'texto', 'enlaces', 'fechaEntrega', 'puntos', 'rubrica',
                                  'categoria', 'grupos', 'visible', 'publicado', 'pub', 'orden', 'origen', 'examen', 'opciones', 'pendiente', 'nota', 'actualizado',
-                                 'criterio', 'contenido', 'para', 'visibleAl'])
+                                 'criterio', 'contenido', 'para', 'visibleAl', 'papelera'])
           && d.keys().hasAll(['curso', 'asig', 'tipo', 'titulo', 'grupos', 'visible', 'publicado'])
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
+          && (!('papelera' in d) || (d.papelera is bool && (d.papelera == false || (d.visible.size() == 0 && d.publicado == false))))
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
           && (!('unidad' in d) || textoCorto(d.unidad, 40))
           && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac', 'documento', 'interactiva', 'hoja']
@@ -526,7 +570,8 @@ service cloud.firestore {
             && miSesion().grupo in resource.data.grupos
             && request.time >= resource.data.desde
             && request.time <= resource.data.hasta);
-      allow list, delete: if esProfesor();
+      allow list: if esProfesor();
+      allow delete: if borrarEnVentana();
       allow create, update: if esProfesor()
         && request.resource.data.keys().hasOnly(['grupos', 'publicado', 'desde', 'hasta', 'limiteMin', 'barajar', 'preguntas', 'pantallaCompleta'])
         && (!('pantallaCompleta' in request.resource.data) || request.resource.data.pantallaCompleta is bool)
@@ -544,7 +589,8 @@ service cloud.firestore {
     // pantalla completa durante un examen [{t: ms, tipo, dur: segundos|null}]. Lo escribe el alumno (solo
     // añadir, el suyo, en un examen publicado para su grupo); lo lee SOLO el profesor.
     match /incidencias/{id} {
-      allow read, delete: if esProfesor();
+      allow read: if esProfesor();
+      allow delete: if borrarEnVentana();
       allow create, update: if alumnoOk()
         && request.resource.data.keys().hasOnly(['item', 'al', 'grupo', 'numero', 'uid', 'salidas', 'fecha'])
         && request.resource.data.item is string
@@ -609,7 +655,8 @@ service cloud.firestore {
 
     // claves/{id}: respuestas correctas de los exámenes. SOLO el profesor.
     match /claves/{id} {
-      allow read, write: if esProfesor();
+      allow read, create, update: if esProfesor();
+      allow delete: if borrarEnVentana();
     }
 
     // trabajos/{item_grupo_nº}: lo que entrega el alumno.
@@ -622,7 +669,7 @@ service cloud.firestore {
     match /trabajos/{id} {
       allow read: if esProfesor()
         || (alumnoOk() && resource.data.al == idAlumno(miSesion()));
-      allow delete: if esProfesor();
+      allow delete: if borrarEvidencia();
       // El profesor solo puede «Devolver para corregir» una entrega (estado y fecha).
       allow update: if esProfesor()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'devFecha'])
@@ -703,7 +750,7 @@ service cloud.firestore {
           && request.resource.data.fecha == request.time
           && ((esProfesor() && request.resource.data.autor == 'profesor')
               || (duenoTrabajo() && request.resource.data.autor == 'alumno' && request.resource.data.numero == miSesion().numero));
-        allow delete: if esProfesor();
+        allow delete: if borrarEnVentana();
       }
 
       // Imágenes del documento del alumno (fase 11): máx. 3 (img1…img3), comprimidas a ~300 KB en el navegador
@@ -717,7 +764,9 @@ service cloud.firestore {
           && request.resource.data.data.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$')
           && request.resource.data.w is int && request.resource.data.h is int
           && request.resource.data.fecha == request.time;
-        allow delete: if esProfesor() || (img.matches('^img[1-3]$') && duenoT());
+        // El alumno solo quita una imagen mientras su trabajo está en borrador o devuelto (lo entregado se conserva).
+        allow delete: if borrarEnVentana() || (img.matches('^img[1-3]$') && duenoT()
+          && get(ruta('trabajos', id)).data.get('estado', 'entregado') in ['borrador', 'devuelto']);
       }
 
       // Modelo 3D de la entrega (fase 13): un STL pequeño (≤ 600 KB) en base64, sin Storage. Solo m1.
@@ -731,7 +780,8 @@ service cloud.firestore {
           && textoCorto(request.resource.data.nombre, 120)
           && request.resource.data.bytes is int && request.resource.data.bytes > 0 && request.resource.data.bytes <= 614400
           && request.resource.data.fecha == request.time;
-        allow delete: if esProfesor() || (m == 'm1' && duenoM());
+        allow delete: if borrarEnVentana() || (m == 'm1' && duenoM()
+          && get(ruta('trabajos', id)).data.get('estado', 'entregado') in ['borrador', 'devuelto']);
       }
       function enVentana() {
         return examen().publicado == true
@@ -749,7 +799,8 @@ service cloud.firestore {
     }
 
     match /versiones/{id} {
-      allow read, delete: if esProfesor();
+      allow read: if esProfesor();
+      allow delete: if borrarEvidencia();
       allow create, update: if alumnoOk() && versionOk(request.resource.data)
         && id == request.resource.data.trabajo + '_v' + string(request.resource.data.n % 5)
         // Una versión solo se sustituye por otra más nueva (no se puede reescribir el historial).
@@ -770,7 +821,8 @@ service cloud.firestore {
     // registros/{trabajo}: registro informativo del documento (fase 11): tiempo editando y pegados grandes
     // (tamaño y hora). El alumno lo va sumando pero NO lo lee; solo lo ve el profesor. No cambia la nota.
     match /registros/{id} {
-      allow read, delete: if esProfesor();
+      allow read: if esProfesor();
+      allow delete: if borrarEnVentana();
       allow create, update: if alumnoOk()
         && request.resource.data.keys().hasOnly(['item', 'al', 'grupo', 'numero', 'seg', 'pegados', 'fecha'])
         && request.resource.data.al == idAlumno(miSesion())
@@ -790,7 +842,8 @@ service cloud.firestore {
     match /notas/{id} {
       allow read: if esProfesor()
         || (alumnoOk() && resource.data.al == idAlumno(miSesion()) && resource.data.publicada == true);
-      allow delete: if esProfesor();
+      // «Quitar la nota» = nota null y sin publicar (update); la nota no se borra en un curso abierto.
+      allow delete: if borrarEvidencia();
       allow create, update: if esProfesor()
         && request.resource.data.keys().hasOnly(['item', 'curso', 'asig', 'al', 'grupo', 'numero', 'nota', 'puntos', 'max', 'detalle', 'comentario', 'publicada', 'fecha'])
         && request.resource.data.keys().hasAll(['item', 'al', 'grupo', 'numero', 'nota', 'publicada'])
@@ -815,7 +868,7 @@ service cloud.firestore {
     match /piac/{id} {
       allow read: if esProfesor()
         || (alumnoOk() && resource.data.grupo == miSesion().grupo && miembroPiac(resource.data.item, resource.data.equipo));
-      allow delete: if esProfesor()
+      allow delete: if borrarEnVentana()
         || (alumnoOk() && resource.data.clase == 'tarea' && resource.data.grupo == miSesion().grupo && miembroPiac(resource.data.item, resource.data.equipo));
       allow create: if alumnoOk() && id.matches('^[A-Za-z0-9]{6,30}$') && piacOk(request.resource.data)
         && request.resource.data.autor == miSesion().numero;
@@ -839,7 +892,7 @@ service cloud.firestore {
     match /piacEval/{id} {
       allow read: if esProfesor()
         || (alumnoOk() && resource.data.grupo == miSesion().grupo && resource.data.de == miSesion().numero);
-      allow delete: if esProfesor();
+      allow delete: if borrarEnVentana();
       allow create, update: if alumnoOk() && evalOk(request.resource.data)
         && id == request.resource.data.item + '_' + request.resource.data.grupo + '_' + string(request.resource.data.de) + '_' + string(request.resource.data.a);
       function evalOk(d) {

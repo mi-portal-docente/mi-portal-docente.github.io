@@ -25,7 +25,7 @@ const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args
 async function contexto(nombre, viewport = { width: 1440, height: 900 }) {
   const ctx = await b.newContext({ viewport, acceptDownloads: true });
   await ctx.route('**/js/firebase-config.js*', r => r.fulfill({ contentType: 'application/javascript', body: CFG }));
-  const pg = await ctx.newPage();
+  const pg = await ctx.newPage(); await pg.addInitScript(() => { window.__dialogosNativos = true; }); // diálogos del navegador en las pruebas (se aceptan solos)
   pg.on('console', m => { if (m.type() === 'error' && !benigno(m.text())) errores.push(`[${nombre}] console: ${m.text()}`); });
   pg.on('pageerror', e => errores.push(`[${nombre}] pageerror: ${e.message}`));
   pg.on('dialog', d => d.type() === 'prompt' ? d.accept(PROMPT.shift() ?? d.defaultValue()) : d.accept());

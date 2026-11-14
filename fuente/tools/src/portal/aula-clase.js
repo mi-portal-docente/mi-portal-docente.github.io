@@ -3,7 +3,8 @@
 //  · Profesor: «+ Crear» (tarea, tarea de cuestionario, pregunta, material, reutilizar publicación, tema),
 //    arrastrar y soltar elementos dentro de un tema, entre temas y los propios temas (con botones ↑ ↓
 //    como alternativa de teclado), publicar / programar / borrador, e importar la estructura de Classroom.
-import { collection, doc, getDocs, query, where, writeBatch, updateDoc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, query, where, writeBatch, updateDoc, deleteDoc, setDoc, Timestamp, limit } from 'firebase/firestore';
+import { confirmar, pedirTexto } from './dialogo.js';
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { asignatura, TIPOS, SEMILLAS, itemDeSemilla } from '../lms/biblioteca.js';
@@ -54,7 +55,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
 
   // ------------------------------------------------------------------ datos
   function itemsAsig(asig) {
-    const L = [...st.items.values()].filter((it) => it.asig === asig && (prof ? it.curso === st.cursoSel : !(it.pub && it.pub > ahora())));
+    const L = [...st.items.values()].filter((it) => it.asig === asig && !it.papelera && (prof ? it.curso === st.cursoSel : !(it.pub && it.pub > ahora())));
     return L.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.titulo.localeCompare(b.titulo, 'es', { numeric: true }));
   }
   function temasAsig(asig, items) {
@@ -80,8 +81,15 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     if (el.contains(document.activeElement) && document.activeElement.matches('textarea, input[type=text], input:not([type])') && document.activeElement.value) return; // escribiendo un anuncio
     const abiertos = [...el.querySelectorAll('details.cl-mas[open]')].map((d) => d.closest('[data-item]')?.dataset.item);
     const v = C.vista;
-    el.innerHTML = (prof ? barraCursoHTML() : '') + `<div class="cl-cuerpo">${v === 'organizacion' ? organizacionHTML() : v === 'tablon' ? (prof ? tablonProfHTML() : tablonAlumnoHTML()) : trabajoHTML()}</div>`;
+    el.innerHTML = (prof ? barraCursoHTML() : '') + `<div class="cl-cuerpo">${v === 'organizacion' ? organizacionHTML() : v === 'tablon' ? (prof ? tablonProfHTML() : tablonAlumnoHTML()) : trabajoHTML()}</div>` + (prof && v !== 'tablon' ? papeleraHTML() : '');
     abiertos.forEach((id) => el.querySelector(`[data-item="${CSS.escape(id || '')}"] details.cl-mas`)?.setAttribute('open', ''));
+  }
+  // P1 · Papelera: lo «borrado» del curso abierto se guarda aquí (sin publicar) y se puede restaurar.
+  function papeleraHTML() {
+    const L = [...st.items.values()].filter((it) => it.papelera && it.asig === C.asig && it.curso === st.cursoSel);
+    if (!L.length) return '';
+    return `<details class="cl-papelera"><summary>${ic('trash')} Papelera (${L.length})</summary><p class="pn-small">Los elementos de la papelera no los ven los alumnos. Sus entregas y notas se conservan en el «Cuaderno de calificaciones». Se eliminan del todo solo con la «Limpieza» del curso, una vez cerrado.</p>
+      <ul class="cl-pap-l">${L.map((it) => `<li data-item="${esc(it.id)}"><span>${icono(it.tipo)} ${esc(it.titulo)}</span><button class="btn small" data-cl="restaurar">${ic('undo-2')} Restaurar</button></li>`).join('')}</ul></details>`;
   }
   // curso escolar que se está viendo (solo profesor; el activo por defecto)
   function barraCursoHTML() {
@@ -146,7 +154,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
         <details class="cl-mas"><summary class="btn tiny" aria-label="Más acciones">⋮</summary><div class="cl-menu">
           <button data-cl="editar">✏️ Editar</button><button data-cl="renombrar">🔤 Cambiar el título</button>
           <label>Mover a <select data-cl-mover>${opt('', 'Sin tema', it.tema || '')}${temas.map((t) => opt(t.id, t.nombre, it.tema || '')).join('')}</select></label>
-          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="duplicarEn">${ic('copy-plus')} Duplicar en otro grupo o curso…</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button><button data-cl="borrar" class="pn-peligro">🗑 Borrar</button></div></details></span></div>`;
+          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="duplicarEn">${ic('copy-plus')} Duplicar en otro grupo o curso…</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button><button data-cl="borrar" class="pn-peligro">🗑 Mover a la papelera</button></div></details></span></div>`;
   }
 
   // ---- Organización (solo profesor): la visión completa de la asignatura, con borradores, pendientes y notas privadas
@@ -316,18 +324,18 @@ export function crearClase({ db, aula, rol, ses, estado }) {
 
   // ------------------------------------------------------------------ temas
   async function nuevoTema() {
-    const nombre = (prompt('Nombre del tema nuevo:', '') || '').trim().slice(0, 200); if (!nombre) return;
+    const nombre = (await pedirTexto('Nombre del tema nuevo:', { valor: '' }) || '').trim().slice(0, 200); if (!nombre) return;
     const L = temasAsig(C.asig, []); const id = idTema();
     // Classroom pone el tema nuevo arriba del todo
     await setDoc(doc(db, 'temas', id), { curso: st.cursoSel, asig: C.asig, nombre, orden: L.length ? L[0].orden - 1000 : 1000 });
   }
   async function renombrarTema(t) {
-    const nombre = (prompt('Nuevo nombre del tema:', t.nombre) || '').trim().slice(0, 200); if (!nombre || nombre === t.nombre) return;
+    const nombre = (await pedirTexto('Nuevo nombre del tema:', { valor: t.nombre }) || '').trim().slice(0, 200); if (!nombre || nombre === t.nombre) return;
     await updateDoc(doc(db, 'temas', t.id), { nombre });
   }
   async function borrarTema(t) {
     const L = listaDe(t.id, null);
-    if (!confirm(`¿Borrar el tema «${t.nombre}»?${L.length ? `\n\nSus ${L.length} elementos NO se borran: pasan a «Sin tema».` : ''}`)) return;
+    if (!await confirmar(`¿Borrar el tema «${t.nombre}»?${L.length ? `\n\nSus ${L.length} elementos NO se borran: pasan a «Sin tema».` : ''}`)) return;
     await enLotes(db, [...L.map((x) => (b) => b.update(doc(db, 'items', x.id), { tema: null, actualizado: Date.now() })), (b) => b.delete(doc(db, 'temas', t.id))]);
   }
 
@@ -345,10 +353,16 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     if (it.tipo === 'examen') b.update(doc(db, 'examenes', it.id), { publicado: pub, grupos: it.grupos });
     await b.commit(); aula.olvidarExamen(it.id);
   }
+  // P1: nada se borra en un curso abierto. «Borrar» = mover a la Papelera (sin publicar, restaurable).
   async function borrar(it) {
-    if (!confirm(`¿Borrar «${it.titulo}»?\n\nLas entregas y notas que tenga se quedan en «Calificaciones» hasta que las borres en «Limpieza».`)) return;
-    const b = writeBatch(db); b.delete(doc(db, 'items', it.id)); if (it.tipo === 'examen') { b.delete(doc(db, 'examenes', it.id)); b.delete(doc(db, 'claves', it.id)); } await b.commit();
+    const conEntregas = !(await getDocs(query(collection(db, 'trabajos'), where('item', '==', it.id), limit(1)))).empty;
+    if (!(await confirmar(`¿Mover «${it.titulo}» a la papelera?\n\nDejará de verse para los alumnos.${conEntregas ? ' Tiene entregas: se conservan con sus notas.' : ''} Puedes restaurarlo desde la Papelera.`, { aceptar: 'Mover a la papelera' }))) return;
+    const b = writeBatch(db);
+    b.update(doc(db, 'items', it.id), { papelera: true, publicado: false, visible: [], ...('visibleAl' in it ? { visibleAl: [] } : {}), actualizado: Date.now() });
+    if (it.tipo === 'examen') b.update(doc(db, 'examenes', it.id), { publicado: false });
+    await b.commit(); aula.olvidarExamen?.(it.id);
   }
+  async function restaurar(it) { await updateDoc(doc(db, 'items', it.id), { papelera: false, actualizado: Date.now() }); }
   async function copiar(it, destino = {}) {
     const id = idItem(); const b = writeBatch(db);
     const datos = Object.fromEntries(Object.entries(it).filter(([k]) => k !== 'id'));
@@ -357,7 +371,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     await b.commit(); return id;
   }
   async function renombrar(it) {
-    const t = (prompt('Nuevo título:', it.titulo) || '').trim().slice(0, 150); if (!t || t === it.titulo) return;
+    const t = (await pedirTexto('Nuevo título:', { valor: it.titulo }) || '').trim().slice(0, 150); if (!t || t === it.titulo) return;
     await updateDoc(doc(db, 'items', it.id), { titulo: t, actualizado: Date.now() });
   }
 
@@ -521,7 +535,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'temaUp' || acc === 'temaDown') { const L = temasAsig(C.asig, []); const i = L.findIndex((x) => x.id === t.id); return moverTema(t.id, acc === 'temaUp' ? L[i - 1]?.id : L[i + 2]?.id || null); }
       if (acc === 'temaRen' && t) return renombrarTema(t);
       if (acc === 'temaDel' && t) return borrarTema(t);
-      if (acc === 'anDel') { const id = b.closest('[data-anuncio]').dataset.anuncio; if (confirm('¿Borrar este anuncio?')) await deleteDoc(doc(db, 'anuncios', id)); return; }
+      if (acc === 'anDel') { const id = b.closest('[data-anuncio]').dataset.anuncio; if (await confirmar('¿Borrar este anuncio?')) await deleteDoc(doc(db, 'anuncios', id)); return; }
       if (!it) return;
       if (acc === 'up' || acc === 'down') return subirBajar(it.id, acc === 'up' ? -1 : 1);
       if (acc === 'pub') { b.disabled = true; return await publicar(it); }
@@ -531,6 +545,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'duplicarEn') { b.closest('details')?.removeAttribute('open'); return duplicarEn(it); }
       if (acc === 'exportarJSON') { b.closest('details')?.removeAttribute('open'); return json.exportar(it); }
       if (acc === 'borrar') return borrar(it);
+      if (acc === 'restaurar') return restaurar(it);
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || e?.message || 'error') + ').'); }
   }
   function onChange(ev) {

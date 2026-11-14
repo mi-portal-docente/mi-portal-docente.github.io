@@ -12,6 +12,7 @@ import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
 import { botonModelo, botonesEnlaces3D, es3D } from './modelo3d-ui.js';
 import { rellenarImagenes, descargarDocx, imagenesParaDocx } from './doc-editor.js';
+import { confirmar } from './dialogo.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -125,7 +126,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
   }
   async function publicarTodas() {
     const L = [...A.notas.values()].filter((x) => x.item === C.it.id && x.grupo === C.g.id && !x.publicada && x.nota != null);
-    if (!L.length || !confirm(`¿Publicar ${L.length} nota(s) de ${C.g.nombre}? Los alumnos las verán al momento.`)) return;
+    if (!L.length || !await confirmar(`¿Publicar ${L.length} nota(s) de ${C.g.nombre}? Los alumnos las verán al momento.`)) return;
     for (let i = 0; i < L.length; i += 400) { const b = writeBatch(db); L.slice(i, i + 400).forEach((x) => b.update(doc(db, 'notas', x.id), { publicada: true })); await b.commit(); }
     pintarTodo(true);
   }

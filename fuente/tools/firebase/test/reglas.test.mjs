@@ -249,7 +249,7 @@ describe('Entregas', () => {
     await sembrar((db) => deleteDoc(doc(db, 'codigos/FARO-472')));
     await assertFails(setDoc(doc(anon('a1'), 'entregas/a1_g1_7_c4'), entrega('a1')));
   });
-  test('profesor lista, califica (solo nota/comentario) y borra; alumno ya no puede re-entregar', async () => {
+  test('profesor lista y califica (solo nota/comentario) pero no borra; alumno ya no puede re-entregar', async () => {
     await sesionSembrada('a1');
     await assertSucceeds(setDoc(doc(anon('a1'), 'entregas/a1_g1_7_c4'), entrega('a1')));
     const db = profe();
@@ -259,7 +259,8 @@ describe('Entregas', () => {
     await assertSucceeds(updateDoc(doc(db, 'entregas/a1_g1_7_c4'), { nota: 8.5, comentario: 'Bien montado', notaFecha: serverTimestamp() }));
     await assertSucceeds(getDoc(doc(anon('a1'), 'entregas/a1_g1_7_c4')));
     await assertFails(setDoc(doc(anon('a1'), 'entregas/a1_g1_7_c4'), entrega('a1')));
-    await assertSucceeds(deleteDoc(doc(db, 'entregas/a1_g1_7_c4')));
+    // Protección de evidencias: fuera de una limpieza autorizada no se borra ni siendo profesor.
+    await assertFails(deleteDoc(doc(db, 'entregas/a1_g1_7_c4')));
   });
   test('alumno no puede borrar entregas', async () => {
     await sesionSembrada('a1');

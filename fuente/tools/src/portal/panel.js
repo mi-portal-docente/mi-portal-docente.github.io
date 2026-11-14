@@ -8,6 +8,7 @@ import { ic as lucide } from './ico.js';
 import { crearAulaPanel } from './aula-panel.js';
 import { BIBLIOTECA, asignatura } from '../lms/biblioteca.js';
 import { planMigracion, sinDuplicadas } from '../lms/entrega.js';
+import { confirmar } from './dialogo.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
 const pad = (n) => String(n).padStart(2, '0');
@@ -229,7 +230,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       if (acc === 'editar') { st.editando = g.id; pintarTab(); $('#pnBody').scrollIntoView({ block: 'start' }); return; }
       if (acc === 'grande') return mostrarGrande(g);
       if (acc === 'reiniciar') {
-        if (!confirm(`¿Reiniciar el código de ${g.nombre}?\n\nSe generará un código nuevo y los alumnos que estén dentro con el código ${g.codigo} saldrán del portal.`)) return;
+        if (!await confirmar(`¿Reiniciar el código de ${g.nombre}?\n\nSe generará un código nuevo y los alumnos que estén dentro con el código ${g.codigo} saldrán del portal.`)) return;
         const nuevo = await codigoLibre(); const b = writeBatch(db);
         b.delete(doc(db, 'codigos', g.codigo));
         b.set(doc(db, 'codigos', nuevo), { grupo: g.id, nombre: g.nombre, asignaturas: g.asignaturas, apartados: g.apartados, activo: g.activo, horario: g.horario || null, curso: g.curso || '' });
@@ -240,7 +241,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
         const b = writeBatch(db); b.update(doc(db, 'grupos', g.id), { activo: !g.activo }); b.update(doc(db, 'codigos', g.codigo), { activo: !g.activo }); await b.commit(); return;
       }
       if (acc === 'borrar') {
-        if (!confirm(`¿Borrar el grupo ${g.nombre}?\n\nSu código dejará de funcionar. Las entregas del grupo NO se borran (puedes borrarlas en «Limpieza»).`)) return;
+        if (!await confirmar(`¿Borrar el grupo ${g.nombre}?\n\nSu código dejará de funcionar. Las entregas del grupo NO se borran (puedes borrarlas en «Limpieza»).`)) return;
         const b = writeBatch(db); b.delete(doc(db, 'grupos', g.id)); b.delete(doc(db, 'codigos', g.codigo)); await b.commit(); if (st.editando === g.id) { st.editando = null; pintarTab(); }
       }
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || e?.message || 'error') + ').'); }
@@ -320,17 +321,17 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const abiertas = st.sesiones.filter((s) => s.grupo === gid && s.numero === n && !s.revocada);
     try {
       if (acc === 'cerrarNum') {
-        if (!confirm(`¿Cerrar la sesión de ${quien}?\n\nSaldrá del portal al momento. Podrá volver a entrar con su código, su nº y su PIN.`)) return;
+        if (!await confirmar(`¿Cerrar la sesión de ${quien}?\n\nSaldrá del portal al momento. Podrá volver a entrar con su código, su nº y su PIN.`)) return;
         const bt = writeBatch(db); abiertas.forEach((s) => bt.update(doc(db, 'sesiones', s.uid), { revocada: true })); await bt.commit();
       }
       if (acc === 'bloquear') {
-        if (!confirm(`¿Bloquear ${quien}?\n\nSe cerrarán sus sesiones al momento y no podrá entrar hasta que lo desbloquees.`)) return;
+        if (!await confirmar(`¿Bloquear ${quien}?\n\nSe cerrarán sus sesiones al momento y no podrá entrar hasta que lo desbloquees.`)) return;
         b.disabled = true; const bt = writeBatch(db); bt.set(doc(db, 'bloqueos', id), { desde: serverTimestamp() });
         abiertas.forEach((s) => bt.update(doc(db, 'sesiones', s.uid), { revocada: true })); await bt.commit();
       }
       if (acc === 'desbloquear') { b.disabled = true; await deleteDoc(doc(db, 'bloqueos', id)); }
       if (acc === 'pinNum') {
-        if (!confirm(`¿Reiniciar el PIN de ${quien}?\n\nLa próxima vez que entre con ese número podrá elegir un PIN nuevo.`)) return;
+        if (!await confirmar(`¿Reiniciar el PIN de ${quien}?\n\nLa próxima vez que entre con ese número podrá elegir un PIN nuevo.`)) return;
         await deleteDoc(doc(db, 'pines', id));
       }
     } catch (e) { b.disabled = false; alert('No se ha podido hacer (' + (e?.code || 'error') + ').'); }
@@ -414,12 +415,9 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   // ------------------------------------------------------------ limpieza
   function limpiezaHTML() {
     const viejas = st.sesiones.filter(s => s.revocada || Date.now() - s.latido > ANTIGUA_MS || estadoSesion(s)[0] === 'old');
-    const gIds = [...new Set(st.entregas.map(e => e.grupo))];
     return `<section class="pn-card"><h3>Conectados antiguos</h3><p class="pn-small">Sesiones sin señal desde hace más de 2 horas, expulsadas o con un código antiguo. No afecta a las entregas.</p>
       <div class="pn-acts"><button class="btn" data-pn="limpiarSes" ${viejas.length ? '' : 'disabled'}>🧹 Borrar ${viejas.length} ${viejas.length === 1 ? 'sesión antigua' : 'sesiones antiguas'}</button></div></section>
-      <section class="pn-card"><h3>Entregas</h3><p class="pn-small">Al terminar el curso (o una evaluación), exporta las notas en CSV desde «Entregas» y borra las entregas para no guardar datos más tiempo del necesario.</p>
-      <div class="pn-acts"><select id="pnBorrarGrupo"><option value="">Todos los grupos (${st.entregas.length})</option>${gIds.map(id => `<option value="${esc(id)}">${esc(nombreGrupo(id))} (${st.entregas.filter(e => e.grupo === id).length})</option>`).join('')}</select>
-      <button class="btn pn-peligro" data-pn="borrarEnt" ${st.entregas.length ? '' : 'disabled'}>🗑 Borrar entregas</button><span class="pn-msg" id="pnLimpMsg"></span></div></section>`;
+      <section class="pn-card"><h3>Entregas</h3><p class="pn-small">Las entregas de los laboratorios son evidencias de evaluación: se conservan mientras el curso está abierto y, como mínimo, 6 meses después de cerrarlo (Manual de evaluación del centro, §11.2). Exporta las notas en CSV desde «Entregas» cuando lo necesites. Se eliminan con «Limpiar curso escolar», en Cursos escolares → Copia y limpieza.</p></section>`;
   }
   async function borrarEnLotes(refs) { for (let i = 0; i < refs.length; i += 400) { const b = writeBatch(db); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); } }
 
@@ -435,7 +433,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     if (acc === 'cancelar') { st.editando = null; pintarTab(); }
     if (acc === 'expulsar') {
       const uid = b.closest('[data-uid]').dataset.uid; const s = st.sesiones.find(x => x.uid === uid);
-      if (s && confirm(`¿Expulsar al nº ${pad(s.numero)} de ${nombreGrupo(s.grupo)}?\n\nSaldrá del portal al momento. Podrá volver a entrar con el código del grupo (si no quieres, reinicia el código).`)) {
+      if (s && await confirmar(`¿Expulsar al nº ${pad(s.numero)} de ${nombreGrupo(s.grupo)}?\n\nSaldrá del portal al momento. Podrá volver a entrar con el código del grupo (si no quieres, reinicia el código).`)) {
         updateDoc(doc(db, 'sesiones', uid), { revocada: true }).catch(e => alert('No se ha podido expulsar (' + (e?.code || 'error') + ').'));
       }
     }
@@ -449,15 +447,8 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     }
     if (acc === 'limpiarSes') {
       const viejas = st.sesiones.filter(s => s.revocada || Date.now() - s.latido > ANTIGUA_MS || estadoSesion(s)[0] === 'old');
-      if (!confirm(`¿Borrar ${viejas.length} sesiones antiguas?`)) return;
+      if (!await confirmar(`¿Borrar ${viejas.length} sesiones antiguas?`)) return;
       b.disabled = true; await borrarEnLotes(viejas.map(s => doc(db, 'sesiones', s.uid))).catch(e => alert('Error al borrar (' + (e?.code || 'error') + ').'));
-    }
-    if (acc === 'borrarEnt') {
-      const gid = $('#pnBorrarGrupo').value; const L = st.entregas.filter(e => !gid || e.grupo === gid);
-      if (!L.length) return;
-      if (!confirm(`¿Borrar ${L.length} entregas${gid ? ' de ' + nombreGrupo(gid) : ' de TODOS los grupos'}?\n\nNo se puede deshacer. Exporta antes el CSV si necesitas las notas.`)) return;
-      const msg = $('#pnLimpMsg'); msg.textContent = 'Borrando…';
-      try { await borrarEnLotes(L.map(e => doc(db, 'entregas', e.id))); msg.textContent = '✔ Entregas borradas.'; } catch (e) { msg.textContent = '❌ Error al borrar.'; }
     }
   }
   function onChange(ev) {

@@ -2,6 +2,7 @@
 import { ic } from '../ui/iconos.js';
 import { evaluarWeb, textoComprobacionWeb } from '../lms/motores/web.js';
 import { esc, leerJSON, guardar, cajaEntrega } from './comun.js';
+import { confirmar } from '../portal/dialogo.js';
 
 const LIBRE = { id: 'libre', titulo: 'Modo libre', enunciado: 'Escribe HTML y CSS: la vista previa se actualiza sola.', html: '<h1>Hola</h1>\n<p>Mi primera página.</p>\n', css: 'body {\n  font-family: system-ui, sans-serif;\n}\nh1 {\n  color: #1f6feb;\n}\n', pistas: [], comprobaciones: [] };
 
@@ -52,12 +53,12 @@ export function montarWeb(nodo, retos, ctx = {}) {
   }
   nodo.addEventListener('input', (e) => { if (e.target === th || e.target === tc) programar(); });
   nodo.addEventListener('keydown', (e) => { if ((e.target === th || e.target === tc) && e.key === 'Tab' && !e.shiftKey && !e.target.dataset.salir) { e.preventDefault(); e.target.setRangeText('  ', e.target.selectionStart, e.target.selectionEnd, 'end'); programar(); } if (e.key === 'Escape') e.target.dataset.salir = '1'; else if (e.key !== 'Tab') delete e.target.dataset.salir; });
-  nodo.addEventListener('click', (e) => {
+  nodo.addEventListener('click', async (e) => {
     const rb = e.target.closest('[data-wr]'); if (rb) { est.i = Number(rb.dataset.wr); return pintarReto(); }
     const b = e.target.closest('[data-wa]'); if (!b) return; const r = R[est.i];
     if (b.dataset.wa === 'comprobar') comprobar();
     else if (b.dataset.wa === 'pista') { est.pistas = Math.min(r.pistas.length, est.pistas + 1); $('[data-w=pistas]').innerHTML = r.pistas.slice(0, est.pistas).map((p, i) => `<p class="p5-pista">${ic('lightbulb')} <b>Pista ${i + 1}:</b> ${esc(p)}</p>`).join(''); if (est.pistas >= r.pistas.length) b.disabled = true; }
-    else if (b.dataset.wa === 'reiniciar' && confirm('¿Volver al código inicial? Se perderán tus cambios.')) { th.value = r.html; tc.value = r.css; refrescar(); }
+    else if (b.dataset.wa === 'reiniciar' && await confirmar('¿Volver al código inicial? Se perderán tus cambios.')) { th.value = r.html; tc.value = r.css; refrescar(); }
   });
   pintarReto();
   return { destruir() { clearTimeout(t); }, actualizar: (o) => ent.actualizar(o), comprobar };

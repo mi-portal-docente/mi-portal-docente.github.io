@@ -193,10 +193,10 @@ describe('Trabajos (entregas del aula)', () => {
     await assertSucceeds(setDoc(doc(db, 'trabajos/itemE01_g1_7'), intento('a7')));
     await assertFails(updateDoc(doc(db, 'trabajos/itemE01_g1_7'), { inicio: ts(ahora() + 600e3), fecha: serverTimestamp() }));
   });
-  test('alumno no borra trabajos; el profesor sí', async () => {
+  test('nadie borra trabajos con el curso abierto (tampoco el profesor)', async () => {
     await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7'), tarea('a7')));
     await assertFails(deleteDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7')));
-    await assertSucceeds(deleteDoc(doc(profe(), 'trabajos/itemT01_g1_7')));
+    await assertFails(deleteDoc(doc(profe(), 'trabajos/itemT01_g1_7')));
   });
 });
 

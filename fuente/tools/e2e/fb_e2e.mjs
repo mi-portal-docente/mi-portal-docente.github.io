@@ -23,7 +23,7 @@ async function contexto(nombre, { firebase = true, viewport = { width: 1440, hei
   const ctx = await b.newContext({ viewport, acceptDownloads: true });
   // Nunca se usa el proyecto real: o emuladores (demo-…) o configuración vacía (modo «código de clase»).
   await ctx.route('**/js/firebase-config.js*', r => r.fulfill({ contentType: 'application/javascript', body: firebase ? CFG : "window.PORTAL_FIREBASE={apiKey:'',projectId:''};" }));
-  const pg = await ctx.newPage();
+  const pg = await ctx.newPage(); await pg.addInitScript(() => { window.__dialogosNativos = true; }); // diálogos del navegador en las pruebas (se aceptan solos)
   pg.on('console', m => { if (m.type() === 'error' && !benigno(m.text())) errores.push(`[${nombre}] console: ${m.text()}`); });
   pg.on('pageerror', e => errores.push(`[${nombre}] pageerror: ${e.message}`));
   pg.on('dialog', d => d.accept());

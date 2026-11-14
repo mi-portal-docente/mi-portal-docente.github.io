@@ -10,6 +10,7 @@ import { estadoTrabajo, editable, anulable, ESTADOS_TRABAJO, idVersion, horaCort
 import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
 import { rellenarImagenes } from './doc-editor.js';
 import { modeloHTML, subirModelo, quitarModelo, CON_MODELO } from './modelo3d-ui.js';
+import { confirmar } from './dialogo.js';
 
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const idCom = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
@@ -53,6 +54,9 @@ export function montarEntrega(nodo, it, ctx) {
     else if (S.sucio) t = 'Cambios sin guardar';
     else if (S.ultimo) { t = ic('check') + ' Guardado ' + horaCorta(S.ultimo); c = 'ok'; }
     el.innerHTML = t; el.className = 'en-guardado ' + c;
+    // P5: la etiqueta de estado («Sin empezar» → «Borrador») se actualiza en cuanto se guarda, sin repintar el editor.
+    const ch = nodo.querySelector('.en-cab .en-chip'); const e = estado();
+    if (ch && !ch.classList.contains('en-' + e)) ch.outerHTML = estadoChipHTML(e);
   }
   async function escribir(datos, { timeout = 12000 } = {}) {
     // setDoc no termina si no hay red: la escritura queda en cola en Firestore; avisamos y seguimos.
@@ -83,7 +87,7 @@ export function montarEntrega(nodo, it, ctx) {
     const v = valores(); const msg = nodo.querySelector('#enMsg');
     if (!v.texto.trim() && !v.enlaces.length && !S.tr?.modelo && !(v.doc && String(v.doc).replace(/<[^>]*>/g, '').trim())) { msg.textContent = 'Escribe una respuesta, añade un enlace o sube un archivo.'; msg.className = 'au-msg ko'; return; }
     const cont = it.contenido || {};
-    if (v.doc != null && (cont.palabrasMin || cont.palabrasMax)) { const np = contarPalabras(v.doc); if ((cont.palabrasMin && np < cont.palabrasMin) || (cont.palabrasMax && np > cont.palabrasMax)) { if (!confirm(`Tu documento tiene ${np} palabras y se piden ${cont.palabrasMin ? 'al menos ' + cont.palabrasMin : ''}${cont.palabrasMin && cont.palabrasMax ? ' y ' : ''}${cont.palabrasMax ? 'como mucho ' + cont.palabrasMax : ''}. ¿Entregar igualmente?`)) return; } }
+    if (v.doc != null && (cont.palabrasMin || cont.palabrasMax)) { const np = contarPalabras(v.doc); if ((cont.palabrasMin && np < cont.palabrasMin) || (cont.palabrasMax && np > cont.palabrasMax)) { if (!await confirmar(`Tu documento tiene ${np} palabras y se piden ${cont.palabrasMin ? 'al menos ' + cont.palabrasMin : ''}${cont.palabrasMin && cont.palabrasMax ? ' y ' : ''}${cont.palabrasMax ? 'como mucho ' + cont.palabrasMax : ''}. ¿Entregar igualmente?`)) return; } }
     btn.disabled = true; msg.textContent = 'Entregando…'; msg.className = 'au-msg';
     const n = (S.tr?.nEntregas || 0) + 1;
     try {
@@ -103,7 +107,7 @@ export function montarEntrega(nodo, it, ctx) {
     }
   }
   async function anular(btn) {
-    if (!confirm('¿Anular la entrega? Volverá a ser un borrador: podrás cambiarlo y entregarlo de nuevo.')) return;
+    if (!await confirmar('¿Anular la entrega? Volverá a ser un borrador: podrás cambiarlo y entregarlo de nuevo.')) return;
     btn.disabled = true; const msg = nodo.querySelector('#enMsg');
     try {
       await escribir({ estado: 'borrador', fecha: serverTimestamp(), guardado: Date.now(), item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: ctx.uid(), tipo: 'tarea', texto: S.tr?.texto || '', enlaces: S.tr?.enlaces || [] });
@@ -157,7 +161,7 @@ export function montarEntrega(nodo, it, ctx) {
   async function modelo(f, b) {
     const msg = nodo.querySelector('#enMsg');
     try {
-      if (b.dataset.en === 'm3dQuitar') { if (!confirm('¿Quitar el modelo 3D?')) return; await quitarModelo(db, tid); if (S.tr) { const { modelo: _q, ...r } = S.tr; S.tr = r; } }
+      if (b.dataset.en === 'm3dQuitar') { if (!await confirmar('¿Quitar el modelo 3D?')) return; await quitarModelo(db, tid); if (S.tr) { const { modelo: _q, ...r } = S.tr; S.tr = r; } }
       else { await asegurar(); msg.textContent = 'Subiendo el modelo…'; msg.className = 'au-msg'; const m = await subirModelo(db, tid, f); S.tr = { ...S.tr, modelo: { nombre: m.nombre, bytes: m.bytes } }; msg.textContent = `Modelo subido (${Math.round(m.bytes / 1024)} KB).`; msg.className = 'au-msg ok'; }
       const viejo = nodo.querySelector('.m3'); if (viejo) viejo.outerHTML = modeloHTML(S.tr, editable(estado()), tid);
     } catch (e) { msg.textContent = 'No se ha podido: ' + (e?.code === 'permission-denied' ? 'permiso denegado (¿ya está calificado?)' : e.message || e); msg.className = 'au-msg ko'; }

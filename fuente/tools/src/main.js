@@ -23,6 +23,7 @@ import { montarBloques } from './labs/bloques-ui.js';
 import { montarP5 } from './labs/p5-ui.js';
 import { montarAveria, defAveria } from './labs/averia-ui.js';
 import { calidad } from './kit3d/base.js';
+import { confirmar } from './portal/dialogo.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -311,7 +312,7 @@ async function accionCurso(b) {
     const G = P.aula.gruposConAsignatura?.(id) || [];
     const txt = `¿Quitar «${a.nombre}» del curso ${c.curso}?\n\nNo se borra nada: la asignatura y todo su contenido siguen en la Biblioteca y puedes volver a añadirla cuando quieras.`
       + (G.length ? `\n\nLos grupos ${G.map((g) => g.nombre).join(', ')} dejarán de verla. Si la vuelves a añadir, márcala otra vez en Panel → Grupos.` : '');
-    if (!confirm(txt)) return;
+    if (!await confirmar(txt)) return;
   }
   b.disabled = true; decir('Guardando…');
   try {
