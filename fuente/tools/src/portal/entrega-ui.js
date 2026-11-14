@@ -42,7 +42,7 @@ export function montarEntrega(nodo, it, ctx) {
   // Por defecto en las tareas con nota (puntos o rúbrica); el profesor lo cambia en cada tarea.
   const pideCopia = it.tipo !== 'examen' && (it.copia === true || (it.copia == null && !!(it.puntos || it.rubrica?.length)));
   const fechasEnl = (L) => L.map((u) => (S.enlT[u] ??= Date.now()));
-  async function leerCopias(fresco = false) { if (!S.tr) { S.copiasOk = true; return; } try { S.copias = await cargarCopias(db, tid, { fresco }); } catch (e) { S.copias = []; } S.copiasOk = true; const c = nodo.querySelector('#enCopias'); if (c) c.innerHTML = copiasHTML(S.copias, { vacio: '<p class="au-small">Todavía no has subido ninguna copia.</p>' }); }
+  async function leerCopias(fresco = false) { if (!S.tr) { S.copiasOk = true; const c0 = nodo.querySelector('#enCopias'); if (c0) c0.innerHTML = copiasHTML([], { vacio: '<p class="au-small">Todavía no has subido ninguna copia.</p>' }); return; } try { S.copias = await cargarCopias(db, tid, { fresco }); } catch (e) { S.copias = []; } S.copiasOk = true; const c = nodo.querySelector('#enCopias'); if (c) c.innerHTML = copiasHTML(S.copias, { vacio: '<p class="au-small">Todavía no has subido ninguna copia.</p>' }); }
 
   function valores() {
     const f = nodo.querySelector('#enForm'); if (!f) return null;
@@ -108,7 +108,7 @@ export function montarEntrega(nodo, it, ctx) {
       clearTimeout(S.tDeb);
       await escribir({ ...base(v), estado: 'entregado', entregadoEn: Date.now(), nEntregas: n });
       S.sucio = false; S.ultimo = Date.now(); borrarLocal();
-      S.tr = { ...(S.tr || {}), ...v, estado: 'entregado', nEntregas: n, fecha: Date.now() };
+      S.tr = { ...(S.tr || {}), ...v, ...(v.enlaces.length ? { enlacesT: fechasEnl(v.enlaces) } : {}), estado: 'entregado', nEntregas: n, fecha: Date.now() };
       ctx.editor?.alGuardar?.();
       // Copia para el historial (solo la ve el profesor). Si falla, la entrega ya está hecha.
       const ver = { trabajo: tid, item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, n, texto: v.texto, enlaces: v.enlaces, fecha: serverTimestamp() };

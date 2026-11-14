@@ -59,7 +59,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   // P4: la prueba sin elementos externos solo empieza a pantalla completa
   async function pantallaObligatoria(it, msgEl) {
     if (!sinExt(it)) { if (it?.examen?.pantallaCompleta) modo?.pedirPantalla(); return true; }
-    try { await modo.pedirPantalla(); } catch (e) { /* abajo */ }
+    // algunos navegadores dejan la petición sin responder: como mucho 2,5 s
+    try { await Promise.race([modo.pedirPantalla(), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* abajo */ }
     if (document.fullscreenElement) return true;
     if (msgEl) { msgEl.textContent = 'Esta prueba solo se puede hacer a pantalla completa. Usa un ordenador y permite la pantalla completa.'; msgEl.className = 'au-msg ko'; }
     return false;
