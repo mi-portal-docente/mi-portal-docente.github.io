@@ -38,7 +38,7 @@ export function analizarExamen(preguntas, claves, entregas) {
   const P = preguntas || []; const E = (entregas || []).filter(Boolean);
   const Q = P.map((q) => ({ id: q.id, tipo: q.tipo, enunciado: String(q.enunciado || ''), criterio: q.criterio || SIN_CRITERIO, puntos: ptsDe(q), suma: 0, fallos: 0, blanco: 0 }));
   for (const e of E) {
-    const auto = corregirExamen(P, claves || {}, e.respuestas || {}).detalle;
+    const auto = corregirExamen(P, claves || {}, e.respuestas || {}, {}, e.s != null ? { s: e.s } : {}).detalle;
     Q.forEach((q) => {
       const got = e.detalle && q.id in e.detalle ? Number(e.detalle[q.id]) || 0 : auto[q.id] || 0;
       const f = Math.max(0, Math.min(1, got / q.puntos)); q.suma += f; if (f < 1) q.fallos++;

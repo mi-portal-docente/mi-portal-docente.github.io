@@ -4,6 +4,7 @@
 //  · exportar(qPublica, clave): vuelve a la forma del profesor (para «Exportar JSON» y para editar);
 //  · corregir(qPublica, clave, respuesta) → fracción acertada (0…1). Puntuación parcial donde tiene sentido.
 import { normaliza, barajar, semilla } from './modelo.js';
+import { evaluarFormula, valoresAlumno, leeVariables } from './formula.js';
 
 const esTexto = (x) => typeof x === 'string';
 const listaTextos = (L) => Array.isArray(L) && L.every(esTexto);
@@ -118,6 +119,34 @@ export const TIPOS_PREGUNTA = {
       const tol = k.m === 'pct' ? Math.abs(k.v) * (k.t || 0) / 100 : (k.t || 0);
       return Math.abs(x - k.v) <= tol + 1e-9 ? 1 : 0;
     },
+  },
+  // P4 · numérica con datos distintos para cada alumno: {R} en el enunciado + variables + fórmula (solo en claves)
+  variables: {
+    nombre: 'Numérica con datos por alumno',
+    validar(q, err) {
+      let V = q.variables;
+      if (typeof V === 'string') { const r = leeVariables(V); if (r.errores.length) { err('variables', r.errores[0]); return null; } V = r.V; }
+      if (!V || typeof V !== 'object' || !Object.keys(V).length) { err('variables', '«variables» necesita al menos una: { "R": {"min": 10, "max": 100, "paso": 10} } o «R = 10..100 paso 10».'); return null; }
+      if (Object.keys(V).length > 6) { err('variables', 'Máximo 6 variables.'); return null; }
+      for (const [k, v] of Object.entries(V)) if (!/^[A-Za-z_][A-Za-z_0-9]{0,11}$/.test(k) || !(Number(v?.max) >= Number(v?.min)) || !(Number(v?.paso ?? 1) > 0)) { err('variables', `Variable «${k}» no válida (nombre sin espacios; mínimo ≤ máximo; paso positivo).`); return null; }
+      const formula = String(q.formula ?? '').trim().slice(0, 200);
+      if (!formula) { err('formula', 'Falta la «formula» de la solución (p. ej. V / R).'); return null; }
+      const medio = Object.fromEntries(Object.entries(V).map(([k, v]) => [k, (Number(v.min) + Number(v.max)) / 2 || 1]));
+      try { const x = evaluarFormula(formula, medio); if (!Number.isFinite(x)) throw new Error('el resultado no es un número'); } catch (e) { err('formula', `Fórmula: ${e.message}`); return null; }
+      const t = q.tolerancia == null ? 1 : Number(q.tolerancia); if (!(t >= 0)) { err('tolerancia', '«tolerancia» tiene que ser un número mayor o igual que 0.'); return null; }
+      const modo = q.modo ?? 'pct'; if (!['abs', 'pct'].includes(modo)) { err('modo', '«modo» tiene que ser "abs" o "pct".'); return null; }
+      return { variables: Object.fromEntries(Object.entries(V).map(([k, v]) => [k, { min: Number(v.min), max: Number(v.max), paso: Number(v.paso ?? 1) }])), formula, tolerancia: t, modo, unidad: corto(q.unidad ?? '', 20) };
+    },
+    separar: (q) => ({ publica: { variables: q.variables, ...(q.unidad ? { unidad: q.unidad } : {}) }, clave: { f: q.formula, t: q.tolerancia, m: q.modo } }),
+    exportar: (q, k) => ({ variables: q.variables || {}, formula: k?.f || '', tolerancia: k?.t ?? 1, modo: k?.m || 'pct', ...(q.unidad ? { unidad: q.unidad } : {}) }),
+    // ctx.s = semilla del alumno (examen + grupo_nº). Sin ella no se puede saber qué datos tenía.
+    corregir(q, k, r, ctx) {
+      const x = leeNumero(r); if (x == null || !k?.f || ctx?.s == null) return 0;
+      let v; try { v = evaluarFormula(k.f, valoresAlumno(q.variables, ctx.s, q.id)); } catch (e) { return 0; }
+      const tol = k.m === 'pct' ? Math.abs(v) * (k.t || 0) / 100 : (k.t || 0);
+      return Math.abs(x - v) <= tol + 1e-9 ? 1 : 0;
+    },
+    revisar: (q, k, r, ctx) => ctx?.s == null && r != null && String(r).trim() !== '',
   },
   zonas: {
     nombre: 'Imagen con zonas',

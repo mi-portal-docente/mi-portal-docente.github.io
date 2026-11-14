@@ -25,14 +25,23 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 60000 }), pg.click('[data-ap=exportarCurso]')]);
   const cp = JSON.parse(readFileSync(await dl.path(), 'utf8'));
   await pg.waitForFunction(() => /Copia descargada/.test(document.querySelector('#apBorrarMsg')?.textContent || ''), null, { timeout: 30000 });
-  ok('«Exportar todo»: JSON del curso con elementos, trabajos y notas (formato copia-curso@1)', cp.formato === 'portal-docente/copia-curso@1' && /^copia-curso-.*\.json$/.test(dl.suggestedFilename())
+  ok('«Exportar todo»: JSON del curso con elementos, trabajos y notas (formato copia-curso@1)', cp.formato === 'portal-docente/copia-curso@1' && /^\d{8}_SuperProfe_Alumnos_.*\.json$/.test(dl.suggestedFilename())
     && cp.colecciones.items.some((x) => x.id === id) && cp.colecciones.trabajos.some((x) => x.id === tid && /fusible/.test(x.texto)) && Array.isArray(cp.colecciones.notas) && Array.isArray(cp.subcolecciones.comentarios), dl.suggestedFilename());
   ok('las fechas van en ISO y no hay datos de otros cursos', JSON.stringify(cp).includes('"__fecha":"20') && cp.colecciones.trabajos.every((x) => x.curso === cp.curso.id));
+  // ---- P1: con el curso abierto (o cerrado hace menos de 6 meses) no se puede limpiar
+  await pg.click('[data-ap=limpiarCurso]');
+  await pg.waitForFunction(() => /no está cerrado/.test(document.querySelector('#apBorrarMsg')?.textContent || ''), null, { timeout: 30000 });
+  ok('P1 · limpiar con el curso abierto: no deja y no borra nada', !!(await docREST('trabajos/' + tid)).fields);
+  // se simula un curso cerrado hace 200 días (con permisos de administrador del emulador)
+  const cid = await pg.inputValue('#apBorrarCurso');
+  const R = docREST.base || `http://127.0.0.1:${process.env.E2E_FS_PORT || '8080'}/v1/projects/demo-portal/databases/(default)/documents`;
+  await fetch(`${R}/cursos/${cid}?updateMask.fieldPaths=activo&updateMask.fieldPaths=cerrado`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { activo: { booleanValue: false }, cerrado: { timestampValue: new Date(Date.now() - 200 * 864e5).toISOString() } } }) });
+  await pg.waitForTimeout(1500);
   // ---- limpiar: la segunda confirmación (escribir el nombre) mal → no borra nada
   PROMPT.push('no es el curso');
   const [dl2] = await Promise.all([pg.waitForEvent('download', { timeout: 60000 }), pg.click('[data-ap=limpiarCurso]')]);
   await pg.waitForFunction(() => /Cancelado/.test(document.querySelector('#apBorrarMsg')?.textContent || ''), null, { timeout: 30000 });
-  ok('limpiar: descarga antes la copia y, si el nombre no coincide, no borra nada', /^copia-curso-/.test(dl2.suggestedFilename()) && !!(await docREST('trabajos/' + tid)).fields);
+  ok('limpiar: descarga antes la copia y, si el nombre no coincide, no borra nada', /_SuperProfe_Alumnos_/.test(dl2.suggestedFilename()) && !!(await docREST('trabajos/' + tid)).fields);
   // ---- limpiar de verdad (el contenido se conserva)
   PROMPT.push(curso);
   await Promise.all([pg.waitForEvent('download', { timeout: 60000 }), pg.click('[data-ap=limpiarCurso]')]);

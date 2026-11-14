@@ -498,3 +498,24 @@ html[data-theme="dark"] .en-guardado.ok { color: #8ff0a8; } html[data-theme="dar
 .cl-papelera summary { cursor: pointer; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
 .cl-pap-l { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .cl-pap-l li { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+
+/* ---------- P2 · enlaces y copias congeladas ---------- */
+.cp-enl { list-style: none; margin: 6px 0 2px; padding: 0; display: grid; gap: 4px; font-size: .9rem; }
+.cp-enl .ic, .cp-vivo .ic, .cp-lista .ic { width: 16px; height: 16px; vertical-align: -3px; }
+.cp-url { color: var(--gris, #5c5c60); word-break: break-all; }
+.cp-aviso { margin: 4px 0; }
+.cp-instr { font-size: .88rem; background: var(--azul-tint, rgba(0,122,255,.1)); border-radius: 10px; padding: 8px 12px; margin: 6px 0; }
+.cp-instr ul { margin: 4px 0 0; padding-left: 18px; }
+.cp-sec { margin: 14px 0; padding: 12px 14px; border-radius: 14px; background: var(--fill2, rgba(118,118,128,.08)); }
+.cp-sec h5 { margin: 0 0 6px; font-size: 1rem; display: flex; gap: 6px; align-items: center; }
+.cp-lista { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.cp-abrir { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--azul, #0a66d8); text-decoration: underline; cursor: pointer; }
+.cp-lista code { font-size: .8rem; }
+.cp-vivo { margin: 4px 0; }
+.cp-tit { font-weight: 600; margin-top: 10px; display: flex; gap: 6px; align-items: center; }
+/* ---------- P4 · prueba sin elementos externos ---------- */
+.pb-aviso { border-left: 4px solid var(--rojo, #DC001B); }
+.pb-prof { margin-top: 18px; padding: 14px 16px; border-radius: 14px; background: var(--card, #fff); box-shadow: var(--sh1, 0 1px 3px rgba(0,0,0,.08)); }
+.pb-prof h4 { margin: 0 0 8px; display: flex; gap: 6px; align-items: center; }
+.pb-cod { font-size: 1.05rem; } .pb-cod b { font-size: 1.8rem; letter-spacing: .25em; font-variant-numeric: tabular-nums; margin: 0 8px; }
+.pb-bloq td { background: var(--rojo-tint, rgba(255,59,48,.1)); font-weight: 600; }

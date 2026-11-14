@@ -13,6 +13,7 @@ import { hojaLecturaHTML } from './hoja-ui.js';
 import { botonModelo, botonesEnlaces3D, es3D } from './modelo3d-ui.js';
 import { rellenarImagenes, descargarDocx, imagenesParaDocx } from './doc-editor.js';
 import { confirmar } from './dialogo.js';
+import { enlacesVivosHTML, slotCopias, rellenarCopias } from './copias-ui.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -50,7 +51,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     if (tr.doc && C.it.tipo === 'hoja') h += `<div class="co-hoja">${hojaLecturaHTML(C.it, tr.doc)}</div>`;
     else if (tr.doc) h += `<div class="co-doc doc-ver">${limpiarDoc(tr.doc)}</div><div class="pn-acts"><span class="pn-small">${contarPalabras(tr.doc)} palabras</span><span class="pn-grow"></span><button type="button" class="btn small" data-co="docx">${ic('file-down')} Descargar .docx</button></div>`;
     else h += `<div class="co-texto">${tr.texto ? textoHTML(tr.texto) : '<span class="pn-small">(sin texto)</span>'}</div>`;
-    h += (tr.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('');
+    h += enlacesVivosHTML(tr.enlaces || [], tr.enlacesT || []) + slotCopias(tr.id || ids(C.n));
     if (C.it.tipo === 'documento') h += registroHTML(ids(C.n));
     return h;
   }
@@ -100,8 +101,8 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
   }
   function pintar(B, forzar) {
     const clave = `${C.it.id}|${C.g.id}|${C.n}`;
-    if (!forzar && C.clave === clave && $('#coForm')) { const T = $('#coTrabajo'); if (T) { const id = ids(C.n); T.innerHTML = trabajoHTML(A.trabajos.get(id), A.notas.get(id)); rellenarImagenes(T, db, id); } return; }
-    C.clave = clave; B.innerHTML = html(); rellenarImagenes($('#coTrabajo'), db, ids(C.n));
+    if (!forzar && C.clave === clave && $('#coForm')) { const T = $('#coTrabajo'); if (T) { const id = ids(C.n); T.innerHTML = trabajoHTML(A.trabajos.get(id), A.notas.get(id)); rellenarImagenes(T, db, id); rellenarCopias(T, db); } return; }
+    C.clave = clave; B.innerHTML = html(); rellenarImagenes($('#coTrabajo'), db, ids(C.n)); rellenarCopias($('#coTrabajo'), db);
   }
   function ir(d) { const L = lista(); const i = L.indexOf(C.n); const j = i < 0 ? 0 : i + d; if (j >= 0 && j < L.length) { C.n = L[j]; C.sel = {}; pintarTodo(true); } }
   function recalc() {

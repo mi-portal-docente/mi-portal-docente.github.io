@@ -8,6 +8,9 @@ import { ic } from './ico.js';
 import { idTrabajo } from '../lms/modelo.js';
 import { limpiarDoc, textoDeDoc, contarPalabras, imagenesDe, MAX_IMAGENES, MAX_IMG_BYTES, PEGADO_GRANDE, urlDocValida } from '../lms/doc-html.js';
 import { docx } from '../lms/docx.js';
+import { pedirTexto, avisar } from './dialogo.js';
+const guardarSel = () => { const s = window.getSelection(); return s && s.rangeCount ? s.getRangeAt(0).cloneRange() : null; };
+const ponerSel = (E, r) => { E?.focus(); if (!r) return; const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); };
 
 const CACHE = new Map(); // `${tid}/${img}` → { data, w, h }
 
@@ -117,8 +120,23 @@ export function crearEditorDoc(it, { db, ses }) {
     else if (['bold', 'italic', 'underline', 'undo', 'redo'].includes(k)) cmd(k);
     else if (k === 'ul') cmd('insertUnorderedList');
     else if (k === 'ol') cmd('insertOrderedList');
-    else if (k === 'tabla') { const fl = Math.min(20, Math.max(1, parseInt(prompt('¿Cuántas filas (sin contar la de títulos)?', '3'), 10) || 3)); const co = Math.min(8, Math.max(1, parseInt(prompt('¿Cuántas columnas?', '3'), 10) || 3)); cmd('insertHTML', `<table><thead><tr>${'<th>Título</th>'.repeat(co)}</tr></thead><tbody>${`<tr>${'<td><br></td>'.repeat(co)}</tr>`.repeat(fl)}</tbody></table><p><br></p>`); }
-    else if (k === 'enlace') { const u = (prompt('Dirección del enlace (https://…)', 'https://') || '').trim(); if (!u) return; if (!urlDocValida(u)) { alert('El enlace tiene que empezar por https:// o http://'); return; } const sel = window.getSelection(); if (sel && !sel.isCollapsed) cmd('createLink', u); else cmd('insertHTML', `<a href="${esc(u)}">${esc(u)}</a>&nbsp;`); }
+    else if (k === 'tabla' || k === 'enlace') { // diálogo propio (P5): se guarda la selección y se recupera al volver
+      const r = guardarSel();
+      (async () => {
+        if (k === 'tabla') {
+          const t1 = await pedirTexto('¿Cuántas filas (sin contar la de títulos)?', { valor: '3' }); if (t1 == null) return;
+          const t2 = await pedirTexto('¿Cuántas columnas?', { valor: '3' }); if (t2 == null) return;
+          const fl = Math.min(20, Math.max(1, parseInt(t1, 10) || 3)); const co = Math.min(8, Math.max(1, parseInt(t2, 10) || 3));
+          ponerSel(E, r); cmd('insertHTML', `<table><thead><tr>${'<th>Título</th>'.repeat(co)}</tr></thead><tbody>${`<tr>${'<td><br></td>'.repeat(co)}</tr>`.repeat(fl)}</tbody></table><p><br></p>`);
+        } else {
+          const u = ((await pedirTexto('Dirección del enlace (https://…)', { valor: 'https://' })) || '').trim(); if (!u || u === 'https://') return;
+          if (!urlDocValida(u)) { await avisar('El enlace tiene que empezar por https:// o http://'); return; }
+          ponerSel(E, r); const sel = window.getSelection(); if (sel && !sel.isCollapsed) cmd('createLink', u); else cmd('insertHTML', `<a href="${esc(u)}">${esc(u)}</a>&nbsp;`);
+        }
+        contador(f); alCambiarCb?.();
+      })();
+      return;
+    }
     else if (k === 'imagen') f.querySelector('.dc-file')?.click();
     else if (k === 'docx') { (async () => { const h = ed(f)?.innerHTML || ''; const imgs = await imagenesParaDocx(db, tid, h); descargarDocx(h, { titulo: it.titulo, meta: `${ses.grupo} · nº ${ses.numero}`, imagenes: imgs }); })(); return; }
     contador(f); alCambiarCb?.();
@@ -162,5 +180,5 @@ export function accionPlantilla(b) {
   else if (['bold', 'italic', 'underline', 'undo', 'redo'].includes(k)) cmd(k);
   else if (k === 'ul') cmd('insertUnorderedList'); else if (k === 'ol') cmd('insertOrderedList');
   else if (k === 'tabla') cmd('insertHTML', '<table><thead><tr><th>Título</th><th>Título</th></tr></thead><tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody></table><p><br></p>');
-  else if (k === 'enlace') { const u = (prompt('Dirección del enlace (https://…)', 'https://') || '').trim(); if (urlDocValida(u)) cmd('createLink', u); }
+  else if (k === 'enlace') { const r = guardarSel(); pedirTexto('Dirección del enlace (https://…)', { valor: 'https://' }).then((x) => { const u = (x || '').trim(); if (urlDocValida(u)) { ponerSel(E, r); cmd('createLink', u); } }); }
 }

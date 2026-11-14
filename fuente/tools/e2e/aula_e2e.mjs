@@ -366,8 +366,13 @@ ok('la tarea muestra instrucciones y rúbrica', /portada/.test(await A.pg.textCo
 await A.pg.fill('#enForm [name=texto]', 'He hecho el documento con índice.');
 await A.pg.fill('#enForm [name=enlaces]', 'https://docs.google.com/document/d/ejemplo\njavascript:alert(1)');
 await A.pg.click('[data-en=entregar]');
+await A.pg.waitForFunction(() => /copia/.test(document.querySelector('#enMsg')?.textContent || ''), null, { timeout: 15000 });
+ok('P2 · tarea con nota y enlace: pide la copia congelada antes de entregar', true);
+await A.pg.setInputFiles('.cp-file', { name: 'documento.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% copia\n%%EOF\n') });
+await A.pg.waitForSelector('#enCopias .cp-lista li', { timeout: 20000 });
+await A.pg.click('[data-en=entregar]');
 await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
-ok('el alumno entrega la tarea (texto + enlace)', true);
+ok('el alumno entrega la tarea (texto + enlace + copia)', true);
 const trT = await (await fetch(`${REST}/trabajos/${ID_T}_${GA.id}_5`, owner)).json();
 ok('el enlace «javascript:» se descarta', !JSON.stringify(trT).includes('javascript'));
 
@@ -497,7 +502,8 @@ const resTxt = await E.pg.textContent('#acLado');
 const nTot = await E.pg.evaluate(() => window.__act.estado.rondas.length);
 ok('actividad 3D (modo juego, 3 niveles con retos): se responde pulsando la pieza en la mesa 3D, su número o la opción del reto, y da la nota', clic3d && /aciertos · Nota/.test(resTxt) && nR === nTot && nTot >= 14, `${nR}/${nTot} · ${resTxt.slice(0, 80)}`);
 await E.pg.click('[data-ac=entregar]');
-await E.pg.waitForFunction(() => /Entregado/.test(document.querySelector('#acMsg')?.textContent || ''), null, { timeout: 15000 });
+// al guardarse, la actividad se repinta con «Ya has entregado un resultado» (el aviso «Entregado» puede no llegar a verse)
+await E.pg.waitForFunction(() => /Entregado|Ya has entregado/.test((document.querySelector('#acMsg')?.textContent || '') + (document.querySelector('.ac-asig')?.textContent || '')), null, { timeout: 15000 });
 const trAct = await (await fetch(`${REST}/trabajos/${ID_ACT}_${GE.id}_3`, owner)).json();
 ok('alumno: entrega el resultado de la actividad (sin datos personales)', new RegExp(`Aciertos: ${nTot - 1}/${nTot}`).test(trAct.fields?.texto?.stringValue || ''), trAct.fields?.texto?.stringValue?.slice(0, 60));
 await E.pg.screenshot({ path: SHOTS + 'aula_actividad_resultado.png' });

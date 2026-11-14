@@ -6,12 +6,14 @@ import { barajar, semilla, fmtNota } from '../lms/modelo.js';
 import { textoHTML } from './aula-vistas.js';
 import { TIPOS_PREGUNTA, leeNumero, alternativas } from '../lms/preguntas.js';
 import { limpiarDoc, textoDeDoc, contarPalabras } from '../lms/doc-html.js';
+import { valoresAlumno, sustituir } from '../lms/formula.js';
 
 export const ayudaTipo = {
   emparejar: 'Elige, para cada elemento de la izquierda, el que le corresponde. Cuenta cada pareja bien hecha.',
   ordenar: 'Ordena los elementos con los botones de subir y bajar. Cuenta cada posición correcta.',
   huecos: 'Escribe la palabra que falta en cada hueco. Cuenta cada hueco bien escrito.',
   numerica: 'Escribe un número (puedes usar coma decimal).',
+  variables: 'Tus datos son distintos a los de tus compañeros. Escribe el resultado (puedes usar coma decimal).',
   zonas: 'Pulsa en la imagen el punto que se pide. Puedes cambiarlo pulsando en otro sitio.',
   clasificar: 'Arrastra cada elemento a su grupo (o elige el grupo en su desplegable). Cuenta cada elemento bien clasificado.',
   tabla: 'Completa las casillas vacías de la tabla. Cuenta cada casilla bien escrita.',
@@ -22,7 +24,9 @@ const rubricaQ = (q) => (q.rubrica?.length ? `<details class="ex-rub"><summary>$
 // Orden inicial de «ordenar» para un alumno (barajado y distinto del guardado)
 export function ordenInicial(q, s) { return barajar((q.elementos || []).map((_, i) => i), s ^ semilla('ord' + q.id)); }
 
-export function preguntaHTML(q, r, { n, barajarOps = false, s = 1 } = {}) {
+export function preguntaHTML(q, r, { n, barajarOps = false, s = 1, datos = true } = {}) {
+  // P4: datos propios del alumno ({R} → su valor). En la vista previa del profesor (datos = false) se ve la plantilla.
+  if (q.tipo === 'variables' && datos) q = { ...q, enunciado: sustituir(q.enunciado, valoresAlumno(q.variables, s, q.id)) };
   const nm = 'q_' + q.id;
   const leyenda = `<legend><span class="au-qn">${n}</span> ${textoHTML(q.enunciado)}<span class="au-small"> (${esc(fmtNota(q.puntos || 1))} pt)</span></legend>`;
   let cuerpo = '';
@@ -41,7 +45,7 @@ export function preguntaHTML(q, r, { n, barajarOps = false, s = 1 } = {}) {
     const R = Array.isArray(r) ? r : [];
     const partes = esc(q.texto || '').replace(/\[\[(\d+)\]\]/g, (_, k) => `<input type="text" class="ex-hueco" data-hueco="${k - 1}" maxlength="120" value="${esc(R[k - 1] || '')}" aria-label="Hueco ${k}" size="10">`);
     cuerpo = `<p class="ex-huecos">${partes.replace(/\n/g, '<br>')}</p>`;
-  } else if (q.tipo === 'numerica') cuerpo = `<label class="ex-num"><input type="text" inputmode="decimal" name="${esc(nm)}" maxlength="40" value="${esc(r ?? '')}" placeholder="Número" aria-label="Respuesta numérica">${q.unidad ? `<span>${esc(q.unidad)}</span>` : ''}</label>`;
+  } else if (q.tipo === 'numerica' || q.tipo === 'variables') cuerpo = `<label class="ex-num"><input type="text" inputmode="decimal" name="${esc(nm)}" maxlength="40" value="${esc(r ?? '')}" placeholder="Número" aria-label="Respuesta numérica">${q.unidad ? `<span>${esc(q.unidad)}</span>` : ''}</label>`;
   else if (q.tipo === 'zonas') {
     const p = r && typeof r === 'object' ? r : null;
     cuerpo = `<div class="ex-zonas" data-zonas tabindex="0" role="button" aria-label="Imagen: pulsa el punto que se pide. Con el teclado: flechas para mover la marca"><img src="${esc(q.imagen)}" alt="${esc(q.alt || 'Imagen de la pregunta')}" draggable="false">${p ? `<span class="ex-marca" style="left:${p.x}%;top:${p.y}%"></span>` : ''}</div>`;
@@ -71,7 +75,7 @@ export function leerRespuesta(q, fs) {
   if (q.tipo === 'emparejar') { const L = [...fs.querySelectorAll('[data-emp]')].map((s) => (s.value === '' ? null : Number(s.value))); return L.some((x) => x != null) ? L : undefined; }
   if (q.tipo === 'ordenar') { try { return JSON.parse(fs.querySelector('.ex-ord')?.dataset.orden || 'null') || undefined; } catch (e) { return undefined; } }
   if (q.tipo === 'huecos') { const L = [...fs.querySelectorAll('[data-hueco]')].map((i) => i.value.slice(0, 120)); return L.some((x) => x.trim()) ? L : undefined; }
-  if (q.tipo === 'numerica') { const v = fs.querySelector(`[name="${CSS.escape(nm)}"]`)?.value || ''; return v.trim() ? v.trim().slice(0, 40) : undefined; }
+  if (q.tipo === 'numerica' || q.tipo === 'variables') { const v = fs.querySelector(`[name="${CSS.escape(nm)}"]`)?.value || ''; return v.trim() ? v.trim().slice(0, 40) : undefined; }
   if (q.tipo === 'clasificar') { const L = [...fs.querySelectorAll('[data-cl]')].sort((a, b) => a.dataset.cl - b.dataset.cl).map((s) => (s.value === '' ? null : Number(s.value))); return L.some((x) => x != null) ? L : undefined; }
   if (q.tipo === 'tabla') { const L = [...fs.querySelectorAll('[data-hueco]')].sort((a, b) => a.dataset.hueco - b.dataset.hueco).map((i) => i.value.slice(0, 120)); return L.some((x) => x.trim()) ? L : undefined; }
   if (q.tipo === 'abierta') {
@@ -141,7 +145,7 @@ export function respuestaTexto(q, v) {
   if (q.tipo === 'emparejar') return (q.izquierda || []).map((iz, i) => `${iz} → ${v[i] == null ? '—' : (q.derecha || [])[v[i]]}`).join(' · ');
   if (q.tipo === 'ordenar') return (Array.isArray(v) ? v : []).map((i) => (q.elementos || [])[i]).join(' → ');
   if (q.tipo === 'huecos') return (Array.isArray(v) ? v : []).map((x, i) => `${i + 1}: ${x || '—'}`).join(' · ');
-  if (q.tipo === 'numerica') { const x = leeNumero(v); return (x == null ? String(v) : String(x).replace('.', ',')) + (q.unidad ? ' ' + q.unidad : ''); }
+  if (q.tipo === 'numerica' || q.tipo === 'variables') { const x = leeNumero(v); return (x == null ? String(v) : String(x).replace('.', ',')) + (q.unidad ? ' ' + q.unidad : ''); }
   if (q.tipo === 'clasificar') return (q.grupos || []).map((g, j) => `${g}: ${(q.elementos || []).filter((_, i) => (Array.isArray(v) ? v : [])[i] === j).join(', ') || '—'}`).join(' · ');
   if (q.tipo === 'tabla') return (Array.isArray(v) ? v : []).map((x, i) => `${i + 1}: ${x || '—'}`).join(' · ');
   if (q.tipo === 'abierta') return q.extension === 'larga' ? textoDeDoc(limpiarDoc(String(v))) : String(v);
@@ -155,6 +159,7 @@ export function solucionTexto(q, k) {
   if (q.tipo === 'emparejar') return (q.izquierda || []).map((iz, i) => `${iz} → ${(q.derecha || [])[(k || [])[i]] ?? '?'}`).join(' · ');
   if (q.tipo === 'ordenar') return (k || []).map((i) => (q.elementos || [])[i]).join(' → ');
   if (q.tipo === 'huecos') return (k || []).map((a, i) => `${i + 1}: ${alternativas(a).join(' / ')}`).join(' · ');
+  if (q.tipo === 'variables') return k ? `fórmula ${k.f}${q.unidad ? ' (' + q.unidad + ')' : ''} con los datos de cada alumno ± ${String(k.t).replace('.', ',')}${k.m === 'pct' ? ' %' : ''}` : '';
   if (q.tipo === 'numerica') return k ? `${String(k.v).replace('.', ',')}${q.unidad ? ' ' + q.unidad : ''} ± ${String(k.t).replace('.', ',')}${k.m === 'pct' ? ' %' : ''}` : '';
   if (q.tipo === 'clasificar') return (q.grupos || []).map((g, j) => `${g}: ${(q.elementos || []).filter((_, i) => (k || [])[i] === j).join(', ')}`).join(' · ');
   if (q.tipo === 'tabla') return (k || []).map((a, i) => `${i + 1}: ${alternativas(a).join(' / ')}`).join(' · ');

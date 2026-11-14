@@ -4,7 +4,8 @@
 import { test, before, after, beforeEach, describe } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { setLogLevel, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { setLogLevel, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, serverTimestamp, Timestamp, Bytes } from 'firebase/firestore';
+import { createHash } from 'node:crypto';
 
 const PROFE = 'profe@test.es';
 let env;
@@ -481,5 +482,107 @@ describe('P1 · Protección de evidencias', () => {
     await assertFails(deleteDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/imagenes/img1')));
     await sembrar((db) => updateDoc(doc(db, 'trabajos/itemT01_g1_7'), { estado: 'devuelto' }));
     await assertSucceeds(deleteDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/imagenes/img1')));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// P2 · copias congeladas (huella SHA-256 comprobada por el servidor) y enlaces con fecha
+// ---------------------------------------------------------------------------------------------
+describe('P2 · Copias congeladas', () => {
+  const buf = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52, 10, 1, 2, 3]);
+  const sha = (u) => createHash('sha256').update(u).digest('hex');
+  const COPIA = (o = {}) => ({ data: Bytes.fromUint8Array(buf), hash: sha(buf), nombre: 'diseño.pdf', mime: 'application/pdf', bytes: buf.length, tipo: 'pdf', fecha: serverTimestamp(), nEnt: 1, ...o });
+  async function borrador(estado = 'borrador') { await sembrar((db) => setDoc(doc(db, 'trabajos/itemT01_g1_7'), { ...tarea('a7'), fecha: 1, estado })); }
+  test('el alumno añade una copia con su huella correcta; huella falsa o tamaño mentido → denegado', async () => {
+    await borrador();
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c01'), COPIA({ hash: 'f'.repeat(64) })));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c01'), COPIA({ bytes: 999 })));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c21'), COPIA()));
+    await assertFails(setDoc(doc(anon('a9'), 'trabajos/itemT01_g1_7/copias/c01'), COPIA()));
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c01'), COPIA()));
+    await assertSucceeds(getDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c01')));
+    await assertFails(getDoc(doc(anon('a9'), 'trabajos/itemT01_g1_7/copias/c01')));
+    await assertSucceeds(getDoc(doc(profe(), 'trabajos/itemT01_g1_7/copias/c01')));
+  });
+  test('una copia no se modifica ni se borra (tampoco el profesor); entregado → no se añaden', async () => {
+    await borrador();
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c01'), COPIA()));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c01'), COPIA({ nombre: 'otro.pdf' })));
+    await assertFails(deleteDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c01')));
+    await assertFails(deleteDoc(doc(profe(), 'trabajos/itemT01_g1_7/copias/c01')));
+    await sembrar((db) => updateDoc(doc(db, 'trabajos/itemT01_g1_7'), { estado: 'entregado' }));
+    await assertFails(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7/copias/c02'), COPIA()));
+  });
+  test('enlaces con su fecha (enlacesT) y opción «copia» del elemento', async () => {
+    await assertSucceeds(setDoc(doc(anon('a7'), 'trabajos/itemT01_g1_7'), tarea('a7', { estado: 'borrador', enlacesT: [Date.now()] })));
+    await assertSucceeds(setDoc(doc(profe(), 'items/itemC10'), { ...ITEM_T, copia: true, sinExternos: false }));
+    await assertFails(setDoc(doc(profe(), 'items/itemC11'), { ...ITEM_T, copia: 'si' }));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// P4 · prueba sin elementos externos: bloqueo con código de 4 cifras comprobado por el servidor
+// ---------------------------------------------------------------------------------------------
+describe('P4 · Prueba sin elementos externos', () => {
+  const P = (o = {}) => ({ item: 'itemE01', al: 'g1_7', grupo: 'g1', numero: 7, bloqueado: false, nBloqueos: 0, fecha: serverTimestamp(), ...o });
+  const ruta = 'pruebas/itemE01_g1_7';
+  async function preparar() {
+    await sembrar(async (db) => { await setDoc(doc(db, 'codigosPrueba/itemE01'), { codigo: '4821', fecha: 1 }); await updateDoc(doc(db, 'items/itemE01'), { sinExternos: true }); await setDoc(doc(db, 'trabajos/itemE01_g1_7'), intento('a7', { inicio: ts(ahora() - 60e3), fecha: ts(ahora() - 60e3) })); });
+  }
+  test('el alumno no puede leer el código; el profesor sí; código con formato', async () => {
+    await preparar();
+    await assertFails(getDoc(doc(anon('a7'), 'codigosPrueba/itemE01')));
+    await assertSucceeds(getDoc(doc(profe(), 'codigosPrueba/itemE01')));
+    await assertFails(setDoc(doc(profe(), 'codigosPrueba/itemE01'), { codigo: '12a4', fecha: 1 }));
+    await assertSucceeds(setDoc(doc(profe(), 'codigosPrueba/itemE01'), { codigo: '0007', fecha: 2 }));
+  });
+  test('crear desbloqueada; bloquear suma 1; no puede bajar el contador ni desbloquearse sin código', async () => {
+    await preparar(); const db = anon('a7');
+    await assertFails(setDoc(doc(db, ruta), P({ bloqueado: true })));
+    await assertFails(setDoc(doc(anon('a9'), ruta), P()));
+    await assertSucceeds(setDoc(doc(db, ruta), P()));
+    await assertFails(updateDoc(doc(db, ruta), { bloqueado: true, nBloqueos: 0, fecha: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(db, ruta), { bloqueado: true, nBloqueos: 1, motivo: 'pestaña', fecha: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db, ruta), { bloqueado: false, fecha: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db, ruta), { bloqueado: false, codigo: '1111', fecha: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db, ruta), { bloqueado: false, codigo: '4821', nBloqueos: 0, fecha: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db, ruta), { bloqueado: false, porProfesor: true, fecha: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(db, ruta), { bloqueado: false, codigo: '4821', fecha: serverTimestamp() }));
+  });
+  test('bloqueada: no puede guardar respuestas del examen; desbloqueada por el profesor, sí', async () => {
+    await preparar(); const db = anon('a7');
+    // sin el estado de la prueba creado no se puede guardar (el portal lo crea al empezar)
+    await assertFails(updateDoc(doc(db, 'trabajos/itemE01_g1_7'), { respuestas: { q1: 1 }, fecha: serverTimestamp() }));
+    await assertSucceeds(setDoc(doc(db, ruta), P()));
+    await assertSucceeds(updateDoc(doc(db, 'trabajos/itemE01_g1_7'), { respuestas: { q1: 1 }, fecha: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(db, ruta), { bloqueado: true, nBloqueos: 1, fecha: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db, 'trabajos/itemE01_g1_7'), { respuestas: { q1: 0 }, fecha: serverTimestamp() }));
+    await assertFails(updateDoc(doc(profe(), ruta), { bloqueado: true, porProfesor: true, fecha: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(profe(), ruta), { bloqueado: false, porProfesor: true, fecha: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(db, 'trabajos/itemE01_g1_7'), { respuestas: { q1: 0 }, fecha: serverTimestamp() }));
+  });
+  test('empezar el examen con «sinExternos»: primero el estado de la prueba', async () => {
+    await sembrar(async (db) => { await updateDoc(doc(db, 'items/itemE01'), { sinExternos: true }); });
+    const db = anon('a7');
+    await assertFails(setDoc(doc(db, 'trabajos/itemE01_g1_7'), intento('a7')));
+    await assertSucceeds(getDoc(doc(db, ruta))); // todavía no existe: puede comprobarlo
+    await assertSucceeds(setDoc(doc(db, ruta), P()));
+    await assertSucceeds(setDoc(doc(db, 'trabajos/itemE01_g1_7'), intento('a7')));
+  });
+  test('también en una actividad (tarea) con «sinExternos»', async () => {
+    await sembrar(async (db) => { await updateDoc(doc(db, 'items/itemT01'), { sinExternos: true }); await setDoc(doc(db, 'codigosPrueba/itemT01'), { codigo: '1357', fecha: 1 }); });
+    const db = anon('a7'); const rp = 'pruebas/itemT01_g1_7';
+    await assertFails(setDoc(doc(db, 'trabajos/itemT01_g1_7'), tarea('a7', { estado: 'borrador' })));
+    await assertSucceeds(setDoc(doc(db, rp), P({ item: 'itemT01' })));
+    await assertSucceeds(setDoc(doc(db, 'trabajos/itemT01_g1_7'), tarea('a7', { estado: 'borrador' })));
+    await assertSucceeds(updateDoc(doc(db, rp), { bloqueado: true, nBloqueos: 1, fecha: serverTimestamp() }));
+    await assertFails(setDoc(doc(db, 'trabajos/itemT01_g1_7'), tarea('a7', { estado: 'entregado' })));
+    await assertSucceeds(updateDoc(doc(db, rp), { bloqueado: false, codigo: '1357', fecha: serverTimestamp() }));
+    await assertSucceeds(setDoc(doc(db, 'trabajos/itemT01_g1_7'), tarea('a7', { estado: 'entregado' })));
+  });
+  test('el profesor ve el estado de todos; otro alumno no', async () => {
+    await preparar(); await assertSucceeds(setDoc(doc(anon('a7'), ruta), P()));
+    await assertSucceeds(getDocs(query(collection(profe(), 'pruebas'), where('item', '==', 'itemE01'))));
+    await assertFails(getDoc(doc(anon('a9'), ruta)));
   });
 });

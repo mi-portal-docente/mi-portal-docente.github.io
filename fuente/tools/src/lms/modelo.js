@@ -19,7 +19,8 @@ export function normaliza(t) {
 //  claves:    {qid: índice (test) | true/false (vf) | [respuestas aceptadas] (corta)}
 //  respuestas:{qid: índice | true/false | texto}
 // Devuelve {puntos, max, nota (0-10), detalle: {qid: puntos}, revisar: [qid de respuestas cortas sin coincidencia]}
-export function corregirExamen(preguntas, claves, respuestas, manual = {}) {
+// ctx.s: semilla del alumno (semillaAlumno), para las preguntas con datos por alumno.
+export function corregirExamen(preguntas, claves, respuestas, manual = {}, ctx = {}) {
   let puntos = 0, max = 0; const detalle = {}; const revisar = [];
   for (const q of preguntas || []) {
     const p = Number(q.puntos) > 0 ? Number(q.puntos) : 1; max += p;
@@ -34,8 +35,8 @@ export function corregirExamen(preguntas, claves, respuestas, manual = {}) {
       if (!ok && r != null && String(r).trim() !== '') revisar.push(q.id);
     }
     else if (TIPOS_PREGUNTA[q.tipo]) {
-      got = redondea(p * TIPOS_PREGUNTA[q.tipo].corregir(q, k, r), 4); // emparejar, ordenar, huecos (parcial), numérica, zonas, clasificar, tabla
-      if (TIPOS_PREGUNTA[q.tipo].revisar?.(q, k, r)) revisar.push(q.id); // respuesta abierta: la corrige el profesor
+      got = redondea(p * TIPOS_PREGUNTA[q.tipo].corregir(q, k, r, ctx), 4); // emparejar, ordenar, huecos (parcial), numérica, zonas, clasificar, tabla
+      if (TIPOS_PREGUNTA[q.tipo].revisar?.(q, k, r, ctx)) revisar.push(q.id); // respuesta abierta: la corrige el profesor
     }
     detalle[q.id] = got; puntos += got;
   }
@@ -71,6 +72,8 @@ export function mediaPonderada(notas, pesos) {
 export const pesosPorDefecto = () => Object.fromEntries(CATEGORIAS.map((c) => [c.id, c.peso]));
 
 // Barajado determinista (mismo orden para el mismo alumno si recarga la página).
+// Semilla de un alumno en un examen (la misma en su navegador y en la corrección del profesor).
+export const semillaAlumno = (itemId, al) => semilla(itemId + '|' + al);
 export function semilla(str) { let h = 2166136261; for (const ch of String(str)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 export function barajar(arr, seed) {
   const a = arr.slice(); let s = seed >>> 0 || 1;

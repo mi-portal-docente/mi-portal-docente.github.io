@@ -4,7 +4,8 @@
 //    arrastrar y soltar elementos dentro de un tema, entre temas y los propios temas (con botones ↑ ↓
 //    como alternativa de teclado), publicar / programar / borrador, e importar la estructura de Classroom.
 import { collection, doc, getDocs, query, where, writeBatch, updateDoc, deleteDoc, setDoc, Timestamp, limit } from 'firebase/firestore';
-import { confirmar, pedirTexto } from './dialogo.js';
+import { confirmar, pedirTexto, avisar } from './dialogo.js';
+import { exportarEvidencias } from './evidencias.js';
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { asignatura, TIPOS, SEMILLAS, itemDeSemilla } from '../lms/biblioteca.js';
@@ -16,6 +17,7 @@ import { crearBanco } from './aula-banco.js';
 import { crearDirectoProfe } from './directo.js';
 
 const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
+const TIPOS_ENTREGA_EV = (it) => it.tipo !== 'material' && it.tipo !== 'info';
 const nombreTipo = (tipo) => TIPOS[tipo]?.nombre || tipo;
 const idTema = () => 't' + Array.from({ length: 12 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join('');
 const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
@@ -154,7 +156,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
         <details class="cl-mas"><summary class="btn tiny" aria-label="Más acciones">⋮</summary><div class="cl-menu">
           <button data-cl="editar">✏️ Editar</button><button data-cl="renombrar">🔤 Cambiar el título</button>
           <label>Mover a <select data-cl-mover>${opt('', 'Sin tema', it.tema || '')}${temas.map((t) => opt(t.id, t.nombre, it.tema || '')).join('')}</select></label>
-          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="duplicarEn">${ic('copy-plus')} Duplicar en otro grupo o curso…</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button><button data-cl="borrar" class="pn-peligro">🗑 Mover a la papelera</button></div></details></span></div>`;
+          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="duplicarEn">${ic('copy-plus')} Duplicar en otro grupo o curso…</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button>${TIPOS_ENTREGA_EV(it) ? `<button data-cl="evidencias">${ic('download')} Exportar evidencias (reclamaciones)</button>` : ''}<button data-cl="borrar" class="pn-peligro">🗑 Mover a la papelera</button></div></details></span></div>`;
   }
 
   // ---- Organización (solo profesor): la visión completa de la asignatura, con borradores, pendientes y notas privadas
@@ -544,6 +546,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'duplicar') return copiar(it, { titulo: it.titulo + ' (copia)' });
       if (acc === 'duplicarEn') { b.closest('details')?.removeAttribute('open'); return duplicarEn(it); }
       if (acc === 'exportarJSON') { b.closest('details')?.removeAttribute('open'); return json.exportar(it); }
+      if (acc === 'evidencias') { b.closest('details')?.removeAttribute('open'); b.disabled = true; try { const E = await exportarEvidencias(db, it, { aula, grupos: st.grupos }); await avisar(`Evidencias descargadas: ${E.alumnos.length} alumno(s). Guárdalas en tu Drive (llevan respuestas del alumnado, sin nombres). Se abren con Panel → Ajustes y limpieza → «Abrir evidencias».`); } finally { b.disabled = false; } return; }
       if (acc === 'borrar') return borrar(it);
       if (acc === 'restaurar') return restaurar(it);
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || e?.message || 'error') + ').'); }

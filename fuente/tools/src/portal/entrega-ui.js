@@ -11,6 +11,7 @@ import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
 import { rellenarImagenes } from './doc-editor.js';
 import { modeloHTML, subirModelo, quitarModelo, CON_MODELO } from './modelo3d-ui.js';
 import { confirmar } from './dialogo.js';
+import { enlacesDetectadosHTML, enlacesVivosHTML, prepararCopia, subirCopia, cargarCopias, copiasHTML, abrirCopia } from './copias-ui.js';
 
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const idCom = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
@@ -35,6 +36,13 @@ export function montarEntrega(nodo, it, ctx) {
   const guardarLocal = (v) => { try { localStorage.setItem(clave, JSON.stringify({ ...v, t: Date.now() })); } catch (e) { } };
   const borrarLocal = () => { try { localStorage.removeItem(clave); } catch (e) { } };
   const estado = () => estadoTrabajo(S.tr, S.nota);
+  // P2: fecha y hora en que se añadió cada enlace; copias congeladas del trabajo
+  S.enlT = {}; (S.tr?.enlaces || []).forEach((u, i) => { S.enlT[u] = S.tr?.enlacesT?.[i] || S.tr?.entregadoEn || Date.now(); });
+  S.copias = []; S.copiasOk = false;
+  // Por defecto en las tareas con nota (puntos o rúbrica); el profesor lo cambia en cada tarea.
+  const pideCopia = it.tipo !== 'examen' && (it.copia === true || (it.copia == null && !!(it.puntos || it.rubrica?.length)));
+  const fechasEnl = (L) => L.map((u) => (S.enlT[u] ??= Date.now()));
+  async function leerCopias(fresco = false) { if (!S.tr) { S.copiasOk = true; return; } try { S.copias = await cargarCopias(db, tid, { fresco }); } catch (e) { S.copias = []; } S.copiasOk = true; const c = nodo.querySelector('#enCopias'); if (c) c.innerHTML = copiasHTML(S.copias, { vacio: '<p class="au-small">Todavía no has subido ninguna copia.</p>' }); }
 
   function valores() {
     const f = nodo.querySelector('#enForm'); if (!f) return null;
@@ -44,6 +52,7 @@ export function montarEntrega(nodo, it, ctx) {
   function base(v) {
     const d = { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: ctx.uid(), tipo: 'tarea', texto: v.texto, enlaces: v.enlaces, fecha: serverTimestamp(), guardado: Date.now() };
     if (v.doc != null) d.doc = v.doc;
+    if (v.enlaces?.length) d.enlacesT = fechasEnl(v.enlaces);
     return d;
   }
   function indicador() {
@@ -88,6 +97,11 @@ export function montarEntrega(nodo, it, ctx) {
     if (!v.texto.trim() && !v.enlaces.length && !S.tr?.modelo && !(v.doc && String(v.doc).replace(/<[^>]*>/g, '').trim())) { msg.textContent = 'Escribe una respuesta, añade un enlace o sube un archivo.'; msg.className = 'au-msg ko'; return; }
     const cont = it.contenido || {};
     if (v.doc != null && (cont.palabrasMin || cont.palabrasMax)) { const np = contarPalabras(v.doc); if ((cont.palabrasMin && np < cont.palabrasMin) || (cont.palabrasMax && np > cont.palabrasMax)) { if (!await confirmar(`Tu documento tiene ${np} palabras y se piden ${cont.palabrasMin ? 'al menos ' + cont.palabrasMin : ''}${cont.palabrasMin && cont.palabrasMax ? ' y ' : ''}${cont.palabrasMax ? 'como mucho ' + cont.palabrasMax : ''}. ¿Entregar igualmente?`)) return; } }
+    if (pideCopia && v.enlaces.length) {
+      if (!S.copiasOk) await leerCopias(true);
+      const desde = S.tr?.estado === 'devuelto' ? (S.tr?.devFecha || 0) : 0;
+      if (!S.copias.some((c) => (c.fecha || 0) > desde)) { msg.innerHTML = ic('lock') + ' Has puesto un enlace: sube también una <b>copia</b> de cómo está ahora (PDF, capturas o el archivo). Mira «Copia congelada», más abajo.'; msg.className = 'au-msg ko'; nodo.querySelector('.cp-sec')?.scrollIntoView?.({ block: 'center' }); return; }
+    }
     btn.disabled = true; msg.textContent = 'Entregando…'; msg.className = 'au-msg';
     const n = (S.tr?.nEntregas || 0) + 1;
     try {
@@ -110,7 +124,7 @@ export function montarEntrega(nodo, it, ctx) {
     if (!await confirmar('¿Anular la entrega? Volverá a ser un borrador: podrás cambiarlo y entregarlo de nuevo.')) return;
     btn.disabled = true; const msg = nodo.querySelector('#enMsg');
     try {
-      await escribir({ estado: 'borrador', fecha: serverTimestamp(), guardado: Date.now(), item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: ctx.uid(), tipo: 'tarea', texto: S.tr?.texto || '', enlaces: S.tr?.enlaces || [] });
+      await escribir({ estado: 'borrador', fecha: serverTimestamp(), guardado: Date.now(), item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: ctx.uid(), tipo: 'tarea', texto: S.tr?.texto || '', enlaces: S.tr?.enlaces || [], ...(S.tr?.enlaces?.length ? { enlacesT: fechasEnl(S.tr.enlaces) } : {}) });
       S.tr = { ...S.tr, estado: 'borrador' }; S.ultimo = Date.now(); pintar();
     } catch (e) {
       btn.disabled = false; msg.textContent = e?.code === 'permission-denied' ? 'Ya no se puede anular: el profesor la está corrigiendo o ya la ha calificado.' : 'Revisa la conexión y vuelve a intentarlo.'; msg.className = 'au-msg ko';
@@ -179,8 +193,13 @@ export function montarEntrega(nodo, it, ctx) {
     h += `<form id="enForm" class="au-form" autocomplete="off" onsubmit="return false">`;
     if (ctx.editor) h += ctx.editor.html(v, !ed);
     else h += `<label>Respuesta<textarea name="texto" maxlength="10000" rows="8" ${ed ? '' : 'readonly'} placeholder="Escribe aquí tu respuesta. No pongas tu nombre.">${esc(v.texto || '')}</textarea></label>`;
-    h += ed ? `<label>Enlaces (uno por línea: presentación, vídeo, archivo grande…)<textarea name="enlaces" rows="2" maxlength="5000" placeholder="https://…">${esc((v.enlaces || []).join('\n'))}</textarea></label>`
-      : (v.enlaces || []).map((u) => `<div>${ic('link')} <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('');
+    h += ed ? `<label>Enlaces (uno por línea: Canva, Drive, Tinkercad, vídeo…)<textarea name="enlaces" rows="2" maxlength="5000" placeholder="https://…">${esc((v.enlaces || []).join('\n'))}</textarea></label><div id="enEnl">${enlacesDetectadosHTML(v.enlaces || [])}</div>`
+      : enlacesVivosHTML(v.enlaces || [], tr?.enlacesT || []);
+    // P2 · copias congeladas: lo que hay en un enlace puede cambiar; la copia (con fecha y huella) no.
+    if (ed || S.copias.length || (tr && pideCopia)) h += `<section class="cp-sec"><h5>${ic('lock')} Copia congelada${pideCopia ? '' : ' (opcional)'}</h5>
+      ${ed ? `<p class="au-small">${pideCopia ? 'Si entregas un enlace, sube también una copia de cómo está ahora: PDF, capturas (imágenes) o el archivo.' : 'Puedes subir una copia de lo que entregas (PDF, imágenes o archivo).'} Queda guardada con la fecha y una huella digital y <b>no se puede cambiar ni borrar</b>. Máximo: PDF 700 KB, imágenes 300 KB (se reducen solas), archivos 600 KB.</p>
+        <div class="au-acts"><button type="button" class="btn small" data-en="cpSubir">${ic('upload')} Subir copia</button><input type="file" class="cp-file" accept=".pdf,image/*,.stl,.zip,.png,.jpg,.jpeg" hidden></div>` : ''}
+      <div id="enCopias">${S.copiasOk ? copiasHTML(S.copias, { vacio: '<p class="au-small">Sin copias.</p>' }) : '<p class="au-small">Cargando copias…</p>'}</div></section>`;
     if (CON_MODELO(it.tipo)) h += modeloHTML(tr, ed, tid);
     h += `<div class="au-acts">`;
     if (ed) h += `<button type="button" class="btn" data-en="guardar">${ic('save')} Guardar</button><button type="button" class="btn primary" data-en="entregar">${ic('send')} ${tr?.nEntregas || e === 'devuelto' ? 'Volver a entregar' : 'Entregar'}</button>`;
@@ -194,7 +213,21 @@ export function montarEntrega(nodo, it, ctx) {
     indicador(); escucharComentarios();
     if (S.sucio && ed) { clearTimeout(S.tDeb); S.tDeb = setTimeout(() => guardarBorrador('local'), 1500); }
   }
-  const onInput = (ev) => { if (ev.target.closest('#enForm') && !ctx.editor) alCambiar(); else if (ev.target.closest('#enForm') && ev.target.name === 'enlaces') alCambiar(); };
+  const onInput = (ev) => {
+    if (ev.target.name === 'enlaces') { const d = nodo.querySelector('#enEnl'); if (d) d.innerHTML = enlacesDetectadosHTML(leeEnlaces(ev.target.value, 10).map((e) => e.u)); }
+    if (ev.target.closest('#enForm') && !ctx.editor) alCambiar(); else if (ev.target.closest('#enForm') && ev.target.name === 'enlaces') alCambiar();
+  };
+  async function copia(file) {
+    const msg = nodo.querySelector('#enMsg');
+    try {
+      const prep = await prepararCopia(file);
+      if (!await confirmar(`¿Subir «${prep.nombre}» (${Math.max(1, Math.round(prep.bytes.length / 1024))} KB) como copia congelada?\n\nQuedará guardada con la fecha y su huella, y no se podrá cambiar ni borrar.`, { aceptar: 'Subir copia' })) return;
+      await asegurar(); msg.textContent = 'Subiendo la copia…'; msg.className = 'au-msg';
+      if (!S.copiasOk) await leerCopias(true);
+      await subirCopia(db, tid, prep, { nEnt: (S.tr?.nEntregas || 0) + 1, existentes: S.copias });
+      await leerCopias(true); msg.innerHTML = ic('circle-check') + ' Copia guardada.'; msg.className = 'au-msg ok';
+    } catch (e) { msg.textContent = e?.code === 'permission-denied' ? 'No se ha podido guardar la copia (¿ya está entregado o calificado?).' : (e?.message || 'No se ha podido subir la copia.'); msg.className = 'au-msg ko'; }
+  }
   const onClick = (ev) => {
     const b = ev.target.closest('[data-en]'); if (!b || !nodo.contains(b)) return;
     const a = b.dataset.en;
@@ -205,15 +238,18 @@ export function montarEntrega(nodo, it, ctx) {
     if (a === 'comentar') comentar(b.closest('form'));
     if (a === 'm3dSubir') nodo.querySelector('.m3-file')?.click();
     if (a === 'm3dQuitar') modelo(null, b);
+    if (a === 'cpSubir') nodo.querySelector('.cp-file')?.click();
   };
   const alSalir = () => { if (S.sucio) guardarBorrador('salir'); };
   const onVis = () => { if (document.visibilityState === 'hidden') alSalir(); };
   const onOnline = () => { if (S.sucio) guardarBorrador('red'); };
   nodo.addEventListener('input', onInput); nodo.addEventListener('click', onClick);
+  nodo.addEventListener('change', (ev) => { const cf = ev.target.closest?.('.cp-file'); if (cf) { const fl = cf.files?.[0]; cf.value = ''; if (fl) copia(fl); return; } });
+  nodo.addEventListener('click', (ev) => { const b = ev.target.closest('[data-cp-abrir]'); if (!b) return; const c = S.copias.find((x) => x.id === b.dataset.cpAbrir); if (c) abrirCopia(c); });
   nodo.addEventListener('change', (ev) => { const i = ev.target.closest?.('.m3-file'); if (!i) return; const file = i.files?.[0]; i.value = ''; if (file) modelo(file, i); });
   window.addEventListener('pagehide', alSalir); window.addEventListener('hashchange', alSalir); document.addEventListener('visibilitychange', onVis); window.addEventListener('online', onOnline);
   S.tInt = setInterval(() => { if (S.sucio) guardarBorrador('intervalo'); }, 15000);
-  pintar();
+  pintar(); leerCopias();
   return {
     actualizar({ trabajo, nota }) {
       const antes = estado(); const tenia = !!S.tr;

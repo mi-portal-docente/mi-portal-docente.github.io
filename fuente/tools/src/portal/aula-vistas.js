@@ -8,6 +8,7 @@ import { asignatura, TIPOS } from '../lms/biblioteca.js';
 import { fmtNota, barajar, semilla, leeEnlaces, urlSegura, idTrabajo, TIPOS_ENTREGA, corregirExamen, tipoAdjunto } from '../lms/modelo.js';
 import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTipoPregunta } from './examen-ui.js';
 import { crearModoExamen } from './modo-examen.js';
+import { montarPruebaProfe } from './prueba-profe.js';
 import { montarExplicacion } from './explicacion-ui.js';
 import { montarPiac } from './piac-ui.js';
 import { montarInteractiva } from './interactiva-ui.js';
@@ -54,6 +55,15 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   const modo = rol === 'alumno' ? crearModoExamen({ db, ses, uid }) : null;
 
   // ---------------------------------------------------------------- estado de cada elemento (alumno)
+  const sinExt = (it) => !!(it?.sinExternos || it?.examen?.sinExternos);
+  // P4: la prueba sin elementos externos solo empieza a pantalla completa
+  async function pantallaObligatoria(it, msgEl) {
+    if (!sinExt(it)) { if (it?.examen?.pantallaCompleta) modo?.pedirPantalla(); return true; }
+    try { await modo.pedirPantalla(); } catch (e) { /* abajo */ }
+    if (document.fullscreenElement) return true;
+    if (msgEl) { msgEl.textContent = 'Esta prueba solo se puede hacer a pantalla completa. Usa un ordenador y permite la pantalla completa.'; msgEl.className = 'au-msg ko'; }
+    return false;
+  }
   function ventana(it) { const e = it.examen || {}; return { desde: e.desde || 0, hasta: e.hasta || 0, limiteMin: e.limiteMin || null }; }
   function estado(it) {
     if (rol === 'profesor') return it.publicado ? ['pub', 'Publicado'] : ['borr', 'Borrador'];
@@ -117,7 +127,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (tr) return h + '<div class="au-ok">⏱ Se acabó el tiempo. Se han guardado las respuestas que diste.</div>';
     if (now < v.desde) return h + `<p class="au-vacio">El examen se abrirá el ${esc(fFecha(v.desde))}.</p>`;
     if (now > v.hasta) return h + '<p class="au-vacio">El plazo del examen ha terminado.</p>';
-    const me = it.examen?.pantallaCompleta ? '<div class="au-aviso ex-modo-aviso">' + ic('shield-check') + ' <b>Modo examen</b>: se abrirá a pantalla completa. Si sales de la pestaña o de la pantalla completa, queda anotada la hora y cuánto tiempo (lo ve solo tu profesor). No anula el examen.</div>' : '';
+    const me = it.examen?.sinExternos || it.sinExternos ? '<div class="au-aviso ex-modo-aviso pb-aviso">' + ic('shield-check') + ' <b>Prueba sin elementos externos</b>: esta prueba registra si sales de la pantalla y se bloquea. Se abre a pantalla completa; si sales de la pestaña, de la ventana o de la pantalla completa, solo podrás seguir con el código de tu profesor. No se puede pegar texto.</div>' : it.examen?.pantallaCompleta ? '<div class="au-aviso ex-modo-aviso">' + ic('shield-check') + ' <b>Modo examen</b>: se abrirá a pantalla completa. Si sales de la pestaña o de la pantalla completa, queda anotada la hora y cuánto tiempo (lo ve solo tu profesor). No anula el examen.</div>' : '';
     return h + me + `<div class="au-aviso">Solo tienes <b>un intento</b>. ${v.limiteMin ? `Tendrás <b>${v.limiteMin} minutos</b> desde que pulses «Empezar».` : ''} Las respuestas se guardan solas mientras contestas.</div>
       <div class="au-acts"><button class="btn primary" data-au="empezar">▶ Empezar el examen</button><span class="au-msg" id="auMsg"></span></div>`;
   }
@@ -136,6 +146,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     else if (TIPOS_ENTREGA.includes(it.tipo) && rol === 'alumno') h += entregaHTML(it);
     return h;
   }
+  let pruebaM = null;
   function renderItem(el, id) {
     if (!el) return; actual = { el, tipo: 'item', id };
     if (ex.id === id && ex.examen && rol === 'alumno') return; // examen en marcha: no se repinta
@@ -151,6 +162,19 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       const montar = montadorDe(it.tipo);
       const api = montar(nodo, it, { rol, db, ses, aula: st, trabajo: st.trabajos.get(id), nota: st.notas.get(id), entregar: rol === 'alumno' ? (texto, extra) => entregarActividad(it.id, texto, extra) : null });
       motorM = { id, nodo, api, nota: !!st.notas.get(id) };
+    }
+    // P4 · panel en directo del profesor (código y bloqueos)
+    pruebaM?.destruir?.(); pruebaM = null;
+    if (rol === 'profesor' && sinExt(it)) { const pn = document.createElement('div'); pn.id = 'auPruebaProfe'; el.querySelector('.au-page')?.appendChild(pn); pruebaM = montarPruebaProfe(pn, it, { db, nombreGrupo: (g) => aula.grupos?.get?.(g)?.nombre || st.grupos?.get?.(g)?.nombre || g }); }
+    // P4 · actividad «sin elementos externos» (no examen): hasta que empieza a pantalla completa no se ve la entrega.
+    if (rol === 'alumno' && it.sinExternos && it.tipo !== 'examen') {
+      const e = estadoTrabajo(st.trabajos.get(id), st.notas.get(id));
+      const zona = el.querySelector('#auEntregaM') || el.querySelector('#auMotor');
+      if (e === 'entregado' || e === 'calificado') { if (modo?.activo) modo.parar(true); }
+      else if (!modo?.activo && zona) {
+        zona.insertAdjacentHTML('beforebegin', '<div class="au-aviso pb-aviso">' + ic('shield-check') + ' <b>Prueba sin elementos externos</b>: esta prueba registra si sales de la pantalla y se bloquea. Si sales de la pestaña, de la ventana o de la pantalla completa, solo podrás seguir con el código de tu profesor. No se puede pegar texto.<div class="au-acts"><button class="btn primary" data-au="empezarPrueba">' + ic('maximize') + ' Empezar a pantalla completa</button><span class="au-msg" id="pbMsg"></span></div></div>');
+        zona.hidden = true; return;
+      } else if (!modo.activo) { /* sin zona */ } else modo.empezar(it);
     }
     const nE = el.querySelector('#auEntregaM');
     if (nE && rol === 'alumno') entM = { id, nodo: nE, api: montarEntrega(nE, it, { db, ses, uid, al, trabajo: st.trabajos.get(id), nota: st.notas.get(id), textoHTML, ...(it.tipo === 'documento' ? { editor: crearEditorDoc(it, { db, ses }) } : it.tipo === 'hoja' ? { editor: crearEditorHoja(it) } : {}) }) };
@@ -185,6 +209,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     const it = st.items.get(actual?.id); if (!it) return;
     const msg = document.getElementById('auMsg'); btn.disabled = true; if (msg) msg.textContent = 'Abriendo el examen…';
     try {
+      if (sinExt(it)) await modo.asegurarPrueba(it); // P4: sin el estado de la prueba el servidor no deja empezar
       if (!st.trabajos.get(it.id)) await setDoc(doc(db, 'trabajos', idTrabajo(it.id, ses.grupo, ses.numero)), { item: it.id, curso: it.curso, asig: it.asig, al, grupo: ses.grupo, numero: ses.numero, uid: uid(), tipo: 'examen', respuestas: {}, inicio: serverTimestamp(), fecha: serverTimestamp(), estado: 'en_curso' });
       await abrirExamen(it);
     } catch (e) {
@@ -201,12 +226,13 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     const r = (q) => ex.resp[q.id];
     actual.el.innerHTML = barraSup() + `<div class="au-page au-examen">${cabeceraItem(it)}
       <div class="au-reloj" id="auReloj" role="timer"></div>
-      ${examen.pantallaCompleta ? '<div class="ex-modo" id="exModo" role="status">' + ic('shield-check') + ' Modo examen · las salidas de la pestaña o de la pantalla completa quedan anotadas (solo informativo). <button type="button" class="btn tiny" data-au="pantalla">' + ic('maximize') + ' Volver a pantalla completa</button></div>' : ''}
+      ${examen.pantallaCompleta || sinExt(it) ? '<div class="ex-modo" id="exModo" role="status">' + ic('shield-check') + (sinExt(it) ? ' Prueba sin elementos externos · si sales de la pantalla se bloquea.' : ' Modo examen · las salidas de la pestaña o de la pantalla completa quedan anotadas (solo informativo).') + ' <button type="button" class="btn tiny" data-au="pantalla">' + ic('maximize') + ' Volver a pantalla completa</button></div>' : ''}
       <form id="auExamen" class="au-form" autocomplete="off">${qs.map((q, n) => preguntaHTML(q, r(q), { n: n + 1, barajarOps: examen.barajar, s })).join('')}
         <div class="au-acts"><button type="submit" class="btn primary">📤 Entregar el examen</button><span class="au-msg" id="auMsg"></span></div>
         <p class="au-small">Las respuestas se guardan solas. Si se corta la conexión, vuelve a entrar con tu código, tu número y tu PIN: podrás seguir mientras quede tiempo.</p></form></div>`;
     enlazarPreguntas(actual.el, () => { const f = document.getElementById('auExamen'); if (f && ex.examen) { leerRespuestas(f); programarGuardado(); } });
-    if (examen.pantallaCompleta) modo?.empezar(it); else modo?.parar();
+    if (examen.pantallaCompleta || sinExt(it)) modo?.empezar(it); else modo?.parar();
+    if (sinExt(it)) await modo.asegurarPrueba(it).catch(() => { });
     clearInterval(ex.timer); ex.timer = setInterval(() => tic(it), 1000); tic(it);
   }
   function tic(it) {
@@ -274,9 +300,11 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   // ---------------------------------------------------------------- eventos
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-au]'); if (!b || !actual?.el.contains(b)) return;
-    if (b.dataset.au === 'empezar') { const it = st.items.get(actual.id); if (it?.examen?.pantallaCompleta) modo?.pedirPantalla(); empezar(b); }
+    if (b.dataset.au === 'empezar') { const it = st.items.get(actual.id); pantallaObligatoria(it, document.getElementById('auMsg')).then((ok) => { if (ok) empezar(b); }); }
+    if (b.dataset.au === 'empezarPrueba') { const it = st.items.get(actual.id); const m = document.getElementById('pbMsg'); b.disabled = true;
+      pantallaObligatoria(it, m).then(async (ok) => { if (!ok) { b.disabled = false; return; } try { await modo.asegurarPrueba(it); modo.empezar(it); renderItem(actual.el, it.id); } catch (e) { b.disabled = false; if (m) m.textContent = 'Revisa la conexión y vuelve a intentarlo.'; } }); }
     if (b.dataset.au === 'pantalla') modo?.pedirPantalla();
-    if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); if (it?.examen?.pantallaCompleta) modo?.pedirPantalla(); b.disabled = true; abrirExamen(it).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }
+    if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); b.disabled = true; pantallaObligatoria(it, document.getElementById('auMsg')).then((ok) => { if (!ok) { b.disabled = false; return; } abrirExamen(it).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }); }
     if (b.dataset.au === 'verPreguntas') verPreguntas();
     if (b.dataset.au === 'editar') window.PORTAL?.aula?.editar?.(actual.id);
     if (b.dataset.au === 'leer') leerEnVoz(b);
@@ -291,6 +319,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   });
   const alCambiar = (e) => { const f = e.target.closest?.('#auExamen'); if (f && ex.examen) { leerRespuestas(f); programarGuardado(); } };
   document.addEventListener('change', alCambiar); document.addEventListener('input', alCambiar);
+  window.addEventListener('hashchange', () => { if (!ex.id && modo?.activo && actual?.tipo === 'item' && !location.hash.startsWith('#trabajo/' + actual.id)) modo.parar(true); });
   window.addEventListener('hashchange', () => { if (ex.id && !location.hash.startsWith('#trabajo/' + ex.id)) { guardarExamen(); modo?.parar(true); clearInterval(ex.timer); ex.id = null; ex.examen = null; } });
 
   // ---------------------------------------------------------------- actividades de clase (alumno)

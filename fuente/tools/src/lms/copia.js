@@ -11,6 +11,7 @@ export const COLECCIONES_CURSO = [
 // Valor de Firestore → JSON (las fechas como {"__fecha": "ISO"}).
 export function aJSON(v) {
   if (v == null || typeof v !== 'object') return v;
+  if (typeof v.toBase64 === 'function' && typeof v.toUint8Array === 'function') return { __bytes: v.toBase64() }; // copias congeladas
   if (typeof v.toDate === 'function') { try { return { __fecha: v.toDate().toISOString() }; } catch (e) { return null; } }
   if (Array.isArray(v)) return v.map(aJSON);
   if (typeof v.latitude === 'number' && typeof v.longitude === 'number') return { lat: v.latitude, lon: v.longitude };
@@ -30,6 +31,7 @@ export const totalCopia = (c) => Object.values(resumenCopia(c)).reduce((a, b) =>
 export const alumnadoCopia = (c) => ['trabajos', 'notas', 'versiones', 'registros', 'incidencias', 'piac', 'piacEval', 'respDirecto', 'comentarios', 'imagenes', 'modelos']
   .reduce((a, k) => a + (resumenCopia(c)[k] || 0), 0);
 // Nombre del archivo: copia-curso-2026-27-AAAAMMDD.json
-export const nombreCopia = (nombre, fecha = new Date()) => `copia-curso-${String(nombre || 'curso').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '')}-${fecha.toISOString().slice(0, 10).replace(/-/g, '')}.json`;
+// P3: AAAAMMDD_SuperProfe_Alumnos_<curso>.json (fecha local del día de la copia)
+export const nombreCopia = (nombre, fecha = new Date()) => `${fecha.getFullYear()}${String(fecha.getMonth() + 1).padStart(2, '0')}${String(fecha.getDate()).padStart(2, '0')}_SuperProfe_Alumnos_${String(nombre || 'curso').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '')}.json`;
 // Comprueba la confirmación escrita (doble confirmación): hay que escribir el nombre del curso.
 export const confirmacionOk = (escrito, nombre) => String(escrito || '').trim().toLowerCase() === String(nombre || '').trim().toLowerCase() && !!String(nombre || '').trim();

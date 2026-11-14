@@ -498,7 +498,7 @@ test('fase 14: copia del curso (fechas a JSON, trozos de 30, imágenes usadas, r
   const c = { colecciones: { items: [{}, {}], trabajos: [{}, {}, {}], notas: [{}] }, subcolecciones: { comentarios: [{}], imagenes: [] } };
   assert.deepEqual(CP.resumenCopia(c), { items: 2, trabajos: 3, notas: 1, comentarios: 1, imagenes: 0 });
   assert.equal(CP.totalCopia(c), 7); assert.equal(CP.alumnadoCopia(c), 5);
-  assert.equal(CP.nombreCopia('2026/27', new Date('2026-11-13T12:00:00Z')), 'copia-curso-2026-27-20261113.json');
+  assert.equal(CP.nombreCopia('2026/27', new Date('2026-11-13T12:00:00Z')), '20261113_SuperProfe_Alumnos_2026-27.json');
   assert.ok(CP.confirmacionOk(' 2026/27 ', '2026/27')); assert.ok(!CP.confirmacionOk('2026', '2026/27')); assert.ok(!CP.confirmacionOk('', ''));
   assert.ok(CP.COLECCIONES_CURSO.some((x) => x.col === 'trabajos' && !x.contenido) && CP.COLECCIONES_CURSO.some((x) => x.col === 'items' && x.contenido));
 });

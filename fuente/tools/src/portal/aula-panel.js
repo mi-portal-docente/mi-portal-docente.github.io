@@ -2,10 +2,13 @@
 // materiales, tareas, proyectos y exámenes) y calificaciones (cuaderno por grupo con categorías y pesos).
 import { getDoc, collection, doc, getDocs, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, Timestamp, orderBy, serverTimestamp, deleteField } from 'firebase/firestore';
 import { confirmar, avisar, pedirTexto } from './dialogo.js';
+import { enlacesVivosHTML, slotCopias, rellenarCopias } from './copias-ui.js';
+import { elegirYAbrirVisor } from './evidencias.js';
 import { leerResultado } from '../act/resultado.js';
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { BIBLIOTECA, asignatura, TIPOS, CATEGORIAS, ETAPAS } from '../lms/biblioteca.js';
+import { semillaAlumno } from '../lms/modelo.js';
 import { corregirExamen, notaRubrica, mediaPonderada, pesosPorDefecto, categoriaDe, fmtNota, redondea, idItem, idTrabajo, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, csv, urlSegura, TIPOS_ENTREGA } from '../lms/modelo.js';
 import { ordenarItems, nombreUnidad, textoHTML } from './aula-vistas.js';
 import { respuestaTexto, solucionTexto } from './examen-ui.js';
@@ -256,7 +259,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       else {
         const pq = ex.examen?.preguntas || []; const k = ex.claves?.respuestas || {}; const r = tr?.respuestas || {};
         const manual = {}; pq.forEach((q) => { if (det[q.id] != null) manual[q.id] = det[q.id]; });
-        auto = corregirExamen(pq, k, r, manual);
+        auto = corregirExamen(pq, k, r, manual, { s: semillaAlumno(it.id, `${grupoSel().id}_${ab.n}`) });
         h += `<h4>Respuestas · ${esc(fmtNota(auto.puntos))} / ${esc(fmtNota(auto.max))} puntos</h4><ol class="ap-resp">${pq.map((q) => {
           const v = r[q.id]; const txt = respuestaTexto(q, v);
           const sol = solucionTexto(q, k[q.id]);
@@ -271,7 +274,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       }
     } else if (tr) {
       if (conResultado(it.tipo)) { const r = leerResultado(tr.texto); if (r) { auto = { nota: r.nota }; h += `<div class="pn-inf ap-act">🧩 Resultado de la actividad: <b>${r.aciertos}/${r.total}</b> aciertos → nota sugerida <b>${esc(fmtNota(r.nota))}</b></div>`; } }
-      h += `<div class="pn-inf"><b>Respuesta</b><div>${tr.texto ? textoHTML(tr.texto) : '<span class="pn-small">—</span>'}</div></div>${(tr.enlaces || []).map((u) => `<div>🔗 <a href="${esc(urlSegura(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}`;
+      h += `<div class="pn-inf"><b>Respuesta</b><div>${tr.texto ? textoHTML(tr.texto) : '<span class="pn-small">—</span>'}</div></div>${enlacesVivosHTML(tr.enlaces || [], tr.enlacesT || [])}${slotCopias(idTrabajo(it.id, g.id, ab.n))}`;
     }
     if (it.rubrica?.length) {
       h += `<h4>Rúbrica</h4><table class="pn-t ap-rub">${it.rubrica.map((r, i) => r.clase ? `<tr><td>${esc(r.c)}</td><td class="c pn-small">en clase</td></tr>` : `<tr><td>${esc(r.c)}</td><td class="c"><input type="number" class="ap-rpts" data-ri="${i}" min="0" max="${esc(r.p)}" step="0.25" value="${esc(det['r' + i] ?? '')}"> / ${esc(fmtNota(r.p))}</td></tr>`).join('')}</table>`;
@@ -283,7 +286,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       <div class="pn-acts"><button class="btn primary" type="submit">💾 Guardar nota</button>${nt ? '<button class="btn" type="button" data-ap="borrarNota">Quitar nota</button>' : ''}<span class="pn-msg" id="apNotaMsg"></span></div></form>
       ${tr?.tipo === 'tarea' ? seguimientoHTML(id, tr) : ''}
       <div class="pn-acts">${it.tipo !== 'examen' ? `<button class="btn small" data-ap="corregirAl">${ic('clipboard-check')} Vista de corrección</button>` : ''}${tr && it.tipo !== 'examen' && (tr.estado || 'entregado') === 'entregado' ? `<button class="btn small" data-ap="repetir" title="Devuelve la entrega para que la corrija y la vuelva a entregar (lo entregado se conserva)">↺ Permitir repetir</button>` : ''}${pinB}</div>`;
-    D.innerHTML = h;
+    D.innerHTML = h; rellenarCopias(D, db);
   }
   // Fase 9: devolver para corregir, comentarios privados y últimas versiones entregadas.
   function seguimientoHTML(id, tr) {
@@ -336,7 +339,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (it.tipo === 'examen') {
       const ex = A.cargaEx.get(it.id); if (!ex) return; const g = grupoSel(); const tr = A.trabajos.get(idTrabajo(it.id, g.id, ab.n));
       const manual = {}; D.querySelectorAll('.ap-qpts').forEach((i) => { manual[i.dataset.qid] = i.value; });
-      nota = corregirExamen(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, tr?.respuestas || {}, manual).nota;
+      nota = corregirExamen(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, tr?.respuestas || {}, manual, { s: semillaAlumno(it.id, `${g.id}_${ab.n}`) }).nota;
     } else if (it.rubrica?.length) {
       const v = {}; D.querySelectorAll('.ap-rpts').forEach((i) => { if (i.value !== '') v[i.dataset.ri] = Number(i.value); });
       nota = notaRubrica(it.rubrica, v).nota;
@@ -353,7 +356,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     A.el.querySelectorAll('#apDetalle .ap-qr').forEach((i) => { if (i.value !== '') detalle[i.dataset.qid + '_r' + i.dataset.ri] = Number(i.value); });
     if (it.tipo === 'examen' && A.cargaEx.get(it.id)) {
       const ex = A.cargaEx.get(it.id); const manual = {}; A.el.querySelectorAll('#apDetalle .ap-qpts').forEach((i) => { manual[i.dataset.qid] = i.value; });
-      const r = corregirExamen(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, A.trabajos.get(idTrabajo(it.id, g.id, ab.n))?.respuestas || {}, manual);
+      const r = corregirExamen(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, A.trabajos.get(idTrabajo(it.id, g.id, ab.n))?.respuestas || {}, manual, { s: semillaAlumno(it.id, `${g.id}_${ab.n}`) });
       Object.assign(detalle, r.detalle); puntos = r.puntos; max = r.max;
     } else if (it.rubrica?.length) { const r = notaRubrica(it.rubrica, Object.fromEntries(Object.entries(detalle).map(([k, v]) => [k.slice(1), v]))); puntos = r.puntos; max = r.max; }
     msg.textContent = 'Guardando…'; msg.className = 'pn-msg';
@@ -368,7 +371,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const ops = []; let n = 0, revisar = 0;
     for (const tr of A.trabajos.values()) {
       if (tr.item !== itemId || A.notas.get(tr.id)?.nota != null) continue;
-      const r = corregirExamen(pq, k, tr.respuestas || {}); n++; if (r.revisar.length) revisar++;
+      const r = corregirExamen(pq, k, tr.respuestas || {}, {}, { s: semillaAlumno(itemId, tr.al) }); n++; if (r.revisar.length) revisar++;
       ops.push({ db, fn: (b) => b.set(doc(db, 'notas', tr.id), { item: it.id, curso: it.curso, asig: it.asig, al: tr.al, grupo: tr.grupo, numero: tr.numero, nota: r.nota, puntos: r.puntos, max: r.max, detalle: r.detalle, comentario: '', publicada: false, fecha: Date.now() }) });
     }
     await enLotes(ops);
@@ -438,7 +441,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (!A.cargaEx.has(it.id)) { A.anCarga = A.anCarga || new Set(); if (!A.anCarga.has(it.id)) { A.anCarga.add(it.id); cargarExamenProfe(it.id).then(() => { if (A.sub === 'analitica') pintar(); }).catch(() => { }).finally(() => A.anCarga.delete(it.id)); } return bar + '<p class="pn-small">Cargando el examen…</p>'; }
     const ex = A.cargaEx.get(it.id);
     if (ex instanceof Promise || !ex) return bar + '<p class="pn-small">Cargando el examen…</p>';
-    const entregas = [...A.trabajos.values()].filter((t) => t.item === it.id && t.estado !== 'en_curso').map((t) => ({ respuestas: t.respuestas || {}, detalle: A.notas.get(t.id)?.detalle }));
+    const entregas = [...A.trabajos.values()].filter((t) => t.item === it.id && t.estado !== 'en_curso').map((t) => ({ respuestas: t.respuestas || {}, detalle: A.notas.get(t.id)?.detalle, s: semillaAlumno(it.id, t.al) }));
     const R = analizarExamen(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, entregas);
     const corto = (t, n = 90) => (t.length > n ? t.slice(0, n - 1) + '…' : t);
     if (!R.n) return bar + `<p class="pn-vacio">Nadie de ${esc(g.nombre)} ha entregado «${esc(it.titulo)}» todavía.</p>`;
@@ -457,7 +460,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     return `<section class="pn-card"><h3>PIN de los alumnos</h3><p class="pn-small">Cada nº de lista elige un PIN la primera vez. Si un alumno lo olvida, reinícialo desde el «Cuaderno de calificaciones» (casilla del alumno) o aquí todos los del grupo: la próxima vez que entre elegirá uno nuevo.</p>
       <div class="pn-acts"><select id="apPinGrupo">${gs.map((g) => opt(g.id, g.nombre, '')).join('')}</select><button class="btn" data-ap="pinesGrupo" ${gs.length ? '' : 'disabled'}>🔑 Reiniciar todos los PIN del grupo</button><span class="pn-msg" id="apPinMsg"></span></div></section>
       <section class="pn-card" id="apCopia"><h3>${ic('archive')} Curso escolar: copia y limpieza</h3><p class="pn-small">«Exportar todo» descarga un JSON con todo el curso: elementos, temas, anuncios, exámenes, trabajos (con comentarios, imágenes y modelos 3D), versiones, notas y registros. Mientras el curso está abierto no se borra ninguna evidencia (los elementos «borrados» van a la Papelera). «Limpiar curso escolar» solo funciona con el curso <b>cerrado hace más de 6 meses</b> (Manual de evaluación, §11.2): descarga antes la copia y después borra los datos del alumnado (doble confirmación). El contenido se conserva salvo que marques la casilla.</p>
-      <div class="pn-acts"><select id="apBorrarCurso" aria-label="Curso escolar">${cursos().map((c) => opt(c.id, c.nombre, prev.c || '')).join('')}</select><button class="btn" data-ap="exportarCurso" ${st.cursos.size ? '' : 'disabled'}>${ic('download')} Exportar todo (JSON)</button></div>
+      <div class="pn-acts"><select id="apBorrarCurso" aria-label="Curso escolar">${cursos().map((c) => opt(c.id, c.nombre, prev.c || '')).join('')}</select><button class="btn" data-ap="exportarCurso" ${st.cursos.size ? '' : 'disabled'}>${ic('download')} Exportar todo (JSON)</button><button class="btn" data-ap="visorEvidencias" title="Abre en el navegador un archivo de «Exportar evidencias» (no se sube a ningún sitio)">${ic('eye')} Abrir evidencias…</button></div>
       <div class="pn-acts"><label class="pn-chk"><input type="checkbox" id="apBorrarContenido" ${prev.x ? 'checked' : ''}> Borrar también el contenido (elementos, temas, anuncios y exámenes)</label></div>
       <div class="pn-acts"><button class="btn pn-peligro" data-ap="limpiarCurso" ${st.cursos.size ? '' : 'disabled'}>${ic('trash')} Limpiar curso escolar…</button><span class="pn-msg" id="apBorrarMsg" role="status" aria-live="polite">${esc(prev.m)}</span></div></section>`;
   }
@@ -516,6 +519,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
         if (!await confirmar(`¿Reiniciar ${L.length} PIN de ${g.nombre}?`)) return;
         await enLotes(L.map((d) => ({ db, fn: (bt) => bt.delete(d.ref) }))); $('#apPinMsg').textContent = `✔ ${L.length} PIN reiniciados.`;
       }
+      if (acc === 'visorEvidencias') { elegirYAbrirVisor().catch((e) => avisar('No se puede abrir: ' + (e?.message || 'archivo no válido'))); return; }
       if (acc === 'exportarCurso' || acc === 'limpiarCurso') { b.disabled = true; try { await copiaCurso(acc); } finally { b.disabled = false; } }
     } catch (e) { alert('No se ha podido completar la acción (' + (e?.code || e?.message || 'error') + ').'); }
   }

@@ -417,7 +417,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const viejas = st.sesiones.filter(s => s.revocada || Date.now() - s.latido > ANTIGUA_MS || estadoSesion(s)[0] === 'old');
     return `<section class="pn-card"><h3>Conectados antiguos</h3><p class="pn-small">Sesiones sin señal desde hace más de 2 horas, expulsadas o con un código antiguo. No afecta a las entregas.</p>
       <div class="pn-acts"><button class="btn" data-pn="limpiarSes" ${viejas.length ? '' : 'disabled'}>🧹 Borrar ${viejas.length} ${viejas.length === 1 ? 'sesión antigua' : 'sesiones antiguas'}</button></div></section>
-      <section class="pn-card"><h3>Entregas</h3><p class="pn-small">Las entregas de los laboratorios son evidencias de evaluación: se conservan mientras el curso está abierto y, como mínimo, 6 meses después de cerrarlo (Manual de evaluación del centro, §11.2). Exporta las notas en CSV desde «Entregas» cuando lo necesites. Se eliminan con «Limpiar curso escolar», en Cursos escolares → Copia y limpieza.</p></section>`;
+      <section class="pn-card"><h3>Entregas</h3><p class="pn-small">Las entregas de los laboratorios son evidencias de evaluación: se conservan mientras el curso está abierto y, como mínimo, 6 meses después de cerrarlo (Manual de evaluación del centro, §11.2). Exporta las notas en CSV desde «Entregas» cuando lo necesites. Se eliminan con «Limpiar curso escolar» (en esta misma página).</p></section>`;
   }
   async function borrarEnLotes(refs) { for (let i = 0; i < refs.length; i += 400) { const b = writeBatch(db); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); } }
 

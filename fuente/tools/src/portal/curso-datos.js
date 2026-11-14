@@ -21,11 +21,14 @@ export async function leerCurso(db, curso, aviso = () => { }) {
   for (const c of COLECCIONES_CURSO.filter((x) => x.por === 'item')) { aviso(`Leyendo ${c.col}…`); docs[c.col] = await porCampo(db, c.col, 'item', items); }
   docs.respDirecto = await porCampo(db, 'respDirecto', 'd', directos);
   // subcolecciones de los trabajos
-  const tids = new Set(docs.trabajos.map((d) => d.id)); const sub = { comentarios: [], imagenes: [], modelos: [] };
+  const tids = new Set(docs.trabajos.map((d) => d.id)); const sub = { comentarios: [], imagenes: [], modelos: [], copias: [] };
   if (tids.size) {
     aviso('Leyendo comentarios…');
     const qc = await getDocs(collectionGroup(db, 'comentarios'));
     qc.forEach((d) => { const p = d.ref.parent.parent; if (p && p.parent.id === 'trabajos' && tids.has(p.id)) sub.comentarios.push(d); });
+    aviso('Leyendo copias congeladas…');
+    const qp = await getDocs(collectionGroup(db, 'copias')).catch(() => null);
+    qp?.forEach((d) => { const p = d.ref.parent.parent; if (p && p.parent.id === 'trabajos' && tids.has(p.id)) sub.copias.push(d); });
     let k = 0; const pend = [];
     for (const d of docs.trabajos) { const t = d.data();
       for (const img of imagenesDe(t)) pend.push(['imagenes', d.id, img]);
@@ -80,7 +83,7 @@ export async function limpiarCurso(db, curso, { contenido = false } = {}, aviso 
   const ahora = Date.now();
   await setDoc(doc(db, 'config', 'limpieza'), { curso: curso.id, exportado: Timestamp.fromMillis(ahora - 60e3), hasta: Timestamp.fromMillis(ahora + 90 * 60e3) });
   // primero las subcolecciones, después los trabajos y el resto
-  const orden = (r) => (['comentarios', 'imagenes', 'modelos'].includes(r.col) ? 0 : r.col === 'items' ? 2 : 1); borrar.sort((a, b) => orden(a) - orden(b));
+  const orden = (r) => (['comentarios', 'imagenes', 'modelos', 'copias'].includes(r.col) ? 0 : r.col === 'items' ? 2 : 1); borrar.sort((a, b) => orden(a) - orden(b));
   let n = 0;
   try {
     for (const T of trozos(borrar, 400)) { const b = writeBatch(db); T.forEach((r) => b.delete(r.ref)); await b.commit(); n += T.length; aviso(`Borrando… ${n}/${borrar.length}`); }

@@ -64,6 +64,11 @@ rules_version = '2';
 //   items.contenido     contenido de los motores nuevos (explicación interactiva…), mapa
 //   directo/{id}        pregunta en directo a un grupo                  profesor; alumno: leer las de su grupo
 //   respDirecto/{id}    respuesta anónima (recuento) de cada nº        el alumno la suya; leer: profesor
+//   --- protección de evidencias (Claude, P1-P4) ---
+//   config/limpieza     ventana de limpieza de un curso cerrado hace > 180 días    profesor
+//   trabajos/{id}/copias/{c01..c20}  copias congeladas (bytes + SHA-256 comprobado) el alumno añade; nadie borra
+//   codigosPrueba/{item} código de 4 cifras para desbloquear                       SOLO profesor
+//   pruebas/{item_grupo_nº} estado de bloqueo de la «prueba sin elementos externos»   alumno / profesor
 //  El alumno se identifica SOLO por grupo + nº de lista + un PIN que
 //  elige él (se guarda su hash SHA-256, nunca el PIN). Sin nombres.
 // =====================================================================
@@ -501,9 +506,10 @@ service cloud.firestore {
       function itemOk(d) {
         return d.keys().hasOnly(['curso', 'asig', 'tema', 'unidad', 'tipo', 'titulo', 'texto', 'enlaces', 'fechaEntrega', 'puntos', 'rubrica',
                                  'categoria', 'grupos', 'visible', 'publicado', 'pub', 'orden', 'origen', 'examen', 'opciones', 'pendiente', 'nota', 'actualizado',
-                                 'criterio', 'contenido', 'para', 'visibleAl', 'papelera'])
+                                 'criterio', 'contenido', 'para', 'visibleAl', 'papelera', 'copia', 'sinExternos'])
           && d.keys().hasAll(['curso', 'asig', 'tipo', 'titulo', 'grupos', 'visible', 'publicado'])
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
+          && (!('copia' in d) || d.copia is bool) && (!('sinExternos' in d) || d.sinExternos is bool)
           && (!('papelera' in d) || (d.papelera is bool && (d.papelera == false || (d.visible.size() == 0 && d.publicado == false))))
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
           && (!('unidad' in d) || textoCorto(d.unidad, 40))
@@ -573,7 +579,8 @@ service cloud.firestore {
       allow list: if esProfesor();
       allow delete: if borrarEnVentana();
       allow create, update: if esProfesor()
-        && request.resource.data.keys().hasOnly(['grupos', 'publicado', 'desde', 'hasta', 'limiteMin', 'barajar', 'preguntas', 'pantallaCompleta'])
+        && request.resource.data.keys().hasOnly(['grupos', 'publicado', 'desde', 'hasta', 'limiteMin', 'barajar', 'preguntas', 'pantallaCompleta', 'sinExternos'])
+        && (!('sinExternos' in request.resource.data) || request.resource.data.sinExternos is bool)
         && (!('pantallaCompleta' in request.resource.data) || request.resource.data.pantallaCompleta is bool)
         && listaCorta(request.resource.data.grupos, 40)
         && request.resource.data.publicado is bool
@@ -588,6 +595,54 @@ service cloud.firestore {
     // incidencias/{item_grupo_nº}: modo examen. Registro INFORMATIVO de las salidas de la pestaña o de la
     // pantalla completa durante un examen [{t: ms, tipo, dur: segundos|null}]. Lo escribe el alumno (solo
     // añadir, el suyo, en un examen publicado para su grupo); lo lee SOLO el profesor.
+    // P4 · «Prueba sin elementos externos». pruebas/{item_grupo_nº}: estado del alumno en la prueba.
+    //  · el alumno la crea (desbloqueada) y la BLOQUEA él mismo al salir de la pantalla (nBloqueos + 1);
+    //  · solo se desbloquea con el código de 4 cifras del profesor (codigosPrueba/{item}, que el alumno
+    //    no puede leer: lo comprueba el servidor) o desde el panel del profesor;
+    //  · mientras está bloqueada, las reglas de «trabajos» no dejan guardar ni entregar.
+    match /codigosPrueba/{item} {
+      allow read, delete: if esProfesor();
+      allow create, update: if esProfesor()
+        && request.resource.data.keys().hasOnly(['codigo', 'fecha'])
+        && request.resource.data.codigo is string && request.resource.data.codigo.matches('^[0-9]{4}$')
+        && esNumero(request.resource.data.fecha);
+    }
+    match /pruebas/{id} {
+      function pOk(d) {
+        return d.item is string && id == d.item + '_' + idAlumno(miSesion())
+          && d.al == idAlumno(miSesion()) && d.grupo == miSesion().grupo && d.numero == miSesion().numero
+          && (miSesion().grupo in get(ruta('items', d.item)).data.visible
+              || idAlumno(miSesion()) in get(ruta('items', d.item)).data.get('visibleAl', []));
+      }
+      // (resource == null: el alumno puede comprobar si su estado ya existe antes de crearlo)
+      allow read: if esProfesor() || (alumnoOk() && (resource == null || resource.data.al == idAlumno(miSesion())));
+      allow create: if alumnoOk() && pOk(request.resource.data)
+        && request.resource.data.keys().hasOnly(['item', 'al', 'grupo', 'numero', 'bloqueado', 'nBloqueos', 'fecha'])
+        && request.resource.data.bloqueado == false && request.resource.data.nBloqueos == 0
+        && request.resource.data.fecha == request.time;
+      allow update: if alumnoOk() && pOk(request.resource.data)
+        && request.resource.data.fecha == request.time
+        && (
+          // bloquear: solo sumar
+          (resource.data.bloqueado == false && request.resource.data.bloqueado == true
+            && request.resource.data.nBloqueos == resource.data.nBloqueos + 1
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bloqueado', 'nBloqueos', 'fecha', 'motivo'])
+            && request.resource.data.get('motivo', '') in ['', 'pestaña', 'pantalla', 'ventana'])
+          // desbloquear: con el código del profesor
+          || (resource.data.bloqueado == true && request.resource.data.bloqueado == false
+            && request.resource.data.nBloqueos == resource.data.nBloqueos
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bloqueado', 'fecha', 'codigo', 'porProfesor'])
+            && request.resource.data.get('porProfesor', false) == false
+            && exists(ruta('codigosPrueba', request.resource.data.item))
+            && request.resource.data.codigo == get(ruta('codigosPrueba', request.resource.data.item)).data.codigo)
+        );
+      allow update: if esProfesor()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bloqueado', 'fecha', 'porProfesor'])
+        && request.resource.data.bloqueado == false && request.resource.data.porProfesor == true
+        && request.resource.data.fecha == request.time;
+      allow delete: if borrarEnVentana();
+    }
+
     match /incidencias/{id} {
       allow read: if esProfesor();
       allow delete: if borrarEnVentana();
@@ -602,7 +657,8 @@ service cloud.firestore {
         && request.resource.data.salidas is list && request.resource.data.salidas.size() <= 400
         // Solo se puede AÑADIR: el alumno no puede vaciar ni acortar su registro de salidas.
         && (resource == null || request.resource.data.salidas.size() >= resource.data.get('salidas', []).size())
-        && get(ruta('items', request.resource.data.item)).data.tipo == 'examen'
+        && (get(ruta('items', request.resource.data.item)).data.tipo == 'examen'
+            || get(ruta('items', request.resource.data.item)).data.get('sinExternos', false) == true)
         && miSesion().grupo in get(ruta('items', request.resource.data.item)).data.visible;
     }
 
@@ -683,7 +739,8 @@ service cloud.firestore {
                 && request.resource.data.fecha == request.time
                 && request.resource.data.respuestas is map
                 && request.resource.data.respuestas.size() == 0
-                && enVentana()));
+                && enVentana()))
+        && !pruebaBloqueada(id);
       // Fase 9: borrador → entregado → devuelto (lo pone el profesor) → calificado (nota).
       // El alumno guarda y entrega mientras no haya nota, o si el profesor se la ha devuelto;
       // no puede ponerse «devuelto» ni tocar la fecha de devolución.
@@ -704,9 +761,14 @@ service cloud.firestore {
                 && request.resource.data.respuestas.size() <= 100
                 && request.time <= examen().hasta + duration.value(2, 'm')
                 && (examen().limiteMin == null
-                    || request.time <= resource.data.inicio + duration.value(examen().limiteMin + 2, 'm'))));
+                    || request.time <= resource.data.inicio + duration.value(examen().limiteMin + 2, 'm'))))
+        // P4: con la prueba bloqueada (salió de la pantalla) no se puede guardar nada hasta el desbloqueo.
+        && !pruebaBloqueada(id);
 
       function item() { return get(ruta('items', request.resource.data.item)).data; }
+      // Solo en elementos con «sinExternos»: el estado pruebas/{id} TIENE que existir (lo crea el portal al empezar)
+      // y estar desbloqueado. Una sola lectura (las reglas admiten como mucho 10 por petición).
+      function pruebaBloqueada(id) { return item().get('sinExternos', false) == true && get(ruta('pruebas', id)).data.bloqueado != false; }
       function examen() { return get(ruta('examenes', request.resource.data.item)).data; }
       function tipoTarea() {
         return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'documento', 'interactiva', 'hoja'];
@@ -716,7 +778,7 @@ service cloud.firestore {
         let d = request.resource.data;
         let s = miSesion();
         return d.keys().hasOnly(['item', 'curso', 'asig', 'al', 'grupo', 'numero', 'uid', 'tipo', 'texto', 'enlaces', 'respuestas', 'inicio', 'fecha', 'estado',
-                                 'guardado', 'entregadoEn', 'nEntregas', 'devFecha', 'doc', 'registro', 'datos', 'modelo'])
+                                 'guardado', 'entregadoEn', 'nEntregas', 'devFecha', 'doc', 'registro', 'datos', 'modelo', 'enlacesT'])
           && d.item is string
           && id == d.item + '_' + idAlumno(s)
           && d.al == idAlumno(s) && d.grupo == s.grupo && d.numero == s.numero
@@ -730,6 +792,7 @@ service cloud.firestore {
           && d.fecha == request.time
           && textoCorto(d.get('texto', ''), 10000)
           && listaCorta(d.get('enlaces', []), 10)
+          && listaCorta(d.get('enlacesT', []), 10)
           && (!('guardado' in d) || esNumero(d.guardado))
           && (!('entregadoEn' in d) || d.entregadoEn == null || esNumero(d.entregadoEn))
           && (!('nEntregas' in d) || (d.nEntregas is int && d.nEntregas >= 0 && d.nEntregas <= 1000))
@@ -783,6 +846,30 @@ service cloud.firestore {
         allow delete: if borrarEnVentana() || (m == 'm1' && duenoM()
           && get(ruta('trabajos', id)).data.get('estado', 'entregado') in ['borrador', 'devuelto']);
       }
+
+      // P2 · Copias congeladas (c01…c20): PDF, imagen o archivo de lo que se entrega con un enlace.
+      // Los bytes van tal cual (tipo Bytes, ≤ 750 KB) y el SERVIDOR comprueba que la huella SHA-256 que
+      // acompaña a la copia es la de esos bytes. Fecha del servidor. Solo se añaden mientras el trabajo se
+      // puede editar; después NO se modifican ni se borran (solo en la limpieza del curso cerrado).
+      match /copias/{c} {
+        function duenoC() { return alumnoOk() && get(ruta('trabajos', id)).data.al == idAlumno(miSesion()); }
+        allow read: if esProfesor() || duenoC();
+        allow create: if c.matches('^c(0[1-9]|1[0-9]|20)$') && duenoC()
+          && get(ruta('trabajos', id)).data.get('estado', 'entregado') in ['borrador', 'devuelto']
+          && request.resource.data.keys().hasOnly(['data', 'hash', 'nombre', 'mime', 'bytes', 'tipo', 'fecha', 'nEnt'])
+          && request.resource.data.data is bytes
+          && request.resource.data.data.size() > 0 && request.resource.data.data.size() <= 768000
+          && request.resource.data.bytes == request.resource.data.data.size()
+          && request.resource.data.hash is string
+          && request.resource.data.hash == hashing.sha256(request.resource.data.data).toHexString().lower()
+          && textoCorto(request.resource.data.nombre, 150)
+          && textoCorto(request.resource.data.mime, 80)
+          && request.resource.data.tipo in ['pdf', 'imagen', 'archivo']
+          && request.resource.data.fecha == request.time
+          && (!('nEnt' in request.resource.data) || (request.resource.data.nEnt is int && request.resource.data.nEnt >= 1 && request.resource.data.nEnt <= 1000));
+        allow update: if false;
+        allow delete: if borrarEnVentana();
+      }
       function enVentana() {
         return examen().publicado == true
           && request.time >= examen().desde
@@ -795,6 +882,10 @@ service cloud.firestore {
     // Fase 14: «Exportar todo» y «Limpiar curso escolar» leen los comentarios de todos los trabajos con una sola
     // consulta de grupo (solo el profesor, que ya puede leer cada uno).
     match /{ruta=**}/comentarios/{cid} {
+      allow read: if esProfesor();
+    }
+    // P2/P3: «Exportar todo» y «Limpiar curso» leen también las copias congeladas con una consulta de grupo.
+    match /{ruta=**}/copias/{cp} {
       allow read: if esProfesor();
     }
 

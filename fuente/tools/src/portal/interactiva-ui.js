@@ -50,7 +50,7 @@ export function montarInteractiva(nodo, it, cx) {
   async function comprobar(f) {
     const resp = {}; f.querySelectorAll('fieldset[data-q]').forEach((fs) => { const q = P.find((x) => x.id === fs.dataset.q); if (!q) return; const v = leerRespuesta(q, fs); if (v !== undefined && v !== null) resp[q.id] = v; });
     if (!Object.keys(resp).length) { S.msg = 'Responde al menos una pregunta.'; pintar(); return; }
-    const r = corregirExamen(P, K, resp); S.res = { resp, r }; S.msg = '';
+    const r = corregirExamen(P, K, resp, {}, { s: seed() }); S.res = { resp, r }; S.msg = '';
     if (prof || !cx.entregar) { pintar(); return; }
     const d0 = S.datos || {}; const n = (d0.intentos || 0) + 1; const mejor = d0.mejor == null || r.nota >= d0.mejor;
     const best = mejor ? { nota: r.nota, puntos: r.puntos, max: r.max, resp } : { nota: d0.mejor, puntos: d0.puntos, max: d0.max, resp: d0.resp || {} };
