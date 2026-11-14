@@ -9,6 +9,7 @@ import { esc } from './util.js';
 import { ic } from './ico.js';
 import { BIBLIOTECA, asignatura, TIPOS, CATEGORIAS, ETAPAS } from '../lms/biblioteca.js';
 import { semillaAlumno } from '../lms/modelo.js';
+import { valoresAlumno, sustituir } from '../lms/formula.js';
 import { corregirExamen, notaRubrica, mediaPonderada, pesosPorDefecto, categoriaDe, fmtNota, redondea, idItem, idTrabajo, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, csv, urlSegura, TIPOS_ENTREGA } from '../lms/modelo.js';
 import { ordenarItems, nombreUnidad, textoHTML } from './aula-vistas.js';
 import { respuestaTexto, solucionTexto } from './examen-ui.js';
@@ -267,7 +268,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
           const ab = q.tipo === 'abierta';
           const resp = ab && q.extension === 'larga' && v != null ? `<div class="ap-ab dc-ro">${limpiarDoc(String(v))}</div>` : `<div>➜ <b>${esc(txt)}</b></div>`;
           const rub = ab && q.rubrica?.length ? `<table class="pn-t ap-qrub">${q.rubrica.map((rc, i) => `<tr><td>${esc(rc.c)}</td><td class="c"><span class="ap-niv">${[1, 2, 3, 4].map((nv) => `<button type="button" class="btn tiny" data-ap-qn="${esc(q.id)}|${i}|${rc.p * nv / 4}" title="${['Insuficiente', 'Suficiente', 'Bien', 'Excelente'][nv - 1]}">${nv}</button>`).join('')}</span><input type="number" class="ap-qr" data-qid="${esc(q.id)}" data-ri="${i}" min="0" max="${esc(rc.p)}" step="0.25" value="${esc(det[q.id + '_r' + i] ?? '')}"> / ${esc(fmtNota(rc.p))}</td></tr>`).join('')}</table>` : '';
-          return `<li class="${ab && !(q.id in det) ? 'med' : okk ? 'ok' : p > 0 ? 'med' : 'ko'}"><div>${esc(q.enunciado)}</div>${resp}${ab ? '' : `<div class="pn-small">Solución: ${esc(sol || '(manual)')}</div>`}${rub}
+          return `<li class="${ab && !(q.id in det) ? 'med' : okk ? 'ok' : p > 0 ? 'med' : 'ko'}"><div>${esc(q.tipo === 'variables' ? sustituir(q.enunciado, valoresAlumno(q.variables, semillaAlumno(it.id, `${g.id}_${ab.n}`), q.id)) : q.enunciado)}</div>${resp}${ab ? '' : `<div class="pn-small">Solución: ${esc(sol || '(manual)')}</div>`}${rub}
             <label class="pn-small">Puntos <input type="number" class="ap-qpts" data-qid="${esc(q.id)}" min="0" max="${esc(q.puntos || 1)}" step="0.25" value="${esc(p)}"> / ${esc(fmtNota(q.puntos || 1))}${auto.revisar.includes(q.id) ? ' · <b>revisar</b>' : ''}</label></li>`;
         }).join('')}</ol>`;
         if (it.examen?.pantallaCompleta || ex.examen?.pantallaCompleta) h += salidasHTML(id);
@@ -330,7 +331,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const L = A.salidas.get(id); if (L == null) return '<h4>' + ic('shield-check') + ' Modo examen</h4><p class="pn-small">Cargando el registro…</p>';
     const R = resumenSalidas(L); const hora = (t) => new Date(t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const dur = (s) => (s == null ? 'no volvió (o cerró la página)' : s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`);
-    return `<h4>${ic('shield-check')} Modo examen · salidas</h4>${R.length ? `<table class="pn-t ex-sal"><thead><tr><th>Hora</th><th>De</th><th>Duración</th></tr></thead><tbody>${R.map((x) => `<tr><td>${esc(hora(x.t))}</td><td>${esc(x.tipo === 'pantalla' ? 'pantalla completa' : 'la pestaña')}</td><td>${esc(dur(x.dur))}</td></tr>`).join('')}</tbody></table><p class="pn-small">${R.length} salida${R.length === 1 ? '' : 's'}. Es solo informativo: no cambia la nota.</p>` : '<p class="pn-small">Sin salidas registradas.</p>'}`;
+    return `<h4>${ic('shield-check')} Modo examen · salidas</h4>${R.length ? `<table class="pn-t ex-sal"><thead><tr><th>Hora</th><th>De</th><th>Duración</th></tr></thead><tbody>${R.map((x) => `<tr><td>${esc(hora(x.t))}</td><td>${esc(({ pantalla: 'pantalla completa', 'pestaña': 'la pestaña', ventana: 'la ventana (otra aplicación)', bloqueo: 'BLOQUEO de la prueba' + (x.motivo ? ' (' + x.motivo + ')' : ''), desbloqueo: 'desbloqueo con el código' })[x.tipo] || x.tipo)}</td><td>${esc((x.tipo === "bloqueo" ? "—" : x.tipo === "desbloqueo" ? "bloqueada " + dur(x.dur) : dur(x.dur)))}</td></tr>`).join('')}</tbody></table><p class="pn-small">${R.length} salida${R.length === 1 ? '' : 's'}. Es solo informativo: no cambia la nota.</p>` : '<p class="pn-small">Sin salidas registradas.</p>'}`;
   }
   function recalcular() {
     const D = $('#apDetalle'); const ab = A.abierta; if (!D || !ab) return;
