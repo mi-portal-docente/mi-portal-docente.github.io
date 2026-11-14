@@ -114,7 +114,7 @@ await P.pg.fill('#apItemForm [name=titulo]', 'Desafío 1 (Documentos de Google)'
 await P.pg.fill('#apItemForm [name=texto]', 'Crea un documento con **portada**, índice automático y dos secciones.\nEntrega el enlace compartido.');
 await P.pg.fill('#apItemForm [name=adjT]', 'Guía de estilos'); await P.pg.fill('#apItemForm [name=adjU]', 'https://docs.google.com/document/d/guia');
 await P.pg.click('#apItemForm [data-ed=adj]');
-await P.pg.fill('#apItemForm [name=rubrica]', 'Portada e índice | 4\nFormato y estilos | 6');
+await P.pg.click('#apItemForm .rb-txt summary'); await P.pg.fill('#apItemForm [data-rb-texto]', 'Portada e índice | 4\nFormato y estilos | 6'); await P.pg.click('#apItemForm [data-ed=rbTexto]');
 await P.pg.fill('#apItemForm [name=fechaEntrega]', local(Date.now() + 3 * 864e5));
 await P.pg.fill('#apItemForm [name=puntos]', '10');
 await P.pg.check('#apItemForm [name=estado][value=publicar]');
@@ -123,7 +123,7 @@ await P.pg.click('#apItemForm button[type=submit]');
 await P.pg.waitForSelector('#asTrabajo .cl-it.pub:has-text("Desafío 1 (Documentos")', { timeout: 15000 });
 ok('crear y publicar una tarea con instrucciones, adjunto, fecha, puntos y rúbrica', /Publicado/.test(await P.pg.textContent('#asTrabajo .cl-it:has-text("Desafío 1 (Documentos")')));
 const ID_T = await P.pg.getAttribute('#asTrabajo .cl-it:has-text("Desafío 1 (Documentos")', 'data-item');
-const docT = await (await fetch(`${REST}/items/${ID_T}`, owner)).json();
+let docT = null; for (let i = 0; i < 20; i++) { docT = await (await fetch(`${REST}/items/${ID_T}`, owner)).json(); if (docT.fields?.tema && docT.fields?.enlaces) break; await new Promise((r) => setTimeout(r, 500)); }
 ok('la tarea guarda tema, puntos y adjunto', docT.fields?.tema?.stringValue === TEMA1 && docT.fields?.puntos?.integerValue === '10' && /guia/.test(JSON.stringify(docT.fields?.enlaces)));
 
 // examen («Tarea de cuestionario»)
@@ -158,7 +158,7 @@ ok('crear y publicar una tarea de cuestionario (test, V/F y respuesta corta)', t
 const ID_E = await P.pg.getAttribute('#asTrabajo .cl-it:has-text("Cuestionario: hoja")', 'data-item');
 const itemE = JSON.stringify(await (await fetch(`${REST}/items/${ID_E}`, owner)).json());
 const exE = JSON.stringify(await (await fetch(`${REST}/examenes/${ID_E}`, owner)).json());
-const clE = await (await fetch(`${REST}/claves/${ID_E}`, owner)).json();
+let clE = null; for (let i = 0; i < 20; i++) { clE = await (await fetch(`${REST}/claves/${ID_E}`, owner)).json(); if (clE.fields?.respuestas) break; await new Promise((r) => setTimeout(r, 500)); }
 ok('soluciones guardadas aparte (claves) y no en items/examenes', !!clE.fields?.respuestas && !/correcta|respuestas|"celda"/.test(itemE + exE.replace(/intersección/g, '')), Object.keys(clE.fields?.respuestas?.mapValue?.fields || {}).join());
 // borrador: no lo ve el alumno
 await P.pg.click('#asTrabajo [data-cl=crear]');
@@ -362,7 +362,7 @@ await A.pg.waitForFunction(() => location.hash === '#asignaturas');
 ok('una asignatura que no es de su grupo (#eee) → vuelve a Asignaturas', true);
 await A.pg.goto(BASE + '#trabajo/' + ID_T);
 await A.pg.waitForSelector('#enForm');
-ok('la tarea muestra instrucciones y rúbrica', /portada/.test(await A.pg.textContent('.au-texto')) && /Formato y estilos/.test(await A.pg.textContent('.au-t')));
+ok('la tarea muestra instrucciones y rúbrica', /portada/.test(await A.pg.textContent('.au-texto')) && /Formato y estilos/.test(await A.pg.textContent('.rb-ver')));
 await A.pg.fill('#enForm [name=texto]', 'He hecho el documento con índice.');
 await A.pg.fill('#enForm [name=enlaces]', 'https://docs.google.com/document/d/ejemplo\njavascript:alert(1)');
 await A.pg.click('[data-en=entregar]');
@@ -441,7 +441,7 @@ await A.pg.waitForSelector('.au-nota', { timeout: 15000 });
 ok('el alumno ve la nota del examen al publicarla', /10/.test(await A.pg.textContent('.au-nota')));
 await A.pg.goto(BASE + '#trabajo/' + ID_T);
 await A.pg.waitForSelector('.au-nota');
-ok('y la de la tarea con el comentario y los puntos de la rúbrica', /8/.test(await A.pg.textContent('.au-nota')) && /estilos de título/.test(await A.pg.textContent('.au-nota')) && /3/.test(await A.pg.textContent('.au-t')));
+ok('y la de la tarea con el comentario y los puntos de la rúbrica', /8/.test(await A.pg.textContent('.au-nota')) && /estilos de título/.test(await A.pg.textContent('.au-nota')) && /3/.test(await A.pg.textContent('.rb-ver td.rb-c.on')));
 await A.pg.screenshot({ path: SHOTS + 'aula_alumno_nota.png' });
 const A2 = await contexto('alumno5-otro-pc');
 await A2.pg.goto(BASE + '#asig/tic1/trabajo');

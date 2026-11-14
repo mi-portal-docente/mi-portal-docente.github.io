@@ -9,8 +9,8 @@ import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
 import { criterioValido, motor } from '../lms/elemento.js';
 import '../lms/motores/index.js';
 import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta } from '../lms/preguntas.js';
-import { categoriaDe, idItem, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, TIPOS_ENTREGA, enlaceValido, visibleAlDe } from '../lms/modelo.js';
-import { rubricaPlantillaTexto } from '../lms/rubrica.js';
+import { categoriaDe, idItem, leeEnlaces, enlacesTexto, TIPOS_ENTREGA, enlaceValido, visibleAlDe } from '../lms/modelo.js';
+import { editorRubricaHTML, leerEditorRubrica, accionRubrica, cambioRubrica } from './rubrica-ui.js';
 import { completarPiac } from '../lms/motores/piac.js';
 import { plantillaHTML, leerPlantilla, accionPlantilla } from './doc-editor.js';
 import { confirmar } from './dialogo.js';
@@ -51,7 +51,7 @@ export function crearEditor({ db, aula, gruposDe }) {
   function montar() {
     if (!E.el) {
       E.el = document.createElement('div'); E.el.className = 'cl-modal'; E.el.setAttribute('role', 'dialog'); E.el.setAttribute('aria-modal', 'true');
-      E.el.addEventListener('click', onClick); E.el.addEventListener('change', onChange); E.el.addEventListener('submit', onSubmit);
+      E.el.addEventListener('click', onClick); E.el.addEventListener('change', onChange); E.el.addEventListener('input', (ev) => cambioRubrica(ev.target)); E.el.addEventListener('submit', onSubmit);
       E.el.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') cerrar(); });
       document.body.appendChild(E.el); document.body.classList.add('cl-modal-abierto');
     }
@@ -121,8 +121,7 @@ export function crearEditor({ db, aula, gruposDe }) {
         ${e.pendiente ? `<p class="cl-pend-aviso"><b>⚠ ${PEND_T}.</b> Al importarlo de Classroom no constaban todos los detalles. Añade instrucciones o adjuntos y guarda: el aviso desaparece solo.</p>` : ''}
         <textarea name="nota" rows="2" maxlength="2000" placeholder="Recordatorios para ti; los alumnos no la ven.">${esc(e.nota || '')}</textarea>
         ${e.pendiente ? '<label class="pn-chk"><input type="checkbox" name="quitarPend"> Ya está completo: quitar el aviso «Pendiente de completar»</label>' : ''}</fieldset>
-      ${entregable && e.tipo !== 'examen' ? `<div class="pn-f"><label class="pn-f">Rúbrica (opcional, una línea por criterio: «Criterio | puntos», «Criterio | puntos | insuficiente; suficiente; bien; excelente» o «Criterio | clase» si lo evalúas en clase)<textarea name="rubrica" rows="3" maxlength="5000" placeholder="Contenido completo y correcto | 4&#10;Presentación y formato | 3&#10;Entrega en plazo | 3">${esc(rubricaTexto(e.rubrica))}</textarea></label>
-        <div class="pn-acts"><button type="button" class="btn small" data-ed="plantillaRubrica">${ic('list-checks')} Plantilla: 5 criterios ponderados (con autoría)</button></div></div>` : ''}
+      ${entregable && e.tipo !== 'examen' ? editorRubricaHTML(e.rubrica) : ''}
     </div><aside class="cl-dlg-side">
       ${e.tipo === 'recuperacion' ? `<label class="pn-f">${ic('user-check')} Solo para los nº de lista<input name="para" inputmode="numeric" maxlength="200" placeholder="p. ej. 3, 7, 12" value="${esc((e.para || []).join(', '))}"><span class="pn-small">Solo la ven estos alumnos de los grupos marcados. El resto del grupo no sabe que existe.</span></label>` : ''}
       <fieldset class="pn-f"><legend>Para</legend>${gs.map((g) => `<label class="pn-chk"><input type="checkbox" name="grupos" value="${esc(g.id)}" ${(e.grupos || []).includes(g.id) ? 'checked' : ''}> ${esc(g.nombre)}</label>`).join('') || '<span class="pn-small">No hay grupos de esta asignatura en este curso: créalos en el panel → «Grupos y códigos».</span>'}</fieldset>
@@ -196,7 +195,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     e.nota = String(fd.get('nota') || '').trim().slice(0, 2000); if (fd.get('quitarPend')) e.pendiente = false;
     if (f.elements.puntos) { const p = Number(String(fd.get('puntos') || '').replace(',', '.')); e.puntos = p > 0 ? Math.min(1000, p) : null; }
     if (f.elements.fechaEntrega) e.fechaEntrega = deLocal(fd.get('fechaEntrega'));
-    if (f.elements.rubrica) e.rubrica = leeRubrica(fd.get('rubrica'));
+    { const R = leerEditorRubrica(f); if (R) e.rubrica = R.filter((r) => r.c); }
     if (f.elements.categoria) e.categoria = String(fd.get('categoria'));
     if (f.elements.contenido) e.contenidoTxt = String(fd.get('contenido') || '');
     if (f.querySelector('#dcPlantilla')) e.contenidoTxt = JSON.stringify(leerPlantilla(f));
@@ -272,7 +271,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     const acc = b.dataset.ed;
     if (acc === 'cancelar') return cerrar();
     if (acc === 'ejemplo') { const M = motor(E.edit.tipo); const ta = b.form?.elements.contenido; if (M && ta && (!ta.value.trim() || await confirmar('¿Cambiar el contenido por el ejemplo?'))) { ta.value = JSON.stringify(M.ejemplo || {}, null, 2); E.edit.contenidoTxt = ta.value; } return; }
-    if (acc === 'plantillaRubrica') { const ta = b.form?.elements.rubrica; if (ta && (!ta.value.trim() || await confirmar('¿Cambiar la rúbrica por la plantilla de 5 criterios?'))) ta.value = rubricaPlantillaTexto(); return; }
+    if (acc === 'plantillaRubrica' || acc.startsWith('rb')) { await accionRubrica(b, confirmar); return; }
     if (acc === 'exportar') { const it = st.items.get(E.edit?.id); if (it) api.exportar?.(it); return; }
     if (acc === 'adj') {
       const f = b.form; const u = f.adjU.value.trim(); const t = f.adjT.value.trim();

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 // Fase 10 · Vista de corrección: un alumno cada vez, rúbrica por niveles (clic), criterio «en clase»,
 // anterior / siguiente, comentarios rápidos reutilizables, notas en borrador y publicar a mano (una o todas).
 const menu = (pg, id, acc) => pg.evaluate(([i, a]) => document.querySelector(`#asTrabajo [data-item="${i}"] [data-cl=${a}]`).click(), [id, acc]);
@@ -10,8 +11,8 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await pegarJSON(pg, EL); await pg.waitForSelector('#jsPrev .js-prev', { timeout: 10000 }); await guardarJSON(pg);
   await pg.waitForSelector(`#asTrabajo .cl-it:has-text("${EL.titulo}")`, { timeout: 15000 });
   const id = await pg.getAttribute(`#asTrabajo .cl-it:has-text("${EL.titulo}")`, 'data-item');
-  await menu(pg, id, 'editar'); await pg.waitForSelector('#apItemForm [name=rubrica]', { timeout: 15000 });
-  ok('editor: la rúbrica muestra niveles y «clase» en texto', /Los tres bien/.test(await pg.inputValue('#apItemForm [name=rubrica]')) && /Montaje en el taller \| clase/.test(await pg.inputValue('#apItemForm [name=rubrica]')));
+  await menu(pg, id, 'editar'); await pg.waitForSelector('#apItemForm [data-rb-ed] .rb-fila', { timeout: 15000 });
+  ok('editor: la rúbrica es una tabla con los niveles y el criterio «clase»', /Los tres bien/.test(await pg.inputValue('#apItemForm [data-rb-texto]')) && /Montaje en el taller \| clase/.test(await pg.inputValue('#apItemForm [data-rb-texto]')) && !!(await pg.$('#apItemForm .rb-fila.clase [data-rb=clase]:checked')) && (await pg.$$('#apItemForm .rb-fila')).length >= 3);
   await pg.check('#apItemForm [name=estado][value=publicar]'); await pg.click('#apItemForm button[type=submit]');
   await pg.waitForSelector(`#asTrabajo .cl-it.pub[data-item="${id}"]`, { timeout: 15000 });
   // dos alumnos entregan
@@ -46,6 +47,15 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await pg.click('.co-crit[data-ri="0"] .co-n[data-k="3"]'); await pg.click('.co-crit[data-ri="1"] .co-n[data-k="3"]');
   ok('nº 08: 4,5 + 3 = 7,5', (await pg.inputValue('#coNota')) === '7.5');
   await pg.click('#coForm button[data-pub="0"]:not([data-sig])'); await pg.waitForFunction(() => /Guardada/.test(document.querySelector('#coMsg')?.textContent || ''), null, { timeout: 15000 });
+  // Corrección por archivo (la prepara Claude u otro; queda en borrador para revisar)
+  const [dlC] = await Promise.all([pg.waitForEvent('download'), pg.evaluate(() => { document.querySelector('.co-mas')?.setAttribute('open', ''); document.querySelector('[data-co=exportarCorr]').click(); })]);
+  const corrJ = JSON.parse(readFileSync(await dlC.path(), 'utf8'));
+  ok('«Exportar para corregir»: JSON con la rúbrica y lo entregado por nº, sin nombres', corrJ.formato === 'superprofe-correccion-1' && corrJ.rubrica.length >= 3 && corrJ.correcciones.some((x) => x.n === 8 && /nº 8/.test(x.entrega?.texto || '')) && /^\d{8}_Correccion_/.test(dlC.suggestedFilename()));
+  const c8 = corrJ.correcciones.find((x) => x.n === 8); c8.niveles = corrJ.rubrica.map((r) => (r.clase ? null : 'Excelente')); c8.comentario = 'Propuesta: todo correcto.';
+  await pg.evaluate((j) => window.importarCorreccionSuperProfe(j), JSON.stringify({ ...corrJ, correcciones: [c8, { n: 99, niveles: [1] }] }));
+  await pg.waitForFunction(() => /importadas en borrador/.test(document.querySelector('#coMsg')?.textContent || ''), null, { timeout: 15000 });
+  const i8 = await docREST(`notas/${id}_${T.GE.id}_8`);
+  ok('«Importar corrección»: nº 08 → 10 en borrador con el comentario (el nº 99 se ignora)', campo(i8, 'nota') === 10 && campo(i8, 'publicada') === false && /todo correcto/.test(campo(i8, 'comentario')));
   await pg.click('[data-co=ant]'); await pg.waitForFunction(() => /07/.test(document.querySelector('.co-nn')?.textContent || ''));
   ok('«Anterior»: vuelve al nº 07 con los niveles marcados', !!(await pg.$('.co-crit[data-ri="0"] .co-n[data-k="4"].on')) && !!(await pg.$('.co-crit[data-ri="1"] .co-n[data-k="2"].on')));
   await pg.click('[data-co=publicarTodas]');
@@ -53,9 +63,9 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const p7 = await docREST(`notas/${id}_${T.GE.id}_7`); const p8 = await docREST(`notas/${id}_${T.GE.id}_8`);
   ok('«Publicar 2»: las dos notas publicadas a la vez', campo(p7, 'publicada') === true && campo(p8, 'publicada') === true);
   await T.A7.pg.waitForSelector('.en-chip.en-calificado', { timeout: 15000 });
-  ok('el alumno ve la nota (8) y la rúbrica con «Se evalúa en clase»', /8/.test(await T.A7.pg.textContent('.au-entrega .au-nota')) && /Se evalúa en clase/.test(await T.A7.pg.textContent('.au-t')));
+  ok('el alumno ve la nota (8) y la rúbrica en tabla con su nivel marcado y «en clase»', /8/.test(await T.A7.pg.textContent('.au-entrega .au-nota')) && /evalúa el profesor en clase/.test(await T.A7.pg.textContent('.rb-ver')) && !!(await T.A7.pg.$('.rb-ver td.rb-c.on')));
   await shot(T.A7.pg, 'f10_alumno_nota');
   await pg.click('[data-co=cerrar]'); await pg.waitForSelector('.ap-tabla', { timeout: 15000 });
-  ok('volver al cuaderno: las dos casillas con nota', (await pg.textContent(`td[data-celda="${id}"][data-n="7"]`)).trim() === '8' && (await pg.textContent(`td[data-celda="${id}"][data-n="8"]`)).trim() === '7,5');
+  ok('volver al cuaderno: las dos casillas con nota', (await pg.textContent(`td[data-celda="${id}"][data-n="7"]`)).trim() === '8' && (await pg.textContent(`td[data-celda="${id}"][data-n="8"]`)).trim() === '10');
   await T.A7.ctx.close();
 }

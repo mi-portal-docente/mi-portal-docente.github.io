@@ -3,6 +3,7 @@
 // El borrador se guarda en Firestore a los 3 s de dejar de escribir, cada 15 s si hay cambios y al
 // salir de la página; además queda una copia en este ordenador (localStorage) por si se corta la red.
 import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { notaAlumnoHTML } from './rubrica-ui.js';
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { leeEnlaces, urlSegura, idTrabajo, fmtNota } from '../lms/modelo.js';
@@ -191,7 +192,7 @@ export function montarEntrega(nodo, it, ctx) {
     const tarde = it.fechaEntrega && tr?.fecha && tr.estado === 'entregado' && tr.fecha > it.fechaEntrega;
     let h = `<div class="en-cab"><h4>Tu trabajo</h4>${estadoChipHTML(e)}${tr?.estado === 'entregado' || e === 'calificado' ? `<span class="au-small">${esc(fFecha(tr.fecha))}${tarde ? ' · <b>con retraso</b>' : ''}</span>` : ''}<span class="en-guardado" id="enGuardado" role="status" aria-live="polite"></span></div>`;
     if (e === 'devuelto') h += `<div class="au-aviso">${ic('undo-2')} El profesor te lo ha devuelto para que lo corrijas${tr.devFecha ? ' (' + esc(fFecha(tr.devFecha)) + ')' : ''}. Mira sus comentarios, cámbialo y vuelve a entregarlo.</div>`;
-    if (e === 'calificado' && n) h += `<div class="au-nota"><div class="au-nota-n">Nota: <b>${esc(fmtNota(n.nota))}</b>${n.max && n.puntos != null ? ` <span class="au-small">(${esc(fmtNota(n.puntos))} / ${esc(fmtNota(n.max))} puntos)</span>` : ''}</div>${n.comentario ? `<div class="au-nota-c">${ic('message-square')} ${esc(n.comentario)}</div>` : ''}</div>`;
+    if (e === 'calificado' && n) h += notaAlumnoHTML(n, ic('message-square'));
     h += `<form id="enForm" class="au-form" autocomplete="off" onsubmit="return false">`;
     if (ctx.editor) h += ctx.editor.html(v, !ed);
     else h += `<label>Respuesta<textarea name="texto" maxlength="10000" rows="8" ${ed ? '' : 'readonly'} placeholder="Escribe aquí tu respuesta. No pongas tu nombre.">${esc(v.texto || '')}</textarea></label>`;

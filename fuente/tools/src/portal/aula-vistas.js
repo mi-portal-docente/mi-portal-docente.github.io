@@ -17,6 +17,7 @@ import { crearEditorDoc } from './doc-editor.js';
 import { crearEditorHoja } from './hoja-ui.js';
 import { estadoTrabajo, ESTADOS_TRABAJO } from '../lms/entrega.js';
 import { confirmar } from './dialogo.js';
+import { rubricaAlumnoHTML, notaAlumnoHTML } from './rubrica-ui.js';
 
 // Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
 // registran en window.PORTAL_MOTORES[tipo] = (nodo, item, opciones) => ({ actualizar }).
@@ -89,15 +90,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   }
 
   // ---------------------------------------------------------------- página de un elemento
-  function rubricaHTML(it, n) {
-    if (!it.rubrica?.length) return '';
-    const det = n?.detalle || {};
-    return `<h4>Rúbrica</h4><table class="au-t"><thead><tr><th>Criterio</th><th class="c">Puntos</th>${n ? '<th class="c">Obtenidos</th>' : ''}</tr></thead><tbody>${it.rubrica.map((r, i) => r.clase ? `<tr><td>${esc(r.c)}</td><td class="c au-small" colspan="${n ? 2 : 1}">Se evalúa en clase</td></tr>` : `<tr><td>${esc(r.c)}${r.niveles?.some(Boolean) ? `<div class="au-small">${r.niveles.map((x, k) => x ? `${k + 1}: ${esc(x)}` : '').filter(Boolean).join(' · ')}</div>` : ''}</td><td class="c">${esc(fmtNota(r.p))}</td>${n ? `<td class="c"><b>${det['r' + i] != null ? esc(fmtNota(det['r' + i])) : '—'}</b></td>` : ''}</tr>`).join('')}</tbody></table>`;
-  }
-  function notaHTML(it) {
-    const n = st.notas.get(it.id); if (!n) return '';
-    return `<div class="au-nota"><div class="au-nota-n">Nota: <b>${esc(fmtNota(n.nota))}</b>${n.max && n.puntos != null ? ` <span class="au-small">(${esc(fmtNota(n.puntos))} / ${esc(fmtNota(n.max))} puntos)</span>` : ''}</div>${n.comentario ? `<div class="au-nota-c">💬 ${esc(n.comentario)}</div>` : ''}</div>`;
-  }
+  const rubricaHTML = (it, n) => rubricaAlumnoHTML(it, n);
+  const notaHTML = (it) => notaAlumnoHTML(st.notas.get(it.id));
   function cabeceraItem(it) {
     const a = asignatura(it.asig);
     return `<div class="au-crumbs"><a href="#inicio">Inicio</a> › <a href="#asignaturas">Asignaturas</a> › <a href="#asig/${esc(it.asig)}">${esc(a?.corto || it.asig)}</a> › <a href="#asig/${esc(it.asig)}/trabajo">Trabajo de clase</a> › <span aria-current="page">${esc(it.titulo)}</span></div>
@@ -141,7 +135,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (it.texto || !(it.contenido && montadorDe(it.tipo))) h += `<div class="au-texto">${it.texto ? textoHTML(it.texto) : '<p class="au-small">Sin instrucciones.</p>'}</div>`;
     if (it.texto && voz()) h += `<div class="au-voz"><button class="btn small" data-au="leer" aria-pressed="false">${ic('volume-2')} Leer en voz alta</button></div>`;
     if (it.enlaces?.length) h += `<h4>Adjuntos</h4>${adjuntosHTML(it.enlaces)}`;
-    h += rubricaHTML(it, st.notas.get(it.id));
+    h += `<div id="auRubrica">${rubricaHTML(it, st.notas.get(it.id))}</div>`;
     if (it.tipo === 'examen') h += examenInfoHTML(it);
     else if (it.contenido && montadorDe(it.tipo)) h += `${rol === 'alumno' && st.notas.get(it.id) ? notaHTML(it) : ''}<div id="auMotor" class="au-motor"></div>`;
     else if (TIPOS_ENTREGA.includes(it.tipo) && rol === 'alumno') h += entregaHTML(it);
@@ -154,8 +148,10 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     let it = st.items.get(id); if (it && rol === 'alumno' && it.pub && it.pub > Date.now()) it = null;
     if (!it) { el.innerHTML = barraSup() + `<div class="au-page">${st.listo.items ? '<p class="au-vacio">Este elemento no existe o no está publicado para tu grupo.</p><a class="btn" href="#asignaturas">← Asignaturas</a>' : '<p class="au-small">Cargando…</p>'}</div>`; return; }
     // motor ya montado (explicación, laboratorio…): no se repinta para no perder lo que está haciendo el alumno
-    if (motorM && motorM.id === id && motorM.nota === !!st.notas.get(id) && el.contains(motorM.nodo)) { motorM.api?.actualizar?.({ trabajo: st.trabajos.get(id), nota: st.notas.get(id) }); return; }
-    if (entM && entM.id === id && el.contains(entM.nodo)) { entM.api.actualizar({ trabajo: st.trabajos.get(id), nota: st.notas.get(id) }); return; }
+    // la rúbrica (con el nivel de cada criterio) se actualiza aunque no se repinte la página
+    const rubEl = el.querySelector('#auRubrica'); const rubAct = () => { if (rubEl) { const h = rubricaHTML(it, st.notas.get(id)); if (rubEl.innerHTML !== h) rubEl.innerHTML = h; } };
+    if (motorM && motorM.id === id && motorM.nota === !!st.notas.get(id) && el.contains(motorM.nodo)) { rubAct(); motorM.api?.actualizar?.({ trabajo: st.trabajos.get(id), nota: st.notas.get(id) }); return; }
+    if (entM && entM.id === id && el.contains(entM.nodo)) { rubAct(); entM.api.actualizar({ trabajo: st.trabajos.get(id), nota: st.notas.get(id) }); return; }
     motorM?.api?.destruir?.(); entM?.api?.destruir?.(); entM = null;
     el.innerHTML = barraSup() + `<div class="au-page">${itemHTML(it)}</div>`;
     const nodo = el.querySelector('#auMotor'); motorM = null;
@@ -370,7 +366,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     const todos = filasMisTrabajos();
     const F = { todos: ['Todos', () => true], pend: ['Pendientes', (x) => x.e === 'sin' || x.e === 'borrador' || x.e === 'devuelto'], ent: ['Entregados', (x) => x.e === 'entregado'], cal: ['Calificados', (x) => x.e === 'calificado'] };
     const L = todos.filter(F[mt.f][1]);
-    const fila = (x) => `<tr><td>${x.href ? `<a href="${esc(x.href)}">${esc(x.titulo)}</a>` : esc(x.titulo)}<div class="au-small">${esc(x.tipo === 'lab' ? 'Laboratorio' : nombreTipo(x.tipo))}</div></td><td>${esc(asignatura(x.asig)?.corto || x.asig)}</td><td>${estadoChipMini(x.e)}</td><td>${esc(x.fecha ? fFecha(x.fecha) : x.limite ? 'Para el ' + fFecha(x.limite) : '—')}</td><td class="c">${x.nota != null ? `<b>${esc(fmtNota(x.nota))}</b>` : '<span class="au-small">—</span>'}</td></tr>`;
+    const fila = (x) => `<tr><td>${x.href ? `<a href="${esc(x.href)}">${esc(x.titulo)}</a>` : esc(x.titulo)}<div class="au-small">${esc(x.tipo === 'lab' ? 'Laboratorio' : nombreTipo(x.tipo))}</div></td><td>${esc(asignatura(x.asig)?.corto || x.asig)}</td><td>${estadoChipMini(x.e)}</td><td>${esc(x.fecha ? fFecha(x.fecha) : x.limite ? 'Para el ' + fFecha(x.limite) : '—')}</td><td class="c">${x.nota != null ? `<span class="mt-nota ${x.nota >= 5 ? 'ok' : 'ko'}">${esc(fmtNota(x.nota))}</span>` : '<span class="au-small">—</span>'}</td></tr>`;
     el.innerHTML = barraSup('mis') + `<div class="au-page mt-page"><h2>${ic('briefcase')} Mis trabajos</h2>
       <div class="mt-filtros" role="group" aria-label="Filtrar">${Object.entries(F).map(([k, [t, f]]) => `<button class="btn small ${mt.f === k ? 'primary' : ''}" data-au="mtF" data-f="${k}" aria-pressed="${mt.f === k}">${esc(t)} <span class="mt-n">${todos.filter(f).length}</span></button>`).join('')}</div>
       ${!st.listo.items ? '<p class="au-small">Cargando…</p>' : L.length ? `<div class="mt-wrap"><table class="au-t mt-t"><thead><tr><th>Trabajo</th><th>Asignatura</th><th>Estado</th><th>Fecha</th><th class="c">Nota</th></tr></thead><tbody>${L.map(fila).join('')}</tbody></table></div>` : '<p class="au-vacio">No hay trabajos en esta lista.</p>'}

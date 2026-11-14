@@ -519,3 +519,44 @@ html[data-theme="dark"] .en-guardado.ok { color: #8ff0a8; } html[data-theme="dar
 .pb-prof h4 { margin: 0 0 8px; display: flex; gap: 6px; align-items: center; }
 .pb-cod { font-size: 1.05rem; } .pb-cod b { font-size: 1.8rem; letter-spacing: .25em; font-variant-numeric: tabular-nums; margin: 0 8px; }
 .pb-bloq td { background: var(--rojo-tint, rgba(255,59,48,.1)); font-weight: 600; }
+
+/* Rúbrica como tabla (editor del profesor, vista del alumno) y corrección por archivo */
+.rb-ed { display: flex; flex-direction: column; gap: 6px; }
+.rb-tit { font-weight: 600; }
+.rb-scroll { overflow-x: auto; border: 1px solid var(--sep, rgba(60,60,67,.18)); border-radius: 12px; }
+.rb-t { width: 100%; border-collapse: collapse; font-size: .85rem; min-width: 720px; }
+.rb-t th, .rb-t td { border-bottom: 1px solid var(--sep, rgba(60,60,67,.14)); border-right: 1px solid var(--sep, rgba(60,60,67,.14)); padding: 6px 8px; vertical-align: top; text-align: left; }
+.rb-t tr > :last-child { border-right: 0; } .rb-t tbody tr:last-child > * { border-bottom: 0; }
+.rb-t thead th { background: var(--fill, #f2f2f7); font-size: .78rem; font-weight: 600; }
+.rb-t .c { text-align: center; }
+.rb-t textarea, .rb-t input[type=number] { width: 100%; box-sizing: border-box; font: inherit; font-size: .82rem; border: 1px solid var(--sep, rgba(60,60,67,.2)); border-radius: 8px; padding: 4px 6px; background: var(--card, #fff); color: inherit; resize: vertical; }
+.rb-crit { min-width: 200px; } .rb-pts { width: 70px; } .rb-niv { min-width: 120px; } .rb-acc { white-space: nowrap; width: 1%; }
+.rb-clase { display: flex; gap: 4px; align-items: center; font-size: .74rem; margin-top: 4px; opacity: .85; }
+.rb-fila.clase { background: var(--fill, #f2f2f7); }
+.rb-np { display: block; font-size: .74rem; font-weight: 600; opacity: .75; margin-bottom: 2px; font-variant-numeric: tabular-nums; }
+.rb-vacia { padding: 14px !important; }
+.rb-pie { align-items: center; }
+.rb-txt textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: .82rem; }
+.rb-al { margin: 12px 0; } .rb-al h4 { margin: 0 0 6px; }
+.rb-ver { min-width: 600px; } .rb-ver th[scope=row] { font-weight: 600; min-width: 160px; }
+.rb-ver td.rb-c { color: var(--gris, #6e6e73); }
+.rb-ver td.rb-c.on { background: #e7f6ec; color: #17692f; box-shadow: inset 0 0 0 2px #34c759; }
+.rb-d { display: block; line-height: 1.3; }
+.rb-ver tr.clase { background: var(--fill, #f2f2f7); }
+.rb-tot { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rb-nota { display: flex; gap: 16px; align-items: center; }
+.rb-nota.ko { background: #fff4e5; border-color: #f5c98b; }
+.rb-nota-n { display: flex; align-items: baseline; gap: 2px; min-width: 76px; }
+.rb-nota-big { font-size: 34px; font-weight: 700; line-height: 1; color: #17692f; font-variant-numeric: tabular-nums; }
+.rb-nota.ko .rb-nota-big { color: #b25000; }
+.rb-nota-de { opacity: .6; }
+.rb-nota-tx { display: flex; flex-direction: column; gap: 2px; }
+.mt-nota { display: inline-block; min-width: 2.4em; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mt-nota.ok { background: #e7f6ec; color: #17692f; } .mt-nota.ko { background: #fff4e5; color: #b25000; }
+.co-mas { position: relative; }
+.co-mas > summary { list-style: none; } .co-mas > summary::-webkit-details-marker { display: none; }
+.co-mas-m { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: flex; flex-direction: column; gap: 6px; width: 260px; padding: 10px; border-radius: 12px; background: var(--card, #fff); border: 1px solid var(--sep, rgba(60,60,67,.18)); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+html[data-theme="dark"] .rb-ver td.rb-c.on, html[data-theme="dark"] .mt-nota.ok { background: rgba(52,199,89,.18); color: #7ee29a; }
+html[data-theme="dark"] .rb-nota.ko, html[data-theme="dark"] .mt-nota.ko { background: rgba(255,149,0,.16); }
+html[data-theme="dark"] .rb-nota.ko .rb-nota-big, html[data-theme="dark"] .mt-nota.ko { color: #ffb562; }

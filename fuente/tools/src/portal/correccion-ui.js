@@ -2,9 +2,9 @@
 // niveles al otro (clic en el nivel), anterior / siguiente, comentarios rápidos reutilizables y notas en
 // borrador que se publican a mano (una a una o todas a la vez). Los criterios «clase» no puntúan aquí.
 import { doc, setDoc, updateDoc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { esc } from './util.js';
+import { esc, nombreArchivo } from './util.js';
 import { ic } from './ico.js';
-import { notaRubrica, fmtNota, redondea, idTrabajo, urlSegura, NIVELES, puntosNivel, nivelDePuntos } from '../lms/modelo.js';
+import { notaRubrica, fmtNota, redondea, idTrabajo, urlSegura, puntosNivel, nivelDePuntos } from '../lms/modelo.js';
 import { estadoTrabajo, cuentaComoEntrega } from '../lms/entrega.js';
 import { estadoChipHTML } from './entrega-ui.js';
 import { leerResultado } from '../act/resultado.js';
@@ -12,7 +12,9 @@ import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
 import { botonModelo, botonesEnlaces3D, es3D } from './modelo3d-ui.js';
 import { rellenarImagenes, descargarDocx, imagenesParaDocx } from './doc-editor.js';
-import { confirmar } from './dialogo.js';
+import { confirmar, avisar } from './dialogo.js';
+import { leeArchivoCorreccion, FORMATO_CORRECCION, NOMBRES_NIVELES } from '../lms/correccion-json.js';
+import { NIVELES_TABLA } from './rubrica-ui.js';
 import { enlacesVivosHTML, slotCopias, rellenarCopias } from './copias-ui.js';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -41,8 +43,10 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     C.it = it; C.g = g; C.sel = {}; C.clave = '';
     // Sin nº concreto: se abre el primer alumno con una entrega sin corregir (si no hay, el primero que entregó).
     C.auto = n == null; C.n = n ?? primero() ?? 1; A.corr = true; cargarRapidos();
+    // Para importar una corrección desde un navegador automatizado (pide confirmación igual que el botón)
+    window.importarCorreccionSuperProfe = (txt) => aplicarArchivo(typeof txt === 'string' ? txt : JSON.stringify(txt));
   }
-  function cerrar() { A.corr = false; C.it = null; }
+  function cerrar() { A.corr = false; C.it = null; delete window.importarCorreccionSuperProfe; }
 
   function trabajoHTML(tr, nt) {
     if (!tr) return '<p class="pn-vacio">Sin entrega. Puedes poner nota igualmente (trabajo hecho en clase o en papel).</p>';
@@ -74,7 +78,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
       if (r.clase) return `<div class="co-crit clase"><div class="co-crit-t">${esc(r.c)}</div><div class="pn-small">${ic('users')} Lo evalúa el profesor en clase (no puntúa aquí)</div></div>`;
       const v = valorCriterio(i, det); const nv = C.sel['n' + i] ?? det['n' + i] ?? nivelDePuntos(r.p, v);
       return `<div class="co-crit" data-ri="${i}"><div class="co-crit-t">${esc(r.c)} <span class="pn-small">· ${esc(fmtNota(r.p))} p</span><span class="co-pts">${v != null && v !== '' ? esc(fmtNota(v)) : '—'}</span></div>
-        <div class="co-niv" role="group" aria-label="${esc(r.c)}">${NIVELES.map(([k, t]) => `<button type="button" class="co-n ${nv === k ? 'on' : ''}" data-co="nivel" data-ri="${i}" data-k="${k}" aria-pressed="${nv === k}"><b>${esc(t)}</b><span>${esc(fmtNota(puntosNivel(r.p, k)))} p</span>${r.niveles?.[k - 1] ? `<small>${esc(r.niveles[k - 1])}</small>` : ''}</button>`).join('')}</div></div>`;
+        <div class="co-niv" role="group" aria-label="${esc(r.c)}">${NIVELES_TABLA.map(([k, t]) => `<button type="button" class="co-n ${nv === k ? 'on' : ''}" data-co="nivel" data-ri="${i}" data-k="${k}" aria-pressed="${nv === k}"><b>${esc(t)}</b><span>${esc(fmtNota(puntosNivel(r.p, k)))} p</span>${r.niveles?.[k - 1] ? `<small>${esc(r.niveles[k - 1])}</small>` : ''}</button>`).join('')}</div></div>`;
     }).join('')}</div>`;
   }
   function calc(nt) {
@@ -90,6 +94,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     return `<div class="co-bar"><button class="btn" data-co="cerrar">${ic('chevron-left')} Cuaderno</button><div class="co-tit"><b>${esc(C.it.titulo)}</b><span class="pn-small">${esc(C.g.nombre)}</span></div>
         <span class="pn-grow"></span><label class="pn-chk"><input type="checkbox" data-co="solo" ${C.soloEntregas ? 'checked' : ''}> Solo con entrega</label>
         <button class="btn" data-co="ant" ${pos <= 0 ? 'disabled' : ''} aria-label="Alumno anterior">${ic('chevron-left')}</button><span class="co-nn">nº <b>${pad(C.n)}</b> <span class="pn-small">${pos >= 0 ? `${pos + 1} de ${L.length}` : ''}</span></span><button class="btn" data-co="sig" ${pos < 0 || pos >= L.length - 1 ? 'disabled' : ''} aria-label="Alumno siguiente">${ic('chevron-right')}</button>
+        <details class="co-mas"><summary class="btn" aria-label="Corregir con un archivo">${ic('file-text')} Archivo</summary><div class="co-mas-m"><button type="button" class="btn small" data-co="exportarCorr">${ic('download')} Exportar para corregir (JSON)</button><button type="button" class="btn small" data-co="importarCorr">${ic('upload')} Importar corrección (JSON)</button><p class="pn-small">Las notas importadas quedan en borrador: revísalas aquí y publícalas.</p></div></details>
         ${sinPub ? `<button class="btn primary" data-co="publicarTodas">${ic('megaphone')} Publicar ${sinPub}</button>` : ''}</div>
       <div class="co-grid"><section class="co-izq pn-card" id="coTrabajo" aria-label="Trabajo del alumno">${trabajoHTML(tr, nt)}</section>
       <section class="co-der pn-card" aria-label="Calificación"><h4>${ic('list-checks')} Rúbrica</h4>${rubricaHTML(nt)}
@@ -145,6 +150,50 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
       pintarTodo(true);
     } catch (e) { alert('No se ha podido devolver (' + (e?.code || 'error') + ').'); }
   }
+  // ---- Corrección por archivo (Claude u otra persona propone; el profesor revisa y publica)
+  function textoPlano(h) { if (typeof h !== 'string') return ''; const d = new DOMParser().parseFromString(limpiarDoc(h), 'text/html'); return (d.body.innerText || d.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim(); }
+  function exportarCorr() {
+    const R = C.it.rubrica || [];
+    const alumnos = filas(C.g).filter((n) => conEntrega(n) || A.notas.get(ids(n))).map((n) => {
+      const tr = A.trabajos.get(ids(n)); const nt = A.notas.get(ids(n));
+      const det = nt?.detalle || {};
+      return { n, entrega: tr ? { estado: tr.estado, fecha: tr.fecha ? new Date(tr.fecha).toISOString() : null, conRetraso: !!(C.it.fechaEntrega && tr.fecha > C.it.fechaEntrega), texto: tr.texto || '', documento: C.it.tipo === 'hoja' ? '' : textoPlano(tr.doc), enlaces: tr.enlaces || [] } : null,
+        notaActual: nt ? { nota: nt.nota ?? null, publicada: !!nt.publicada } : null,
+        niveles: R.map((r, i) => (r.clase ? null : det['n' + i] ?? null)), comentario: nt?.comentario || '' };
+    });
+    const out = { formato: FORMATO_CORRECCION, item: C.it.id, titulo: C.it.titulo, asig: C.it.asig, grupo: C.g.id, instrucciones: `Rellena «niveles» de cada alumno: un nivel por criterio, en el orden de «rubrica» (${NOMBRES_NIVELES}; null = sin calificar; los criterios «clase» se dejan en null). «comentario» es breve y para el alumno. Sin rúbrica, pon «nota» (0-10). Al importar, las notas quedan en borrador y no se cambian las ya publicadas.`,
+      rubrica: R.map((r, i) => ({ n: i + 1, criterio: r.c, puntos: r.clase ? 0 : r.p, clase: !!r.clase, niveles: r.clase ? null : Object.fromEntries(NIVELES_TABLA.map(([k, t]) => [t, { puntos: puntosNivel(r.p, k), descripcion: r.niveles?.[k - 1] || '' }])) })),
+      correcciones: alumnos };
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob);
+    const f = new Date(); const ymd = `${f.getFullYear()}${pad(f.getMonth() + 1)}${pad(f.getDate())}`;
+    const a = document.createElement('a'); a.href = url; a.download = `${ymd}_Correccion_${nombreArchivo(C.it.asig, 20)}_${nombreArchivo(C.it.titulo, 50).replace(/ /g, '_')}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  function importarCorr() {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+    inp.onchange = async () => { const f = inp.files?.[0]; if (f) await aplicarArchivo(await f.text()); };
+    inp.click();
+  }
+  async function aplicarArchivo(txt) {
+    const r = leeArchivoCorreccion(txt, { itemId: C.it.id, rubrica: C.it.rubrica || [] });
+    if (r.error) { await avisar(r.error); return; }
+    const validos = new Set(filas(C.g));
+    const L = r.correcciones.filter((x) => validos.has(x.n));
+    const publicadas = L.filter((x) => A.notas.get(ids(x.n))?.publicada);
+    const nuevas = L.filter((x) => !A.notas.get(ids(x.n))?.publicada);
+    const fuera = r.correcciones.length - L.length;
+    const av = [...r.avisos, ...(fuera ? [`${fuera} nº de lista que no están en ${C.g.nombre}`] : [])];
+    if (!nuevas.length) { await avisar(`No hay notas que importar.${publicadas.length ? ` ${publicadas.length} ya estaban publicadas y no se cambian.` : ''}${av.length ? '\n\n' + av.slice(0, 12).join('\n') : ''}`); return; }
+    if (!await confirmar(`Se van a guardar ${nuevas.length} nota(s) en BORRADOR (los alumnos no las ven hasta que las publiques).${publicadas.length ? `\n${publicadas.length} ya publicada(s): no se cambian.` : ''}${av.length ? `\n\nAvisos:\n${av.slice(0, 12).join('\n')}` : ''}\n\n¿Continuar?`)) return;
+    try {
+      for (let i = 0; i < nuevas.length; i += 400) {
+        const b = writeBatch(db);
+        nuevas.slice(i, i + 400).forEach((x) => b.set(doc(db, 'notas', ids(x.n)), { item: C.it.id, curso: C.it.curso, asig: C.it.asig, al: `${C.g.id}_${x.n}`, grupo: C.g.id, numero: x.n, nota: x.nota, puntos: x.puntos, max: x.max, detalle: x.detalle, comentario: x.comentario, publicada: false, fecha: Date.now() }));
+        await b.commit();
+      }
+      C.sel = {}; if (nuevas.some((x) => x.n === C.n) === false && nuevas[0]) C.n = nuevas[0].n;
+      pintarTodo(true); const m = $('#coMsg'); if (m) { m.innerHTML = ic('check') + ` ${nuevas.length} nota(s) importadas en borrador. Revísalas y publícalas.`; m.className = 'pn-msg ok'; }
+    } catch (e) { await avisar('No se han podido guardar las notas (' + (e?.code || 'error') + ').'); }
+  }
   function onClick(ev) {
     const b = ev.target.closest('[data-co]'); if (!b) return false;
     const a = b.dataset.co;
@@ -163,6 +212,8 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     else if (a === 'quitarRap') { C.rapidos.splice(+b.dataset.i, 1); guardarRapidos(); $('#coRapidos').innerHTML = rapidosHTML(); }
     else if (a === 'nuevoRap') { const t = String($('#coCom')?.value || '').trim(); if (!t) return true; if (!C.rapidos.includes(t)) { C.rapidos.push(t.slice(0, 300)); guardarRapidos(); } $('#coRapidos').innerHTML = rapidosHTML(); }
     else if (a === 'publicarTodas') publicarTodas();
+    else if (a === 'exportarCorr') { b.closest('details')?.removeAttribute('open'); exportarCorr(); }
+    else if (a === 'importarCorr') { b.closest('details')?.removeAttribute('open'); importarCorr(); }
     else if (a === 'devolver') devolver();
     else if (a === 'docx') { const id = ids(C.n); const tr = A.trabajos.get(id); if (tr?.doc) imagenesParaDocx(db, id, tr.doc).then((im) => descargarDocx(tr.doc, { titulo: C.it.titulo, meta: `${C.g.nombre} · nº ${C.n}`, imagenes: im, nombre: `${C.it.titulo} - nº ${pad(C.n)}` })); }
     else return false;
@@ -173,5 +224,5 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
   function onSubmit(ev) { if (ev.target.id !== 'coForm') return false; ev.preventDefault(); const s = ev.submitter; guardar(s?.dataset.pub === '1', s?.dataset.sig === '1'); return true; }
   function onKey(ev) { if (!A.corr || !ev.altKey) return; if (ev.key === 'ArrowRight') { ev.preventDefault(); ir(1); } if (ev.key === 'ArrowLeft') { ev.preventDefault(); ir(-1); } }
   document.addEventListener('keydown', onKey);
-  return { abrir, cerrar, pintar, onClick, onChange, onInput, onSubmit, get activa() { return !!A.corr && !!C.it; } };
+  return { abrir, cerrar, pintar, aplicarArchivo, onClick, onChange, onInput, onSubmit, get activa() { return !!A.corr && !!C.it; } };
 }
