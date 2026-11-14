@@ -1,7 +1,7 @@
 // Fase 13 · Hoja de cálculo del alumno (editor para entrega-ui) y su vista de solo lectura (corrección, imprimir).
 // Fórmulas en castellano (lms/hoja.js), gráfico de barras o líneas en SVG, tabla dinámica sencilla y retos que se
 // comprueban solos. Se guarda en trabajos/{id}.doc como JSON { v: 1, c: { A1: … }, g: gráfico, p: tabla dinámica }.
-import { esc } from './util.js';
+import { esc, nombreArchivo } from './util.js';
 import { ic } from './ico.js';
 import { crearHoja, nombreCelda, letra, mostrar, comprobarReto, tablaDinamica, datosGrafico, csvHoja, parteCelda } from '../lms/hoja.js';
 
@@ -109,5 +109,5 @@ export function crearEditorHoja(it) {
 }
 function descargarCSV(H, nf, nc, titulo) {
   const url = URL.createObjectURL(new Blob(['\ufeff' + csvHoja(H, nf, nc)], { type: 'text/csv;charset=utf-8' }));
-  const a = document.createElement('a'); a.href = url; a.download = (String(titulo || 'hoja').replace(/[^\p{L}\p{N} _.-]+/gu, '').trim().slice(0, 60) || 'hoja') + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  const a = document.createElement('a'); a.href = url; a.download = (nombreArchivo(titulo, 60) || 'hoja') + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
 }

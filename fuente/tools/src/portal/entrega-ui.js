@@ -103,9 +103,11 @@ export function montarEntrega(nodo, it, ctx) {
       if (!S.copias.some((c) => (c.fecha || 0) > desde)) { msg.innerHTML = ic('lock') + ' Has puesto un enlace: sube también una <b>copia</b> de cómo está ahora (PDF, capturas o el archivo). Mira «Copia congelada», más abajo.'; msg.className = 'au-msg ko'; nodo.querySelector('.cp-sec')?.scrollIntoView?.({ block: 'center' }); return; }
     }
     btn.disabled = true; msg.textContent = 'Entregando…'; msg.className = 'au-msg';
+    // Que ningún guardado automático del borrador se cruce con la entrega (podría dejarla otra vez en «borrador»).
+    clearTimeout(S.tDeb); for (let i = 0; i < 100 && S.enVuelo; i++) await new Promise((r) => setTimeout(r, 100));
+    S.enVuelo = true; S.sucio = false;
     const n = (S.tr?.nEntregas || 0) + 1;
     try {
-      clearTimeout(S.tDeb);
       await escribir({ ...base(v), estado: 'entregado', entregadoEn: Date.now(), nEntregas: n });
       S.sucio = false; S.ultimo = Date.now(); borrarLocal();
       S.tr = { ...(S.tr || {}), ...v, ...(v.enlaces.length ? { enlacesT: fechasEnl(v.enlaces) } : {}), estado: 'entregado', nEntregas: n, fecha: Date.now() };
@@ -116,9 +118,9 @@ export function montarEntrega(nodo, it, ctx) {
       setDoc(doc(db, 'versiones', idVersion(tid, n)), ver).catch(() => { });
       pintar(); const m = nodo.querySelector('#enMsg'); if (m) { m.innerHTML = ic('circle-check') + ' Entregado'; m.className = 'au-msg ok'; }
     } catch (e) {
-      btn.disabled = false;
+      btn.disabled = false; if (e?.code === 'permission-denied') S.sucio = true; // sin red: la entrega queda en cola y no se pisa con un borrador
       msg.textContent = e?.code === 'permission-denied' ? 'No se ha aceptado: puede que ya esté calificado o que tu sesión haya caducado.' : 'Sin conexión: la entrega se enviará cuando vuelva la red. No cierres la página.'; msg.className = 'au-msg ko';
-    }
+    } finally { S.enVuelo = false; }
   }
   async function anular(btn) {
     if (!await confirmar('¿Anular la entrega? Volverá a ser un borrador: podrás cambiarlo y entregarlo de nuevo.')) return;

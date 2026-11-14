@@ -46,7 +46,8 @@ export async function comprimirImagen(file) {
 export function descargarDocx(html, { titulo, meta, imagenes, nombre }) {
   const bytes = docx(limpiarDoc(html), { titulo, meta, imagenes });
   const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
-  const a = document.createElement('a'); a.href = url; a.download = (nombre || titulo || 'documento').replace(/[^\p{L}\p{N} _.-]+/gu, '').trim().slice(0, 80) + '.docx';
+  const a = document.createElement('a'); a.href = url; // Nombre sin tildes ni «º»: algunos navegadores ignoran el nombre si lleva esos caracteres y lo guardan como «download».
+  a.download = (nombre || titulo || 'documento').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/º/g, 'o').replace(/ª/g, 'a').replace(/[^A-Za-z0-9 _.-]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) + '.docx';
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 export async function imagenesParaDocx(db, tid, html) {

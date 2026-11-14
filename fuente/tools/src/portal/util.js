@@ -16,3 +16,5 @@ export function conTimeout(p, ms) {
 }
 export const hhmm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 export const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+// Nombre de archivo seguro para descargar: sin tildes ni «º/ª» (algunos Chrome ignoran el nombre y lo guardan como «download»).
+export const nombreArchivo = (t, max = 80) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/º/g, 'o').replace(/ª/g, 'a').replace(/[^A-Za-z0-9 _.()-]+/g, '_').replace(/_+/g, '_').replace(/\s+/g, ' ').trim().slice(0, max);

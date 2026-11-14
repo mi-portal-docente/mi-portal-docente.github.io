@@ -20,6 +20,8 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const TAREA = { tipo: 'tarea', titulo: 'Informe: medidas con el polímetro', texto: 'Explica cómo has medido la tensión y la resistencia. Añade una conclusión.', puntos: 10 };
   const id = await importarYPublicar(pg, BASE, 'eee', TAREA, { pegarJSON, guardarJSON });
   const tid = `${id}_${T.GE.id}_6`;
+  // La interfaz se actualiza antes de que el servidor confirme: se espera a que el trabajo llegue (máx. 10 s).
+  const esperaTr = async (p) => { let x = null; for (let i = 0; i < 20; i++) { x = await docREST('trabajos/' + tid); if (p(x)) break; await new Promise((r) => setTimeout(r, 500)); } return x; };
   const A = await T.alumno(T.GE, 6, '4321', { width: 1280, height: 900 });
   await A.pg.goto(BASE + '#trabajo/' + id); await A.pg.waitForSelector('#enForm [name=texto]', { timeout: 20000 });
   ok('alumno: la tarea empieza «Sin empezar» con Guardar, Entregar e Imprimir', /Sin empezar/.test(await A.pg.textContent('.en-cab')) && !!(await A.pg.$('[data-en=guardar]')) && !!(await A.pg.$('[data-en=imprimir]')));
@@ -42,13 +44,13 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   // ---- entregar, anular, volver a entregar
   await A.pg.waitForFunction(() => /Guardado/.test(document.querySelector('#enGuardado')?.textContent || ''), null, { timeout: 30000 });
   await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
-  d = await docREST('trabajos/' + tid);
+  d = await esperaTr((x) => campo(x, 'estado') === 'entregado' && campo(x, 'nEntregas') === 1);
   ok('entregar: estado «entregado», 1.ª entrega y texto de solo lectura', campo(d, 'estado') === 'entregado' && campo(d, 'nEntregas') === 1 && !!(await A.pg.$('#enForm [name=texto][readonly]')));
   await A.pg.click('[data-en=anular]'); await A.pg.waitForSelector('.en-chip.en-borrador', { timeout: 15000 });
-  ok('anular la entrega (sin nota): vuelve a borrador y se puede editar', campo(await docREST('trabajos/' + tid), 'estado') === 'borrador' && !(await A.pg.$('#enForm [name=texto][readonly]')));
+  ok('anular la entrega (sin nota): vuelve a borrador y se puede editar', campo(await esperaTr((x) => campo(x, 'estado') === 'borrador'), 'estado') === 'borrador' && !(await A.pg.$('#enForm [name=texto][readonly]')));
   await A.pg.fill('#enForm [name=texto]', 'Medí 4,5 V en la pila y 220 Ω en la resistencia. Conclusión: coincide con lo esperado.');
   await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
-  ok('volver a entregar: 2.ª entrega', campo(await docREST('trabajos/' + tid), 'nEntregas') === 2);
+  ok('volver a entregar: 2.ª entrega', campo(await esperaTr((x) => campo(x, 'nEntregas') === 2), 'nEntregas') === 2);
   await shot(A.pg, 'f9_entregado');
   // ---- imprimir / PDF
   await A.pg.evaluate(() => { window.__imp = 0; window.print = () => { window.__imp++; window.__impHTML = document.getElementById('enImprimir')?.innerHTML || ''; }; });
@@ -79,7 +81,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await A.pg.fill('#enForm [name=texto]', 'Medí 4,5 V en la pila y, con el circuito sin alimentar, 220 Ω en la resistencia. Conclusión: coincide.');
   await shot(A.pg, 'f9_alumno_devuelto');
   await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
-  d = await docREST('trabajos/' + tid);
+  d = await esperaTr((x) => campo(x, 'nEntregas') === 3);
   ok('alumno: vuelve a entregar tras la devolución (3.ª entrega)', campo(d, 'estado') === 'entregado' && campo(d, 'nEntregas') === 3);
   await pg.waitForFunction(() => /lo añado/.test(document.querySelector('#apComs')?.textContent || ''), null, { timeout: 15000 });
   ok('profesor: ve la respuesta del alumno en los comentarios', true);

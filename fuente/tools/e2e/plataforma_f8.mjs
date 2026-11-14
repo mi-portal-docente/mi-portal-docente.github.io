@@ -67,7 +67,8 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   ok('el nº 3 la ve, con «Leer en voz alta»', !!(await A.pg.$('[data-au=leer]')));
   await A.pg.fill('#enForm [name=texto]', 'Hecha de nuevo.'); await A.pg.click('[data-en=entregar]');
   await A.pg.waitForFunction(() => /Entregad|entregad/.test(document.querySelector('#aula')?.textContent || ''), null, { timeout: 15000 });
-  ok('el nº 3 entrega la recuperación', /Hecha de nuevo/.test(JSON.stringify(await docREST(`trabajos/${idR}_${T.GE.id}_3`))));
+  let trR = ''; for (let i = 0; i < 10 && !/Hecha de nuevo/.test(trR); i++) { trR = JSON.stringify(await docREST(`trabajos/${idR}_${T.GE.id}_3`)); if (!/Hecha de nuevo/.test(trR)) await A.pg.waitForTimeout(500); }
+  ok('el nº 3 entrega la recuperación', /Hecha de nuevo/.test(trR));
   await shot(A.pg, 'f8_recuperacion_alumno');
   const A4 = await T.alumno(T.GE, 4, '4321', { width: 1280, height: 860 });
   await A4.pg.goto(BASE + '#asig/eee/trabajo'); await A4.pg.waitForSelector('#asTrabajo', { timeout: 20000 }); await A4.pg.waitForTimeout(2500);

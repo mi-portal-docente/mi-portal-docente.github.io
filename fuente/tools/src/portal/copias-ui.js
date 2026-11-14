@@ -5,7 +5,7 @@
 //    borrar (reglas).
 //  · Sin Firebase Storage: imágenes comprimidas a unos 300 KB, PDF hasta 700 KB y archivos hasta 600 KB.
 import { doc, setDoc, getDocs, collection, serverTimestamp, Bytes } from 'firebase/firestore';
-import { esc } from './util.js';
+import { esc, nombreArchivo } from './util.js';
 import { ic } from './ico.js';
 import { urlSegura } from '../lms/modelo.js';
 
@@ -107,7 +107,7 @@ export function abrirCopia(c) {
   const b = new Blob([c.data.toUint8Array()], { type: c.mime || 'application/octet-stream' });
   const url = URL.createObjectURL(b);
   if (/^(application\/pdf|image\/)/.test(c.mime)) window.open(url, '_blank', 'noopener');
-  else { const a = document.createElement('a'); a.href = url; a.download = c.nombre || 'copia'; document.body.appendChild(a); a.click(); a.remove(); }
+  else { const a = document.createElement('a'); a.href = url; a.download = nombreArchivo(c.nombre) || 'copia'; document.body.appendChild(a); a.click(); a.remove(); }
   setTimeout(() => URL.revokeObjectURL(url), 60e3);
 }
 const icTipo = { pdf: 'file-text', imagen: 'image', archivo: 'paperclip' };

@@ -51,7 +51,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   ok('resumen final con las preguntas de control acertadas', /Resumen editado/.test(await A.pg.textContent('.xp-diapo')) && /1 de 1 acertadas/.test(await A.pg.textContent('.xp-diapo')));
   await A.pg.click('[data-xp=entregar]');
   await A.pg.waitForFunction(() => /Entregado/.test(document.querySelector('.xp-diapo')?.textContent || ''), null, { timeout: 15000 });
-  const tr = JSON.stringify(await docREST(`trabajos/${id}_${T.GE.id}_3`));
+  let tr = ''; for (let i = 0; i < 10 && !/Aciertos: 1\/1/.test(tr); i++) { tr = JSON.stringify(await docREST(`trabajos/${id}_${T.GE.id}_3`)); if (!/Aciertos/.test(tr)) await A.pg.waitForTimeout(500); }
   ok('entregar: «Aciertos: 1/1» en el trabajo', /Aciertos: 1\/1/.test(tr));
   await shot(A.pg, 'f4_explicacion_resumen');
 

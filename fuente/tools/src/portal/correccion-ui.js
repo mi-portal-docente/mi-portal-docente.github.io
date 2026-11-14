@@ -35,9 +35,12 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
   const guardarRapidos = () => setDoc(doc(db, 'config', 'comentarios'), { lista: C.rapidos.slice(0, 60) }).catch(() => { });
   const rapidosHTML = () => (C.rapidos == null ? '<span class="pn-small">Cargando…</span>' : C.rapidos.map((t, i) => `<span class="co-rap"><button type="button" class="btn tiny" data-co="usarRap" data-i="${i}" title="Añadir al comentario">${esc(t)}</button><button type="button" class="co-rap-x" data-co="quitarRap" data-i="${i}" aria-label="Quitar «${esc(t)}» de los comentarios rápidos">${ic('x')}</button></span>`).join('') || '<span class="pn-small">Sin comentarios rápidos.</span>');
 
+  const conEntrega = (x) => cuentaComoEntrega(A.trabajos.get(ids(x)));
+  function primero() { const L = lista(); return L.find((x) => conEntrega(x) && A.notas.get(ids(x))?.nota == null) ?? L.find(conEntrega) ?? L[0]; }
   function abrir(it, g, n) {
     C.it = it; C.g = g; C.sel = {}; C.clave = '';
-    const L = lista(); C.n = n ?? L[0] ?? 1; A.corr = true; cargarRapidos();
+    // Sin nº concreto: se abre el primer alumno con una entrega sin corregir (si no hay, el primero que entregó).
+    C.auto = n == null; C.n = n ?? primero() ?? 1; A.corr = true; cargarRapidos();
   }
   function cerrar() { A.corr = false; C.it = null; }
 
@@ -100,6 +103,9 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
         </form></section></div>`;
   }
   function pintar(B, forzar) {
+    // Abierta sin nº: si las entregas llegan después, se salta al primer alumno con entrega (una sola vez).
+    if (C.auto && !conEntrega(C.n)) { const k = primero(); if (k != null && conEntrega(k)) { C.n = k; C.auto = false; forzar = true; } }
+    else if (C.auto) C.auto = false;
     const clave = `${C.it.id}|${C.g.id}|${C.n}`;
     if (!forzar && C.clave === clave && $('#coForm')) { const T = $('#coTrabajo'); if (T) { const id = ids(C.n); T.innerHTML = trabajoHTML(A.trabajos.get(id), A.notas.get(id)); rellenarImagenes(T, db, id); rellenarCopias(T, db); } return; }
     C.clave = clave; B.innerHTML = html(); rellenarImagenes($('#coTrabajo'), db, ids(C.n)); rellenarCopias($('#coTrabajo'), db);

@@ -5,7 +5,7 @@ import { confirmar, avisar, pedirTexto } from './dialogo.js';
 import { enlacesVivosHTML, slotCopias, rellenarCopias } from './copias-ui.js';
 import { elegirYAbrirVisor } from './evidencias.js';
 import { leerResultado } from '../act/resultado.js';
-import { esc } from './util.js';
+import { esc, nombreArchivo } from './util.js';
 import { ic } from './ico.js';
 import { BIBLIOTECA, asignatura, TIPOS, CATEGORIAS, ETAPAS } from '../lms/biblioteca.js';
 import { semillaAlumno } from '../lms/modelo.js';
@@ -401,7 +401,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       filasCsv.push([pad(n), ...v.map((x) => (x.estado === 'nota' ? fmtNota(x.nota) : x.estado === 'entregado' ? 'entregado' : ''))]);
     }
     const url = URL.createObjectURL(new Blob([csv(filasCsv)], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a');
-    a.href = url; a.download = `notas-${g.nombre.replace(/[^\wºª-]+/g, '_')}-${asig}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    a.href = url; a.download = `notas-${nombreArchivo(g.nombre).replace(/ /g, '_')}-${asig}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
   // CSV «largo» de la asignatura (grupo elegido): nº de lista, actividad, fecha, nota (0–10), criterio.
@@ -422,7 +422,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const F = filasCriterios(reg);
     if (F.length < 2) { alert('Todavía no hay notas que exportar en este grupo y asignatura.'); return; }
     const url = URL.createObjectURL(new Blob([csv(F)], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a');
-    a.href = url; a.download = `notas-criterios-${asig}-${g.nombre.replace(/[^\wºª-]+/g, '_')}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    a.href = url; a.download = `notas-criterios-${asig}-${nombreArchivo(g.nombre).replace(/ /g, '_')}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
   // =============================================================== ANALÍTICA (exámenes)
