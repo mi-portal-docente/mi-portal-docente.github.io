@@ -536,6 +536,37 @@ service cloud.firestore {
       }
     }
 
+    // archivos/{id}: archivos que el profesor adjunta al Trabajo de clase (PDF, imagen, Word…), sin Drive.
+    // El documento guarda los datos y los bytes van troceados en partes/p00…p19 (≤ 750 KB cada una, ≤ 15 MB en total).
+    // Lo leen el profesor y los alumnos con sesión válida cuyo grupo tiene esa asignatura. Solo el profesor escribe.
+    function grupoTieneAsig(asig) {
+      return asig in get(ruta('grupos', miSesion().grupo)).data.asignaturas;
+    }
+    match /archivos/{id} {
+      allow read: if esProfesor() || (alumnoOk() && grupoTieneAsig(resource.data.asig));
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,40}$')
+        && request.resource.data.keys().hasOnly(['nombre', 'mime', 'tipo', 'bytes', 'partes', 'hash', 'asig', 'curso', 'fecha', 'origen'])
+        && request.resource.data.keys().hasAll(['nombre', 'mime', 'tipo', 'bytes', 'partes', 'hash', 'asig'])
+        && textoCorto(request.resource.data.nombre, 150) && textoCorto(request.resource.data.mime, 100)
+        && request.resource.data.tipo in ['pdf', 'imagen', 'documento', 'presentacion', 'hoja', 'archivo']
+        && request.resource.data.bytes is int && request.resource.data.bytes > 0 && request.resource.data.bytes <= 15728640
+        && request.resource.data.partes is int && request.resource.data.partes >= 1 && request.resource.data.partes <= 20
+        && hashValido(request.resource.data.hash)
+        && textoCorto(request.resource.data.asig, 20)
+        && (!('curso' in request.resource.data) || textoCorto(request.resource.data.curso, 40))
+        && (!('origen' in request.resource.data) || textoCorto(request.resource.data.origen, 300))
+        && request.resource.data.fecha == request.time;
+      match /partes/{p} {
+        allow read: if esProfesor() || (alumnoOk() && grupoTieneAsig(get(ruta('archivos', id)).data.asig));
+        allow delete: if esProfesor();
+        allow create, update: if esProfesor() && p.matches('^p(0[0-9]|1[0-9])$')
+          && request.resource.data.keys().hasOnly(['d'])
+          && request.resource.data.d is bytes
+          && request.resource.data.d.size() > 0 && request.resource.data.d.size() <= 786432;
+      }
+    }
+
     // temas/{id}: temas del «Trabajo de clase» (nombre y orden). Los nombres no son
     // datos personales: los lee cualquier alumno con sesión válida; los escribe el profesor.
     match /temas/{id} {

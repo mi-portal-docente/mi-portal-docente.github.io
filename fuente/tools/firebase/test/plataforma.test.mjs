@@ -586,3 +586,27 @@ describe('P4 · Prueba sin elementos externos', () => {
     await assertFails(getDoc(doc(anon('a9'), ruta)));
   });
 });
+
+describe('Archivos adjuntos del profesor (sin Drive)', () => {
+  const ARCH = (o = {}) => ({ nombre: 'EEE_B1_Ejercicios.pdf', mime: 'application/pdf', tipo: 'pdf', bytes: 3, partes: 1, hash: 'a'.repeat(64), asig: 'eee', curso: 'c2627', fecha: serverTimestamp(), ...o });
+  const parte = (n = 3) => ({ d: Bytes.fromUint8Array(new Uint8Array(n)) });
+  test('el profesor sube un archivo troceado; el alumno de un grupo con la asignatura lo lee', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'archivos/arch000001'), ARCH()));
+    await assertSucceeds(setDoc(doc(profe(), 'archivos/arch000001/partes/p00'), parte()));
+    await assertSucceeds(getDoc(doc(anon('a7'), 'archivos/arch000001')));
+    await assertSucceeds(getDoc(doc(anon('a7'), 'archivos/arch000001/partes/p00')));
+  });
+  test('ataque: alumno de otra asignatura, alumno que sube, parte enorme o campos raros → denegado', async () => {
+    await sembrar(async (db) => { await setDoc(doc(db, 'archivos/arch000001'), { ...ARCH(), fecha: 1 }); await setDoc(doc(db, 'archivos/arch000001/partes/p00'), parte()); });
+    await assertFails(getDoc(doc(anon('b5'), 'archivos/arch000001')));
+    await assertFails(getDoc(doc(anon('b5'), 'archivos/arch000001/partes/p00')));
+    await assertFails(setDoc(doc(anon('a7'), 'archivos/arch000002'), ARCH()));
+    await assertFails(setDoc(doc(anon('a7'), 'archivos/arch000001/partes/p01'), parte()));
+    await assertFails(setDoc(doc(profe(), 'archivos/arch000001/partes/p01'), parte(786433)));
+    await assertFails(setDoc(doc(profe(), 'archivos/arch000001/partes/p20'), parte()));
+    await assertFails(setDoc(doc(profe(), 'archivos/arch000003'), ARCH({ bytes: 15728641 })));
+    await assertFails(setDoc(doc(profe(), 'archivos/arch000004'), ARCH({ extra: 1 })));
+    await assertFails(deleteDoc(doc(anon('a7'), 'archivos/arch000001')));
+    await assertSucceeds(deleteDoc(doc(profe(), 'archivos/arch000001/partes/p00')));
+  });
+});

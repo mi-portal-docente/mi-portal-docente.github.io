@@ -14,6 +14,7 @@ import { editorRubricaHTML, leerEditorRubrica, accionRubrica, cambioRubrica } fr
 import { completarPiac } from '../lms/motores/piac.js';
 import { plantillaHTML, leerPlantilla, accionPlantilla } from './doc-editor.js';
 import { confirmar } from './dialogo.js';
+import { subirArchivo } from './archivos.js';
 import { leeVariables, textoVariables } from '../lms/formula.js';
 
 export const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -47,6 +48,19 @@ export function crearEditor({ db, aula, gruposDe }) {
   const E = { edit: null, preguntas: [], el: null, alGuardar: null };
   const temasDe = (curso, asig) => [...st.temas.values()].filter((t) => t.curso === curso && t.asig === asig).sort((a, b) => a.orden - b.orden);
 
+  async function subirAdjuntos(f) {
+    const L = [...(f.adjF.files || [])]; f.adjF.value = ''; if (!L.length) return;
+    const msg = f.querySelector('[data-ed-sub]'); const btn = f.querySelector('[data-ed=subir]'); btn.disabled = true;
+    try {
+      for (const [i, file] of L.entries()) {
+        msg.textContent = `Subiendo ${L.length > 1 ? `${i + 1}/${L.length} · ` : ''}${file.name}…`;
+        const r = await subirArchivo(db, file, { asig: E.edit.asig, curso: E.edit.curso, progreso: (x) => { msg.textContent = `Subiendo ${L.length > 1 ? `${i + 1}/${L.length} · ` : ''}${file.name}… ${Math.round(x * 100)} %`; } });
+        f.enlaces.value = (f.enlaces.value.trim() ? f.enlaces.value.trim() + '\n' : '') + `${r.nombre} | ${r.u}`;
+      }
+      msg.textContent = `${L.length === 1 ? 'Archivo subido' : L.length + ' archivos subidos'}. Pulsa «Guardar» para que quede en el elemento.`;
+    } catch (e) { msg.textContent = e?.code === 'permission-denied' ? 'No se ha podido subir: falta publicar las reglas nuevas.' : (e?.message || 'No se ha podido subir el archivo.'); }
+    finally { btn.disabled = false; }
+  }
   function cerrar() { E.edit = null; E.preguntas = []; if (E.el) { E.el.remove(); E.el = null; } document.body.classList.remove('cl-modal-abierto'); }
   function montar() {
     if (!E.el) {
@@ -103,7 +117,8 @@ export function crearEditor({ db, aula, gruposDe }) {
         <textarea name="enlaces" rows="3" maxlength="10000" placeholder="Título | https://drive.google.com/…  (uno por línea)">${esc(enlacesTexto(e.enlaces))}</textarea>
         <div class="cl-adj-add"><input name="adjT" maxlength="120" placeholder="Título (opcional)"><input name="adjU" maxlength="500" placeholder="https://… (Drive, Docs, YouTube, cualquier web) o materiales/…">
           <button type="button" class="btn small" data-ed="adj">➕ Añadir</button></div>
-        <p class="pn-small">Google Drive, Documentos, Presentaciones, Formularios, YouTube o cualquier enlace. Los PDF e imágenes que estén en la web van con la ruta <code>materiales/…</code>. (Para subir archivos al portal haría falta el plan de pago de Firebase: usa Drive y pega el enlace.)</p></fieldset>
+        <div class="cl-adj-sub"><button type="button" class="btn small primary" data-ed="subir">${ic('upload')} Subir archivo</button><input type="file" name="adjF" multiple hidden accept=".pdf,image/*,.doc,.docx,.odt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,.csv,.txt,.zip"><span class="pn-small" data-ed-sub></span></div>
+        <p class="pn-small">Sube el PDF, la imagen o el documento (máx. 15 MB cada uno): se guarda en el portal y los alumnos lo ven dentro de la página, sin Drive ni cuentas. PDF e imágenes se ven en el visor; el resto se descarga. También puedes pegar enlaces (YouTube, Canva, cualquier web).</p></fieldset>
       ${M?.documento ? `<fieldset class="pn-f ap-motor"><legend>${ic('file-text')} Documento · plantilla de partida (opcional)</legend>${plantillaHTML(e.contenidoTxt ? (() => { try { return JSON.parse(e.contenidoTxt); } catch (x) { return e.contenido || {}; } })() : e.contenido || M.ejemplo || {})}<p class="pn-small">El alumno empieza con esta plantilla y escribe en el portal: títulos, listas, tablas, enlaces, imágenes y código. Se guarda solo; puede imprimirlo o descargarlo en .docx.</p></fieldset>` : ''}
       ${M && !M.documento ? `<fieldset class="pn-f ap-motor"><legend>${esc(M.nombre || TIPOS[e.tipo]?.nombre || e.tipo)} · contenido (JSON)</legend>
         <textarea name="contenido" class="js-ta" rows="14" spellcheck="false" maxlength="400000">${esc(e.contenidoTxt ?? JSON.stringify((e.contenido && M.paraEditar ? M.paraEditar(e.contenido) : e.contenido) || M.ejemplo || {}, null, 2))}</textarea>
@@ -273,6 +288,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (acc === 'ejemplo') { const M = motor(E.edit.tipo); const ta = b.form?.elements.contenido; if (M && ta && (!ta.value.trim() || await confirmar('¿Cambiar el contenido por el ejemplo?'))) { ta.value = JSON.stringify(M.ejemplo || {}, null, 2); E.edit.contenidoTxt = ta.value; } return; }
     if (acc === 'plantillaRubrica' || acc.startsWith('rb')) { await accionRubrica(b, confirmar); return; }
     if (acc === 'exportar') { const it = st.items.get(E.edit?.id); if (it) api.exportar?.(it); return; }
+    if (acc === 'subir') { b.form.adjF.click(); return; }
     if (acc === 'adj') {
       const f = b.form; const u = f.adjU.value.trim(); const t = f.adjT.value.trim();
       if (!enlaceValido(u)) { f.adjU.setCustomValidity('Pega un enlace que empiece por https:// (o materiales/…)'); f.adjU.reportValidity(); f.adjU.setCustomValidity(''); return; }
@@ -293,6 +309,7 @@ export function crearEditor({ db, aula, gruposDe }) {
   }
   function onChange(ev) {
     const t = ev.target;
+    if (t.name === 'adjF' && t.form) { subirAdjuntos(t.form); return; }
     if (t.name === 'tipo' && t.form?.id === 'apItemForm') {
       leer(t.form); const e = E.edit;
       if (e.tipo === 'examen' && !e.examen) e.examen = { desde: Date.now(), hasta: Date.now() + 864e5, limiteMin: 30, barajar: true };

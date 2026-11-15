@@ -538,6 +538,9 @@ function bind() {
 }
 function route() {
   const h = location.hash;
+  // enlace directo a un archivo del portal (#archivo/id): se abre el visor sobre el Curso
+  const ar = h.match(/^#archivo\/([A-Za-z0-9]{6,40})$/);
+  if (ar) { history.replaceState(null, '', '#asignaturas'); setTimeout(() => window.abrirArchivoSuperProfe?.(ar[1]), 0); return route(); }
   // Panel del profesor (solo con sesión de profesor del portal)
   if (/^#panel(\/|$)/.test(h)) {
     if (portal()?.esProfesor) { showScreen('panelprof'); portal().renderPanel($('#panelprof'), h.replace(/^#panel\/?/, '') || 'grupos'); return; }

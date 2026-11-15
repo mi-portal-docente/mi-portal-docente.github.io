@@ -15,6 +15,7 @@ import { textoHTML } from './aula-vistas.js';
 import { crearJson } from './aula-json.js';
 import { crearBanco } from './aula-banco.js';
 import { crearDirectoProfe } from './directo.js';
+import { subirArchivo } from './archivos.js';
 
 const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const TIPOS_ENTREGA_EV = (it) => it.tipo !== 'material' && it.tipo !== 'info';
@@ -106,6 +107,34 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     return '';
   }
 
+  // ---- Sustituir los adjuntos de Drive (del colegio) por archivos guardados en el portal: se emparejan por nombre
+  const ES_DRIVE = /^https:\/\/(drive\.google\.com\/(file|open)|docs\.google\.com\/(document|presentation|spreadsheets))/i;
+  const baseNom = (t) => String(t || '').replace(/\.[a-z0-9]{2,5}$/i, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const nDrive = (L) => L.reduce((a, it) => a + (it.enlaces || []).filter((e) => ES_DRIVE.test(e.u)).length, 0);
+  async function sustituirDrive(files) {
+    const items = itemsAsig(C.asig).filter((it) => !it.papelera);
+    const destino = new Map(); // base → [{it, i}]
+    for (const it of items) (it.enlaces || []).forEach((e, i) => { if (ES_DRIVE.test(e.u)) { const k = baseNom(e.t); if (k) { if (!destino.has(k)) destino.set(k, []); destino.get(k).push({ it, i }); } } });
+    const usar = []; const sinPareja = [];
+    for (const f of files) { const L = destino.get(baseNom(f.name)); if (L) usar.push([f, L]); else sinPareja.push(f.name); }
+    const usados = new Set(usar.map(([f]) => baseNom(f.name)));
+    const quedan = [...destino.keys()].filter((k) => !usados.has(k)).map((k) => destino.get(k)[0].it.enlaces[destino.get(k)[0].i].t);
+    const nAdj = usar.reduce((a, [, L]) => a + L.length, 0); const nIt = new Set(usar.flatMap(([, L]) => L.map((x) => x.it.id))).size;
+    if (!usar.length) { await avisar(`Ningún archivo coincide por nombre con un adjunto de Drive.${sinPareja.length ? `\n\nSin pareja: ${sinPareja.join(', ')}` : ''}`); return; }
+    if (!await confirmar(`Se van a subir ${usar.length} archivo(s) al portal y sustituir ${nAdj} adjunto(s) de Drive en ${nIt} elemento(s).${sinPareja.length ? `\n\nSin pareja (no se suben): ${sinPareja.join(', ')}` : ''}${quedan.length ? `\n\nSeguirán en Drive: ${quedan.join(', ')}` : ''}\n\n¿Continuar?`)) return;
+    const msg = (t) => { const m = C.el.querySelector('[data-cl-sust-msg]') || Object.assign(document.createElement('p'), { className: 'pn-msg' }); m.dataset.clSustMsg = '1'; m.textContent = t; if (!m.isConnected) C.el.querySelector('.cl-bar')?.after(m); };
+    const nuevos = new Map(); // itemId → enlaces
+    try {
+      for (const [n, [f, L]] of usar.entries()) {
+        msg(`Subiendo ${n + 1}/${usar.length}: ${f.name}…`);
+        const r = await subirArchivo(db, f, { asig: C.asig, curso: st.cursoSel, origen: L[0].it.enlaces[L[0].i].u });
+        for (const { it, i } of L) { const E = nuevos.get(it.id) || (it.enlaces || []).map((e) => ({ ...e })); E[i] = { t: r.nombre, u: r.u }; nuevos.set(it.id, E); }
+      }
+      await enLotes(db, [...nuevos].map(([id, enlaces]) => (b) => b.update(doc(db, 'items', id), { enlaces })));
+      msg(`Hecho: ${usar.length} archivo(s) subidos y ${nAdj} adjunto(s) sustituidos en ${nIt} elemento(s).${quedan.length ? ` Siguen en Drive: ${quedan.length}.` : ''}`);
+      window.__sustDrive = { subidos: usar.length, adjuntos: nAdj, elementos: nIt, sinPareja, quedan };
+    } catch (e) { msg('Se ha parado: ' + (e?.code === 'permission-denied' ? 'faltan las reglas nuevas (archivos).' : e?.message || 'error') + (nuevos.size ? ' Los archivos ya subidos no se han enlazado todavía: vuelve a intentarlo.' : '')); }
+  }
   // ---- Lo que antes estaba en la pestaña «Organización», ahora dentro de «Trabajo de clase»
   function filtroEstado() { const t = ahora(); return (it) => C.orgF === 'todo' || (C.orgF === 'pend' ? !!it.pendiente : estadoPub(it, t).k === C.orgF); }
   function chipsEstadoHTML(E) {
@@ -128,7 +157,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const bar = prof ? `<div class="cl-bar"><div class="cl-crear"><button class="btn primary cl-crear-b" data-cl="crear" aria-haspopup="true" aria-expanded="${C.crear}">＋ Crear</button>
         ${C.crear ? `<div class="cl-crear-m" role="menu">${[['tarea', 'Tarea'], ['examen', 'Tarea de cuestionario'], ['pregunta', 'Pregunta'], ['material', 'Material']].map(([t, n]) => `<button role="menuitem" data-cl="nuevo" data-tipo="${t}"><span>${icono(t)}</span>${n}</button>`).join('')}
           <hr><button role="menuitem" data-cl="reutilizar"><span>♻️</span>Reutilizar publicación</button><button role="menuitem" data-cl="nuevoTema"><span>🗂</span>Tema</button></div>` : ''}</div>
-        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">${ic('upload')} Importar JSON</button><button class="btn" data-cl="banco">${ic('archive')} Banco de preguntas</button><button class="btn" data-cl="directo">${ic('radio')} Pregunta en directo</button><span class="pn-grow"></span>
+        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">${ic('upload')} Importar JSON</button><button class="btn" data-cl="banco">${ic('archive')} Banco de preguntas</button><button class="btn" data-cl="directo">${ic('radio')} Pregunta en directo</button>${nDrive(E.items) ? `<button class="btn" data-cl="sustDrive" title="Sube los archivos (PDF, imágenes…) y sustituyen a los enlaces de Drive con el mismo nombre">${ic('upload')} Sustituir adjuntos de Drive <span class="pn-small">(${nDrive(E.items)})</span></button><input type="file" data-cl-sust multiple hidden>` : ''}<span class="pn-grow"></span>
         </div>${chipsEstadoHTML(E)}` : '';
     if (!E.items.length && !E.temas.length) return bar + (prof
       ? `<div class="cl-vacio"><p>Aquí aparecerá el trabajo de clase de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}.</p><p>Pulsa <b>⬇ Importar de Classroom</b> para cargar los temas y elementos que tenías en Classroom, o <b>＋ Crear</b> para empezar.</p></div>`
@@ -513,6 +542,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'filtro') { C.filtro = b.dataset.tema || null; pintar(); return; }
       if (!prof) return;
       if (acc === 'orgF') { C.orgF = b.dataset.f; pintar(); return; }
+      if (acc === 'sustDrive') { C.el.querySelector('[data-cl-sust]')?.click(); return; }
       if (acc === 'verTab') { C.verTab = b.dataset.v; pintar(); return; }
       if (acc === 'crear') { C.crear = !C.crear; pintar(); if (C.crear) C.el.querySelector('.cl-crear-m button')?.focus(); return; }
       C.crear = false;
@@ -542,6 +572,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   }
   function onChange(ev) {
     const t = ev.target;
+    if (t.matches('[data-cl-sust]')) { const L = [...(t.files || [])]; t.value = ''; if (L.length) sustituirDrive(L); return; }
     if (t.dataset.clF === 'curso') { aula.elegirCurso(t.value); pintar(); }
     if (t.dataset.clF === 'vergrupo') { C.verGrupo = t.value; pintar(); }
     if (t.matches('[data-cl-mover]')) { const id = t.closest('[data-item]').dataset.item; moverItem(id, t.value || null, null); }

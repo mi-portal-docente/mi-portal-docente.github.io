@@ -13,6 +13,13 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const id = await pg.getAttribute(`#asTrabajo .cl-it:has-text("${EL.titulo}")`, 'data-item');
   await menu(pg, id, 'editar'); await pg.waitForSelector('#apItemForm [data-rb-ed] .rb-fila', { timeout: 15000 });
   ok('editor: la rúbrica es una tabla con los niveles y el criterio «clase»', /Los tres bien/.test(await pg.inputValue('#apItemForm [data-rb-texto]')) && /Montaje en el taller \| clase/.test(await pg.inputValue('#apItemForm [data-rb-texto]')) && !!(await pg.$('#apItemForm .rb-fila.clase [data-rb=clase]:checked')) && (await pg.$$('#apItemForm .rb-fila')).length >= 3);
+  // Subir un PDF al portal (sin Drive): 2 MB → 3 partes; luego el alumno lo ve en el visor
+  const pdfB = Buffer.concat([Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%'), Buffer.alloc(2 * 1024 * 1024, 65), Buffer.from('\n%%EOF\n')]);
+  await pg.setInputFiles('#apItemForm [name=adjF]', { name: 'Ficha Ohm.pdf', mimeType: 'application/pdf', buffer: pdfB });
+  await pg.waitForFunction(() => /#archivo\//.test(document.querySelector('#apItemForm [name=enlaces]')?.value || ''), null, { timeout: 30000 });
+  const uArch = (await pg.inputValue('#apItemForm [name=enlaces]')).match(/#archivo\/(\w+)/)[1];
+  const dArch = await docREST('archivos/' + uArch);
+  ok('editor: «Subir archivo» guarda el PDF en el portal (3 partes, huella y tamaño)', campo(dArch, 'partes') === 3 && campo(dArch, 'bytes') === pdfB.length && campo(dArch, 'tipo') === 'pdf' && campo(dArch, 'asig') === 'eee' && /^[0-9a-f]{64}$/.test(campo(dArch, 'hash')));
   await pg.check('#apItemForm [name=estado][value=publicar]'); await pg.click('#apItemForm button[type=submit]');
   await pg.waitForSelector(`#asTrabajo .cl-it.pub[data-item="${id}"]`, { timeout: 15000 });
   // dos alumnos entregan
@@ -21,7 +28,17 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
     await A.pg.goto(BASE + '#trabajo/' + id); await A.pg.waitForSelector('#enForm [name=texto]', { timeout: 20000 });
     await A.pg.fill('#enForm [name=texto]', `Respuesta del nº ${n}: V = I · R. En el último, la corriente se reduce a la mitad.`);
     await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
-    if (n === 7) T.A7 = A; else await A.ctx.close();
+    if (n === 7) {
+      await A.pg.click(`a.cl-adj-c[href="#archivo/${uArch}"]`);
+      await A.pg.waitForSelector('#visorArchivo .vz-pdf, #visorArchivo .vz-msg.ko', { timeout: 20000 });
+      const vz = await A.pg.evaluate(async () => { const f = document.querySelector('#visorArchivo .vz-pdf'); const a = document.querySelector('#visorArchivo .vz-desc'); if (!f) return { ko: document.querySelector('#visorArchivo')?.textContent }; const b = await (await fetch(a.href)).blob(); return { n: b.size, hash: location.hash, ad: a.download }; });
+      ok('alumno: el PDF subido se abre en el visor dentro del portal (sin Drive) y se puede descargar entero', vz.n === pdfB.length && vz.ad === 'Ficha Ohm.pdf' && !/archivo/.test(vz.hash), JSON.stringify(vz).slice(0, 120));
+      await shot(A.pg, 'f10_visor_archivo');
+      await A.pg.click('#visorArchivo [data-vz=cerrar]');
+      T.A7 = A;
+    } else {
+      await A.ctx.close();
+    }
   }
   // vista de corrección
   await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('[data-ap-f=gGrupo], [data-co=cerrar]', { timeout: 20000 }); if (await pg.$('[data-co=cerrar]')) await pg.click('[data-co=cerrar]'); await pg.waitForSelector('[data-ap-f=gGrupo]', { timeout: 15000 });

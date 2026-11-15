@@ -18,6 +18,7 @@ import { crearEditorHoja } from './hoja-ui.js';
 import { estadoTrabajo, ESTADOS_TRABAJO } from '../lms/entrega.js';
 import { confirmar } from './dialogo.js';
 import { rubricaAlumnoHTML, notaAlumnoHTML } from './rubrica-ui.js';
+import { ES_ARCHIVO, ICONO_ARCHIVO, tipoDeArchivo, instalarVisor } from './archivos.js';
 
 // Motores con vista propia en la página del elemento. Los laboratorios que viven en app.js se
 // registran en window.PORTAL_MOTORES[tipo] = (nodo, item, opciones) => ({ actualizar }).
@@ -41,11 +42,12 @@ const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const nombreTipo = (tipo) => TIPOS[tipo]?.nombre || tipo;
 export function adjuntosHTML(L) {
   if (!L?.length) return '';
-  return `<div class="cl-adjs">${L.map((e) => { const t = tipoAdjunto(e.u); const interno = String(e.u).startsWith('#'); return `<a class="cl-adj-c" href="${esc(urlSegura(e.u))}" ${interno ? '' : 'target="_blank" rel="noopener noreferrer"'}${/\.(stl|glb|gltf)($|[?#])/i.test(e.u) ? ` data-v3d-url="${esc(urlSegura(e.u))}"` : ''}><span class="cl-adj-ic">${t.ic}</span><span><b>${esc(e.t || e.u)}</b><span class="au-small">${esc(t.t)}</span></span></a>`; }).join('')}</div>`;
+  return `<div class="cl-adjs">${L.map((e) => { const arch = ES_ARCHIVO.test(e.u); const t = arch ? (([ic_, tt]) => ({ ic: ic_, t: tt + ' · se abre aquí' }))(ICONO_ARCHIVO[tipoDeArchivo(e.t)]) : tipoAdjunto(e.u); const interno = String(e.u).startsWith('#'); return `<a class="cl-adj-c" href="${esc(urlSegura(e.u))}" ${interno ? '' : 'target="_blank" rel="noopener noreferrer"'}${/\.(stl|glb|gltf)($|[?#])/i.test(e.u) ? ` data-v3d-url="${esc(urlSegura(e.u))}"` : ''}><span class="cl-adj-ic">${t.ic}</span><span><b>${esc(e.t || e.u)}</b><span class="au-small">${esc(t.t)}</span></span></a>`; }).join('')}</div>`;
 }
 const barraSup = (activa = 'asig') => `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">SuperProfe · Alumnos</a><div class="scr-ttl">Aula virtual</div>${window.PORTAL?.navHTML ? window.PORTAL.navHTML(activa) : ''}<div class="au-chip">${window.PORTAL?.chipHTML ? window.PORTAL.chipHTML() : ''}</div></header>`;
 
 export function crearVistas({ db, aula, rol, ses, uid }) {
+  instalarVisor(db);
   const st = aula.st;
   const al = ses ? `${ses.grupo}_${ses.numero}` : null;
   const ex = { id: null, examen: null, resp: {}, timer: null, guardado: 0, tGuardar: null, enviando: false, error: '' };

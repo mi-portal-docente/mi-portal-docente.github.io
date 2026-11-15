@@ -296,6 +296,15 @@ await P.pg.click('[data-cl=orgF][data-f=pend]');
 const nOrgP = (await P.pg.$$('#asTrabajo .cl-temas .cl-it .cl-pend')).length; const nOrgPt = (await P.pg.$$('#asTrabajo .cl-temas .cl-it')).length;
 await P.pg.click('[data-cl=orgF][data-f=todo]');
 ok('Trabajo de clase (profesor): filtros por estado (45 borradores, pendientes), grupos, cuaderno; el enlace antiguo a «Organización» lleva aquí', nOrgB === 45 && nOrgP > 0 && nOrgP === nOrgPt && nTodo >= 62 && (await P.pg.$$('#asTrabajo .cl-temas .cl-it')).length === nTodo && /2º CFGB/.test(await P.pg.textContent('#asTrabajo .cl-org-extra .org-grupos')) && !!(await P.pg.$('#asTrabajo a[href="#panel/notas"]')) && !(await P.pg.$('#tab-organizacion')), `${nOrgB} / ${nOrgP} / ${nTodo}`);
+// Sustituir los adjuntos de Drive del colegio por archivos del portal (emparejados por nombre)
+const nDrive0 = +((await P.pg.textContent('#asTrabajo [data-cl=sustDrive]')).match(/\((\d+)\)/) || [])[1];
+const fakePdf = (n) => Buffer.concat([Buffer.from('%PDF-1.4\n%'), Buffer.alloc(n, 66), Buffer.from('\n%%EOF\n')]);
+await P.pg.setInputFiles('#asTrabajo [data-cl-sust]', [{ name: 'EEE_B1_Ejercicios_v4.pdf', mimeType: 'application/pdf', buffer: fakePdf(900000) }, { name: 'EEE- T1 Libro.pdf', mimeType: 'application/pdf', buffer: fakePdf(1000) }, { name: 'otro.pdf', mimeType: 'application/pdf', buffer: fakePdf(10) }]);
+await P.pg.waitForFunction(() => window.__sustDrive, null, { timeout: 30000 });
+const sD = await P.pg.evaluate(() => window.__sustDrive);
+await P.pg.waitForFunction((n) => { const b = document.querySelector('#asTrabajo [data-cl=sustDrive]'); return b && +(b.textContent.match(/\((\d+)\)/) || [])[1] === n; }, nDrive0 - sD.adjuntos, { timeout: 15000 });
+const archL = (await (await fetch(`${REST}/archivos`, owner)).json()).documents || [];
+ok('«Sustituir adjuntos de Drive»: sube los archivos con el mismo nombre y cambia el enlace del Drive del colegio por el del portal; el que no coincide no se sube', sD.subidos === 2 && sD.adjuntos >= 2 && sD.sinPareja.join() === 'otro.pdf' && archL.length === 2 && archL.some((d) => d.fields?.nombre?.stringValue === 'EEE_B1_Ejercicios_v4.pdf' && d.fields?.partes?.integerValue === '2' && /drive\.google\.com/.test(d.fields?.origen?.stringValue || '')), JSON.stringify({ nDrive0, ...sD, quedan: sD.quedan.length }));
 await P.pg.goto(BASE + '#asig/eee/trabajo');
 await P.pg.waitForSelector('#asTrabajo [data-cl=crear]');
 await P.pg.evaluate(() => window.scrollTo(0, 0));
@@ -495,7 +504,7 @@ for (;;) {
   if (R.n) await E.pg.click(`[data-ac=op][data-k="${nR === 0 ? (R.correcta + 1) % R.n : R.correcta}"]`);
   else if (R.tipo === 'colores') { for (const [b, c] of Object.entries(R.sol)) await E.pg.click(`[data-ac=col][data-b="${b}"][data-c="${c}"]`); await E.pg.click('[data-ac=comprobar]'); }
   else if (nR === 0) await E.pg.click(`[data-ac=pieza][data-id="${R.mal}"]`); // un fallo a propósito
-  else if (!clic3d) { const p = await E.pg.evaluate((id) => window.__act.pantallaDe(id), R.ok[0]); await E.pg.mouse.click(p.x, p.y); clic3d = true; if (!(await E.pg.waitForSelector('.ac-fb', { timeout: 4000 }).catch(() => null))) { console.log('AVISO: el clic 3D no se registró sin pantalla; se usa el botón de la pieza'); await E.pg.click(`[data-ac=pieza][data-id="${R.ok[0]}"]:not([disabled])`, { timeout: 3000 }).catch(() => {}); } }
+  else if (!clic3d) { const p = await E.pg.evaluate((id) => window.__act.pantallaDe(id), R.ok[0]); await E.pg.mouse.click(p.x, p.y); clic3d = true; if (!(await E.pg.waitForSelector('.ac-fb', { timeout: 4000 }).catch(() => null))) { console.log('AVISO: el clic 3D no se registró sin pantalla; se usa el botón de la pieza'); await E.pg.evaluate((id) => { if (!window.__act.estado.resp) document.querySelector(`[data-ac=pieza][data-id="${id}"]`)?.click(); }, R.ok[0]); } }
   else await E.pg.click(`[data-ac=pieza][data-id="${R.ok[0]}"]`);
   await E.pg.waitForSelector('.ac-fb', { timeout: 15000 }).catch(async (e) => { console.log('DEPURA ronda', nR, JSON.stringify(R), 'clic3d', clic3d, await E.pg.evaluate(() => ({ fase: window.__act.estado.fase, resp: !!window.__act.estado.resp, vp: [innerWidth, innerHeight] }))); throw e; });
   nR++; await E.pg.click('[data-ac=sig]');
