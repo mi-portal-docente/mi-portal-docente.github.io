@@ -88,7 +88,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const nuevo = st.el !== el || !el.querySelector('.pn');
     const extra = String(sub || '').split('/')[1] || ''; sub = String(sub || '').split('/')[0];
     // el antiguo «Contenido» ahora vive en cada asignatura
-    if (sub === 'contenido') { const it = extra && aula.st.items.get(extra); const a = it?.asig || aula.cursoActivo()?.asignaturas?.[0]; location.replace(a ? `#asig/${a}/${it ? 'trabajo' : 'organizacion'}` : '#asignaturas'); if (it) setTimeout(() => PORTAL.aula?.editar?.(it.id), 50); return; }
+    if (sub === 'contenido') { const it = extra && aula.st.items.get(extra); const a = it?.asig || aula.cursoActivo()?.asignaturas?.[0]; location.replace(a ? `#asig/${a}/trabajo` : '#asignaturas'); if (it) setTimeout(() => PORTAL.aula?.editar?.(it.id), 50); return; }
     sub = ALIAS[sub] || sub;
     st.el = el; st.sub = TABS.includes(sub) ? sub : 'grupos'; st.extra = extra;
     if (!st.unsubs.length) iniciar();

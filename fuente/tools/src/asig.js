@@ -18,9 +18,9 @@ export const laboratoriosDe = (asig) => (APARTADOS[asig] || []).map((a) => ({ ..
 export function pestañas() {
   const P = portal(); const aula = !!P?.aula?.activa?.(); const prof = !!P?.esProfesor;
   if (!aula) return [['programa', '🗂', 'Programa'], ['laboratorio', '🔬', 'Laboratorio'], ['actividades', '🧩', 'Actividades de clase']];
-  return [...(prof ? [['organizacion', '🧭', 'Organización']] : []), ['trabajo', '📚', 'Trabajo de clase'], ['tablon', '📣', prof ? 'Tablón del alumno' : 'Tablón'], ['laboratorio', '🔬', 'Laboratorio'], ['actividades', '🧩', 'Actividades de clase']];
+  return [['trabajo', '📚', 'Trabajo de clase'], ['tablon', '📣', prof ? 'Tablón del alumno' : 'Tablón'], ['laboratorio', '🔬', 'Laboratorio'], ['actividades', '🧩', 'Actividades de clase']];
 }
-export const pestañaPorDefecto = () => { const P = portal(); if (!P?.aula?.activa?.()) return 'programa'; return P.esProfesor ? 'organizacion' : 'tablon'; };
+export const pestañaPorDefecto = () => { const P = portal(); if (!P?.aula?.activa?.()) return 'programa'; return P.esProfesor ? 'trabajo' : 'tablon'; };
 
 export function asigHTML(id, tab, { cabecera, chip, enCurso = true }) {
   const a = asignatura(id); const P = portal(); const prof = !!P?.esProfesor; const ses = window.PORTAL_SESION;
@@ -36,7 +36,7 @@ export function asigHTML(id, tab, { cabecera, chip, enCurso = true }) {
 function panelEstatico(id, tab) {
   const a = asignatura(id);
   if (tab === 'programa') return `<div class="as-wrap"><p class="muted">${esc(a.desc)}</p>${programaHTML(a, { completo: false, abierto: true })}</div>`;
-  if (tab === 'organizacion') return `<div class="as-wrap"><div id="asOrg" class="cl"></div><section class="as-sec"><h2 class="as-h2">🗂 Programación de la asignatura</h2><p class="muted small">${esc(a.desc)} Estructura de la biblioteca (tal y como estaba en Classroom${a.semilla?.cursoEscolar ? ', ' + esc(a.semilla.cursoEscolar) : ''}): sirve de plan del curso y se importa al Trabajo de clase.</p>${programaHTML(a, { completo: true, abierto: false })}</section></div>`;
+  if (tab === 'trabajo' && portal()?.esProfesor && portal()?.aula?.activa?.()) return `<div class="as-wrap"><div id="asTrabajo" class="cl"></div><section class="as-sec"><h2 class="as-h2">🗂 Programación de la asignatura</h2><p class="muted small">${esc(a.desc)} Estructura de la biblioteca (tal y como estaba en Classroom${a.semilla?.cursoEscolar ? ', ' + esc(a.semilla.cursoEscolar) : ''}): sirve de plan del curso y se importa al Trabajo de clase.</p>${programaHTML(a, { completo: true, abierto: false })}</section></div>`;
   if (tab === 'trabajo' || tab === 'tablon') return `<div class="as-wrap"><div id="asTrabajo" class="cl"></div></div>`;
   if (tab === 'laboratorio') return `<div class="as-wrap">${laboratorioHTML(id)}</div>`;
   if (tab === 'actividades') return `<div class="as-wrap">${actividadesHTML(id)}</div>`;

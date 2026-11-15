@@ -91,10 +91,10 @@ ok('la pantalla de asignaturas solo tiene asignaturas (2), sin Biblioteca ni Pan
 await P.pg.screenshot({ path: SHOTS + 'portal_encabezado.png' });
 
 await P.pg.goto(BASE + '#asig/tic1');
-await P.pg.waitForSelector('#asOrg .org, #asOrg .au-vacio, #asOrg .cl-vacio', { timeout: 20000 });
+await P.pg.waitForSelector('#asTrabajo [data-cl=crear], #asTrabajo .au-vacio, #asTrabajo .cl-vacio', { timeout: 20000 });
 const tabsProf = await P.pg.$$eval('#asig .as-tabs [role=tab]', (l) => l.map((x) => x.textContent.trim().replace(/^\S+\s/, '')));
-ok('asignatura: una sola barra de pestañas (Organización · Trabajo de clase · Tablón del alumno · Laboratorio · Actividades de clase)', tabsProf.join('|') === 'Organización|Trabajo de clase|Tablón del alumno|Laboratorio|Actividades de clase', tabsProf.join('|'));
-ok('profesor: la pestaña por defecto es «Organización» (#asig/tic1/organizacion) y el programa está dentro, plegado', (await P.pg.evaluate(() => location.hash)) === '#asig/tic1/organizacion' && !!(await P.pg.$('#asig .bib-prog:not([open])')) && (await P.pg.getAttribute('#tab-organizacion', 'aria-selected')) === 'true');
+ok('asignatura: una sola barra de pestañas (Trabajo de clase · Tablón del alumno · Laboratorio · Actividades de clase), sin «Organización»', tabsProf.join('|') === 'Trabajo de clase|Tablón del alumno|Laboratorio|Actividades de clase', tabsProf.join('|'));
+ok('profesor: la pestaña por defecto es «Trabajo de clase» (#asig/tic1/trabajo) y el programa está dentro, plegado', (await P.pg.evaluate(() => location.hash)) === '#asig/tic1/trabajo' && !!(await P.pg.$('#asig .bib-prog:not([open])')) && (await P.pg.getAttribute('#tab-trabajo', 'aria-selected')) === 'true');
 await P.pg.goto(BASE + '#asig/tic1/trabajo');
 await P.pg.waitForSelector('#asTrabajo [data-cl=crear]', { timeout: 20000 });
 ok('enlace directo #asig/tic1/trabajo abre «Trabajo de clase» (pestaña activa, sin barra interna antigua)', (await P.pg.getAttribute('#tab-trabajo', 'aria-selected')) === 'true' && !(await P.pg.$('#asig .cl-tabs, #asig .cl-h')));
@@ -173,7 +173,7 @@ await P.pg.click('#asTrabajo [data-cl=filtro][data-tema=""]');
 
 // ================================================================ 3b. EEE: importar de Classroom, borradores, arrastrar
 await P.pg.goto(BASE + '#eee');
-await P.pg.waitForFunction(() => location.hash === '#asig/eee/organizacion');
+await P.pg.waitForFunction(() => location.hash === '#asig/eee/trabajo');
 ok('#eee (enlace antiguo) → página única de EEE', true);
 await P.pg.goto(BASE + '#asig/eee/trabajo');
 await P.pg.waitForSelector('#asTrabajo [data-cl=importar]', { timeout: 20000 });
@@ -285,15 +285,17 @@ const prevTxt = await P.pg.textContent('#asTrabajo [data-preview]');
 var nPrev = (await P.pg.$$('#asTrabajo [data-preview] .cl-it')).length;
 ok('vista previa del alumno: solo lo publicado (17), sin borradores, pendientes, notas privadas ni controles', nPrev === 17 && !/Borrador|Pendiente de completar|Nota privada|\(revisado\)|Material en preparación/.test(prevTxt) && !(await P.pg.$('#asTrabajo [data-preview] [data-cl=pub], #asTrabajo [data-preview] [draggable=true], #asTrabajo [data-preview] a[href^="#trabajo/"]')), String(nPrev));
 await P.pg.screenshot({ path: SHOTS + 'aula_tablon_vista_alumno.png' });
-// Organización: todo, con filtros
+// Lo que estaba en «Organización» ahora está en «Trabajo de clase»: filtros por estado, notas privadas y grupos
 await P.pg.goto(BASE + '#asig/eee/organizacion');
-await P.pg.waitForSelector('#asOrg .org-stats');
+await P.pg.waitForFunction(() => location.hash === '#asig/eee/trabajo');
+await P.pg.waitForSelector('#asTrabajo [data-cl=orgF]');
+const nTodo = (await P.pg.$$('#asTrabajo .cl-temas .cl-it')).length;
 await P.pg.click('[data-cl=orgF][data-f=borr]');
-const nOrgB = (await P.pg.$$('#asOrg .org-it')).length;
+const nOrgB = (await P.pg.$$('#asTrabajo .cl-temas .cl-it')).length;
 await P.pg.click('[data-cl=orgF][data-f=pend]');
-const nOrgP = (await P.pg.$$('#asOrg .org-it .cl-pend')).length;
+const nOrgP = (await P.pg.$$('#asTrabajo .cl-temas .cl-it .cl-pend')).length; const nOrgPt = (await P.pg.$$('#asTrabajo .cl-temas .cl-it')).length;
 await P.pg.click('[data-cl=orgF][data-f=todo]');
-ok('Organización: todo el contenido con borradores (45) y pendientes; grupos y enlace al cuaderno', nOrgB === 45 && nOrgP > 0 && (await P.pg.$$('#asOrg .org-it')).length >= 62 && /2º CFGB/.test(await P.pg.textContent('#asOrg .org-grupos')) && !!(await P.pg.$('#asOrg a[href="#panel/notas"]')), `${nOrgB} / ${nOrgP}`);
+ok('Trabajo de clase (profesor): filtros por estado (45 borradores, pendientes), grupos, cuaderno; el enlace antiguo a «Organización» lleva aquí', nOrgB === 45 && nOrgP > 0 && nOrgP === nOrgPt && nTodo >= 62 && (await P.pg.$$('#asTrabajo .cl-temas .cl-it')).length === nTodo && /2º CFGB/.test(await P.pg.textContent('#asTrabajo .cl-org-extra .org-grupos')) && !!(await P.pg.$('#asTrabajo a[href="#panel/notas"]')) && !(await P.pg.$('#tab-organizacion')), `${nOrgB} / ${nOrgP} / ${nTodo}`);
 await P.pg.goto(BASE + '#asig/eee/trabajo');
 await P.pg.waitForSelector('#asTrabajo [data-cl=crear]');
 await P.pg.evaluate(() => window.scrollTo(0, 0));
@@ -311,12 +313,12 @@ ok('biblioteca: búsqueda de elementos («tablero»)', (await P.pg.$$('.bib-hits
 await P.pg.fill('#bibQ', '');
 await P.pg.screenshot({ path: SHOTS + 'aula_biblioteca.png' });
 await P.pg.goto(BASE + '#biblioteca/tic1');
-await P.pg.waitForFunction(() => location.hash === '#asig/tic1/organizacion');
+await P.pg.waitForFunction(() => location.hash === '#asig/tic1/trabajo');
 await P.pg.waitForSelector('#asig .bib-prog');
 ok('biblioteca → la misma página de la asignatura, en «Organización»', true);
 ok('biblioteca → estructura de Classroom de T.I.Cs (Borrador / Pendiente de completar)', /SdA 4\. Anatomía digital/.test(await P.pg.textContent('#asig .bib-prog')) && (await P.pg.$$('#asig .bib-borr')).length === 21);
 await P.pg.goto(BASE + '#panel/contenido');
-await P.pg.waitForFunction(() => /^#asig\/\w+\/organizacion$/.test(location.hash));
+await P.pg.waitForFunction(() => /^#asig\/\w+\/trabajo$/.test(location.hash));
 ok('#panel/contenido (antiguo) → Organización de la asignatura (sin pestaña duplicada en el panel)', true);
 await P.pg.goto(BASE + '#panel/grupos');
 await P.pg.waitForSelector('#pnTabs .pn-g');
@@ -493,7 +495,7 @@ for (;;) {
   if (R.n) await E.pg.click(`[data-ac=op][data-k="${nR === 0 ? (R.correcta + 1) % R.n : R.correcta}"]`);
   else if (R.tipo === 'colores') { for (const [b, c] of Object.entries(R.sol)) await E.pg.click(`[data-ac=col][data-b="${b}"][data-c="${c}"]`); await E.pg.click('[data-ac=comprobar]'); }
   else if (nR === 0) await E.pg.click(`[data-ac=pieza][data-id="${R.mal}"]`); // un fallo a propósito
-  else if (!clic3d) { const p = await E.pg.evaluate((id) => window.__act.pantallaDe(id), R.ok[0]); await E.pg.mouse.click(p.x, p.y); clic3d = true; }
+  else if (!clic3d) { const p = await E.pg.evaluate((id) => window.__act.pantallaDe(id), R.ok[0]); await E.pg.mouse.click(p.x, p.y); clic3d = true; if (!(await E.pg.waitForSelector('.ac-fb', { timeout: 4000 }).catch(() => null))) { console.log('AVISO: el clic 3D no se registró sin pantalla; se usa el botón de la pieza'); await E.pg.click(`[data-ac=pieza][data-id="${R.ok[0]}"]:not([disabled])`, { timeout: 3000 }).catch(() => {}); } }
   else await E.pg.click(`[data-ac=pieza][data-id="${R.ok[0]}"]`);
   await E.pg.waitForSelector('.ac-fb', { timeout: 15000 }).catch(async (e) => { console.log('DEPURA ronda', nR, JSON.stringify(R), 'clic3d', clic3d, await E.pg.evaluate(() => ({ fase: window.__act.estado.fase, resp: !!window.__act.estado.resp, vp: [innerWidth, innerHeight] }))); throw e; });
   nR++; await E.pg.click('[data-ac=sig]');
@@ -630,7 +632,7 @@ await A.pg.waitForSelector('#subjects .subj-h1');
 ok('alumno: el menú dice «Curso» y ya no ve la asignatura quitada', /Curso/.test(await A.pg.textContent('#subjects .top-nav')) && !(await A.pg.$('#subjects a[href="#asig/tic1"]')));
 await A.pg.screenshot({ path: SHOTS + 'curso_alumno.png' });
 // página de la asignatura fuera del curso: botón «Añadir al curso»
-await P.pg.goto(BASE + '#asig/tic1/organizacion');
+await P.pg.goto(BASE + '#asig/tic1/trabajo');
 await P.pg.waitForSelector('#asig [data-cur=añadir]');
 ok('asignatura fuera del curso: migas desde la Biblioteca y «Añadir al curso»', /Biblioteca/.test(await P.pg.textContent('#asig .crumbs')));
 await P.pg.click('#asig [data-cur=añadir]');

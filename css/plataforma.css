@@ -560,3 +560,11 @@ html[data-theme="dark"] .en-guardado.ok { color: #8ff0a8; } html[data-theme="dar
 html[data-theme="dark"] .rb-ver td.rb-c.on, html[data-theme="dark"] .mt-nota.ok { background: rgba(52,199,89,.18); color: #7ee29a; }
 html[data-theme="dark"] .rb-nota.ko, html[data-theme="dark"] .mt-nota.ko { background: rgba(255,149,0,.16); }
 html[data-theme="dark"] .rb-nota.ko .rb-nota-big, html[data-theme="dark"] .mt-nota.ko { color: #ffb562; }
+
+/* «Organización» unida a «Trabajo de clase»: filtros por estado, nota privada y grupos al final */
+.cl-bar + .org-chips { margin: -4px 0 14px; }
+.cl-it .cl-tx .org-nota { display: block; align-self: flex-start; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cl-org-extra { margin: 22px 0 6px; border: 1px solid var(--sep, rgba(60,60,67,.18)); border-radius: 12px; padding: 10px 14px; background: var(--card, #fff); }
+.cl-org-extra > summary { cursor: pointer; font-weight: 600; }
+.org-cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
+.org-cols2 .org-box { margin: 0; }

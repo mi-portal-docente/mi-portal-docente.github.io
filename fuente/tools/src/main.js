@@ -363,7 +363,6 @@ function pintarAsig({ id, tab }) {
   el.innerHTML = asigHTML(id, tab, { cabecera: cabecera(asignatura(id).corto, enCurso || !portal()?.esProfesor ? 'asig' : 'biblio'), chip: chip(), enCurso });
   asigActual = { id, tab };
   const A = portal()?.aula;
-  if (tab === 'organizacion') A?.renderVista?.($('#asOrg'), id, 'organizacion');
   if (tab === 'trabajo' || tab === 'tablon') A?.renderVista?.($('#asTrabajo'), id, tab);
   if (misma) $('#tab-' + tab)?.focus({ preventScroll: true });
   const t = $('#tab-' + tab), bar = t?.parentNode; if (t && bar && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = t.offsetLeft - (bar.clientWidth - t.offsetWidth) / 2;
@@ -551,7 +550,7 @@ function route() {
     if (!portal()?.esProfesor) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
     const b = h.match(/^#biblioteca\/([\w-]+)/);
     // una sola página por asignatura: desde la biblioteca se abre su «Organización»
-    if (b && asignatura(b[1])) { history.replaceState(null, '', `#asig/${b[1]}/organizacion`); return route(); }
+    if (b && asignatura(b[1])) { history.replaceState(null, '', `#asig/${b[1]}/trabajo`); return route(); }
     return showScreen('biblio');
   }
   const as = h.match(/^#asig\/([\w-]+)(?:\/([\w-]+))?(?:\/([\w-]+))?/);

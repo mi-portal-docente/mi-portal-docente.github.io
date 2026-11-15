@@ -64,7 +64,7 @@ await P.pg.waitForFunction(() => /✔/.test(document.querySelector('#clImpMsg')?
 await P.pg.click('.cl-modal [data-m=cerrar]');
 const T = [
   ['#inicio', '03_portada'], ['#asignaturas', '04_asignaturas'], ['#biblioteca', '05_biblioteca'],
-  ['#asig/eee/organizacion', '06_asig_organizacion'], ['#asig/eee/trabajo', '07_asig_trabajo'], ['#asig/eee/tablon', '08_asig_tablon'],
+  ['#asig/eee/trabajo', '07_asig_trabajo'], ['#asig/eee/tablon', '08_asig_tablon'],
   ['#asig/eee/laboratorio', '09_asig_laboratorio'], ['#asig/eee/actividades', '10_asig_actividades'],
   ['#panel/grupos', '11_panel_grupos'], ['#panel/notas', '12_panel_cuaderno'], ['#panel/entregas', '13_panel_entregas'], ['#panel/ajustes', '14_panel_ajustes'],
 ];
