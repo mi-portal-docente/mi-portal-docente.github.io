@@ -636,3 +636,11 @@ las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en u
 - Archivos: css/ios.css (Circuitos y Vivienda).
 - Comprobado con capturas (ordenador 1440×900 y móvil 390×844): el menú se ve entero y sus botones reciben el clic.
 - Probar a mano: abrir «Archivo» en Circuitos y Vivienda en el móvil y en el ordenador, también en tema oscuro.
+
+### 4 · El profesor desbloquea las prácticas guiadas una a una (por grupo)
+- Panel del profesor → Grupos → botón «Prácticas guiadas» en cada grupo con EEE: casilla «Las desbloqueo yo una a una», casillas por práctica y botón «Desbloquear la siguiente». Se guarda al momento.
+- Se guarda como un elemento más de la lista `apartados` del grupo y de su código (`guiadas:c1,c2,…`), que los alumnos ya reciben en directo: **no cambian las reglas de Firestore**. Sin ese elemento (grupos de antes) todo sigue abierto. Editar el grupo conserva el desbloqueo.
+- Alumno: las bloqueadas salen con candado y no se pueden abrir (ni con el enlace directo: vuelve a la portada con un aviso). Profesor: lo ve todo.
+- Archivos: src/circ/guiadas.js (nuevo), guiadas_test.mjs (nuevo, 9 pruebas), src/circ/lab.js, src/portal/panel.js, css/ios.css.
+- Pruebas: guiadas_test 9/9, circ_test 41/41 (http), captura de la portada con 2 desbloqueadas. No se han podido pasar las pruebas del emulador (no hay Java en esta máquina); las reglas no cambian.
+- Probar a mano: activar el control en un grupo, desbloquear la 1 y la 2 y entrar como alumno de ese grupo (puede hacer falta recargar la página del alumno para ver los cambios).

@@ -9,6 +9,8 @@ import { crearAulaPanel } from './aula-panel.js';
 import { BIBLIOTECA, asignatura } from '../lms/biblioteca.js';
 import { planMigracion, sinDuplicadas } from '../lms/entrega.js';
 import { confirmar } from './dialogo.js';
+import { PRACTICES } from '../circ/practices.js';
+import { leerGuiadas, escribirGuiadas, sinTokens } from '../circ/guiadas.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
 const pad = (n) => String(n).padStart(2, '0');
@@ -175,15 +177,35 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       return `<article class="pn-grupo ${g.activo ? '' : 'off'}" data-grupo="${esc(g.id)}">
         <div class="pn-gh"><h3>${esc(g.nombre)}</h3><span class="pn-est ${g.activo ? 'si' : 'no'}">${g.activo ? 'Acceso abierto' : 'Acceso cerrado'}</span></div>
         <div class="pn-code" title="Código del grupo">${esc(g.codigo)}</div>
-        <div class="pn-small">${aula.st.cursos.get(g.curso || '') ? '📅 ' + esc(aula.st.cursos.get(g.curso).nombre) + ' · ' : ''}${g.asignaturas.map(nAs).map(esc).join(', ')}${g.apartados.length ? ' · ' + g.apartados.map(nAp).map(esc).join(' + ') : ''} · ${esc(g.alumnos || 25)} alumnos<br>🕘 ${esc(hor)} · 🟢 ${vivos} conectado${vivos === 1 ? '' : 's'}</div>
+        <div class="pn-small">${aula.st.cursos.get(g.curso || '') ? '📅 ' + esc(aula.st.cursos.get(g.curso).nombre) + ' · ' : ''}${g.asignaturas.map(nAs).map(esc).join(', ')}${sinTokens(g.apartados).length ? ' · ' + sinTokens(g.apartados).map(nAp).map(esc).join(' + ') : ''}${leerGuiadas(g.apartados) ? ' · Guiadas: ' + leerGuiadas(g.apartados).size + ' de ' + PRACTICES.length + ' desbloqueadas' : ''} · ${esc(g.alumnos || 25)} alumnos<br>🕘 ${esc(hor)} · 🟢 ${vivos} conectado${vivos === 1 ? '' : 's'}</div>
         <div class="pn-acts">
           <button class="btn" data-pn="grande" title="Mostrar el código en grande para proyectarlo">🔍 En grande</button>
           <button class="btn" data-pn="reiniciar">🔄 Reiniciar código</button>
           <button class="btn" data-pn="activar">${g.activo ? '⏸ Cerrar acceso' : '▶ Abrir acceso'}</button>
           <button class="btn" data-pn="editar">✏️ Editar</button>
+          ${(g.asignaturas || []).includes('eee') ? `<button class="btn" data-pn="guiadas" aria-expanded="${st.guiadasDe === g.id}">${lucide('lock')} Prácticas guiadas</button>` : ''}
           <button class="btn pn-peligro" data-pn="borrar">🗑 Borrar</button>
-        </div></article>`;
+        </div>${st.guiadasDe === g.id ? guiadasHTML(g) : ''}</article>`;
     }).join('');
+  }
+  // Prácticas guiadas de Circuitos que el profesor desbloquea una a una para este grupo (se guarda en «apartados»).
+  function guiadasHTML(g) {
+    const sel = leerGuiadas(g.apartados); const ctrl = !!sel;
+    return `<section class="pn-guiadas" aria-label="Prácticas guiadas de ${esc(g.nombre)}">
+      <label class="pn-chk"><input type="checkbox" data-gd="modo" ${ctrl ? 'checked' : ''}> Las desbloqueo yo una a una (los alumnos solo pueden abrir las desbloqueadas)</label>
+      ${ctrl ? `<div class="pn-acts"><button type="button" class="btn" data-pn="gd-sig">${lucide('lock-open') || lucide('lock')} Desbloquear la siguiente</button><span class="pn-small">${sel.size} de ${PRACTICES.length} desbloqueadas</span></div>` : '<p class="pn-small">Ahora mismo pueden hacer todas, en el orden que quieran.</p>'}
+      <div class="pn-gl ${ctrl ? '' : 'off'}">${PRACTICES.map(p => `<label class="pn-chk"><input type="checkbox" data-gd="${esc(p.id)}" ${!ctrl || sel.has(p.id) ? 'checked' : ''} ${ctrl ? '' : 'disabled'}> ${p.n}. ${esc(p.title)}</label>`).join('')}</div>
+      <span class="pn-msg" id="pnGdMsg"></span></section>`;
+  }
+  async function guardarGuiadas(g, ids) {
+    const apartados = escribirGuiadas(g.apartados, ids);
+    const msg = () => document.getElementById('pnGdMsg');
+    try {
+      const b = writeBatch(db);
+      b.update(doc(db, 'grupos', g.id), { apartados });
+      if (g.codigo) b.update(doc(db, 'codigos', g.codigo), { apartados });
+      await b.commit(); g.apartados = apartados; pintarTab();
+    } catch (e) { const m = msg(); if (m) { m.textContent = 'No se ha podido guardar (' + (e?.code || e?.message || 'error') + ').'; m.className = 'pn-msg ko'; } }
   }
   function leerForm(f) {
     const fd = new FormData(f);
@@ -214,6 +236,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       const b = writeBatch(db);
       if (st.editando) {
         const g = st.grupos.get(st.editando);
+        v.apartados = escribirGuiadas(v.apartados, v.asignaturas.includes('eee') && leerGuiadas(g.apartados) ? [...leerGuiadas(g.apartados)] : null);
         b.update(doc(db, 'grupos', g.id), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso, alumnos: v.alumnos });
         b.update(doc(db, 'codigos', g.codigo), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso });
         await b.commit(); st.editando = null; pintarTab(); return;
@@ -227,6 +250,8 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   }
   async function accionGrupo(acc, g) {
     try {
+      if (acc === 'guiadas') { st.guiadasDe = st.guiadasDe === g.id ? null : g.id; pintarTab(); return; }
+      if (acc === 'gd-sig') { const sel = leerGuiadas(g.apartados) || new Set(); const sig = PRACTICES.find(p => !sel.has(p.id)); if (sig) await guardarGuiadas(g, [...sel, sig.id]); return; }
       if (acc === 'editar') { st.editando = g.id; pintarTab(); $('#pnBody').scrollIntoView({ block: 'start' }); return; }
       if (acc === 'grande') return mostrarGrande(g);
       if (acc === 'reiniciar') {
@@ -453,6 +478,12 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   }
   function onChange(ev) {
     const t = ev.target;
+    if (t.dataset.gd) {
+      const g = st.grupos.get(t.closest('[data-grupo]')?.dataset.grupo || ''); if (!g) return;
+      if (t.dataset.gd === 'modo') return guardarGuiadas(g, t.checked ? [] : null);
+      const sel = new Set(leerGuiadas(g.apartados) || []); if (t.checked) sel.add(t.dataset.gd); else sel.delete(t.dataset.gd);
+      return guardarGuiadas(g, PRACTICES.map(p => p.id).filter(id => sel.has(id)));
+    }
     if (t.id === 'pnVerTodos') { st.verTodos = t.checked; pintarDatos(); }
     if (t.dataset.pnU === 'grupo') { st.uGrupo = t.value; $('#pnUsu').innerHTML = usuariosHTML(); }
     if (t.dataset.pnU === 'todos') { st.uTodos = t.checked; $('#pnUsu').innerHTML = usuariosHTML(); }

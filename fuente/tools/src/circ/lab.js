@@ -18,6 +18,7 @@ import { TIPOS_AVERIA, leerMontaje } from '../lms/motores/averia.js';
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const LS = 'circ:v1:';
+import { guiadaAbierta } from './guiadas.js';
 import { lsKey as lsKeyBase, migrarLegado as migrarBase } from './almacen.js';
 const portalAmbito = () => { try { return (typeof window !== 'undefined' && window.PORTAL?.ambito?.()) || null; } catch (e) { return null; } };
 const lsKey = (k) => lsKeyBase(k, portalAmbito());
@@ -25,6 +26,8 @@ const migrarLegado = (amb) => { try { return migrarBase(amb, localStorage); } ca
 const store = { get(k) { try { return JSON.parse(localStorage.getItem(lsKey(k))); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(lsKey(k), JSON.stringify(v)); } catch (e) { } }, del(k) { try { localStorage.removeItem(lsKey(k)); } catch (e) { } } };
 const LOGO = `<svg viewBox="0 0 40 40" class="cx-logo" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#0f5e66"/><path d="M6 24h7l2.5-7 4 13 4-15 3 9h7.5" fill="none" stroke="#f5a524" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="24" r="2.6" fill="#7fe3e0"/><circle cx="34" cy="24" r="2.6" fill="#7fe3e0"/></svg>`;
 const portal = () => (typeof window !== 'undefined' ? window.PORTAL : null);
+// Prácticas guiadas que el profesor ha desbloqueado para el grupo del alumno (profesor o sin grupo: todas).
+const abierta = (id) => portal()?.rol !== 'alumno' || guiadaAbierta(window.PORTAL_SESION?.apartados, id);
 const ICON = { rotate: '⟳', del: '🗑', home: '⌂', top: '⊤', fit: '⤢', sound: '🔊', mute: '🔇', help: '?', flow: '⚡', xray: '▦', pins: '🏷', hq: '✦' };
 
 class Buzz {
@@ -110,6 +113,7 @@ export class CircuitLab {
     if (this.running) this.toggleSim(false);
     if (this.readOnly) { this.readOnly = false; this.rev = null; this.view = null; root.classList.remove('is-ro'); }
     if (this.av) { this.av = null; this.view = null; }
+    if (/^c\d+$/.test(view) && !abierta(view)) { setTimeout(() => this.toast('Esta práctica todavía está bloqueada: la desbloqueará tu profesor.', 4000), 300); view = 'home'; try { history.replaceState(null, '', '#eee/circuitos'); } catch (e) { } }
     if (view === 'home') {
       this.view = 'home'; root.classList.add('is-home'); root.classList.remove('is-editor');
       this.$('#cxHome').innerHTML = this.homeHTML(); this.setCrumbs(); this.pause();
@@ -203,16 +207,19 @@ export class CircuitLab {
   homeHTML() {
     const done = (id) => store.get('done:' + id);
     const started = (id) => store.get('auto:' + id)?.model?.parts?.length;
+    const primera = PRACTICES.find(p => abierta(p.id));
+    const bloq = PRACTICES.some(p => !abierta(p.id));
     return `<div class="cx-hwrap">
       <section class="cx-hero"><div><h1>Laboratorio de <span>Circuitos</span></h1>
         <p>Monta circuitos eléctricos en una <b>protoboard 3D</b>, pulsa <b>▶ Iniciar simulación</b> y comprueba cómo se encienden los LED, lucen las bombillas, gira el motor o suena el zumbador. Mide con el <b>polímetro</b> como en el taller, sin miedo a romper nada.</p>
-        <div class="cx-hbtns"><a class="cx-sim big" href="#eee/circuitos/c1">Empezar por la práctica 1 →</a><a class="cx-btn big" href="#eee/circuitos/libre">Modo libre</a></div></div>
+        <div class="cx-hbtns">${primera ? `<a class="cx-sim big" href="#eee/circuitos/${primera.id}">Empezar por la práctica ${primera.n} →</a>` : ''}<a class="cx-btn big" href="#eee/circuitos/libre">Modo libre</a></div></div>
         <div class="cx-hero-art">${LOGO}</div></section>
       <h2>Prácticas guiadas <small>de dificultad creciente</small></h2>
-      <div class="cx-cards">${PRACTICES.map(p => `<a class="cx-card ${done(p.id) ? 'done' : ''}" href="#eee/circuitos/${p.id}">
-        <div class="cx-card-h"><span class="cx-num">${p.n}</span><span class="cx-ic">${p.icon}</span>${done(p.id) ? '<span class="cx-badge ok">✔ Completada</span>' : started(p.id) ? '<span class="cx-badge">En curso</span>' : ''}</div>
+      ${bloq ? `<p class="cx-bloq-aviso">${ic('lock')} Tu profesor va desbloqueando las prácticas una a una. Las que tienen candado se abrirán más adelante.</p>` : ''}
+      <div class="cx-cards">${PRACTICES.map(p => { const ab = abierta(p.id); const tag = ab ? 'a' : 'div'; return `<${tag} class="cx-card ${done(p.id) ? 'done' : ''} ${ab ? '' : 'locked'}" ${ab ? `href="#eee/circuitos/${p.id}"` : 'aria-disabled="true"'}>
+        <div class="cx-card-h"><span class="cx-num">${p.n}</span><span class="cx-ic">${p.icon}</span>${!ab ? `<span class="cx-badge">${ic('lock')} Bloqueada</span>` : done(p.id) ? '<span class="cx-badge ok">✔ Completada</span>' : started(p.id) ? '<span class="cx-badge">En curso</span>' : ''}</div>
         <h3>${esc(p.title)}</h3><div class="cx-sub">${esc(p.sub)}</div>
-        <div class="cx-meta"><span>${esc(p.level)}</span><span>⏱ ${esc(p.duration)}</span><span>${Object.keys(p.ra).map(r => 'RA' + r).join(' · ')}</span></div></a>`).join('')}
+        <div class="cx-meta"><span>${esc(p.level)}</span><span>⏱ ${esc(p.duration)}</span><span>${Object.keys(p.ra).map(r => 'RA' + r).join(' · ')}</span></div></${tag}>`; }).join('')}
         <a class="cx-card free" href="#eee/circuitos/libre"><div class="cx-card-h"><span class="cx-num">∞</span><span class="cx-ic">🛠️</span></div><h3>Modo libre</h3><div class="cx-sub">Monta lo que quieras con todos los componentes</div><div class="cx-meta"><span>Sin guía</span><span>Guarda y exporta</span></div></a>
         <a class="cx-card free" href="#eee/circuitos/averia-ejemplo"><div class="cx-card-h"><span class="cx-num">${ic('search-check')}</span></div><h3>Encuentra la avería</h3><div class="cx-sub">Un circuito con un componente estropeado: mide con el polímetro y descubre cuál es</div><div class="cx-meta"><span>Ejemplo</span><span>Polímetro y continuidad</span></div></a>
       </div>

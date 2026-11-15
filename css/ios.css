@@ -1110,3 +1110,11 @@ html[data-theme="dark"] .cx-dd, html[data-theme="dark"] .vv-dd { background: #2c
   .cx-top, .vv-top { height: auto; min-height: 54px; flex-wrap: wrap; padding-top: 6px; padding-bottom: 6px; }
   .cx-dd, .vv-dd { position: fixed; top: auto; left: 10px; right: 10px; min-width: 0; width: auto; }
 }
+
+/* Prácticas guiadas bloqueadas por el profesor */
+.cx-card.locked { opacity: .55; cursor: not-allowed; filter: grayscale(.6); }
+.cx-card.locked:hover { transform: none; box-shadow: none; }
+.cx-bloq-aviso { display: flex; align-items: center; gap: 8px; margin: -4px 0 12px; color: var(--tinta2, #555); font-size: 14px; }
+.pn-guiadas { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--fill, rgba(0,0,0,.04)); }
+.pn-guiadas .pn-gl { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 12px; margin-top: 8px; }
+.pn-guiadas .pn-gl.off { opacity: .45; pointer-events: none; }
