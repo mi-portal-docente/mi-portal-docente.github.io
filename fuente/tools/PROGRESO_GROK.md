@@ -644,3 +644,9 @@ las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en u
 - Archivos: src/circ/guiadas.js (nuevo), guiadas_test.mjs (nuevo, 9 pruebas), src/circ/lab.js, src/portal/panel.js, css/ios.css.
 - Pruebas: guiadas_test 9/9, circ_test 41/41 (http), captura de la portada con 2 desbloqueadas. No se han podido pasar las pruebas del emulador (no hay Java en esta máquina); las reglas no cambian.
 - Probar a mano: activar el control en un grupo, desbloquear la 1 y la 2 y entrar como alumno de ese grupo (puede hacer falta recargar la página del alumno para ver los cambios).
+
+### 5 · Prácticas de Tinkercad de «Trabajo de clase» como prácticas guiadas (13 a 16)
+- c13 «Tinkercad 1 · El LED protegido», c14 «LED en paralelo», c15 «Pulsador e interruptor», c16 «Control combinado en paralelo»: enunciados de los circuitos 1 a 4 de la práctica de Tinkercad de «Trabajo de clase», mejorados (objetivo, teoría, material, esquema, pasos guiados, comprobación automática, preguntas con cálculo y reto con los apartados de Tinkercad). La pila de botón de 3 V se sustituye por el portapilas 2×AA (3 V).
+- Archivos: src/circ/practices.js, circ_test.mjs (16 prácticas, todas recorridas paso a paso), acceso_test.mjs (cuenta de tarjetas).
+- Pruebas: circ_test 45/45 (http).
+- Probar a mano: hacer la 13 a la 16 como alumno; si se usa el desbloqueo por grupo, aparecen al final de la lista del panel.

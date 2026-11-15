@@ -47,7 +47,7 @@ ok('#eee/esp32 muestra el inicio ESP32', st.h === '#eee/esp32' && !st.l && st.ho
 
 // 3) Portada del laboratorio + modo libre con ratón real
 await go('#eee/circuitos', 1200);
-ok('Portada de Circuitos con 12 prácticas + modo libre', await pg.evaluate(() => document.querySelectorAll('.cx-card:not(.free)').length === 12 && !!document.querySelector('.cx-card.free[href="#eee/circuitos/libre"]')));
+ok('Portada de Circuitos con 16 prácticas + modo libre', await pg.evaluate(() => document.querySelectorAll('.cx-card:not(.free)').length === 16 && !!document.querySelector('.cx-card.free[href="#eee/circuitos/libre"]')));
 ok('Sin logotipo salesiano dentro de Circuitos', await pg.evaluate(() => !document.querySelector('#circ img[src*="salesian"]') && !/salesian/i.test(document.querySelector('#circ').innerHTML)));
 await go('#eee/circuitos/libre', 2500);
 await pg.click('[data-cxtab="comp"]').catch(() => {}); await wait(300);
@@ -201,7 +201,7 @@ async function runPractice(id, shotAt, after) {
   return { ok: chk.ok && green && q.every(x => x === true), steps: n, msg: chk.items.join(' / ') + ` · preguntas ${q.filter(Boolean).length}/${q.length}` };
 }
 const PRS = await pg.evaluate(() => window.__circ ? null : null);
-const ids = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12'];
+const ids = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16'];
 const SH = { c10: 'pulsador', c11: 'interruptor', c12: 'rele' };
 for (const id of ids) { const r = await runPractice(id, id === 'c2' ? 3 : 0, SH[id]); ok(`Práctica ${id}: todos los pasos + comprobación en verde + preguntas`, r.ok, `${r.steps} pasos · ${r.msg}`); }
 // botón Ver solución en c4 (desde cero)
