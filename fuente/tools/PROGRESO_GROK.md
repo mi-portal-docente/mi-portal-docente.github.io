@@ -623,3 +623,10 @@ las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en u
 - Pruebas: circ_almacen_test 9/9; circ_test 41/41 con servidor http (con file:// la prueba de recarga falla a veces también en main: Chrome no siempre conserva localStorage de file:// al recargar).
 - Probar a mano: entrar como profesor, avanzar una práctica; salir y entrar como alumno en el mismo navegador: la práctica aparece sin empezar. Dos alumnos distintos: cada uno ve solo lo suyo.
 - Sin cambios en reglas de Firestore.
+
+### 2 · Barra de la asignatura encima de laboratorios y simuladores
+- Nuevo `#asigbar` (src/main.js `mostrarBarraAsig`): al abrir Circuitos, Vivienda, ESP32, una actividad 3D o un laboratorio ligero desde una asignatura, se queda arriba la barra con la asignatura y sus pestañas (Trabajo de clase, Tablón, Laboratorio, Actividades…); el simulador empieza debajo (`--asigbar-h`). En el móvil las pestañas pasan a una segunda fila desplazable.
+- El encuadre inicial del montaje en Circuitos se aparta un poco de la barra de herramientas.
+- Archivos: src/main.js, src/circ/lab.js, css/ios.css.
+- Pruebas: circ_test 41/41 (http); viv_test 77/78 (la última solo por el tiempo máximo de la prueba).
+- Probar a mano: abrir cada simulador desde la asignatura (profesor y alumno, ordenador y móvil) y cambiar de pestaña desde la barra.

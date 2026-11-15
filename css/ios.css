@@ -1079,3 +1079,21 @@ html.glass-lite body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .sc
 .cx-top, .vv-top, header.top, .lesson-strip, .stepbar, .vtitle, .cx-tools, .cx-insp, .cx-wbar, .vv-vis-top, .ac-ayuda, .aj-volver {
   border: .5px solid var(--glass-borde);
 }
+
+/* ---------- arreglos (rama grok-arreglos) ---------- */
+/* Barra de la asignatura fija encima de laboratorios y simuladores (una fila): el laboratorio empieza debajo. */
+.asigbar { flex: none; position: relative; z-index: 45; }
+.asigbar[hidden] { display: none; }
+.asigbar .asb-top { position: static; min-height: 52px; height: auto; gap: 12px; border-bottom: .5px solid var(--sep, #ddd); }
+.asb-asig { flex: none; font-weight: 700; color: var(--c, var(--tinta)) !important; text-decoration: none; white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: var(--fill, rgba(0,0,0,.05)); }
+.asb-tabs { display: flex; gap: 4px; min-width: 0; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.asb-tabs a { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--tinta); text-decoration: none; white-space: nowrap; }
+.asb-tabs a:hover { background: var(--fill, rgba(0,0,0,.05)); }
+.asb-tabs a.on { background: var(--c, var(--pri, #0f5e66)); color: #fff; }
+body.con-asigbar .screen { top: var(--asigbar-h, 0px); }
+@media (max-width: 700px) {
+  .asigbar .asb-top { flex-wrap: wrap; row-gap: 4px; padding-top: 4px; padding-bottom: 4px; }
+  .asigbar .asb-top .brand span, .asigbar .asb-top .top-nav { display: none; }
+  .asb-tabs { order: 5; flex-basis: 100%; }
+  .asb-tabs a { padding: 6px 10px; font-size: 13px; }
+}

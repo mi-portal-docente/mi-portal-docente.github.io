@@ -259,6 +259,21 @@ function brandHTML() {
 // Navegación del encabezado, igual en todas las pantallas (alumno: su Curso; profesor: + Biblioteca y Panel).
 const topNav = (k = '') => portal()?.navHTML?.(k) || `<nav class="top-nav" aria-label="Principal"><a class="top-nav-a ${k === 'asig' ? 'on' : ''}" href="#asignaturas" ${k === 'asig' ? 'aria-current="page"' : ''}>📚 Asignaturas</a></nav>`;
 const cabecera = (titulo, k = '') => `<header class="scr-top">${brandHTML()}<div class="scr-ttl">${esc(titulo)}</div>${topNav(k)}</header>`;
+// Barra de la asignatura (encabezado + pestañas Trabajo de clase, Tablón, Laboratorio…) que se queda arriba
+// en los laboratorios y simuladores: el laboratorio se abre debajo, sin tapar la navegación de la asignatura.
+function mostrarBarraAsig(id, tab = 'laboratorio') {
+  const el = $('#asigbar'); if (!el) return;
+  const a = id && asignatura(id);
+  if (!a) { el.hidden = true; el.innerHTML = ''; document.body.classList.remove('con-asigbar'); document.documentElement.style.removeProperty('--asigbar-h'); return; }
+  const T = pestañas();
+  el.style.setProperty('--c', a.color || '');
+  // Una sola fila (para no quitar alto al visor 3D): marca · asignatura · pestañas · navegación general.
+  el.innerHTML = `<header class="scr-top asb-top">${brandHTML()}<a class="asb-asig" href="#asig/${esc(id)}" title="${esc(a.nombre || a.corto)}">${esc(a.corto)}</a><nav class="asb-tabs" aria-label="Secciones de ${esc(a.corto)}">${T.map(([k, i, t]) => `<a id="asb-${k}" href="#asig/${esc(id)}/${k}" class="${k === tab ? 'on' : ''}" ${k === tab ? 'aria-current="page"' : ''}><span aria-hidden="true">${i}</span> ${esc(t)}</a>`).join('')}</nav>${topNav('asig')}</header>`;
+  el.hidden = false; document.body.classList.add('con-asigbar');
+  const medir = () => { if (!el.hidden) document.documentElement.style.setProperty('--asigbar-h', el.offsetHeight + 'px'); };
+  medir(); if (!el._ro && window.ResizeObserver) { el._ro = new ResizeObserver(() => { medir(); window.dispatchEvent(new Event('resize')); }); el._ro.observe(el); }
+  window.dispatchEvent(new Event('resize'));
+}
 function coverHTML() {
   const P = portal(); const prof = !!P?.esProfesor; const alumno = P?.rol === 'alumno'; const ses = window.PORTAL_SESION;
   const mias = misAsignaturas();
@@ -330,6 +345,7 @@ function setCrumbs() {
 }
 let lab = null, viv = null, act = null, curScreen = undefined;
 function showScreen(name, arg) {
+  mostrarBarraAsig(null);
   document.body.classList.toggle('scr-cover', name === 'cover');
   document.body.classList.toggle('scr-subjects', name === 'subjects');
   document.body.classList.toggle('scr-act', name === 'act');
@@ -370,10 +386,10 @@ function pintarAsig({ id, tab }) {
 function abrirActividad(asig, id) {
   const def = actividad(asig, id);
   if (!def) { history.replaceState(null, '', `#asig/${asig}/actividades`); return route(); }
-  showScreen('act');
+  showScreen('act'); mostrarBarraAsig(asig, 'actividades');
   if (act) act.destruir();
   const a = asignatura(asig); const P = portal(); const url = enlaceActividad(def);
-  const cab = cabecera(def.titulo, 'asig') + `<nav class="crumbs static" aria-label="Estás en"><div><a href="#inicio">Inicio</a> › <a href="#asignaturas">Asignaturas</a> › <a href="#asig/${asig}">${esc(a.corto)}</a> › <a href="#asig/${asig}/actividades">Actividades de clase</a> › <span aria-current="page">${esc(def.titulo)}</span></div><div class="prof">${chip()}</div></nav>`;
+  const cab = `<nav class="crumbs static" aria-label="Estás en"><div><a href="#inicio">Inicio</a> › <a href="#asignaturas">Asignaturas</a> › <a href="#asig/${asig}">${esc(a.corto)}</a> › <a href="#asig/${asig}/actividades">Actividades de clase</a> › <span aria-current="page">${esc(def.titulo)}</span></div><div class="prof">${chip()}</div></nav>`;
   act = new Actividad3D($('#act'), def, { cabecera: cab, volver: `#asig/${asig}/actividades`, esProfesor: !!P?.esProfesor,
     asignacion: () => P?.aula?.asignacionActividad?.(url) || null,
     entregar: (itemId, texto) => P.aula.entregarActividad(itemId, texto) });
@@ -382,10 +398,10 @@ function abrirActividad(asig, id) {
 
 // Laboratorios «ligeros» (p5.js, TIC…): #asig/lab y #asig/lab/reto
 function abrirLab(asig, id, sub) {
-  const def = LABS[`${asig}/${id}`]; showScreen('act');
+  const def = LABS[`${asig}/${id}`]; showScreen('act'); mostrarBarraAsig(asig);
   if (act) act.destruir();
   const P = portal();
-  act = new PaginaLab($('#act'), def, sub, { cabecera: cabecera(def.titulo, 'asig'), chip: chip(), asigCorto: asignatura(asig)?.corto || asig, esProfesor: !!P?.esProfesor,
+  act = new PaginaLab($('#act'), def, sub, { cabecera: '', chip: chip(), asigCorto: asignatura(asig)?.corto || asig, esProfesor: !!P?.esProfesor,
     asignacion: (url) => P?.aula?.asignacionActividad?.(url) || null,
     entregar: (itemId, texto) => P.aula.entregarActividad(itemId, texto),
     asignar: (o) => P?.aula?.asignarActividad?.(o) });
@@ -483,6 +499,7 @@ function renderTab() {
 
 function buildUI() {
   document.body.innerHTML = `
+  <div id="asigbar" class="asigbar" hidden></div>
   <div id="cover" class="screen"></div>
   <div id="subjects" class="screen"></div>
   <div id="act" class="screen"></div>
@@ -590,7 +607,7 @@ function route() {
   if (vv) {
     if (!apartadoPermitido('vivienda')) { history.replaceState(null, '', '#asig/eee/laboratorio'); return route(); }
     if (!viv) viv = new ViviendaLab($('#viv'), { subject: SUBJ.nombre, profesor: SUBJ.profesor });
-    showScreen('viv'); window.__viv = viv;
+    showScreen('viv'); window.__viv = viv; mostrarBarraAsig(SUBJ.id);
     const v = vv[1] || 'home';
     if (v === 'revision') {
       const rev = portal()?.esProfesor && portal().revision;
@@ -607,7 +624,7 @@ function route() {
   if (!c && !apartadoPermitido('esp32')) { history.replaceState(null, '', '#asig/eee/laboratorio'); return route(); }
   if (c) {
     if (!lab) lab = new CircuitLab($('#circ'), { subject: SUBJ.nombre, profesor: SUBJ.profesor });
-    showScreen('circ'); window.__circ = lab;
+    showScreen('circ'); window.__circ = lab; mostrarBarraAsig(SUBJ.id);
     const v = c[1] || 'home';
     if (v === 'revision') {
       const rev = portal()?.esProfesor && portal().revision;
@@ -618,7 +635,7 @@ function route() {
     lab.show(v === 'libre' || /^c\d+$/.test(v) ? v : 'home');
     return;
   }
-  showScreen(null);
+  showScreen(null); mostrarBarraAsig(SUBJ.id);
   const m = h.match(/^#p(\d)(?:-(\d+))?/);
   if (m) { const n = +m[1], st = m[2] ? +m[2] - 1 : 0; labReady = true; if (!state.lesson || state.lesson.n !== n) setLesson(n, st); else if (st !== state.step) showStep(st); }
   else if (state.lesson || !labReady) { labReady = true; setLesson(0); history.replaceState(null, '', '#eee/esp32'); }

@@ -317,9 +317,9 @@ export class CircuitLab {
     this._force = true;
     const b = this.bounds(); const c = b.getCenter(new THREE.Vector3()); const sz = b.getSize(new THREE.Vector3());
     const aspect = this.camera.aspect || 1.6; const fov = this.camera.fov * Math.PI / 180;
-    const need = Math.max(sz.z * (top ? 1.15 : 1.4), sz.x * 1.12 / aspect); const dist = need / 2 / Math.tan(fov / 2) + (top ? 4 : 10);
+    const need = Math.max(sz.z * (top ? 1.15 : 1.4), sz.x * 1.3 / aspect); const dist = need / 2 / Math.tan(fov / 2) + (top ? 4 : 10);
     const dir = top ? new THREE.Vector3(0, 1, 0.0001) : new THREE.Vector3(0, 1.15, 0.85).normalize();
-    this.userCam = false; c.y = 0;
+    this.userCam = false; c.y = 0; c.x -= need * aspect * 0.035; // el montaje se desplaza a la derecha de la barra de herramientas
     const pos = c.clone().addScaledVector(dir, dist);
     if (suave && !instant) { volar(this.camera, this.controls, pos, c, 600); return; } // botones y teclas: transición suave como en ESP32
     cancelarVuelo(this.camera); this.camera.position.copy(pos); this.controls.target.copy(c); this.camera.lookAt(c); this.controls.update();
