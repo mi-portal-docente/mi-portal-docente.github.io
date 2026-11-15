@@ -48,6 +48,17 @@ export function crearEditor({ db, aula, gruposDe }) {
   const E = { edit: null, preguntas: [], el: null, alGuardar: null };
   const temasDe = (curso, asig) => [...st.temas.values()].filter((t) => t.curso === curso && t.asig === asig).sort((a, b) => a.orden - b.orden);
 
+  // Archivos subidos que hay en los adjuntos: cada uno con su casilla «Permitir descargar» (cambia el final del enlace)
+  const RE_ARCH = /^(.*\|\s*)?#archivo\/([A-Za-z0-9]{6,40})(\/descarga)?\s*$/;
+  function pintarArch(f = E.el?.querySelector('#apItemForm')) {
+    const c = f?.querySelector('[data-ed-arch]'); if (!c || !f.enlaces) return;
+    const L = f.enlaces.value.split('\n').map((l, i) => { const m = l.match(RE_ARCH); return m ? { i, t: (m[1] || '').replace(/\|\s*$/, '').trim() || 'Archivo', d: !!m[3] } : null; }).filter(Boolean);
+    c.innerHTML = L.length ? `<span class="pn-small">Archivos subidos:</span>${L.map((x) => `<label class="cl-adj-a"><span>📎 ${esc(x.t)}</span><span><input type="checkbox" data-ed-desc="${x.i}" ${x.d ? 'checked' : ''}> Permitir descargar</span></label>`).join('')}` : '';
+  }
+  function cambiarDescarga(t) {
+    const f = t.form; const L = f.enlaces.value.split('\n'); const i = +t.dataset.edDesc; const m = (L[i] || '').match(RE_ARCH); if (!m) return;
+    L[i] = `${m[1] || ''}#archivo/${m[2]}${t.checked ? '/descarga' : ''}`; f.enlaces.value = L.join('\n');
+  }
   async function subirAdjuntos(f) {
     const L = [...(f.adjF.files || [])]; f.adjF.value = ''; if (!L.length) return;
     const msg = f.querySelector('[data-ed-sub]'); const btn = f.querySelector('[data-ed=subir]'); btn.disabled = true;
@@ -57,7 +68,7 @@ export function crearEditor({ db, aula, gruposDe }) {
         const r = await subirArchivo(db, file, { asig: E.edit.asig, curso: E.edit.curso, progreso: (x) => { msg.textContent = `Subiendo ${L.length > 1 ? `${i + 1}/${L.length} · ` : ''}${file.name}… ${Math.round(x * 100)} %`; } });
         f.enlaces.value = (f.enlaces.value.trim() ? f.enlaces.value.trim() + '\n' : '') + `${r.nombre} | ${r.u}`;
       }
-      msg.textContent = `${L.length === 1 ? 'Archivo subido' : L.length + ' archivos subidos'}. Pulsa «Guardar» para que quede en el elemento.`;
+      msg.textContent = `${L.length === 1 ? 'Archivo subido' : L.length + ' archivos subidos'} (solo para ver). Pulsa «Guardar» para que quede en el elemento.`; pintarArch(f);
     } catch (e) { msg.textContent = e?.code === 'permission-denied' ? 'No se ha podido subir: falta publicar las reglas nuevas.' : (e?.message || 'No se ha podido subir el archivo.'); }
     finally { btn.disabled = false; }
   }
@@ -65,11 +76,12 @@ export function crearEditor({ db, aula, gruposDe }) {
   function montar() {
     if (!E.el) {
       E.el = document.createElement('div'); E.el.className = 'cl-modal'; E.el.setAttribute('role', 'dialog'); E.el.setAttribute('aria-modal', 'true');
-      E.el.addEventListener('click', onClick); E.el.addEventListener('change', onChange); E.el.addEventListener('input', (ev) => cambioRubrica(ev.target)); E.el.addEventListener('submit', onSubmit);
+      E.el.addEventListener('click', onClick); E.el.addEventListener('change', onChange); E.el.addEventListener('input', (ev) => { if (ev.target.name === 'enlaces') pintarArch(ev.target.form); else cambioRubrica(ev.target); }); E.el.addEventListener('submit', onSubmit);
       E.el.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') cerrar(); });
       document.body.appendChild(E.el); document.body.classList.add('cl-modal-abierto');
     }
     E.el.innerHTML = `<div class="cl-dlg" id="apEditor">${html()}</div>`;
+    pintarArch();
     E.el.querySelector('input[name=titulo]')?.focus();
   }
   // abrir(it) edita; abrir(null, {tipo, tema, curso, asig}) crea.
@@ -118,7 +130,8 @@ export function crearEditor({ db, aula, gruposDe }) {
         <div class="cl-adj-add"><input name="adjT" maxlength="120" placeholder="Título (opcional)"><input name="adjU" maxlength="500" placeholder="https://… (Drive, Docs, YouTube, cualquier web) o materiales/…">
           <button type="button" class="btn small" data-ed="adj">➕ Añadir</button></div>
         <div class="cl-adj-sub"><button type="button" class="btn small primary" data-ed="subir">${ic('upload')} Subir archivo</button><input type="file" name="adjF" multiple hidden accept=".pdf,image/*,.doc,.docx,.odt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,.csv,.txt,.zip"><span class="pn-small" data-ed-sub></span></div>
-        <p class="pn-small">Sube el PDF, la imagen o el documento (máx. 15 MB cada uno): se guarda en el portal y los alumnos lo ven dentro de la página, sin Drive ni cuentas. PDF e imágenes se ven en el visor; el resto se descarga. También puedes pegar enlaces (YouTube, Canva, cualquier web).</p></fieldset>
+        <div class="cl-adj-arch" data-ed-arch></div>
+        <p class="pn-small">Sube el PDF, la imagen o el documento (máx. 15 MB cada uno): se guarda en el portal y los alumnos lo ven dentro de la página, sin Drive ni cuentas. Por defecto es solo para ver: marca «Permitir descargar» en el archivo que quieras. PDF e imágenes se ven en el visor; el resto (Word, PowerPoint…) solo sirve si permites descargarlo: mejor súbelo en PDF. También puedes pegar enlaces (YouTube, Canva, cualquier web).</p></fieldset>
       ${M?.documento ? `<fieldset class="pn-f ap-motor"><legend>${ic('file-text')} Documento · plantilla de partida (opcional)</legend>${plantillaHTML(e.contenidoTxt ? (() => { try { return JSON.parse(e.contenidoTxt); } catch (x) { return e.contenido || {}; } })() : e.contenido || M.ejemplo || {})}<p class="pn-small">El alumno empieza con esta plantilla y escribe en el portal: títulos, listas, tablas, enlaces, imágenes y código. Se guarda solo; puede imprimirlo o descargarlo en .docx.</p></fieldset>` : ''}
       ${M && !M.documento ? `<fieldset class="pn-f ap-motor"><legend>${esc(M.nombre || TIPOS[e.tipo]?.nombre || e.tipo)} · contenido (JSON)</legend>
         <textarea name="contenido" class="js-ta" rows="14" spellcheck="false" maxlength="400000">${esc(e.contenidoTxt ?? JSON.stringify((e.contenido && M.paraEditar ? M.paraEditar(e.contenido) : e.contenido) || M.ejemplo || {}, null, 2))}</textarea>
@@ -310,6 +323,7 @@ export function crearEditor({ db, aula, gruposDe }) {
   function onChange(ev) {
     const t = ev.target;
     if (t.name === 'adjF' && t.form) { subirAdjuntos(t.form); return; }
+    if (t.dataset.edDesc != null) { cambiarDescarga(t); return; }
     if (t.name === 'tipo' && t.form?.id === 'apItemForm') {
       leer(t.form); const e = E.edit;
       if (e.tipo === 'examen' && !e.examen) e.examen = { desde: Date.now(), hasta: Date.now() + 864e5, limiteMin: 30, barajar: true };

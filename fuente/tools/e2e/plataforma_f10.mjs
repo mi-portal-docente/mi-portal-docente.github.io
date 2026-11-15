@@ -14,10 +14,19 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await menu(pg, id, 'editar'); await pg.waitForSelector('#apItemForm [data-rb-ed] .rb-fila', { timeout: 15000 });
   ok('editor: la rúbrica es una tabla con los niveles y el criterio «clase»', /Los tres bien/.test(await pg.inputValue('#apItemForm [data-rb-texto]')) && /Montaje en el taller \| clase/.test(await pg.inputValue('#apItemForm [data-rb-texto]')) && !!(await pg.$('#apItemForm .rb-fila.clase [data-rb=clase]:checked')) && (await pg.$$('#apItemForm .rb-fila')).length >= 3);
   // Subir un PDF al portal (sin Drive): 2 MB → 3 partes; luego el alumno lo ve en el visor
-  const pdfB = Buffer.concat([Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%'), Buffer.alloc(2 * 1024 * 1024, 65), Buffer.from('\n%%EOF\n')]);
+  const pdfB = (() => { // PDF válido de 2 páginas con un relleno de 2 MB
+    const objs = ['<</Type/Catalog/Pages 2 0 R>>', '<</Type/Pages/Kids[3 0 R 4 0 R]/Count 2>>', '<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]/Contents 5 0 R>>', '<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]/Contents 5 0 R>>', '<</Length 31>>\nstream\n0 0 1 rg 20 20 200 100 re f\n\nendstream', `<</Length ${2 * 1024 * 1024}>>\nstream\n${'A'.repeat(2 * 1024 * 1024)}\nendstream`];
+    let out = '%PDF-1.4\n'; const off = [];
+    objs.forEach((o, i) => { off.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const x = out.length; out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${off.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<</Size ${objs.length + 1}/Root 1 0 R>>\nstartxref\n${x}\n%%EOF\n`;
+    return Buffer.from(out, 'latin1');
+  })();
   await pg.setInputFiles('#apItemForm [name=adjF]', { name: 'Ficha Ohm.pdf', mimeType: 'application/pdf', buffer: pdfB });
   await pg.waitForFunction(() => /#archivo\//.test(document.querySelector('#apItemForm [name=enlaces]')?.value || ''), null, { timeout: 30000 });
   const uArch = (await pg.inputValue('#apItemForm [name=enlaces]')).match(/#archivo\/(\w+)/)[1];
+  const casilla = '#apItemForm [data-ed-arch] [data-ed-desc]';
+  const c0 = await pg.isChecked(casilla); await pg.check(casilla); const conD = /#archivo\/\w+\/descarga$/.test(await pg.inputValue('#apItemForm [name=enlaces]')); await pg.uncheck(casilla);
+  ok('editor: el archivo queda «solo para ver»; la casilla «Permitir descargar» cambia el adjunto', c0 === false && conD && /#archivo\/\w+$/.test(await pg.inputValue('#apItemForm [name=enlaces]')));
   const dArch = await docREST('archivos/' + uArch);
   ok('editor: «Subir archivo» guarda el PDF en el portal (3 partes, huella y tamaño)', campo(dArch, 'partes') === 3 && campo(dArch, 'bytes') === pdfB.length && campo(dArch, 'tipo') === 'pdf' && campo(dArch, 'asig') === 'eee' && /^[0-9a-f]{64}$/.test(campo(dArch, 'hash')));
   await pg.check('#apItemForm [name=estado][value=publicar]'); await pg.click('#apItemForm button[type=submit]');
@@ -30,10 +39,16 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
     await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
     if (n === 7) {
       await A.pg.click(`a.cl-adj-c[href="#archivo/${uArch}"]`);
-      await A.pg.waitForSelector('#visorArchivo .vz-pdf, #visorArchivo .vz-msg.ko', { timeout: 20000 });
-      const vz = await A.pg.evaluate(async () => { const f = document.querySelector('#visorArchivo .vz-pdf'); const a = document.querySelector('#visorArchivo .vz-desc'); if (!f) return { ko: document.querySelector('#visorArchivo')?.textContent }; const b = await (await fetch(a.href)).blob(); return { n: b.size, hash: location.hash, ad: a.download }; });
-      ok('alumno: el PDF subido se abre en el visor dentro del portal (sin Drive) y se puede descargar entero', vz.n === pdfB.length && vz.ad === 'Ficha Ohm.pdf' && !/archivo/.test(vz.hash), JSON.stringify(vz).slice(0, 120));
+      await A.pg.waitForSelector('#visorArchivo .vz-pag canvas, #visorArchivo .vz-msg.ko', { timeout: 30000 });
+      const vz = await A.pg.evaluate(() => ({ pags: document.querySelectorAll('#visorArchivo .vz-pag').length, cv: document.querySelectorAll('#visorArchivo .vz-pag canvas').length, desc: !!document.querySelector('#visorArchivo .vz-desc, #visorArchivo a[download], #visorArchivo iframe, #visorArchivo a[href^="blob:"]'), solo: /Solo lectura/.test(document.querySelector('#visorArchivo .vz-bar')?.textContent || ''), ko: document.querySelector('#visorArchivo .vz-msg.ko')?.textContent, hash: location.hash }));
+      ok('alumno: el PDF subido se ve dentro del portal (2 páginas pintadas, sin Drive) y NO se puede descargar: solo lectura', vz.pags === 2 && vz.cv >= 1 && !vz.desc && vz.solo && !/archivo/.test(vz.hash), JSON.stringify(vz).slice(0, 160));
       await shot(A.pg, 'f10_visor_archivo');
+      await A.pg.click('#visorArchivo [data-vz=cerrar]');
+      // con permiso del profesor en ese adjunto: aparece «Descargar» y baja el archivo entero
+      await A.pg.evaluate((u) => { const a = document.querySelector(`a.cl-adj-c[href="#archivo/${u}"]`); a.setAttribute('href', `#archivo/${u}/descarga`); a.click(); }, uArch);
+      await A.pg.waitForSelector('#visorArchivo .vz-desc:not([hidden])', { timeout: 30000 });
+      const vd = await A.pg.evaluate(async () => { const a = document.querySelector('#visorArchivo .vz-desc'); return { n: (await (await fetch(a.href)).blob()).size, ad: a.download }; });
+      ok('alumno: si el adjunto lleva «Permitir descargar», aparece el botón y baja el archivo entero', vd.n === pdfB.length && vd.ad === 'Ficha Ohm.pdf', JSON.stringify(vd));
       await A.pg.click('#visorArchivo [data-vz=cerrar]');
       T.A7 = A;
     } else {

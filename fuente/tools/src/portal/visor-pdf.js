@@ -5,7 +5,7 @@ import { esc } from './util.js';
 import { ic } from './ico.js';
 
 let carga = null;
-function cargarPdfjs() {
+export function cargarPdfjs() {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   if (!carga) carga = new Promise((res, rej) => { const s = document.createElement('script'); s.src = new URL('vendor/pdfjs/pdf.min.js?v=3.11.174', document.baseURI).href; s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.min.js?v=3.11.174', document.baseURI).href; res(window.pdfjsLib); }; s.onerror = () => { carga = null; rej(new Error('No se ha podido cargar el visor.')); }; document.head.appendChild(s); });
   return carga;

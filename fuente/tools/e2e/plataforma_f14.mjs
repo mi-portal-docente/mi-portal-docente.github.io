@@ -15,9 +15,10 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await A.pg.goto(BASE + '#trabajo/' + id); await A.pg.waitForSelector('#enForm [name=texto]', { timeout: 20000 });
   await A.pg.fill('#enForm [name=texto]', 'Un fusible protege el circuito de las sobreintensidades.');
   await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
-  await A.ctx.close();
   const tid = `${id}_${T.GE.id}_14`;
-  ok('preparación: un trabajo entregado en el curso', !!(await docREST('trabajos/' + tid)).fields);
+  let dT = null; for (let i = 0; i < 20; i++) { dT = await docREST('trabajos/' + tid); if (dT.fields?.estado?.stringValue === 'entregado') break; await new Promise((r) => setTimeout(r, 500)); }
+  await A.ctx.close();
+  ok('preparación: un trabajo entregado en el curso', dT.fields?.estado?.stringValue === 'entregado');
   // ---- exportar todo
   await pg.goto(BASE + '#panel/ajustes'); await pg.waitForSelector('[data-ap=exportarCurso]', { timeout: 20000 });
   const curso = (await pg.textContent('#apBorrarCurso option:checked')).trim();
