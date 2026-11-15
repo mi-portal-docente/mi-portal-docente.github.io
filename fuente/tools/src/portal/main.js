@@ -61,6 +61,13 @@ const esRed = (e) => /network|unavailable|deadline|offline/i.test(String(e?.code
 // ------------------------------------------------------------------ API para la aplicación
 const PORTAL = window.PORTAL = {
   modo: 'firebase', rol: null, esProfesor: false, revision: null,
+  // Ámbito para lo que se guarda en este navegador (avance de prácticas guiadas, montajes): cada identidad el suyo.
+  // Alumno: huella corta de grupo+nº (no se guarda el código en claro). Profesor: «p». Sin sesión: null.
+  ambito() {
+    if (rol === 'profesor') return 'p';
+    if (rol === 'alumno' && ses) { let h = 0x811c9dc5; for (const ch of idAl(ses.grupo || ses.grupoNombre || '', ses.numero)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return 'a' + h.toString(36); }
+    return null;
+  },
   chipHTML() {
     if (rol === 'alumno' && ses) return `<span class="pchip"><span class="pchip-who" title="Tu grupo y tu número de lista">${esc(ses.grupoNombre || 'Grupo')} · nº ${pad(ses.numero)}</span><button type="button" class="pchip-b" data-portal="salir">Salir</button></span>`;
     if (rol === 'profesor') return `<span class="pchip prof"><span class="pchip-who">Profesor</span><button type="button" class="pchip-b" data-portal="salir">Salir</button></span>`;

@@ -18,7 +18,11 @@ import { TIPOS_AVERIA, leerMontaje } from '../lms/motores/averia.js';
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const LS = 'circ:v1:';
-const store = { get(k) { try { return JSON.parse(localStorage.getItem(LS + k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) { } }, del(k) { try { localStorage.removeItem(LS + k); } catch (e) { } } };
+import { lsKey as lsKeyBase, migrarLegado as migrarBase } from './almacen.js';
+const portalAmbito = () => { try { return (typeof window !== 'undefined' && window.PORTAL?.ambito?.()) || null; } catch (e) { return null; } };
+const lsKey = (k) => lsKeyBase(k, portalAmbito());
+const migrarLegado = (amb) => { try { return migrarBase(amb, localStorage); } catch (e) { return 0; } };
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(lsKey(k))); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(lsKey(k), JSON.stringify(v)); } catch (e) { } }, del(k) { try { localStorage.removeItem(lsKey(k)); } catch (e) { } } };
 const LOGO = `<svg viewBox="0 0 40 40" class="cx-logo" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#0f5e66"/><path d="M6 24h7l2.5-7 4 13 4-15 3 9h7.5" fill="none" stroke="#f5a524" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="24" r="2.6" fill="#7fe3e0"/><circle cx="34" cy="24" r="2.6" fill="#7fe3e0"/></svg>`;
 const portal = () => (typeof window !== 'undefined' ? window.PORTAL : null);
 const ICON = { rotate: '⟳', del: '🗑', home: '⌂', top: '⊤', fit: '⤢', sound: '🔊', mute: '🔇', help: '?', flow: '⚡', xray: '▦', pins: '🏷', hq: '✦' };
@@ -102,6 +106,7 @@ export class CircuitLab {
 
   show(view) {
     const root = this.$('.cx');
+    { const amb = portalAmbito(); if (amb !== this._amb) { this._amb = amb; migrarLegado(amb); if (this.view !== 'home') this.view = null; } }
     if (this.running) this.toggleSim(false);
     if (this.readOnly) { this.readOnly = false; this.rev = null; this.view = null; root.classList.remove('is-ro'); }
     if (this.av) { this.av = null; this.view = null; }
@@ -400,7 +405,7 @@ export class CircuitLab {
   redo() { if (this.readOnly || this.running || !this.redoS.length) return; this.undoS.push(this.snapshot()); this.model = JSON.parse(this.redoS.pop()); this.sel = null; this.afterChange(); }
   updateUndo() { this.$('#cxUndo').disabled = this.readOnly || this.running || !this.undoS.length; this.$('#cxRedo').disabled = this.readOnly || this.running || !this.redoS.length; }
   autosave() { if (this._as) return; this._as = setTimeout(() => { this._as = null; this.saveNow(); }, 250); }
-  saveNow() { if (!this.readOnly && this.view && this.view !== 'home') store.set('auto:' + this.view, { model: this.model, g: this.g ? { idx: this.g.idx, map: this.g.map, measured: this.g.measured, answers: this.g.answers, rev: this.g.rev } : null }); }
+  saveNow() { if (!this.readOnly && portalAmbito() === (this._amb ?? null) && this.view && this.view !== 'home') store.set('auto:' + this.view, { model: this.model, g: this.g ? { idx: this.g.idx, map: this.g.map, measured: this.g.measured, answers: this.g.answers, rev: this.g.rev } : null }); }
 
   sync() {
     this._force = true;

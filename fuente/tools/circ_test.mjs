@@ -224,7 +224,7 @@ const exp = await pg.evaluate(() => JSON.stringify(window.__circ.model));
 await pg.evaluate((t) => { const L = window.__circ; L.commit(() => { L.model = { parts: [], wires: [] }; }); L.afterChange(); L.importText(JSON.stringify({ app: 'circuitos', model: JSON.parse(t) })); }, exp); await wait(300);
 ok('Importar montaje (JSON)', await pg.evaluate((t) => JSON.stringify(window.__circ.model.parts.map(p => p.type)) === JSON.stringify(JSON.parse(t).parts.map(p => p.type)), exp));
 // persistencia
-await wait(1500); // dar tiempo a Chrome a guardar localStorage antes de recargar
+await wait(3500); // dar tiempo a Chrome a guardar localStorage antes de recargar (con 1,5 s fallaba a veces también en main)
 await pg.reload(); await wait(2500);
 st = await pg.evaluate(() => ({ n: window.__circ.model.parts.length, h: location.hash, v: window.__circ.view, ls: (localStorage.getItem('circ:v1:auto:c5') || '').length }));
 ok('Montaje recuperado tras recargar (localStorage)', st.n === before, JSON.stringify(st));

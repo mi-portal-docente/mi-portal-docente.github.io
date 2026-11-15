@@ -613,3 +613,13 @@ las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en u
 - Vivienda real (casa3d + nuevo viv/casaDeco.js): sol con sombras, suelos con textura (tarima, gres, baldosa), rodapiés, muebles modelados (cama, sofá, mesa con sillas, bañera, lavabo con espejo, inodoro, cocina con encimera, fregadero, placa y frigorífico), puerta con marco; mecanismos y bases como placas reales orientadas a su pared (pegarPared), plafón con portalámparas y bombilla, cuadro empotrado con ventana y aparamenta DIN, tubo corrugado con estrías.
 - Actividades: polímetro compartido en kit3d/polimetro.js (Circuitos y kit); rótulo «POLÍMETRO DIGITAL» ya no queda tapado por la pantalla; clavijas banana con funda en el multímetro del kit; hebras de cobre en hélice (paso 16 mm); rollos de cable con espiras (surcos, vueltas sueltas, film).
 - Anatomía del PC: fundas trenzadas con termorretráctil y conectores reales (24 pines, EPS 8, PCIe y SATA con cavidades, pestaña y hilos de colores), aspas combadas y suaves, palanca del zócalo visible (leva, codo, mango y gancho), CPU mostrada ×1,6.
+
+## Arreglos (15/11/2026, rama grok-arreglos, publicados uno a uno en main)
+### 1 · Avance de las prácticas guiadas de Circuitos por usuario
+- El avance (`done:`), los montajes guardados (`auto:`, `save:`) y las respuestas de avería (`avr:`) se guardan con el ámbito de quien ha entrado: profesor («p») o alumno (huella corta de grupo + nº; no se guarda el código en claro). Las preferencias (`pref:`) siguen siendo del navegador.
+- Migración: lo que había sin ámbito se lo queda una sola vez la primera identidad que abre el laboratorio en ese navegador y después se borra (no pasa a otros). No se pisa nada que ya exista.
+- Si cambia la sesión con el laboratorio abierto, se recarga el montaje de la nueva identidad y no se guarda el de la anterior en su espacio.
+- Archivos: src/circ/almacen.js (nuevo), src/circ/lab.js, src/portal/main.js (`PORTAL.ambito()`), circ_almacen_test.mjs (nuevo, 9 pruebas), circ_test.mjs (espera más antes de recargar).
+- Pruebas: circ_almacen_test 9/9; circ_test 41/41 con servidor http (con file:// la prueba de recarga falla a veces también en main: Chrome no siempre conserva localStorage de file:// al recargar).
+- Probar a mano: entrar como profesor, avanzar una práctica; salir y entrar como alumno en el mismo navegador: la práctica aparece sin empezar. Dos alumnos distintos: cada uno ve solo lo suyo.
+- Sin cambios en reglas de Firestore.
