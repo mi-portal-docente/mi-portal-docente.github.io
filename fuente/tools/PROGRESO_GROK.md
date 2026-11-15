@@ -630,3 +630,9 @@ las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en u
 - Archivos: src/main.js, src/circ/lab.js, css/ios.css.
 - Pruebas: circ_test 41/41 (http); viv_test 77/78 (la última solo por el tiempo máximo de la prueba).
 - Probar a mano: abrir cada simulador desde la asignatura (profesor y alumno, ordenador y móvil) y cambiar de pestaña desde la barra.
+
+### 3 · Menú «Archivo» de los simuladores
+- La barra del laboratorio queda por encima del visor 3D y de las migas; el desplegable es opaco, con desplazamiento si no cabe. En el móvil la barra ocupa dos filas (antes las migas tapaban «Archivo») y el menú se abre a todo el ancho.
+- Archivos: css/ios.css (Circuitos y Vivienda).
+- Comprobado con capturas (ordenador 1440×900 y móvil 390×844): el menú se ve entero y sus botones reciben el clic.
+- Probar a mano: abrir «Archivo» en Circuitos y Vivienda en el móvil y en el ordenador, también en tema oscuro.

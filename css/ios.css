@@ -1097,3 +1097,16 @@ body.con-asigbar .screen { top: var(--asigbar-h, 0px); }
   .asb-tabs { order: 5; flex-basis: 100%; }
   .asb-tabs a { padding: 6px 10px; font-size: 13px; }
 }
+
+/* Menú «Archivo» de los simuladores: la barra superior queda por encima del visor 3D (antes el visor y las
+   migas se pintaban encima del desplegable) y el desplegable es opaco (un desenfoque dentro de otro no funciona). */
+.cx-top, .vv-top { position: relative; z-index: 30; }
+.cx-dd, .vv-dd { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; z-index: 60;
+  max-width: calc(100vw - 20px); max-height: calc(100dvh - 140px); overflow-y: auto; }
+.cx-dd button, .vv-dd button { white-space: normal; }
+html[data-theme="dark"] .cx-dd, html[data-theme="dark"] .vv-dd { background: #2c2c2e; }
+@media (max-width: 860px) {
+  /* En el móvil la barra del laboratorio ocupa dos filas: sin altura fija (antes las migas tapaban «Archivo»). */
+  .cx-top, .vv-top { height: auto; min-height: 54px; flex-wrap: wrap; padding-top: 6px; padding-bottom: 6px; }
+  .cx-dd, .vv-dd { position: fixed; top: auto; left: 10px; right: 10px; min-width: 0; width: auto; }
+}
