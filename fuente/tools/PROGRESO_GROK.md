@@ -650,3 +650,9 @@ las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en u
 - Archivos: src/circ/practices.js, circ_test.mjs (16 prácticas, todas recorridas paso a paso), acceso_test.mjs (cuenta de tarjetas).
 - Pruebas: circ_test 45/45 (http).
 - Probar a mano: hacer la 13 a la 16 como alumno; si se usa el desbloqueo por grupo, aparecen al final de la lista del panel.
+
+## Arreglos (17/11/2026, rama grok-arreglos, publicados uno a uno en main)
+### 6 · Nombres de las prácticas guiadas 13 a 16 (sin «Tinkercad»)
+- Títulos nuevos, en la misma línea que las prácticas 1 a 12: 13 «El LED protegido con 3 V», 14 «Dos LED en paralelo», 15 «Pulsador e interruptor en serie», 16 «Interruptor general y ramas en paralelo». El contenido (enunciado, pasos, comprobación, preguntas y reto) no cambia; el avance guardado de cada alumno se conserva (mismos identificadores c13–c16).
+- Archivos: src/circ/practices.js. Caché arr-20261117a.
+- Probar a mano: portada de Circuitos, tarjetas 13 a 16.

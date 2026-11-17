@@ -397,7 +397,7 @@ export const PRACTICES = [
   },
   // ---- Prácticas de «Trabajo de clase» (Tinkercad, prácticas 1 a 4) pasadas a prácticas guiadas, con 2×AA = 3 V ----
   {
-    id: 'c13', n: 13, rev: 1, title: 'Tinkercad 1 · El LED protegido', sub: 'Pila de 3 V, resistencia de protección y LED en serie', level: 'Fácil', duration: '40 min', icon: '💡',
+    id: 'c13', n: 13, rev: 1, title: 'El LED protegido con 3 V', sub: 'Pila de 3 V, resistencia de protección y LED en serie', level: 'Fácil', duration: '40 min', icon: '💡',
     ra: { 1: ['a'], 2: ['a', 'c'], 3: ['d', 'e'] }, origen: 'Trabajo de clase · B1. Práctica 1 (Tinkercad) · Circuito 1',
     objetivo: 'Montar en serie una pila de 3 V, una resistencia de protección y un LED, entender por qué el LED necesita la resistencia y qué pasa al poner dos LED seguidos en la misma rama.',
     teoria: 'En un circuito <b>en serie</b> todos los elementos están en el mismo camino: la corriente es la misma en todos y la tensión de la pila se reparte. Un LED rojo necesita unos <b>1,8 V</b> y admite como mucho <b>20 mA</b>. La resistencia se lleva el resto de la tensión y limita la corriente: <b>R = (V<sub>pila</sub> − V<sub>LED</sub>) / I</b>. En Tinkercad se usa una pila de botón de 3 V; aquí usamos un <b>portapilas de 2 pilas AA</b>, que también da 3 V.',
@@ -424,7 +424,7 @@ export const PRACTICES = [
     reto: 'En el modo libre, añade un segundo LED en serie y compara el brillo. Después cambia el portapilas por el de 4×AA (6 V): ¿qué resistencia pondrías para que los dos LED en serie lleven unos 15 mA?',
   },
   {
-    id: 'c14', n: 14, rev: 1, title: 'Tinkercad 2 · LED en paralelo', sub: 'Dos ramas, cada una con su resistencia y su LED', level: 'Fácil', duration: '40 min', icon: '🔀',
+    id: 'c14', n: 14, rev: 1, title: 'Dos LED en paralelo', sub: 'Dos ramas, cada una con su resistencia y su LED', level: 'Fácil', duration: '40 min', icon: '🔀',
     ra: { 2: ['a', 'b', 'e'], 3: ['d', 'e'], 4: ['a'] }, origen: 'Trabajo de clase · B1. Práctica 1 (Tinkercad) · Circuito 2',
     objetivo: 'Montar dos LED en paralelo, cada uno en su propia rama con su resistencia, y entender por qué es mejor que compartir una sola resistencia o no poner ninguna.',
     teoria: 'En <b>paralelo</b> cada rama va directamente del + al −: todas reciben la <b>misma tensión</b> (3 V) y la corriente total es la <b>suma</b> de las ramas. Cada LED necesita <b>su propia resistencia</b>: si comparten una sola, el LED con menos tensión de encendido se lleva casi toda la corriente y el otro luce poco o nada.',
@@ -456,7 +456,7 @@ export const PRACTICES = [
     reto: 'Quita el LED rojo con la simulación en marcha (o desconecta su rama). ¿Qué le pasa al verde? ¿Por qué en las casas los enchufes van en paralelo?',
   },
   {
-    id: 'c15', n: 15, rev: 1, title: 'Tinkercad 3 · Pulsador e interruptor', sub: 'Encendido momentáneo y encendido fijo en serie con el LED', level: 'Media', duration: '45 min', icon: '🔘',
+    id: 'c15', n: 15, rev: 1, title: 'Pulsador e interruptor en serie', sub: 'Encendido momentáneo y encendido fijo en serie con el LED', level: 'Media', duration: '45 min', icon: '🔘',
     ra: { 1: ['a'], 2: ['a', 'c'], 3: ['d', 'e'], 4: ['a', 'h'] }, origen: 'Trabajo de clase · B1. Práctica 1 (Tinkercad) · Circuito 3',
     objetivo: 'Controlar el LED protegido de la práctica anterior con dos elementos de control en serie: un interruptor deslizante (se queda en su posición) y un pulsador (solo actúa mientras se pulsa).',
     teoria: 'El <b>pulsador</b> es <b>momentáneo</b> (monoestable): cierra el circuito solo mientras lo mantienes pulsado. El <b>interruptor deslizante</b> es <b>de retención</b> (biestable): se queda en la posición que elijas. Si los pones <b>en serie</b>, el LED solo luce cuando el interruptor está cerrado <b>y</b> además pulsas: es una función <b>Y</b> (AND).',
@@ -487,7 +487,7 @@ export const PRACTICES = [
     reto: 'Apartado 3.2 de Tinkercad: en el modo libre, monta solo el interruptor deslizante con la resistencia y el LED (sin pulsador). ¿Qué diferencia notas al usarlo?',
   },
   {
-    id: 'c16', n: 16, rev: 1, title: 'Tinkercad 4 · Control combinado en paralelo', sub: 'Interruptor general, una rama fija y otra con pulsador', level: 'Media-alta', duration: '60 min', icon: '🎛️',
+    id: 'c16', n: 16, rev: 1, title: 'Interruptor general y ramas en paralelo', sub: 'Interruptor general, una rama fija y otra con pulsador', level: 'Media-alta', duration: '60 min', icon: '🎛️',
     ra: { 2: ['a', 'b', 'e'], 3: ['d', 'e'], 4: ['a', 'h'] }, origen: 'Trabajo de clase · B1. Práctica 1 (Tinkercad) · Circuito 4',
     objetivo: 'Montar dos ramas en paralelo, cada una con su resistencia y su LED, gobernadas por un interruptor general que corta todo el montaje; una rama queda fija y la otra se controla además con un pulsador.',
     teoria: 'El <b>interruptor general</b> (o maestro) va <b>en serie con la pila</b>, antes de que el circuito se divida en ramas: si lo abres, se apaga todo. Después, cada rama en paralelo puede tener <b>su propio control</b>. Así funciona el cuadro de una casa: el interruptor general corta todo y cada circuito tiene el suyo.',
