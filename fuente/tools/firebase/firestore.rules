@@ -398,7 +398,7 @@ service cloud.firestore {
           && d.codigo == s.codigo
           && d.grupo == s.grupo
           && d.numero == s.numero
-          && d.practica is string && d.practica.matches('^(c[1-9]|p[1-8]|v[1-9])$')
+          && d.practica is string && d.practica.matches('^(c[1-9][0-9]?|a[1-9][0-9]?|n[1-9]|p[1-8]|v[1-9])$')
           && d.tipo in ['circuitos', 'esp32', 'vivienda']
           && textoCorto(d.titulo, 120)
           && d.fecha == request.time

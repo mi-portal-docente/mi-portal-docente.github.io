@@ -287,6 +287,13 @@ describe('Entregas del laboratorio de vivienda', () => {
     await assertSucceeds(setDoc(doc(anon('a1'), 'entregas/a1_g1_7_v1'), viv()));
     await assertSucceeds(getDoc(doc(anon('a1'), 'entregas/a1_g1_7_v1')));
   });
+  test('prácticas c10+, autónomas (aN) y evaluaciones por niveles (nN): el alumno puede entregarlas', async () => {
+    await sesionSembrada('a1');
+    const ev = (practica) => entrega('a1', { practica, titulo: 'Evaluación de circuitos · Nivel 1', datos: { montaje: '{"evaluacion":"n1","circuitos":[]}', comprobacion: { ok: false, nota: 6.7, items: [] }, aciertos: '2/3 circuitos' } });
+    for (const p of ['c17', 'c21', 'a4', 'n1', 'n4']) await assertSucceeds(setDoc(doc(anon('a1'), 'entregas/a1_g1_7_' + p), ev(p)));
+    for (const p of ['c100', 'n10', 'a0', 'n0']) await assertFails(setDoc(doc(anon('a1'), 'entregas/a1_g1_7_' + p), ev(p)));
+    await assertFails(setDoc(doc(anon('a1'), 'entregas/a1_g1_7_n2'), { ...ev('n2'), nota: 10 }));
+  });
   test('ataque: práctica no prevista, campo extra en datos o materiales enormes → denegado', async () => {
     await sesionSembrada('a1');
     await assertFails(setDoc(doc(anon('a1'), 'entregas/a1_g1_7_x1'), viv({ practica: 'x1' })));

@@ -1,5 +1,5 @@
 // Pruebas: desbloqueo de prácticas guiadas por grupo (token en «apartados»).
-import { leerGuiadas, escribirGuiadas, guiadaAbierta, sinTokens } from './src/circ/guiadas.js';
+import { leerGuiadas, escribirGuiadas, guiadaAbierta, sinTokens, leerEvaluaciones, escribirEvaluaciones, evaluacionAbierta } from './src/circ/guiadas.js';
 let ok = 0, fallos = 0; const t = (n, c) => { if (c) { ok++; console.log('OK  ', n); } else { fallos++; console.log('FALLO', n); } };
 t('Sin token: todas abiertas (grupos de antes)', leerGuiadas(['circuitos', 'esp32']) === null && guiadaAbierta(['circuitos'], 'c9'));
 t('Activar el control sin ninguna: todas cerradas', guiadaAbierta(escribirGuiadas(['circuitos'], []), 'c1') === false);
@@ -12,4 +12,11 @@ t('Quitar el control deja los apartados como estaban', JSON.stringify(escribirGu
 t('sinTokens para mostrar los apartados', JSON.stringify(sinTokens(b)) === '["circuitos","esp32"]');
 t('Ignora identificadores raros', [...leerGuiadas(['guiadas:c1,<x>, c2'])].join() === 'c1,c2');
 t('Cabe en la lista corta de las reglas (≤ 20)', escribirGuiadas(Array(19).fill('x'), ['c1']).length === 20);
+t('Evaluación: sin token, todos los niveles cerrados', !evaluacionAbierta(['circuitos'], 'n1') && leerEvaluaciones(undefined).size === 0);
+const e = escribirEvaluaciones(escribirGuiadas(['circuitos'], ['c1']), ['n1', 'n3', 'n1']);
+t('Evaluación: token propio, convive con el de guiadas', e.length === 3 && e[2] === 'evaluacion:n1,n3' && guiadaAbierta(e, 'c1') && !guiadaAbierta(e, 'c2'));
+t('Evaluación: solo los niveles abiertos', evaluacionAbierta(e, 'n1') && evaluacionAbierta(e, 'n3') && !evaluacionAbierta(e, 'n2'));
+t('Evaluación: cerrar todos quita el token', JSON.stringify(escribirEvaluaciones(e, [])) === '["circuitos","guiadas:c1"]');
+t('Evaluación: guardar guiadas no toca el token de evaluación', escribirGuiadas(e, ['c1', 'c2']).includes('evaluacion:n1,n3'));
+t('sinTokens quita también el de evaluación', JSON.stringify(sinTokens(e)) === '["circuitos"]');
 console.log(`\n${ok}/${ok + fallos} pruebas de prácticas guiadas OK`); if (fallos) process.exit(1);

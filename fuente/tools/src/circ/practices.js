@@ -545,7 +545,7 @@ export const PRACTICES = [
       { topo: true },
       { label: 'Sin avería, la bombilla luce y el fusible trabaja por debajo de su calibre', fn: (c) => { const r = c.run({ P1: { pressed: false } }); return r.get('L1').bright > 0.5 && r.get('F1').ratio < 1; } },
       { label: 'Con el cortocircuito, la corriente supera con creces el calibre: el fusible se funde y protege', fn: (c) => c.run({ P1: { pressed: true } }).get('F1').ratio > 2 },
-      { label: 'Has cambiado el fusible fundido', fn: (c) => (c.part('F1')?.state?.cambios || 0) >= 1 },
+      { label: 'Has cambiado el fusible fundido', soloGuiada: true, fn: (c) => (c.part('F1')?.state?.cambios || 0) >= 1 },
     ],
     questions: [
       { q: 'Corriente normal de la bombilla (6 V, 60 Ω):', unit: 'mA', ans: 100, tol: 0.05, expl: 'I = 6 / 60 = 0,1 A = 100 mA.' },

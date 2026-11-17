@@ -10,7 +10,8 @@ import { BIBLIOTECA, asignatura } from '../lms/biblioteca.js';
 import { planMigracion, sinDuplicadas } from '../lms/entrega.js';
 import { confirmar } from './dialogo.js';
 import { PRACTICES } from '../circ/practices.js';
-import { leerGuiadas, escribirGuiadas, sinTokens } from '../circ/guiadas.js';
+import { leerGuiadas, escribirGuiadas, sinTokens, leerEvaluaciones, escribirEvaluaciones } from '../circ/guiadas.js';
+import { EVALS } from '../circ/evaluaciones.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
 const pad = (n) => String(n).padStart(2, '0');
@@ -195,10 +196,13 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       <label class="pn-chk"><input type="checkbox" data-gd="modo" ${ctrl ? 'checked' : ''}> Las desbloqueo yo una a una (los alumnos solo pueden abrir las desbloqueadas)</label>
       ${ctrl ? `<div class="pn-acts"><button type="button" class="btn" data-pn="gd-sig">${lucide('lock-open') || lucide('lock')} Desbloquear la siguiente</button><span class="pn-small">${sel.size} de ${PRACTICES.length} desbloqueadas</span></div>` : '<p class="pn-small">Ahora mismo pueden hacer todas, en el orden que quieran.</p>'}
       <div class="pn-gl ${ctrl ? '' : 'off'}">${PRACTICES.map(p => `<label class="pn-chk"><input type="checkbox" data-gd="${esc(p.id)}" ${!ctrl || sel.has(p.id) ? 'checked' : ''} ${ctrl ? '' : 'disabled'}> ${p.n}. ${esc(p.title)}</label>`).join('')}</div>
+      <h4>${lucide('clipboard-check')} Evaluación de circuitos</h4>
+      <p class="pn-small">Cada nivel es una prueba sin pasos ni pistas. Cerrados hasta que los abras; al enviar, el alumno ve su nota automática y te llega como entrega (en «Entregas» puedes revisarla y cambiar la nota).</p>
+      <div class="pn-gl">${EVALS.map(e => `<label class="pn-chk"><input type="checkbox" data-gev="${esc(e.id)}" ${leerEvaluaciones(g.apartados).has(e.id) ? 'checked' : ''}> Nivel ${e.nivel} · ${esc(e.title)}</label>`).join('')}</div>
       <span class="pn-msg" id="pnGdMsg"></span></section>`;
   }
-  async function guardarGuiadas(g, ids) {
-    const apartados = escribirGuiadas(g.apartados, ids);
+  async function guardarGuiadas(g, ids, ev) {
+    const apartados = ev ? escribirEvaluaciones(g.apartados, ids) : escribirGuiadas(g.apartados, ids);
     const msg = () => document.getElementById('pnGdMsg');
     try {
       const b = writeBatch(db);
@@ -237,6 +241,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       if (st.editando) {
         const g = st.grupos.get(st.editando);
         v.apartados = escribirGuiadas(v.apartados, v.asignaturas.includes('eee') && leerGuiadas(g.apartados) ? [...leerGuiadas(g.apartados)] : null);
+        v.apartados = escribirEvaluaciones(v.apartados, v.asignaturas.includes('eee') ? [...leerEvaluaciones(g.apartados)] : []);
         b.update(doc(db, 'grupos', g.id), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso, alumnos: v.alumnos });
         b.update(doc(db, 'codigos', g.codigo), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso });
         await b.commit(); st.editando = null; pintarTab(); return;
@@ -387,7 +392,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   function filtrosHTML() {
     const c = cat(); const usados = new Set(st.entregas.map(e => e.practica)); const gIds = [...new Set([...st.grupos.keys(), ...st.entregas.map(e => e.grupo)])];
     const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
-    const pracs = [...c.practicas.map(p => [p.id, `Circuitos ${p.n} · ${p.titulo}`]), ...c.proyectos.map(p => [p.id, `ESP32 ${p.n} · ${p.titulo}`])].filter(([id]) => usados.has(id) || id === st.f.practica);
+    const pracs = [...c.practicas.map(p => [p.id, `Circuitos ${p.n} · ${p.titulo}`]), ...c.proyectos.map(p => [p.id, `ESP32 ${p.n} · ${p.titulo}`]), ...EVALS.map(e => [e.id, `Evaluación de circuitos · Nivel ${e.nivel}`])].filter(([id]) => usados.has(id) || id === st.f.practica);
     return `<label>Grupo <select data-pn-f="grupo">${opt('', 'Todos', st.f.grupo)}${gIds.map(id => opt(id, nombreGrupo(id), st.f.grupo)).join('')}</select></label>
       <label>Práctica <select data-pn-f="practica">${opt('', 'Todas', st.f.practica)}${pracs.map(([id, t]) => opt(id, t, st.f.practica)).join('')}</select></label>
       <label>Estado <select data-pn-f="estado">${opt('', 'Todas', st.f.estado)}${opt('sin', 'Sin nota', st.f.estado)}${opt('con', 'Con nota', st.f.estado)}</select></label>
@@ -415,7 +420,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       const inf = d.informe || {};
       h += `<h4>✅ Proyecto marcado como hecho</h4>` + [['Mediciones', inf.mediciones], ['Problemas y soluciones', inf.problemas], ['Reto y conclusiones', inf.conclusiones]].map(([t, v]) => `<div class="pn-inf"><b>${t}</b><div>${v ? esc(v).replace(/\n/g, '<br>') : '<span class="pn-small">—</span>'}</div></div>`).join('');
     }
-    h += `<h4>Calificación</h4><form id="pnNotaForm" class="pn-form"><label class="pn-f">Nota (0–10)<input name="nota" type="number" min="0" max="10" step="0.25" value="${e.nota != null ? esc(e.nota) : ''}"></label>
+    h += `<h4>Calificación</h4><form id="pnNotaForm" class="pn-form">${e.nota == null && typeof d.comprobacion?.nota === 'number' ? `<p class="pn-small">Nota automática al enviar: <b>${esc(String(d.comprobacion.nota).replace('.', ','))}</b> (propuesta; guárdala o cámbiala).</p>` : ''}<label class="pn-f">Nota (0–10)<input name="nota" type="number" min="0" max="10" step="0.25" value="${e.nota != null ? esc(e.nota) : typeof d.comprobacion?.nota === 'number' ? esc(d.comprobacion.nota) : ''}"></label>
       <label class="pn-f">Comentario para el alumno<textarea name="comentario" maxlength="1000" rows="3">${esc(e.comentario || '')}</textarea></label>
       <div class="pn-acts"><button class="btn primary" type="submit">💾 Guardar nota</button><span class="pn-msg" id="pnNotaMsg"></span></div></form>`;
     D.innerHTML = h;
@@ -483,6 +488,11 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       if (t.dataset.gd === 'modo') return guardarGuiadas(g, t.checked ? [] : null);
       const sel = new Set(leerGuiadas(g.apartados) || []); if (t.checked) sel.add(t.dataset.gd); else sel.delete(t.dataset.gd);
       return guardarGuiadas(g, PRACTICES.map(p => p.id).filter(id => sel.has(id)));
+    }
+    if (t.dataset.gev) {
+      const g = st.grupos.get(t.closest('[data-grupo]')?.dataset.grupo || ''); if (!g) return;
+      const sel = leerEvaluaciones(g.apartados); if (t.checked) sel.add(t.dataset.gev); else sel.delete(t.dataset.gev);
+      return guardarGuiadas(g, EVALS.map(e => e.id).filter(id => sel.has(id)), true);
     }
     if (t.id === 'pnVerTodos') { st.verTodos = t.checked; pintarDatos(); }
     if (t.dataset.pnU === 'grupo') { st.uGrupo = t.value; $('#pnUsu').innerHTML = usuariosHTML(); }
