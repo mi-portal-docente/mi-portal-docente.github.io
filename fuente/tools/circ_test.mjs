@@ -47,7 +47,7 @@ ok('#eee/esp32 muestra el inicio ESP32', st.h === '#eee/esp32' && !st.l && st.ho
 
 // 3) Portada del laboratorio + modo libre con ratón real
 await go('#eee/circuitos', 1200);
-ok('Portada de Circuitos con 21 prácticas + modo libre', await pg.evaluate(() => document.querySelectorAll('.cx-card:not(.free)').length === 21 && !!document.querySelector('.cx-card.free[href="#eee/circuitos/libre"]')));
+ok('Portada de Circuitos con 29 prácticas en 4 temas + modo libre', await pg.evaluate(() => document.querySelectorAll('.cx-card:not(.free)').length === 29 && document.querySelectorAll('.cx-tema').length === 5 && !!document.querySelector('.cx-card.free[href="#eee/circuitos/libre"]')));
 ok('Sin logotipo salesiano dentro de Circuitos', await pg.evaluate(() => !document.querySelector('#circ img[src*="salesian"]') && !/salesian/i.test(document.querySelector('#circ').innerHTML)));
 await go('#eee/circuitos/libre', 2500);
 await pg.click('[data-cxtab="comp"]').catch(() => {}); await wait(300);
@@ -181,7 +181,7 @@ async function runPractice(id, shotAt, after) {
     else if (s.kind === 'act') await pg.evaluate(() => { const L = window.__circ; const st = L.pr.steps[L.g.idx]; const p = L.part(L.g.map[st.act.part]);
       if (p.type === 'switch') p.state.closed = !p.state.closed; else if (p.type === 'spdt' || p.type === 'slide' || p.type === 'limit') p.state.pos = p.state.pos ? 0 : 1;
       else if (p.type === 'fuse') { for (const q of L.model.parts) if (q.type === 'tact') q.state.pressed = false; L.select({ kind: 'part', id: p.id }); L.guideAction('fusible'); return; }
-      else if (p.type === 'tact' || p.type === 'button') p.state.pressed = true;
+      else if (p.type === 'tact' || p.type === 'button') p.state.pressed = !!st.act.test({ pressed: true });
       else if (p.type === 'pot') p.state.pos = st.act.test({ pos: 0.95 }) ? 0.95 : 0.05; else if (p.type === 'ldr') p.state.light = st.act.test({ light: 0.1 }) ? 0.1 : 0.95;
       L.stateChanged(p, true); });
     else if (s.kind === 'measure') await pg.evaluate(() => { const L = window.__circ; const st = L.pr.steps[L.g.idx]; const map = L.g.map; const mk = (k) => { const m = /^p:([^:]+):(.+)$/.exec(k); return m ? `p:${map[m[1]]}:${m[2]}` : k; };
@@ -202,8 +202,8 @@ async function runPractice(id, shotAt, after) {
   return { ok: chk.ok && green && q.every(x => x === true), steps: n, msg: chk.items.join(' / ') + ` · preguntas ${q.filter(Boolean).length}/${q.length}` };
 }
 const PRS = await pg.evaluate(() => window.__circ ? null : null);
-const ids = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17', 'c18', 'c19', 'c20', 'c21'];
-const SH = { c10: 'pulsador', c11: 'interruptor', c12: 'rele', c17: 'fusible', c18: 'final_carrera', c19: 'diodo', c20: 'transistor', c21: 'automatismo' };
+const ids = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17', 'c18', 'c19', 'c20', 'c21', 'c22', 'c23', 'c24', 'c25', 'c26', 'c27', 'c28', 'c29'];
+const SH = { c10: 'pulsador', c11: 'interruptor', c12: 'rele', c17: 'fusible', c18: 'final_carrera', c19: 'diodo', c20: 'transistor', c21: 'automatismo', c22: 'led_serie', c23: 'resistencia_comun', c24: 'control_ramas', c25: 'tres_interruptores', c26: 'reto_combinaciones', c27: 'condensador', c28: 'rgb', c29: 'luz_nocturna' };
 for (const id of ids) { const r = await runPractice(id, id === 'c2' ? 3 : 0, SH[id]); ok(`Práctica ${id}: todos los pasos + comprobación en verde + preguntas`, r.ok, `${r.steps} pasos · ${r.msg}`); }
 // botón Ver solución en c4 (desde cero)
 await clearAll(); await go('#eee/circuitos/c5', 2000);

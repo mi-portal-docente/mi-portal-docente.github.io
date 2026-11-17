@@ -9,7 +9,7 @@ import { WIRE_KINDS, END, SOCKETS, socketOf, fitKind, canStart, validKinds, star
 import { buildBreadboard, buildMat, buildPart, terminalHits, buildWire, buildProbe, wireHex, M } from './models3d.js';
 import { partHoles, termKey } from './netlist.js';
 import { simulate } from './engine.js';
-import { PRACTICES, RA_SHORT } from './practices.js';
+import { PRACTICES, RA_SHORT, TEMAS } from './practices.js';
 import { solutionModel, stepDone, runChecks, makePart } from './guide.js';
 import { RA } from '../common.js';
 import { ic } from '../ui/iconos.js';
@@ -314,10 +314,13 @@ export class CircuitLab {
       <nav class="cx-htabs" role="tablist" aria-label="Secciones del laboratorio"><a role="tab" href="#eee/circuitos" aria-selected="${this.homeTab !== 'eval'}" class="${this.homeTab !== 'eval' ? 'on' : ''}">${ic('book-open')} Prácticas guiadas</a><a role="tab" href="#eee/circuitos/evaluacion" aria-selected="${this.homeTab === 'eval'}" class="${this.homeTab === 'eval' ? 'on' : ''}">${ic('clipboard-check')} Evaluación de circuitos</a></nav>
       ${this.homeTab === 'eval' ? this.evalHomeHTML() : `<h2>Prácticas guiadas <small>de dificultad creciente</small></h2>
       ${bloq ? `<p class="cx-bloq-aviso">${ic('lock')} Tu profesor va desbloqueando las prácticas una a una. Las que tienen candado se abrirán más adelante.</p>` : ''}
-      <div class="cx-cards">${PRACTICES.map(p => { const ab = abierta(p.id); const tag = ab ? 'a' : 'div'; return `<${tag} class="cx-card ${done(p.id) ? 'done' : ''} ${ab ? '' : 'locked'}" ${ab ? `href="#eee/circuitos/${p.id}"` : 'aria-disabled="true"'}>
+      ${TEMAS.map(T => `<h3 class="cx-tema"><span>Tema ${T.tema}</span> ${esc(T.title)}</h3>
+      <div class="cx-cards">${PRACTICES.filter(p => p.tema === T.tema).map(p => { const ab = abierta(p.id); const tag = ab ? 'a' : 'div'; return `<${tag} class="cx-card ${done(p.id) ? 'done' : ''} ${ab ? '' : 'locked'}" ${ab ? `href="#eee/circuitos/${p.id}"` : 'aria-disabled="true"'}>
         <div class="cx-card-h"><span class="cx-num">${p.n}</span><span class="cx-ic">${p.icon}</span>${!ab ? `<span class="cx-badge">${ic('lock')} Bloqueada</span>` : done(p.id) ? '<span class="cx-badge ok">✔ Completada</span>' : started(p.id) ? '<span class="cx-badge">En curso</span>' : ''}</div>
         <h3>${esc(p.title)}</h3><div class="cx-sub">${esc(p.sub)}</div>
-        <div class="cx-meta"><span>${esc(p.level)}</span><span>⏱ ${esc(p.duration)}</span><span>${Object.keys(p.ra).map(r => 'RA' + r).join(' · ')}</span></div></${tag}>`; }).join('')}
+        <div class="cx-meta"><span>${esc(p.level)}</span><span>⏱ ${esc(p.duration)}</span><span>${Object.keys(p.ra).map(r => 'RA' + r).join(' · ')}</span>${p.cuaderno ? `<span title="Apartados del cuaderno de prácticas">Cuaderno ${esc(p.cuaderno)}</span>` : ''}</div></${tag}>`; }).join('')}</div>`).join('')}
+      <h3 class="cx-tema"><span>Por tu cuenta</span> Modo libre y averías</h3>
+      <div class="cx-cards">
         <a class="cx-card free" href="#eee/circuitos/libre"><div class="cx-card-h"><span class="cx-num">∞</span><span class="cx-ic">🛠️</span></div><h3>Modo libre</h3><div class="cx-sub">Monta lo que quieras con todos los componentes</div><div class="cx-meta"><span>Sin guía</span><span>Guarda y exporta</span></div></a>
         <a class="cx-card free" href="#eee/circuitos/averia-ejemplo"><div class="cx-card-h"><span class="cx-num">${ic('search-check')}</span></div><h3>Encuentra la avería</h3><div class="cx-sub">Un circuito con un componente estropeado: mide con el polímetro y descubre cuál es</div><div class="cx-meta"><span>Ejemplo</span><span>Polímetro y continuidad</span></div></a>
       </div>`}

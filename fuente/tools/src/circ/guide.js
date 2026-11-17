@@ -80,7 +80,18 @@ export function runChecks(pr, model, ctx = {}) {
     const r = simulate(m, {});
     return { get: (sid) => r.res[map[sid]] || {}, shorts: r.shorts, raw: r };
   };
-  const c = { run, part: (sid) => model.parts.find(x => x.id === map[sid]) || null };
+  // tran([[estados, segundos], …]): simulación en el tiempo (condensadores) con paso dt; devuelve el último instante
+  const tran = (seq, dt = 0.002) => {
+    let capV = {}, r = null;
+    for (const [over, t] of seq) {
+      const m = clone(model);
+      for (const [sid, st] of Object.entries(over || {})) { const p = m.parts.find(x => x.id === map[sid]); if (p) p.state = { ...(p.state || {}), ...st }; }
+      for (const p of m.parts) if (PARTS[p.type].meter) p.probes = { red: null, com: null };
+      for (let k = 0; k < Math.max(1, Math.round(t / dt)); k++) { r = simulate(m, {}, { dt, capV }); capV = r.capV; }
+    }
+    return { get: (sid) => r.res[map[sid]] || {}, raw: r };
+  };
+  const c = { run, tran, part: (sid) => model.parts.find(x => x.id === map[sid]) || null };
   for (const ch of pr.checks) {
     if (ch.topo) continue;
     if (ch.measured) { out.push({ label: ch.label, ok: !!ctx.measured?.[ch.measured] }); continue; }

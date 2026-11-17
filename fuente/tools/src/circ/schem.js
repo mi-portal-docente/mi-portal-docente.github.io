@@ -31,6 +31,8 @@ export const sym = {
   motor: (x, y, lab) => `<path ${S} d="M${x} ${y - 30}V${y - 14}M${x} ${y + 14}V${y + 30}"/><circle ${S} cx="${x}" cy="${y}" r="14" fill="#fff"/><text x="${x}" y="${y + 5}" font-size="14" font-weight="800" fill="#12343a" text-anchor="middle">M</text>` + (lab ? T(x + 20, y + 4, lab, 'start') : ''),
   // final de carrera: común a la izquierda (x−30, y); NC arriba a la derecha (x+30, y−16) y NO abajo (x+30, y+16); palanca con rodillo
   limit: (x, y, lab) => `<path ${S} d="M${x - 30} ${y}H${x - 10}L${x + 12} ${y - 15}M${x + 12} ${y - 16}H${x + 30}M${x + 12} ${y + 16}H${x + 30}"/><circle cx="${x - 10}" cy="${y}" r="2.5" fill="#12343a"/><circle cx="${x + 12}" cy="${y - 16}" r="2.5" fill="#12343a"/><circle cx="${x + 12}" cy="${y + 16}" r="2.5" fill="#12343a"/><path ${S} d="M${x} ${y - 7}V${y - 26}"/><circle ${S} cx="${x}" cy="${y - 31}" r="5"/>` + T(x + 33, y - 12, 'NC', 'start') + T(x + 33, y + 20, 'NO', 'start') + (lab ? T(x - 14, y + 20, lab) : ''),
+  // condensador electrolítico: placa + (recta) a la izquierda y − (curva) a la derecha; v=true: + arriba
+  cap: (x, y, v, lab) => rotG(x, y, v, `<path ${S} d="M${x - 30} ${y}H${x - 4}M${x + 5} ${y}H${x + 30}"/><path stroke="#12343a" stroke-width="2.6" d="M${x - 4} ${y - 13}V${y + 13}"/><path ${S} d="M${x + 9} ${y - 13}Q${x + 2} ${y} ${x + 9} ${y + 13}"/><path ${S} d="M${x - 14} ${y - 15}h7M${x - 10.5} ${y - 18.5}v7"/>`) + (lab ? T(v ? x + 20 : x, v ? y + 4 : y - 20, lab, v ? 'start' : 'middle') : ''),
   dash: (d) => `<path stroke="#12343a" stroke-width="1.6" stroke-dasharray="5 4" fill="none" d="${d}"/>`,
   dot: (x, y) => `<circle cx="${x}" cy="${y}" r="3.6" fill="#12343a"/>`,
   w: (d) => `<path ${S} d="${d}"/>`,

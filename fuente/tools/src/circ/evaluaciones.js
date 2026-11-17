@@ -40,6 +40,12 @@ export const EVALS = [
       C('c12', 'Con un relé de 5 V gobernado por un interruptor (y su diodo de protección): en reposo luce un LED rojo (330 Ω) por NC; al activar la bobina luce una bombilla por NO.'),
       C('c21', 'Automatismo: el interruptor de marcha, a través del NC de un final de carrera y una resistencia de 2,2 kΩ, activa un BC547 que mueve la bobina de un relé (con diodo); el NO del relé hace girar el motor. Al apretar el final de carrera, el motor se para.'),
     ] },
+  { id: 'n5', nivel: 5, title: 'Condensador, LED RGB y sensores', sub: 'Carga y descarga, mezcla de colores y luz automática', duration: '60 min',
+    circuitos: [
+      C('c27', 'Con la pila de 9 V: un pulsador alimenta una resistencia de 330 Ω y un LED rojo en serie. Añade un condensador electrolítico de 470 µF (bien polarizado) entre la salida del pulsador y el −, para que al soltar el LED se apague poco a poco.'),
+      C('c28', 'Con la pila de 9 V y un LED RGB de cátodo común: cada color (R, G y B) con su resistencia de 330 Ω y su pulsador, de forma que pulsando se puedan mezclar los colores.'),
+      C('c29', 'Luz nocturna: un BC547 enciende un LED rojo (con 330 Ω, en el colector) solo cuando hay poca luz. La base se alimenta con un divisor de tensión: 10 kΩ desde el + y una LDR hasta el −.'),
+    ] },
 ];
 export const evalDe = (id) => EVALS.find((e) => e.id === id) || null;
 export const practicaDe = (c) => P(c.de);
