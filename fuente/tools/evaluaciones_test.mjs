@@ -1,5 +1,5 @@
 // Pruebas: «Evaluación de circuitos» por niveles (corrección automática sin pasos ni pistas).
-import { EVALS, evalDe, practicaDe, corregirNivel, corregirCircuito, checksSolo } from './src/circ/evaluaciones.js';
+import { EVALS, evalDe, practicaDe, corregirNivel, corregirCircuito, checksSolo, autonomaDe, idAutonoma } from './src/circ/evaluaciones.js';
 import { PRACTICES } from './src/circ/practices.js';
 import { solutionModel } from './src/circ/guide.js';
 let ok = 0, fallos = 0; const t = (n, c) => { if (c) { ok++; console.log('OK  ', n); } else { fallos++; console.log('FALLO', n); } };
@@ -24,4 +24,6 @@ const r = mods[0].parts.find(p => p.type === 'resistor');
 if (r) { r.props = { ...r.props, r: 1 }; const res = corregirNivel(e1, mods); t('Un valor mal puesto: ese circuito no es correcto y la nota baja', !res.circuitos[0].ok && res.circuitos.slice(1).every(c => c.ok) && res.nota < 10); }
 const c1 = corregirCircuito(practicaDe(e1.circuitos[0]), vacio());
 t('corregirCircuito devuelve requisitos legibles', Array.isArray(c1.items) && c1.items.length === c1.n && c1.items.every(i => typeof i.t === 'string'));
+t('Autónoma: aN ↔ cN para todas las prácticas', PRACTICES.every(p => autonomaDe(idAutonoma(p.id))?.practica === p.id) && autonomaDe('a99') === null && autonomaDe('c3') === null);
+t('Autónoma: la solución de cada práctica pasa y un montaje vacío no', PRACTICES.every(p => { const A = autonomaDe(idAutonoma(p.id)); return corregirNivel(A, [solutionModel(p)]).ok && !corregirNivel(A, [vacio()]).ok; }));
 console.log(`\n${ok}/${ok + fallos} pruebas de evaluación OK`); if (fallos) process.exit(1);

@@ -19,7 +19,7 @@ const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const LS = 'circ:v1:';
 import { guiadaAbierta, evaluacionAbierta } from './guiadas.js';
-import { EVALS, evalDe, practicaDe, corregirNivel } from './evaluaciones.js';
+import { EVALS, evalDe, practicaDe, corregirNivel, autonomaDe, idAutonoma } from './evaluaciones.js';
 import { confirmar } from '../portal/dialogo.js';
 import { lsKey as lsKeyBase, migrarLegado as migrarBase } from './almacen.js';
 const portalAmbito = () => { try { return (typeof window !== 'undefined' && window.PORTAL?.ambito?.()) || null; } catch (e) { return null; } };
@@ -31,6 +31,10 @@ const portal = () => (typeof window !== 'undefined' ? window.PORTAL : null);
 // Prácticas guiadas que el profesor ha desbloqueado para el grupo del alumno (profesor o sin grupo: todas).
 const abierta = (id) => portal()?.rol !== 'alumno' || guiadaAbierta(window.PORTAL_SESION?.apartados, id);
 const evAbierta = (id) => portal()?.rol !== 'alumno' || evaluacionAbierta(window.PORTAL_SESION?.apartados, id);
+// Dos niveles por práctica: guiada (pasos) y autónoma (sola). Se ven por el almacén local o por las entregas.
+const entOk = (id) => !!portal()?.estadoEntrega?.(id)?.datos?.comprobacion?.ok;
+const guiadaHecha = (id) => !!store.get('done:' + id) || entOk(id) || autoHecha(id);
+const autoHecha = (id) => !!store.get('autodone:' + id) || entOk(idAutonoma(id));
 const fNota = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
 const ICON = { rotate: '⟳', del: '🗑', home: '⌂', top: '⊤', fit: '⤢', sound: '🔊', mute: '🔇', help: '?', flow: '⚡', xray: '▦', pins: '🏷', hq: '✦' };
 
@@ -121,6 +125,12 @@ export class CircuitLab {
     if (/^n\d+$/.test(view)) {
       if (evalDe(view) && evAbierta(view)) return this.soloOpen(view);
       setTimeout(() => this.toast(evalDe(view) ? 'Este nivel de evaluación todavía está cerrado: lo abrirá tu profesor.' : 'No existe ese nivel de evaluación.', 4000), 300); view = 'evaluacion'; try { history.replaceState(null, '', '#eee/circuitos/evaluacion'); } catch (e) { }
+    }
+    if (/^a\d+$/.test(view)) {
+      const A = autonomaDe(view), alumno = portal()?.rol === 'alumno';
+      if (A && abierta(A.practica) && (!alumno || guiadaHecha(A.practica))) return this.soloOpen(view);
+      const msg = !A ? 'No existe esa práctica.' : !abierta(A.practica) ? 'Esta práctica todavía está bloqueada: la desbloqueará tu profesor.' : 'Primero completa la práctica guiada (todos los pasos y «Comprobar circuito» en verde). Después podrás hacerla tú solo.';
+      setTimeout(() => this.toast(msg, 4500), 300); view = A && abierta(A.practica) ? A.practica : 'home'; try { history.replaceState(null, '', '#eee/circuitos' + (view === 'home' ? '' : '/' + view)); } catch (e) { }
     }
     if (view === 'evaluacion') { this.homeTab = 'eval'; view = 'home'; } else if (view === 'home') this.homeTab = 'guiadas';
     if (/^c\d+$/.test(view) && !abierta(view)) { setTimeout(() => this.toast('Esta práctica todavía está bloqueada: la desbloqueará tu profesor.', 4000), 300); view = 'home'; try { history.replaceState(null, '', '#eee/circuitos'); } catch (e) { } }
@@ -228,12 +238,12 @@ export class CircuitLab {
     root.classList.remove('is-home'); root.classList.add('is-editor');
     if (!this.renderer) this.initScene();
     if (this.view !== view || !this.solo) {
-      const ev = evalDe(view);
-      this.solo = { tipo: 'eval', id: view, ev, circs: ev.circuitos.map(practicaDe), k: 0, res: store.get('evres:' + view) || null };
+      const ev = evalDe(view) || autonomaDe(view);
+      this.solo = { tipo: ev.autonoma ? 'auto' : 'eval', id: view, ev, circs: ev.circuitos.map(practicaDe), k: 0, res: store.get('evres:' + view) || null };
       this.view = view; this.pr = null; this.g = null; this.av = null;
       this.soloLoad(0);
       this.tab = 'solo';
-      this.$('#cxPTitle').innerHTML = `<span class="cx-pn">N${ev.nivel}</span><span class="cx-ptt">Evaluación · ${esc(ev.title)}</span>`;
+      this.$('#cxPTitle').innerHTML = ev.autonoma ? `<span class="cx-pn">${this.solo.circs[0].n}</span><span class="cx-ptt">Práctica autónoma · ${esc(ev.title)}</span>` : `<span class="cx-pn">N${ev.nivel}</span><span class="cx-ptt">Evaluación · ${esc(ev.title)}</span>`;
       this.onResize(); this.homeView(true); this.status(''); this.renderWBar(); this.toolState(); this.renderPinLabels();
     }
     this.renderSide(); this.setCrumbs(); this.resume(); this.onResize();
@@ -248,7 +258,8 @@ export class CircuitLab {
   }
   soloModelos() { return this.solo.circs.map((_, k) => k === this.solo.k ? this.model : (store.get('auto:' + this.view + ':' + k)?.model || { parts: [], wires: [] })); }
   soloHTML() {
-    const S = this.solo; if (!S) return ''; const ev = S.ev, pr = S.circs[S.k], c = ev.circuitos[S.k], r = S.res;
+    const S = this.solo; if (!S) return '';
+    if (S.tipo === 'auto') return this.autoHTML(); const ev = S.ev, pr = S.circs[S.k], c = ev.circuitos[S.k], r = S.res;
     const P = portal(); const ent = P?.estadoEntrega?.(S.id);
     let h = `<div class="cx-gh"><span class="cx-num">N${ev.nivel}</span><div><h3>Nivel ${ev.nivel} · ${esc(ev.title)}</h3><div class="cx-small">${ev.circuitos.length} circuitos · ⏱ ${esc(ev.duration)} · sin pasos ni pistas</div></div></div>
       <div class="cx-evtabs" role="tablist" aria-label="Circuitos de la prueba">${S.circs.map((p, i) => `<button role="tab" aria-selected="${i === S.k}" class="${i === S.k ? 'on' : ''} ${r ? (r.circuitos[i]?.ok ? 'ok' : 'ko') : ''}" data-act="solo-k" data-k="${i}">Circuito ${i + 1}</button>`).join('')}</div>
@@ -267,6 +278,25 @@ export class CircuitLab {
     }
     return h;
   }
+  autoHTML() {
+    const S = this.solo, pr = S.circs[0], c = S.ev.circuitos[0], r = S.res, P = portal(), alumno = P?.rol === 'alumno';
+    const hecha = autoHecha(pr.id);
+    let h = `<div class="cx-gh"><span class="cx-num">${pr.n}</span><div><h3>Práctica autónoma · ${esc(pr.title)}</h3><div class="cx-small">Sin pasos ni pistas · ⏱ ${esc(pr.duration)}</div></div></div>
+      <div class="cx-lvl">${guiadaHecha(pr.id) ? `<span class="cx-badge ok">${ic('check')} Guiada completada</span>` : '<span class="cx-badge">Guiada sin completar</span>'}${hecha ? `<span class="cx-badge ok">${ic('check')} Autónoma completada</span>` : '<span class="cx-badge">Autónoma pendiente</span>'}</div>
+      <section class="cx-evenun"><h4>Qué tienes que conseguir</h4><p>${c.enunciado}</p>
+      <details open><summary>📐 Esquema eléctrico</summary><div class="cx-schem-wrap" title="Clic para ampliar">${pr.schem()}</div></details>
+      <details><summary>🧰 Material</summary><table class="cx-tbl">${pr.material.map(([m, n]) => `<tr><td>${esc(m)}</td><td class="c">${n}</td></tr>`).join('')}</table></details>
+      <p class="cx-small">Monta el circuito donde quieras de la protoboard: solo cuenta que las conexiones y los valores coincidan con el esquema y que funcione como se pide. Simúlalo y pruébalo antes de comprobar.</p></section>`;
+    if (r) {
+      const it = r.circuitos[0];
+      h += `<div class="cx-evres ${r.ok ? 'ok' : 'ko'}" role="status"><div class="cx-evnota"><span>Requisitos</span><b>${it.bien}/${it.n}</b></div><div><b>${r.ok ? '¡Bien hecho! Práctica autónoma completada.' : 'Todavía no está bien.'}</b><div class="cx-small">${r.ok ? (alumno ? 'Tu profesor ya lo ve en tu progreso.' : 'Modo de prueba: no se guarda como entrega.') : 'Revisa lo que falla, corrige el montaje y vuelve a comprobar.'}</div></div></div>
+        <ul class="cx-evlist">${it.items.map(x => `<li class="${x.ok ? 'ok' : 'ko'}">${x.ok ? ic('circle-check') : ic('circle-x')} ${esc(x.t)}</li>`).join('')}</ul>
+        <div class="cx-ibtns"><button class="cx-btn" data-act="solo-otra">↺ ${r.ok ? 'Repetir' : 'Volver a intentarlo'}</button><a class="cx-btn" href="#eee/circuitos/${pr.id}">Volver a la guiada</a></div>`;
+    } else {
+      h += `<div class="cx-ibtns"><button class="cx-sim" data-act="solo-enviar" ${this._entregando ? 'disabled' : ''}>${ic('circle-check')} ${this._entregando ? 'Guardando…' : 'Comprobar mi circuito'}</button><a class="cx-btn" href="#eee/circuitos/${pr.id}">Volver a la guiada</a></div>`;
+    }
+    return h;
+  }
   async soloAccion(act, el) {
     const S = this.solo; if (!S) return;
     if (act === 'solo-k') { const k = +el.dataset.k; if (k === S.k) return; this.saveNow(); this.soloLoad(k); this.renderSide(); return; }
@@ -274,6 +304,7 @@ export class CircuitLab {
     if (act !== 'solo-enviar' || S.res || this._entregando) return;
     const P = portal(), alumno = P?.rol === 'alumno';
     const modelos = this.soloModelos();
+    if (S.tipo === 'auto') return this.autoComprobar(modelos, P, alumno);
     const vacios = modelos.filter(m => !m.parts.length).length;
     if (!(await confirmar(`¿Enviar la prueba «Nivel ${S.ev.nivel}»?${vacios ? `\n\nHay ${vacios} ${vacios === 1 ? 'circuito sin montar' : 'circuitos sin montar'}.` : ''}\n\nSe corrigen todos los circuitos y ya no podrás cambiarlos.`, { aceptar: 'Enviar' }))) return;
     if (this.running) this.toggleSim(false);
@@ -294,11 +325,32 @@ export class CircuitLab {
     this.toast(res.ok ? `✅ ¡Todos los circuitos están bien! Nota: ${fNota(res.nota)}` : `Nota: ${fNota(res.nota)} · ${res.correctos} de ${res.circuitos.length} circuitos correctos`, 5000);
     this.renderSide();
   }
+  async autoComprobar(modelos, P, alumno) {
+    const S = this.solo, pr = S.circs[0];
+    if (this.running) this.toggleSim(false);
+    this.saveNow();
+    const res = corregirNivel(S.ev, modelos), it = res.circuitos[0];
+    if (res.ok && alumno && !entOk(S.id)) {
+      const datos = {
+        montaje: JSON.stringify({ app: 'laboratorio-circuitos', version: 2, autonoma: S.id, practica: pr.id, circuitos: modelos }),
+        comprobacion: { ok: true, nota: res.nota, guiada: true, items: it.items.map(x => ({ t: String(x.t).slice(0, 160), ok: !!x.ok })) },
+        aciertos: `${it.bien}/${it.n} requisitos`,
+      };
+      this._entregando = true; this.renderSide();
+      try { await P.entregar({ practica: S.id, tipo: 'circuitos', titulo: `Práctica autónoma ${pr.n}: ${pr.title}`.slice(0, 120), datos }); }
+      catch (e) { this._entregando = false; this.renderSide(); this.toast('❌ El circuito está bien, pero no se ha podido guardar: ' + esc(e?.mensaje || 'revisa la conexión.'), 6000); return; }
+      this._entregando = false;
+    }
+    if (res.ok) store.set('autodone:' + pr.id, true);
+    S.res = res; store.set('evres:' + S.id, res);
+    this.toast(res.ok ? '✅ ¡Práctica autónoma completada!' : `${it.bien} de ${it.n} requisitos: revisa lo que falla.`, 4500);
+    this.renderSide();
+  }
   setCrumbs() {
     const base = `<a href="#inicio">Inicio</a> › <a href="#asignaturas">Asignaturas</a> › <a href="#asig/eee">${esc(this.opts.subject || 'Equipos eléctricos y electrónicos')}</a> › <a href="#asig/eee/laboratorio">Laboratorio</a> › `;
     const v = this.view;
     if (v === 'revision') { this.$('#cxCrumbs').innerHTML = `<a href="#panel">Panel del profesor</a> › <a href="#panel/entregas">Entregas</a> › <span>Revisión</span>`; this.$('#cxProf').innerHTML = portal()?.chipHTML?.() || ''; return; }
-    this.$('#cxCrumbs').innerHTML = base + (v === 'home' ? '<span>Circuitos</span>' : `<a href="#eee/circuitos">Circuitos</a> › <span>${this.solo ? `<a href="#eee/circuitos/evaluacion">Evaluación</a> › Nivel ${this.solo.ev.nivel}` : this.av ? 'Encuentra la avería: ' + esc(this.av.titulo || '') : this.pr ? 'Práctica ' + this.pr.n + ': ' + esc(this.pr.title) : 'Modo libre'}</span>`);
+    this.$('#cxCrumbs').innerHTML = base + (v === 'home' ? '<span>Circuitos</span>' : `<a href="#eee/circuitos">Circuitos</a> › <span>${this.solo ? (this.solo.tipo === 'auto' ? `<a href="#eee/circuitos/${this.solo.circs[0].id}">Práctica ${this.solo.circs[0].n}</a> › Autónoma` : `<a href="#eee/circuitos/evaluacion">Evaluación</a> › Nivel ${this.solo.ev.nivel}`) : this.av ? 'Encuentra la avería: ' + esc(this.av.titulo || '') : this.pr ? 'Práctica ' + this.pr.n + ': ' + esc(this.pr.title) : 'Modo libre'}</span>`);
     this.$('#cxProf').innerHTML = (this.opts.profesor ? `Profesor: <b>${esc(this.opts.profesor)}</b>` : '') + (portal()?.chipHTML?.() || '');
   }
   homeHTML() {
@@ -315,10 +367,10 @@ export class CircuitLab {
       ${this.homeTab === 'eval' ? this.evalHomeHTML() : `<h2>Prácticas guiadas <small>de dificultad creciente</small></h2>
       ${bloq ? `<p class="cx-bloq-aviso">${ic('lock')} Tu profesor va desbloqueando las prácticas una a una. Las que tienen candado se abrirán más adelante.</p>` : ''}
       ${TEMAS.map(T => `<h3 class="cx-tema"><span>Tema ${T.tema}</span> ${esc(T.title)}</h3>
-      <div class="cx-cards">${PRACTICES.filter(p => p.tema === T.tema).map(p => { const ab = abierta(p.id); const tag = ab ? 'a' : 'div'; return `<${tag} class="cx-card ${done(p.id) ? 'done' : ''} ${ab ? '' : 'locked'}" ${ab ? `href="#eee/circuitos/${p.id}"` : 'aria-disabled="true"'}>
-        <div class="cx-card-h"><span class="cx-num">${p.n}</span><span class="cx-ic">${p.icon}</span>${!ab ? `<span class="cx-badge">${ic('lock')} Bloqueada</span>` : done(p.id) ? '<span class="cx-badge ok">✔ Completada</span>' : started(p.id) ? '<span class="cx-badge">En curso</span>' : ''}</div>
+      <div class="cx-cards">${PRACTICES.filter(p => p.tema === T.tema).map(p => { const ab = abierta(p.id); const tag = ab ? 'a' : 'div'; return `<${tag} class="cx-card ${guiadaHecha(p.id) ? 'done' : ''} ${ab ? '' : 'locked'}" ${ab ? `href="#eee/circuitos/${p.id}"` : 'aria-disabled="true"'}>
+        <div class="cx-card-h"><span class="cx-num">${p.n}</span><span class="cx-ic">${p.icon}</span>${!ab ? `<span class="cx-badge">${ic('lock')} Bloqueada</span>` : !guiadaHecha(p.id) && started(p.id) ? '<span class="cx-badge">En curso</span>' : ''}</div>
         <h3>${esc(p.title)}</h3><div class="cx-sub">${esc(p.sub)}</div>
-        <div class="cx-meta"><span>${esc(p.level)}</span><span>⏱ ${esc(p.duration)}</span><span>${Object.keys(p.ra).map(r => 'RA' + r).join(' · ')}</span>${p.cuaderno ? `<span title="Apartados del cuaderno de prácticas">Cuaderno ${esc(p.cuaderno)}</span>` : ''}</div></${tag}>`; }).join('')}</div>`).join('')}
+        <div class="cx-meta"><span>${esc(p.level)}</span><span>⏱ ${esc(p.duration)}</span><span>${Object.keys(p.ra).map(r => 'RA' + r).join(' · ')}</span>${p.cuaderno ? `<span title="Apartados del cuaderno de prácticas">Cuaderno ${esc(p.cuaderno)}</span>` : ''}</div>${ab && guiadaHecha(p.id) ? `<div class="cx-lvl">${`<span class="cx-badge ok">${ic('check')} Guiada completada</span>`}${autoHecha(p.id) ? `<span class="cx-badge ok">${ic('check')} Autónoma completada</span>` : '<span class="cx-badge">Autónoma pendiente</span>'}</div>` : ''}</${tag}>`; }).join('')}</div>`).join('')}
       <h3 class="cx-tema"><span>Por tu cuenta</span> Modo libre y averías</h3>
       <div class="cx-cards">
         <a class="cx-card free" href="#eee/circuitos/libre"><div class="cx-card-h"><span class="cx-num">∞</span><span class="cx-ic">🛠️</span></div><h3>Modo libre</h3><div class="cx-sub">Monta lo que quieras con todos los componentes</div><div class="cx-meta"><span>Sin guía</span><span>Guarda y exporta</span></div></a>
@@ -1154,7 +1206,7 @@ export class CircuitLab {
   renderSide() {
     const tabs = [];
     if (this.readOnly) tabs.push(['rev', '📝 Entrega'], ['ayuda', '❔ Ayuda']);
-    else if (this.solo) tabs.push(['solo', `${ic('clipboard-check')} Prueba`], ['comp', '🧩 Componentes'], ['ayuda', '❔ Ayuda']);
+    else if (this.solo) tabs.push(['solo', `${ic('clipboard-check')} ${this.solo.tipo === 'auto' ? 'Autónoma' : 'Prueba'}`], ['comp', '🧩 Componentes'], ['ayuda', '❔ Ayuda']);
     else if (this.av) tabs.push(['averia', `${ic('search-check')} Avería`], ['comp', '🧩 Componentes'], ['ayuda', '❔ Ayuda']);
     else { if (this.pr) tabs.push(['guia', '📘 Práctica']); tabs.push(['comp', '🧩 Componentes'], ['ayuda', '❔ Ayuda']); }
     if (!tabs.some(t => t[0] === this.tab)) this.tab = tabs[0][0];
@@ -1224,6 +1276,13 @@ export class CircuitLab {
       const r = this.checkResult;
       h += `<div class="cx-check ${r.ok ? 'ok' : 'ko'}"><div class="cx-ch">${r.ok ? '✅ ¡Circuito correcto y funcionando!' : '❌ Todavía hay algo que revisar'}</div><ul>${r.items.map(it => `<li class="${it.ok ? 'ok' : 'ko'}">${it.ok ? '✔' : '✖'} ${esc(it.label)}${it.info ? `<div class="cx-small">${esc(it.info)}</div>` : ''}</li>`).join('')}</ul></div>`;
     }
+    {
+      const gh = guiadaHecha(pr.id), ah = autoHecha(pr.id);
+      h += `<div class="cx-auto ${gh ? '' : 'off'}"><h4>${ic('target')} Práctica autónoma</h4>
+        <div class="cx-lvl">${gh ? `<span class="cx-badge ok">${ic('check')} Guiada completada</span>` : '<span class="cx-badge">Guiada sin completar</span>'}${ah ? `<span class="cx-badge ok">${ic('check')} Autónoma completada</span>` : '<span class="cx-badge">Autónoma pendiente</span>'}</div>
+        <p class="cx-small">${gh ? `Ahora hazla <b>tú solo</b>: el mismo objetivo, sin pasos ni pistas. Al comprobarla, si está bien, queda marcada como completada${portal()?.rol === 'alumno' ? ' y tu profesor lo ve' : ''}.` : 'Se abre cuando completes la guiada: todos los pasos y «Comprobar circuito» en verde.'}</p>
+        ${gh || portal()?.rol !== 'alumno' ? `<div class="cx-ibtns"><a class="cx-sim" href="#eee/circuitos/${idAutonoma(pr.id)}">${ic('target')} ${ah ? 'Repetir la autónoma' : 'Hacer la práctica autónoma'}</a></div>` : ''}</div>`;
+    }
     h += `<h4>Preguntas de cálculo</h4><div class="cx-qs">${pr.questions.map((q, i) => {
       const a = g.answers[i]; const res = this.qres?.[i];
       const inp = q.choices ? q.choices.map((c, k) => `<label><input type="radio" name="cxq${i}" data-q="${i}" value="${k}" ${a === k ? 'checked' : ''}> ${esc(c)}</label>`).join('') : `<div class="cx-row"><input type="text" inputmode="decimal" data-q="${i}" value="${a != null ? esc(a) : ''}" placeholder="Tu resultado"><span class="cx-unit">${q.unit}</span></div>`;
@@ -1280,6 +1339,7 @@ export class CircuitLab {
     this.sel = null; this.undoS = []; this.redoS = []; this.runtime = {};
     let m = {}; try { m = JSON.parse(rev.montaje || '{}'); } catch (e) { m = {}; }
     this.revEv = null;
+    { const A = autonomaDe(rev.practica); if (A && m && Array.isArray(m.circuitos)) { m = { model: m.circuitos[0] || {} }; this.pr = PRACTICES.find(p => p.id === A.practica) || null; } }
     if (evalDe(rev.practica) && m && Array.isArray(m.circuitos)) {
       // evaluación por niveles: se vuelve a corregir aquí con los montajes enviados (no se fía del resultado que trae la entrega)
       const ev = evalDe(rev.practica); const modelos = ev.circuitos.map((_, k) => this.sanitize(m.circuitos[k] || {}));

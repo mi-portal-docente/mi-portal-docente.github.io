@@ -132,9 +132,10 @@ const mA = (i) => (i * 1000).toFixed(1) + ' mA';
   ok('Conector: portapilas (punta estañada) a la protoboard con macho-hembra', bestKind(so('p:A:+'), 'hole') === 'mh');
   ok('Conector: desde un agujero solo pueden salir macho o rígido', JSON.stringify(startKinds('hole')) === JSON.stringify(['mm', 'mh', 'rig', 'cm']), startKinds('hole').join(','));
 }
-// ---- todas las prácticas: la solución pasa sus comprobaciones
+// ---- todas las prácticas: la solución pasa sus comprobaciones (salvo las que dependen de una acción del
+// recorrido guiado, p. ej. «Has cambiado el fusible fundido», que el montaje final no puede demostrar)
 for (const pr of PRACTICES) {
-  const sol = solutionModel(pr); const r = runChecks(pr, sol, { map: Object.fromEntries(sol.parts.map(p => [p.id, p.id])), measured: Object.fromEntries(pr.steps.filter(s => s.key).map(s => [s.key, true])) });
+  const sol = solutionModel(pr); const r = runChecks({ ...pr, checks: pr.checks.filter(ch => !ch.soloGuiada) }, sol, { map: Object.fromEntries(sol.parts.map(p => [p.id, p.id])), measured: Object.fromEntries(pr.steps.filter(s => s.key).map(s => [s.key, true])) });
   ok(`Práctica ${pr.id}: la solución cumple las comprobaciones`, r.ok, r.items.filter(i => !i.ok).map(i => i.label + ' ' + (i.info || '')).join(' | '));
   for (const p of sol.parts) if (PARTS[p.type].board && !partHoles(p)) ok(`Práctica ${pr.id}: ${p.id} bien pinchado`, false);
 }

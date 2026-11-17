@@ -11,7 +11,7 @@ import { planMigracion, sinDuplicadas } from '../lms/entrega.js';
 import { confirmar } from './dialogo.js';
 import { PRACTICES } from '../circ/practices.js';
 import { leerGuiadas, escribirGuiadas, sinTokens, leerEvaluaciones, escribirEvaluaciones } from '../circ/guiadas.js';
-import { EVALS } from '../circ/evaluaciones.js';
+import { EVALS, idAutonoma } from '../circ/evaluaciones.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
 const pad = (n) => String(n).padStart(2, '0');
@@ -184,10 +184,25 @@ export function crearPanel({ db, PORTAL, email, aula }) {
           <button class="btn" data-pn="reiniciar">🔄 Reiniciar código</button>
           <button class="btn" data-pn="activar">${g.activo ? '⏸ Cerrar acceso' : '▶ Abrir acceso'}</button>
           <button class="btn" data-pn="editar">✏️ Editar</button>
-          ${(g.asignaturas || []).includes('eee') ? `<button class="btn" data-pn="guiadas" aria-expanded="${st.guiadasDe === g.id}">${lucide('lock')} Prácticas guiadas</button>` : ''}
+          ${(g.asignaturas || []).includes('eee') ? `<button class="btn" data-pn="guiadas" aria-expanded="${st.guiadasDe === g.id}">${lucide('lock')} Prácticas guiadas</button><button class="btn" data-pn="progreso" aria-expanded="${st.progresoDe === g.id}">${lucide('chart-column')} Progreso en Circuitos</button>` : ''}
           <button class="btn pn-peligro" data-pn="borrar">🗑 Borrar</button>
-        </div>${st.guiadasDe === g.id ? guiadasHTML(g) : ''}</article>`;
+        </div>${st.guiadasDe === g.id ? guiadasHTML(g) : ''}${st.progresoDe === g.id ? progresoHTML(g) : ''}</article>`;
     }).join('');
+  }
+  // Progreso de cada alumno (por nº de lista) en las prácticas de Circuitos: «Guiada completada» (entrega de la
+  // guiada con la comprobación en verde, o la autónoma hecha) y «Autónoma completada» (entrega aN en verde).
+  function progresoHTML(g) {
+    const E = new Map(); for (const e of st.entregas) if (e.grupo === g.id) { const k = e.numero; if (!E.has(k)) E.set(k, new Set()); if (e.datos?.comprobacion?.ok) E.get(k).add(e.practica); }
+    const okDe = (m, id) => !!m?.has(id);
+    const n = Math.max(g.alumnos || 0, ...E.keys());
+    const filas = Array.from({ length: n }, (_, i) => i + 1).map(num => {
+      const m = E.get(num); let tg = 0, ta = 0;
+      const celdas = PRACTICES.map(p => { const a = okDe(m, idAutonoma(p.id)), gu = a || okDe(m, p.id); tg += gu; ta += a;
+        return `<td class="pn-pg-c" title="Nº ${pad(num)} · Práctica ${p.n}: ${esc(p.title)} — guiada ${gu ? 'completada' : 'pendiente'}, autónoma ${a ? 'completada' : 'pendiente'}"><i class="g ${gu ? 'on' : ''}"></i><i class="a ${a ? 'on' : ''}"></i></td>`; }).join('');
+      return `<tr><th>${pad(num)}</th>${celdas}<td class="pn-pg-t">${tg} · ${ta}</td></tr>`; }).join('');
+    return `<section class="pn-progreso" aria-label="Progreso en Circuitos de ${esc(g.nombre)}">
+      <p class="pn-small"><i class="pn-pg-k g on"></i> Guiada completada (la entregó con «Comprobar circuito» en verde o hizo la autónoma) · <i class="pn-pg-k a on"></i> Autónoma completada (la montó sola y salió bien). Pasa el ratón por una celda para ver la práctica.</p>
+      <div class="pn-pg-wrap"><table class="pn-pg"><thead><tr><th>Nº</th>${PRACTICES.map(p => `<th title="${esc(p.title)}">${p.n}</th>`).join('')}<th title="Guiadas · autónomas">G · A</th></tr></thead><tbody>${filas || `<tr><td colspan="${PRACTICES.length + 2}">Sin alumnos.</td></tr>`}</tbody></table></div></section>`;
   }
   // Prácticas guiadas de Circuitos que el profesor desbloquea una a una para este grupo (se guarda en «apartados»).
   function guiadasHTML(g) {
@@ -256,6 +271,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   async function accionGrupo(acc, g) {
     try {
       if (acc === 'guiadas') { st.guiadasDe = st.guiadasDe === g.id ? null : g.id; pintarTab(); return; }
+      if (acc === 'progreso') { st.progresoDe = st.progresoDe === g.id ? null : g.id; pintarTab(); return; }
       if (acc === 'gd-sig') { const sel = leerGuiadas(g.apartados) || new Set(); const sig = PRACTICES.find(p => !sel.has(p.id)); if (sig) await guardarGuiadas(g, [...sel, sig.id]); return; }
       if (acc === 'editar') { st.editando = g.id; pintarTab(); $('#pnBody').scrollIntoView({ block: 'start' }); return; }
       if (acc === 'grande') return mostrarGrande(g);
@@ -392,7 +408,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   function filtrosHTML() {
     const c = cat(); const usados = new Set(st.entregas.map(e => e.practica)); const gIds = [...new Set([...st.grupos.keys(), ...st.entregas.map(e => e.grupo)])];
     const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
-    const pracs = [...c.practicas.map(p => [p.id, `Circuitos ${p.n} · ${p.titulo}`]), ...c.proyectos.map(p => [p.id, `ESP32 ${p.n} · ${p.titulo}`]), ...EVALS.map(e => [e.id, `Evaluación de circuitos · Nivel ${e.nivel}`])].filter(([id]) => usados.has(id) || id === st.f.practica);
+    const pracs = [...c.practicas.map(p => [p.id, `Circuitos ${p.n} · ${p.titulo}`]), ...c.proyectos.map(p => [p.id, `ESP32 ${p.n} · ${p.titulo}`]), ...EVALS.map(e => [e.id, `Evaluación de circuitos · Nivel ${e.nivel}`]), ...c.practicas.map(p => [idAutonoma(p.id), `Circuitos ${p.n} · ${p.titulo} (autónoma)`])].filter(([id]) => usados.has(id) || id === st.f.practica);
     return `<label>Grupo <select data-pn-f="grupo">${opt('', 'Todos', st.f.grupo)}${gIds.map(id => opt(id, nombreGrupo(id), st.f.grupo)).join('')}</select></label>
       <label>Práctica <select data-pn-f="practica">${opt('', 'Todas', st.f.practica)}${pracs.map(([id, t]) => opt(id, t, st.f.practica)).join('')}</select></label>
       <label>Estado <select data-pn-f="estado">${opt('', 'Todas', st.f.estado)}${opt('sin', 'Sin nota', st.f.estado)}${opt('con', 'Con nota', st.f.estado)}</select></label>

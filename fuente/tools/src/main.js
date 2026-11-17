@@ -632,7 +632,7 @@ function route() {
       history.replaceState(null, '', portal()?.esProfesor ? '#panel/entregas' : '#eee/circuitos'); return route();
     }
     if (v.startsWith('averia-')) { abrirAveria(v.slice(7)); return; }
-    lab.show(v === 'libre' || v === 'evaluacion' || /^[cn]\d+$/.test(v) ? v : 'home');
+    lab.show(v === 'libre' || v === 'evaluacion' || /^[cna]\d+$/.test(v) ? v : 'home');
     return;
   }
   showScreen(null); mostrarBarraAsig(SUBJ.id);

@@ -1157,3 +1157,23 @@ html[data-theme="dark"] .cx-htabs, html[data-theme="dark"] .cx-evtabs { backgrou
 .cx-tema { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 12px; font-size: 19px; }
 .cx-tema span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--azul); background: var(--azul-tint); padding: 3px 9px; border-radius: 999px; }
 html[data-theme="dark"] .cx-tema span { color: #64a8ff; }
+/* Dos niveles por práctica: guiada y autónoma */
+.cx-lvl { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.cx-lvl .cx-badge { margin-left: 0; }
+.cx-auto { margin: 14px 0; padding: 12px 14px; border-radius: 14px; background: var(--azul-tint); }
+.cx-auto h4 { margin: 0 0 4px; display: flex; align-items: center; gap: 6px; }
+.cx-auto.off { background: var(--card2, #f2f2f7); }
+a.cx-sim, a.cx-btn { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+/* Panel: progreso de cada alumno en Circuitos (guiada / autónoma) */
+.pn-progreso { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--linea, rgba(60,60,67,.12)); }
+.pn-pg-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; background: var(--card2, #f2f2f7); }
+.pn-pg { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.pn-pg th, .pn-pg td { padding: 4px 3px; text-align: center; white-space: nowrap; }
+.pn-pg thead th { position: sticky; top: 0; font-weight: 700; color: var(--tinta2, #555); }
+.pn-pg tbody th { position: sticky; left: 0; background: var(--card2, #f2f2f7); font-weight: 700; padding: 4px 8px; }
+.pn-pg tbody tr:nth-child(even) td { background: rgba(118,118,128,.06); }
+.pn-pg-c i, .pn-pg-k { display: inline-block; width: 8px; height: 8px; margin: 0 1px; border-radius: 50%; background: rgba(118,118,128,.25); vertical-align: middle; }
+.pn-pg-c i.g.on, .pn-pg-k.g.on { background: #34c759; }
+.pn-pg-c i.a.on, .pn-pg-k.a.on { background: #007aff; }
+.pn-pg-t { font-weight: 700; padding: 4px 8px !important; }
+html[data-theme="dark"] .pn-pg tbody th { background: #2c2c2e; }

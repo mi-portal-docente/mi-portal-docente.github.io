@@ -6,7 +6,7 @@ import { runChecks } from './guide.js';
 
 const P = (id) => PRACTICES.find((p) => p.id === id);
 // Comprobaciones que valen sin guía: fuera las de medir con el polímetro y las propias del recorrido guiado
-export const checksSolo = (pr) => pr.checks.filter((ch) => !ch.measured && !ch.soloGuiada);
+export const checksSolo = (pr) => { const L = pr.checks.filter((ch) => !ch.measured && !ch.soloGuiada); return L.length ? L : [{ topo: true }]; }; // (práctica solo de medir: al menos el montaje)
 export function corregirCircuito(pr, model) {
   const r = runChecks({ ...pr, checks: checksSolo(pr) }, model || { parts: [], wires: [] }, {});
   const n = r.items.length, bien = r.items.filter((x) => x.ok).length;
@@ -48,6 +48,13 @@ export const EVALS = [
     ] },
 ];
 export const evalDe = (id) => EVALS.find((e) => e.id === id) || null;
+// «Práctica autónoma»: la misma práctica guiada (cN) sin pasos ni pistas; su id es aN (mismo número interno).
+export const idAutonoma = (prId) => 'a' + String(prId).replace(/^c/, '');
+export function autonomaDe(id) {
+  const m = /^a(\d{1,2})$/.exec(String(id || '')); const pr = m && P('c' + m[1]); if (!pr) return null;
+  return { id, autonoma: true, practica: pr.id, title: pr.title, duration: pr.duration, sub: pr.sub,
+    circuitos: [{ de: pr.id, enunciado: `${pr.objetivo} Esta vez lo haces <b>tú solo</b>: sin pasos ni pistas, con el esquema y el material.` }] };
+}
 export const practicaDe = (c) => P(c.de);
 // Corrige un nivel completo. modelos: [model por circuito]. Nota = media de los requisitos cumplidos de cada circuito (0–10, con un decimal).
 export function corregirNivel(ev, modelos) {
