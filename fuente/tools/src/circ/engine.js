@@ -47,13 +47,14 @@ export function simulate(model, runtime = {}, opt = {}) {
       case 'resistor': r.p = r.v * r.i; if (Math.abs(r.p) > 0.25) warnings.push({ part: p.id, kind: 'hot', msg: `La resistencia de ${p.props.r} Ω disipa ${(r.p).toFixed(2).replace('.', ',')} W (más de 0,25 W): en la realidad se quemaría.` }); break;
       case 'led': r.bright = st.burnt ? 0 : Math.max(0, Math.min(1.4, r.i / 0.02)); r.on = r.i > 0.0004; r.over = r.i > 0.03; r.burn = r.i > 0.04; r.vf = LED_COLORS[p.props.color].vf; if (r.v < -5) warnings.push({ part: p.id, kind: 'rev', msg: 'Hay un LED conectado al revés: no luce (el ánodo, pata larga, va hacia el +).' }); break;
       case 'rgb': { const ch = ['r', 'g', 'b'].map(c => sol.I[p.id + ':' + c] ?? 0); r.ch = ch.map(i => st.burnt ? 0 : Math.max(0, Math.min(1.4, i / 0.02))); r.i = ch.reduce((a, b) => a + Math.max(0, b), 0); r.on = ch.some(i => i > 0.0004); r.burn = ch.some(i => i > 0.04); r.over = ch.some(i => i > 0.03); break; }
-      case 'diode': r.burn = r.i > 1.5; break;
+      case 'diode': r.burn = r.i > 1.5; r.on = r.i > 1e-4; r.rev = r.v < -0.1; break;
+      case 'fuse': r.blown = !!p.state?.blown; r.i = r.blown ? 0 : (sol.I[p.id] ?? 0); r.ratio = Math.abs(r.i) / Math.max(1e-6, +p.props.a || 0.2); r.over = r.ratio > 1; break;
       case 'bulb': r.p = r.v * r.i; r.bright = st.burnt ? 0 : Math.max(0, r.p / def.pnom); r.burn = r.p > 2.5 * def.pnom; break;
       case 'motor': r.speed = r.v / 6; break;
       case 'buzzer': if (p.props.tipo === 'pasivo') { r.on = false; r.dc = Math.abs(r.i) > 0.005; if (r.dc) warnings.push({ part: p.id, kind: 'info', msg: 'El zumbador pasivo recibe corriente continua y no suena: necesita una señal que oscile. Usa uno activo o prográmalo con tone() en el ESP32.' }); } else { r.on = r.i > 0.001; r.vol = Math.min(1, r.i / 0.03); } break;
       case 'cap': capV[p.id] = r.v; if (r.v < -1) warnings.push({ part: p.id, kind: 'cap', msg: 'Condensador electrolítico conectado al revés: en la realidad podría reventar.' }); break;
       case 'pot': r.v1w = V(T('1')) - V(T('w')); r.vw2 = V(T('w')) - V(T('2')); r.i = sol.I[p.id + ':1w'] ?? 0; break;
-      case 'tact': case 'slide': case 'spdt': case 'switch': case 'button': {
+      case 'tact': case 'slide': case 'spdt': case 'switch': case 'button': case 'limit': {
         const ce = edges.filter(e => e.kind === 'contact' && e.part === p.id); r.contactI = ce.reduce((a, e) => a + Math.abs(e.flow), 0); r.contacts = ce.map(e => ({ pins: e.pins, i: e.flow }));
         if (p.type === 'tact') { const ie = edges.filter(e => e.kind === 'int' && e.part === p.id); r.internalI = ie.map(e => ({ pins: e.pins, i: e.flow })); }
         break;

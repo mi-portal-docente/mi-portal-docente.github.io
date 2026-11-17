@@ -77,6 +77,16 @@ export const PARTS = {
     pinDesc: { a: 'La corriente entra por aquí.', k: 'Lado de la franja: la corriente sale por aquí.' },
     els: (p, T, st) => st.burnt ? [] : [{ k: 'D', id: p.id, a: T('a'), b: T('k'), vf: 0.7, ron: 0.3 }],
   },
+  fuse: {
+    name: 'Fusible', cat: 'Básicos', board: true, pins: [['1', 0, 0], ['2', 6, 0]], perms: [['1', '2'], ['2', '1']],
+    props: { a: 0.2 }, desc: 'Fusible rápido de vidrio (3,6 × 10 mm) con patas. Protege el circuito: si pasa más corriente que la suya (su calibre), el hilo de dentro se calienta y se funde, y el circuito se abre. Un fusible fundido no se arregla: hay que cambiarlo por otro del mismo calibre, después de buscar la causa. Sin polaridad.',
+    ui: [{ k: 'a', label: 'Calibre (corriente nominal)', type: 'select', options: [0.05, 0.1, 0.2, 0.5, 1], fmt: (v) => fmtSI(+v, 'A') }],
+    sig: (p) => 'fuse:' + p.props.a, label: (p) => 'Fusible ' + fmtSI(+p.props.a, 'A') + (p.state?.blown ? ' (fundido)' : ''), interactive: 'fuse',
+    pinNames: { 1: 'patilla 1', 2: 'patilla 2' }, pinDesc: { 1: 'Sin polaridad: vale cualquier sentido.', 2: 'Sin polaridad: vale cualquier sentido.' },
+    // resistencia del hilo: más fino (más resistencia) cuanto menor es el calibre
+    rFuse: (a) => Math.max(0.08, 0.25 / Math.max(0.01, +a || 0.2)),
+    els: (p, T) => p.state?.blown ? [] : [{ k: 'R', id: p.id, a: T('1'), b: T('2'), r: PARTS.fuse.rFuse(p.props.a) }],
+  },
   bulb: {
     name: 'Bombilla 6 V', cat: 'Básicos', board: true, pins: [['1', 0, 0], ['2', 2, 0]], perms: [['1', '2'], ['2', '1']],
     props: {}, desc: 'Bombilla de incandescencia de 6 V / 0,1 A (0,6 W) con portalámparas de patas. Sin polaridad.',
@@ -117,6 +127,14 @@ export const PARTS = {
     pinNames: { 1: 'extremo 1', c: 'común (centro)', 2: 'extremo 2' },
     pinDesc: { 1: 'Se une con el común en la posición 1.', c: 'Común: siempre conectado.', 2: 'Se une con el común en la posición 2.' },
     merges: (p) => p.state?.pos ? [['c', '2']] : [['c', '1']], els: () => [],
+  },
+  limit: {
+    name: 'Final de carrera', cat: 'Control', board: true, pins: [['c', 0, 0], ['no', 3, 0], ['nc', 6, 0]], perms: [['c', 'no', 'nc']],
+    props: {}, desc: 'Microinterruptor de palanca con rodillo (tipo KW11). Lo acciona una pieza que se mueve (una puerta, un carro, una barrera) al llegar al final de su recorrido. Tiene 3 patas: C (común), NO (normalmente abierto: se une con C solo cuando la palanca está apretada) y NC (normalmente cerrado: unido con C en reposo). Haz clic en la palanca para accionarlo.',
+    sig: () => 'limit', label: (p) => 'Final de carrera (' + (p.state?.pos ? 'accionado: C–NO' : 'en reposo: C–NC') + ')', interactive: 'toggle',
+    pinNames: { c: 'C · común', no: 'NO · normalmente abierto', nc: 'NC · normalmente cerrado' },
+    pinDesc: { c: 'Contacto móvil: siempre se usa.', no: 'Se une con C cuando la palanca está apretada.', nc: 'Unido con C en reposo; se separa al apretar la palanca.' },
+    merges: (p) => p.state?.pos ? [['c', 'no']] : [['c', 'nc']], els: () => [],
   },
   pot: {
     name: 'Potenciómetro', cat: 'Control', board: true, pins: [['1', 0, 0], ['w', 1, 0], ['2', 2, 0]], perms: [['1', 'w', '2'], ['2', 'w', '1']],
@@ -259,6 +277,6 @@ export const PARTS = {
   },
 };
 export const CATS = ['Alimentación', 'Básicos', 'Control', 'Sensores', 'Salidas', 'Medida'];
-export const ID_PREFIX = { resistor: 'R', led: 'LED', rgb: 'RGB', diode: 'D', bulb: 'L', button: 'P', tact: 'P', switch: 'S', slide: 'S', spdt: 'C', pot: 'POT', relay: 'K', npn: 'Q', ldr: 'LDR', buzzer: 'Z', cap: 'CP', bat9: 'B', aa2: 'B', aa4: 'B', usb5: 'B', supply: 'F', motor: 'MOT', servo: 'SV', stester: 'PS', meter: 'M' };
+export const ID_PREFIX = { resistor: 'R', led: 'LED', rgb: 'RGB', diode: 'D', bulb: 'L', button: 'P', tact: 'P', switch: 'S', slide: 'S', spdt: 'C', pot: 'POT', relay: 'K', npn: 'Q', ldr: 'LDR', fuse: 'FU', limit: 'FC', buzzer: 'Z', cap: 'CP', bat9: 'B', aa2: 'B', aa4: 'B', usb5: 'B', supply: 'F', motor: 'MOT', servo: 'SV', stester: 'PS', meter: 'M' };
 export function newPartProps(type) { return JSON.parse(JSON.stringify(PARTS[type].props || {})); }
-export function defaultState(type) { return { switch: { closed: false }, button: { pressed: false }, tact: { pressed: false }, slide: { pos: 0 }, spdt: { pos: 0 }, pot: { pos: 0.5 }, ldr: { light: 0.5 }, stester: { knob: 0.5 } }[type] || {}; }
+export function defaultState(type) { return { switch: { closed: false }, button: { pressed: false }, tact: { pressed: false }, slide: { pos: 0 }, spdt: { pos: 0 }, pot: { pos: 0.5 }, ldr: { light: 0.5 }, fuse: { blown: false }, limit: { pos: 0 }, stester: { knob: 0.5 } }[type] || {}; }

@@ -21,6 +21,16 @@ export const sym = {
   // bobina de relé (rectángulo con diagonal) vertical, bornes (x, y−30) y (x, y+30)
   coil: (x, y, lab) => `<path ${S} d="M${x} ${y - 30}V${y - 12}M${x} ${y + 12}V${y + 30}"/><rect ${S} x="${x - 9}" y="${y - 12}" width="18" height="24"/><path ${S} d="M${x - 9} ${y + 12}L${x + 9} ${y - 12}"/>` + (lab ? T(x - 14, y + 4, lab, 'end') : ''),
   diodeV: (x, y, up) => { const d = up ? -1 : 1; return `<path ${S} d="M${x} ${y - 30}V${y + 30}"/><path ${S} d="M${x - 8} ${y - 6 * d}H${x + 8}L${x} ${y + 6 * d}Z" fill="#fff"/><path ${S} d="M${x - 8} ${y + 6 * d}H${x + 8}"/>`; },
+  // fusible: rectángulo con el hilo pasante (bornes (x−30, y) y (x+30, y))
+  fuse: (x, y, v, lab) => rotG(x, y, v, `<path ${S} d="M${x - 30} ${y}H${x + 30}"/><rect ${S} x="${x - 15}" y="${y - 6}" width="30" height="12"/>`) + (lab ? T(v ? x + 14 : x, v ? y + 4 : y - 12, lab, v ? 'start' : 'middle') : ''),
+  // diodo horizontal: ánodo a la izquierda (x−30, y), cátodo a la derecha (x+30, y); rev = al revés
+  diode: (x, y, rev, lab) => { const d = rev ? -1 : 1; return `<path ${S} d="M${x - 30} ${y}H${x + 30}"/><path ${S} d="M${x - 8 * d} ${y - 9}L${x + 8 * d} ${y}L${x - 8 * d} ${y + 9}Z" fill="#fff"/><path ${S} d="M${x + 8 * d} ${y - 10}V${y + 10}"/>` + (lab ? T(x, y - 14, lab) : ''); },
+  // transistor NPN: base (x−30, y), colector (x+12, y−30), emisor (x+12, y+30)
+  npn: (x, y, lab) => `<circle ${S} cx="${x + 4}" cy="${y}" r="17"/><path ${S} d="M${x - 30} ${y}H${x - 4}M${x - 4} ${y - 11}V${y + 11}M${x - 4} ${y - 5}L${x + 12} ${y - 16}V${y - 30}M${x - 4} ${y + 5}L${x + 12} ${y + 16}V${y + 30}"/><path fill="#12343a" d="M${x + 12} ${y + 16}l-8.5 -1.2l4.2 -6.3z"/>` + (lab ? T(x + 26, y + 4, lab, 'start') : ''),
+  // motor de continua: círculo con M (bornes (x, y−30) y (x, y+30), vertical)
+  motor: (x, y, lab) => `<path ${S} d="M${x} ${y - 30}V${y - 14}M${x} ${y + 14}V${y + 30}"/><circle ${S} cx="${x}" cy="${y}" r="14" fill="#fff"/><text x="${x}" y="${y + 5}" font-size="14" font-weight="800" fill="#12343a" text-anchor="middle">M</text>` + (lab ? T(x + 20, y + 4, lab, 'start') : ''),
+  // final de carrera: común a la izquierda (x−30, y); NC arriba a la derecha (x+30, y−16) y NO abajo (x+30, y+16); palanca con rodillo
+  limit: (x, y, lab) => `<path ${S} d="M${x - 30} ${y}H${x - 10}L${x + 12} ${y - 15}M${x + 12} ${y - 16}H${x + 30}M${x + 12} ${y + 16}H${x + 30}"/><circle cx="${x - 10}" cy="${y}" r="2.5" fill="#12343a"/><circle cx="${x + 12}" cy="${y - 16}" r="2.5" fill="#12343a"/><circle cx="${x + 12}" cy="${y + 16}" r="2.5" fill="#12343a"/><path ${S} d="M${x} ${y - 7}V${y - 26}"/><circle ${S} cx="${x}" cy="${y - 31}" r="5"/>` + T(x + 33, y - 12, 'NC', 'start') + T(x + 33, y + 20, 'NO', 'start') + (lab ? T(x - 14, y + 20, lab) : ''),
   dash: (d) => `<path stroke="#12343a" stroke-width="1.6" stroke-dasharray="5 4" fill="none" d="${d}"/>`,
   dot: (x, y) => `<circle cx="${x}" cy="${y}" r="3.6" fill="#12343a"/>`,
   w: (d) => `<path ${S} d="${d}"/>`,

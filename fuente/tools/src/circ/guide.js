@@ -17,7 +17,7 @@ export function solutionModel(pr, upto = Infinity) {
     if (st.setMode) { const mp = m.parts.find(p => p.id === st.meterPart); if (mp) mp.props.mode = st.setMode; }
     if (st.measure) { const mp = m.parts.find(p => PARTS[p.type].meter); if (mp) { mp.props.mode = st.measure.mode; mp.probes = { red: st.measure.red, com: st.measure.com }; } }
     if (st.act && typeof st.act.test === 'function') { const p = m.parts.find(x => x.id === st.act.part); if (p) { if (p.type === 'switch') p.state.closed = true; if (p.type === 'slide' || p.type === 'spdt') p.state.pos = st.act.test({ pos: 1 }) ? 1 : 0; if (p.type === 'pot') p.state.pos = st.act.test({ pos: 0 }) ? 0 : 1; if (p.type === 'ldr') p.state.light = st.act.test({ light: 0 }) ? 0.05 : 0.95; } }
-    if (st.act && st.act.test === 'toggled') { const p = m.parts.find(x => x.id === st.act.part); if (p && (p.type === 'spdt' || p.type === 'slide')) p.state.pos = 1 - (p.state.pos || 0); }
+    if (st.act && st.act.test === 'toggled') { const p = m.parts.find(x => x.id === st.act.part); if (p && (p.type === 'spdt' || p.type === 'slide' || p.type === 'limit')) p.state.pos = 1 - (p.state.pos || 0); }
   });
   return m;
 }
@@ -74,12 +74,13 @@ export function runChecks(pr, model, ctx = {}) {
   }
   const run = (over = {}) => {
     const m = clone(model);
+    for (const p of m.parts) if (p.type === 'fuse' && p.state) p.state.blown = false; // se comprueba el diseño con el fusible nuevo
     for (const [sid, st] of Object.entries(over)) { const p = m.parts.find(x => x.id === map[sid]); if (p) p.state = { ...(p.state || {}), ...st }; }
     for (const p of m.parts) if (PARTS[p.type].meter) p.probes = { red: null, com: null };
     const r = simulate(m, {});
     return { get: (sid) => r.res[map[sid]] || {}, shorts: r.shorts, raw: r };
   };
-  const c = { run };
+  const c = { run, part: (sid) => model.parts.find(x => x.id === map[sid]) || null };
   for (const ch of pr.checks) {
     if (ch.topo) continue;
     if (ch.measured) { out.push({ label: ch.label, ok: !!ctx.measured?.[ch.measured] }); continue; }

@@ -160,6 +160,34 @@ const B = {
     mesh(geoC('diodo', () => tornoY([[0, -1.08], [0.32, -1.08], [0.5, -1.0], [0.56, -0.85], [0.56, 0.85], [0.5, 1.0], [0.32, 1.08], [0, 1.08]])), PM(0x1a1b1d, { roughness: 0.32, clearcoat: 0.5 }), 0, 0, 0, g);
     mesh(geoC('diodoB', () => new THREE.CylinderGeometry(0.575, 0.575, 0.32, 24, 1, true)), PM(0xc9ccd1, { roughness: 0.4 }), 0, -0.68, 0, g).castShadow = false;
   },
+  fuse(p, part) {
+    // fusible rápido de vidrio 3,6 × 10 mm con patas axiales: tubo transparente, casquillos niquelados e hilo fusible a la vista
+    const y = BT + 1.0, cx = 3;
+    for (const [x, sx] of [[0, 1], [6, -1]]) hiloPata(p, [[x, BT - 0.45, 0], [x, y - 0.4, 0], [x + sx * 0.12, y - 0.08, 0], [x + sx * 0.45, y, 0], [cx - sx * 1.9, y, 0]]);
+    const g = new THREE.Group(); g.position.set(cx, y, 0); g.rotation.z = Math.PI / 2; p.add(g);
+    const vidrio = new THREE.MeshPhysicalMaterial({ color: 0xf4f8fb, transparent: true, opacity: 0.28, roughness: 0.04, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03, depthWrite: false, side: THREE.DoubleSide });
+    const tubo = mesh(geoC('fusTubo', () => new THREE.CylinderGeometry(0.66, 0.66, 2.5, 28, 1, true)), vidrio, 0, 0, 0, g); tubo.castShadow = false; tubo.renderOrder = 3;
+    const capa = PM(0xd3d8de, { metalness: 1, roughness: 0.22 });
+    for (const sy of [-1, 1]) {
+      mesh(geoC('fusCap', () => tornoY([[0, -0.4], [0.62, -0.4], [0.71, -0.34], [0.72, 0.34], [0.66, 0.4], [0, 0.4]])), capa, 0, sy * 1.55, 0, g);
+      mesh(geoC('fusSold', () => new THREE.SphereGeometry(0.16, 12, 8)), ESTANO(), 0, sy * 1.97, 0, g).castShadow = false;
+    }
+    // rótulo grabado en un casquillo (calibre)
+    const rot = canvasTex(128, 32, (c, w, h) => { c.fillStyle = '#5b6168'; c.font = '700 22px Arial'; c.textAlign = 'center'; c.fillText('F' + Math.round(+part.props.a * 1000) + 'mA 250V', w / 2, 24); });
+    const et = mesh(new THREE.CylinderGeometry(0.725, 0.725, 0.5, 28, 1, true), new THREE.MeshStandardMaterial({ map: rot, transparent: true, metalness: 0.6, roughness: 0.35, depthWrite: false }), 0, 1.5, 0, g); et.castShadow = false;
+    // hilo fusible: entero, o roto con las puntas fundidas y el vidrio ahumado cuando se funde
+    const hm = new THREE.MeshStandardMaterial({ color: 0xc9b48a, metalness: 0.8, roughness: 0.35, emissive: new THREE.Color(0xff7a1a), emissiveIntensity: 0 });
+    const entero = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0, -1.2, 0], [0.12, -0.4, 0], [-0.1, 0.4, 0], [0, 1.2, 0]].map((q) => new THREE.Vector3(...q))), 20, 0.035, 6, false), hm); g.add(entero);
+    const roto = new THREE.Group(); g.add(roto);
+    roto.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0, -1.2, 0], [0.12, -0.55, 0], [0.05, -0.28, 0]].map((q) => new THREE.Vector3(...q))), 10, 0.035, 6, false), hm));
+    roto.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-0.06, 0.3, 0], [-0.1, 0.5, 0], [0, 1.2, 0]].map((q) => new THREE.Vector3(...q))), 10, 0.035, 6, false), hm));
+    for (const [yy, xx] of [[-0.27, 0.05], [0.29, -0.06]]) { const b = mesh(geoC('fusBola', () => new THREE.SphereGeometry(0.07, 10, 8)), PM(0x3a3127, { roughness: 0.6 }), xx, yy, 0, roto); b.castShadow = false; }
+    const humo = new THREE.MeshBasicMaterial({ color: 0x2b2622, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide });
+    const hu = mesh(geoC('fusHumo', () => new THREE.CylinderGeometry(0.645, 0.645, 1.1, 24, 1, true)), humo, 0, 0, 0, roto); hu.castShadow = false; hu.renderOrder = 2;
+    const gl = glow(0xff8a2a, 4, cx, y, 0, p);
+    p.userData.update = (r, st) => { const b = !!part.state?.blown; entero.visible = !b; roto.visible = b; const h = b ? 0 : Math.min(1, (st?.heat || 0) / 0.5 + Math.max(0, (r.ratio || 0) - 0.7) * 0.6); hm.emissiveIntensity = h * 3; gl.material.opacity = Math.min(0.9, h); };
+    p.userData.update({}, {});
+  },
   bulb(p) {
     legDown(p, 0, 0, 0.6); legDown(p, 2, 0, 0.6);
     cyl(1.3, 1.0, M(0x2f6d4f), 1, BT + 0.4, 0, p, 24); cyl(0.85, 0.9, METAL(), 1, BT + 1.4, 0, p, 18);
@@ -237,6 +265,39 @@ const B = {
     box(3.4, 0.03, 1.2, M(0x0f5e66), 1, BT + 2.0, -1.25, p).castShadow = false;
     let last = '';
     p.userData.update = (r) => { const pos = part.state?.pos ? 1 : 0; lev.rotation.z = pos ? -0.45 : 0.45; const o = { pos, flow: (r.contactI || 0) > 1e-5 }; const k = JSON.stringify(o); if (k !== last) { last = k; d.redraw(o); } };
+    p.userData.update({});
+  },
+  limit(p, part) {
+    // microinterruptor de final de carrera (tipo KW11-3Z) de pie: cuerpo negro, palanca de acero con rodillo y botón rojo
+    for (const x of [0, 3, 6]) { pataRecta(p, x, 0, 0.3, 0.1); mesh(geoC('fcPata', () => new THREE.BoxGeometry(0.5, 0.75, 0.1)), ESTANO(), x, BT + 0.45, 0, p).castShadow = false; }
+    const H = 3.7, y0 = BT + 0.75;
+    cajaR(7.9, H, 2.5, 0.25, PM(0x1c1d20, { roughness: 0.45, clearcoat: 0.3 }), 3, y0, 0, p, 0.1);
+    // taladros de fijación (solo se ven por detrás, para no tapar el rótulo)
+    for (const x of [0.9, 5.1]) { const t = mesh(geoC('fcTal', () => new THREE.CylinderGeometry(0.42, 0.42, 0.04, 18)), PM(0x0e0f10, { roughness: 0.6 }), x, y0 + 1.7, -1.27, p); t.rotation.x = Math.PI / 2; t.castShadow = false; }
+    const bot = mesh(geoC('fcBoton', () => new THREE.CylinderGeometry(0.35, 0.35, 0.7, 16)), PM(0xc8261e, { roughness: 0.4 }), 1.7, y0 + H, 0, p);
+    // palanca: bisagra en el extremo izquierdo, lámina hacia la derecha y rodillo en la punta
+    const lev = new THREE.Group(); lev.position.set(-0.5, y0 + H + 0.25, 0); p.add(lev);
+    mesh(geoC('fcLam', () => new THREE.BoxGeometry(8.2, 0.09, 1.0)), PM(0xd0d4da, { metalness: 1, roughness: 0.25 }), 4.1, 0, 0, lev);
+    mesh(geoC('fcBis', () => new THREE.BoxGeometry(0.5, 0.6, 1.2)), PM(0xd0d4da, { metalness: 1, roughness: 0.3 }), 0.1, -0.3, 0, lev);
+    const rod = mesh(geoC('fcRod', () => new THREE.CylinderGeometry(0.62, 0.62, 0.7, 24)), PM(0x2a2c30, { roughness: 0.35 }), 8.0, 0.7, 0, lev); rod.rotation.x = Math.PI / 2;
+    mesh(geoC('fcHor', () => new THREE.BoxGeometry(0.2, 0.75, 0.9)), PM(0xd0d4da, { metalness: 1, roughness: 0.25 }), 8.0, 0.35, 0, lev);
+    // cara delantera rotulada: C · NO · NC sobre cada pata y el contacto que está cerrado ahora
+    const tx = canvasTex(320, 150, () => {}); const dib = tx.userData.canvas;
+    const cara = mesh(new THREE.PlaneGeometry(7.5, 3.5), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false }), 3, y0 + H / 2, 1.27, p); cara.castShadow = false; cara.renderOrder = 2;
+    const draw = (o) => {
+      const g = dib.getContext('2d'), W = dib.width, Hh = dib.height; g.clearRect(0, 0, W, Hh);
+      g.fillStyle = '#d7dade'; g.font = '700 22px Arial'; g.textAlign = 'center'; g.fillText('KW11-3Z  5A 250V~', W / 2, 30);
+      const xs = [W * 0.1, W * 0.5, W * 0.9];
+      const yb = Hh * 0.86, ym = Hh * 0.5;
+      g.font = '800 24px Arial'; g.fillStyle = '#fff'; ['C', 'NO', 'NC'].forEach((t, i) => g.fillText(t, xs[i], yb));
+      g.lineCap = 'round'; g.lineWidth = 7;
+      g.strokeStyle = '#6d737a'; g.beginPath(); g.moveTo(xs[1], ym + 10); g.lineTo(xs[1], yb - 26); g.moveTo(xs[2], ym + 10); g.lineTo(xs[2], yb - 26); g.moveTo(xs[0], ym); g.lineTo(xs[0], yb - 26); g.stroke();
+      g.strokeStyle = o.flow ? FLOW : '#e9eef2'; g.beginPath(); g.moveTo(xs[0], ym); g.lineTo(o.pos ? xs[1] : xs[2], ym + 8); g.stroke();
+      g.fillStyle = '#fff'; for (const x of xs) { g.beginPath(); g.arc(x, x === xs[0] ? ym : ym + 10, 6, 0, 7); g.fill(); }
+      tx.needsUpdate = true;
+    };
+    let last = '';
+    p.userData.update = (r) => { const pos = part.state?.pos ? 1 : 0; lev.rotation.z = pos ? -0.035 : 0.17; bot.position.y = y0 + H - (pos ? 0.28 : 0); const o = { pos, flow: (r.contactI || 0) > 1e-5 }; const k = JSON.stringify(o); if (k !== last) { last = k; draw(o); } };
     p.userData.update({});
   },
   pot(p, part) {

@@ -543,6 +543,11 @@ export class CircuitLab {
     for (const p of this.model.parts) {
       const res = r.res[p.id] || {}, st = this.runtime[p.id] || (this.runtime[p.id] = {});
       if (['led', 'rgb', 'diode', 'npn'].includes(p.type) && res.burn && !st.burnt) { st.acc = (st.acc || 0) + sdt; if (st.acc > 0.15) { st.burnt = true; this.smoke(p); this.toast({ led: '💥 ¡El LED se ha fundido! Le ha pasado demasiada corriente: pon una resistencia en serie.', rgb: '💥 ¡El LED RGB se ha fundido! Cada color necesita su propia resistencia.', diode: '💥 El diodo se ha quemado.', npn: '💥 ¡El transistor se ha quemado! Pon una resistencia en la base y no le pidas más de 100 mA.' }[p.type], 5000); this._force = true; } }
+      if (p.type === 'fuse' && !p.state?.blown) {
+        // el hilo se calienta con I² por encima de su calibre (fusible rápido: a 2 × In se funde en unas décimas de segundo) y se enfría por debajo
+        const k = res.ratio || 0; st.heat = Math.max(0, (st.heat || 0) + sdt * (k > 1 ? k * k - 1 : -2));
+        if (st.heat > 0.5) { p.state.blown = true; p.state.cambios = p.state.cambios || 0; st.heat = 0; this.smoke(p); this.buzz.click(); this.toast(`💥 ¡Se ha fundido el fusible ${esc(p.id)}! Ha pasado ${esc(fmtSI(Math.abs(res.i), 'A'))} y su calibre es ${esc(fmtSI(+p.props.a, 'A'))}. Busca la causa (¿un cortocircuito?) y después cámbialo: selecciónalo y pulsa «Cambiar el fusible».`, 6500); this._force = true; this.autosave(); this.renderInsp(); }
+      }
       if (p.type === 'relay' && !!res.on !== !!st._was) { st._was = !!res.on; this.buzz.click(); }
       if (p.type === 'bulb' && res.burn && !st.burnt) { st.burnt = true; this.smoke(p); this.toast('💥 La bombilla se ha fundido: recibe demasiada tensión.', 5000); this._force = true; }
       if (PARTS[p.type].meter && res.meter?.over && !st.fuse) { st.fuse = true; this.toast(res.meter.jack === '10A' ? '⚠ Se ha fundido el fusible de 10 A del polímetro: has medido corriente (A) en paralelo.' : '⚠ Se ha fundido el fusible de 200 mA del polímetro: has medido corriente (A) en paralelo o más de 200 mA en el borne VΩmA. La corriente se mide en serie; para corrientes grandes usa el borne 10A.', 6000); this._force = true; }
@@ -639,7 +644,7 @@ export class CircuitLab {
     if (d.consumed || d.moved) return;
     if (d.part) {
       const p = this.part(d.part);
-      if (this.running && p && (p.type === 'switch' || p.type === 'spdt' || p.type === 'slide')) { if (p.type === 'switch') p.state.closed = !p.state.closed; else p.state.pos = p.state.pos ? 0 : 1; this.buzz.click(); this.stateChanged(p, true); }
+      if (this.running && p && (p.type === 'switch' || p.type === 'spdt' || p.type === 'slide' || p.type === 'limit')) { if (p.type === 'switch') p.state.closed = !p.state.closed; else p.state.pos = p.state.pos ? 0 : 1; this.buzz.click(); this.stateChanged(p, true); }
       this.select({ kind: 'part', id: d.part }); return;
     }
     if (!this.running && (d.term || d.hole)) { this.wireClick(d.term || 'h:' + d.hole); return; }
@@ -962,7 +967,9 @@ export class CircuitLab {
       case 'bulb': t = this.runtime[p.id]?.burnt ? '💥 Fundida' : `V = ${V(Math.abs(r.v))} · I = ${A(Math.abs(r.i))} · brillo ${Math.round(Math.min(1, r.bright) * 100)} %`; break;
       case 'motor': t = `V = ${V(r.v)} · I = ${A(r.i)} · ${Math.abs(r.speed) > 0.05 ? (r.speed > 0 ? 'gira ↻' : 'gira ↺') : 'parado'}`; break;
       case 'buzzer': t = `V = ${V(r.v)} · I = ${A(Math.max(0, r.i))} · ${r.on ? '🔊 suena' : 'en silencio'}`; break;
-      case 'diode': t = `V = ${V(r.v)} · I = ${A(Math.max(0, r.i))}`; break;
+      case 'diode': t = this.runtime[p.id]?.burnt ? '💥 Quemado' : `V = ${V(r.v)} · I = ${A(Math.max(0, r.i))} · ${r.on ? 'conduce (polarización directa)' : r.rev ? 'bloquea (polarización inversa)' : 'sin corriente'}`; break;
+      case 'fuse': t = r.blown ? `💥 Fundido · circuito abierto · V entre sus patas = ${V(Math.abs(r.v))}` : `I = ${A(Math.abs(r.i))} (${Math.round((r.ratio || 0) * 100)} % del calibre)${r.over ? ' · ⚠ se está calentando' : ''}`; break;
+      case 'limit': t = `${p.state?.pos ? 'Palanca apretada: C unido con NO' : 'En reposo: C unido con NC'} · I = ${A(r.contactI || 0)}`; break;
       case 'pot': t = `V(1→cursor) = ${V(Math.abs(r.v1w))} · V(cursor→2) = ${V(Math.abs(r.vw2))}`; break;
       case 'ldr': t = `R = ${fmtOhm(Math.pow(10, 6 - 3.3 * (p.state?.light ?? 0.5)))} · I = ${A(Math.abs(r.i))}`; break;
       case 'cap': t = `V = ${V(r.v)}`; break;
@@ -1011,6 +1018,8 @@ export class CircuitLab {
       else if (u.type === 'seg') h += `<div class="cx-seg">${u.options.map(o => `<button data-seg="${u.k}" data-v="${o}" class="${val === o ? 'on' : ''}">${o}</button>`).join('')}</div>`;
     }
     if (p.type === 'switch' || p.type === 'spdt' || p.type === 'slide') h += `<div class="cx-ibtns"><button class="cx-btn" data-act="toggle">⇄ Cambiar posición</button><span class="cx-small">${esc(def.label(p))}</span></div>`;
+    if (p.type === 'limit') h += `<div class="cx-ibtns"><button class="cx-btn" data-act="toggle">${p.state?.pos ? '↥ Soltar la palanca' : '↧ Apretar la palanca'}</button><span class="cx-small">${esc(def.label(p))}</span></div><div class="cx-small">Con la simulación en marcha, también puedes hacer clic sobre el final de carrera.</div>`;
+    if (p.type === 'fuse') h += p.state?.blown ? `<div class="cx-alert-in">💥 <b>Fundido</b>: el hilo interior está cortado y el circuito queda abierto.</div><div class="cx-ibtns"><button class="cx-btn" data-act="fusible">🔄 Cambiar el fusible</button></div><div class="cx-small">Antes de cambiarlo, busca y corrige la causa: si sigue el cortocircuito, el nuevo también se fundirá.</div>` : `<div class="cx-small">Estado: <b>bien</b> (hilo entero)${p.state?.cambios ? ` · cambiado ${p.state.cambios} ${p.state.cambios === 1 ? 'vez' : 'veces'}` : ''}.</div>`;
     if (p.type === 'button' || p.type === 'tact') h += `<div class="cx-small">Con la simulación en marcha, mantén pulsado el botón con el ratón o el dedo.</div>`;
     if (def.meter) h += `<div class="cx-small">Arrastra la <b style="color:#d62020">punta roja</b> y la <b>punta negra</b> hasta los agujeros o bornes que quieras medir.</div><div class="cx-ibtns"><button class="cx-btn" data-act="parkprobes">↩ Recoger puntas</button></div>`;
     h += this.pinsHTML(p);
@@ -1260,6 +1269,7 @@ export class CircuitLab {
     const pr = this.pr, g = this.g;
     if (act === 'desel') return this.select(null);
     if (act === 'toggle') { const p = this.part(this.sel?.id); if (!p) return; const flip = () => { if (p.type === 'switch') p.state.closed = !p.state.closed; else p.state.pos = p.state.pos ? 0 : 1; }; if (!this.running) this.commit(flip); else { flip(); this.stateChanged(p, true); } return; }
+    if (act === 'fusible') { const p = this.part(this.sel?.id); if (!p || p.type !== 'fuse' || this.readOnly) return; const fix = () => { p.state.blown = false; p.state.cambios = (p.state.cambios || 0) + 1; }; if (this.runtime[p.id]) this.runtime[p.id].heat = 0; if (!this.running) this.commit(fix); else { fix(); this.stateChanged(p, true); } this.toast('🔄 Fusible nuevo puesto (' + esc(fmtSI(+p.props.a, 'A')) + ').', 2500); return; }
     if (act === 'parkprobes') { const p = this.part(this.sel?.id); if (!p) return; this._liveOK = true; this.commit(() => { p.probes = { red: null, com: null }; p.park = { red: [4, 15], com: [-4, 15] }; }); this._liveOK = false; return; }
     if (act === 'rev-volver') { location.hash = '#panel/entregas'; return; }
     if (act === 'rev-guardar') {
