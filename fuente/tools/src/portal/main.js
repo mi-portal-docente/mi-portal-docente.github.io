@@ -206,6 +206,10 @@ function mostrarGate({ cargando = false, aviso = '', error = '', pestaña = 'alu
   const note = document.getElementById('gate-note');
   if (aviso && AVISOS[aviso]) { note.textContent = AVISOS[aviso]; note.hidden = false; }
   if (!cargando) {
+    // Nunca dejar el formulario «ocupado» (botón «Abriendo Google…» desactivado) al volver a la puerta.
+    const bg = document.getElementById('gate-google'); if (bg?.dataset.txt) { bg.innerHTML = bg.dataset.txt; delete bg.dataset.txt; } if (bg) bg.disabled = false;
+    document.getElementById('gate-body')?.classList.remove('busy');
+    document.querySelectorAll('#gate button[disabled]').forEach((b) => { if (b.dataset.txt) { b.innerHTML = b.dataset.txt; delete b.dataset.txt; } b.disabled = false; });
     elegirPestaña(pestaña);
     if (error) fallo(pestaña, error);
     if (pestaña === 'alumno') setTimeout(() => document.getElementById('gate-code')?.focus(), 0);
@@ -488,15 +492,21 @@ async function entrarComoProfesor() {
 async function comprobarProfesor(user, interactivo) {
   try {
     // Solo el profesor puede leer config/profesores (lo decide el servidor con las reglas).
-    await getDoc(doc(fb.db, 'config', 'profesores'));
+    // Con tiempo máximo: si el servidor no responde, se avisa en vez de quedarse cargando.
+    await Promise.race([
+      getDoc(doc(fb.db, 'config', 'profesores')),
+      new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('timeout'), { code: 'deadline-exceeded' })), 20000)),
+    ]);
   } catch (e) {
+    console.warn('[portal] comprobación de profesor', e?.code || e);
     if (e?.code === 'permission-denied') {
       const email = user.email || 'indicada';
       await signOut(fb.auth).catch(() => { });
-      return mostrarGate({ pestaña: 'profesor', error: `La cuenta ${email} no tiene permiso de profesor en este portal.` });
+      return mostrarGate({ pestaña: 'profesor', error: `La cuenta ${email} no tiene permiso de profesor en este portal. Si eres el profesor, revisa que las reglas de Firestore publicadas llevan tu correo (y no el marcador PROFESOR_EMAIL).` });
     }
     return mostrarGate({ pestaña: 'profesor', error: esRed(e) ? ERR.red : ERR.otro });
   }
+  try {
   rol = 'profesor'; PORTAL.rol = 'profesor'; PORTAL.esProfesor = true;
   window.PORTAL_SESION = null;
   aula = crearAula({ db: fb.db, rol: 'profesor' });
@@ -507,6 +517,10 @@ async function comprobarProfesor(user, interactivo) {
   chip = montarChipSesion({ rol: 'profesor', email: user.email, nombre: user.displayName, desde: Date.parse(user.metadata?.lastSignInTime || '') || Date.now(), salir });
   if (interactivo && (!location.hash || location.hash === '#' || location.hash === '#inicio')) history.replaceState(null, '', '#panel');
   ACC.loadApp();
+  } catch (e) {
+    console.error('[portal] error al abrir el panel del profesor', e);
+    return mostrarGate({ pestaña: 'profesor', error: 'No se ha podido abrir el panel (' + (e?.message || e) + '). Recarga con Ctrl+F5 y, si sigue, abre la consola (F12) y haz una captura.' });
+  }
 }
 
 // ------------------------------------------------------------------ arranque

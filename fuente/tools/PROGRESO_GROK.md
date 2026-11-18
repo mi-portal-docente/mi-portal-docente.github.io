@@ -691,3 +691,11 @@ las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en u
 - Archivos: src/circ/evaluaciones.js (autonomaDe, idAutonoma), lab.js, main.js (ruta aN), portal/panel.js, css/ios.css; pruebas evaluaciones_test.mjs (+2), evaluacion_e2e.mjs (+6), circ_pins_test.mjs (la comprobación «Has cambiado el fusible fundido» es del recorrido guiado y ya no se exige al montaje final; fallaba desde 7).
 - Pruebas: evaluaciones_test 25/25, evaluacion_e2e 18/18 (http), guiadas_test 15/15, circ_test 58/58 (http), circ_pins_test 69/69, circ_componentes_test 17/17, circ_almacen_test 9/9, acceso_test 28/28, proteccion_test, plataforma_test y aula_modelo_test en verde. Caché arr-20261117e.
 - Probar a mano: como alumno, completar una guiada, pulsar «Hacer la práctica autónoma», comprobar vacía (sale qué falla) y bien montada (insignia); como profesor, Grupos → «Progreso en Circuitos» y Entregas → la autónoma → «Revisar»; ver la tabla en el móvil (se desplaza en horizontal).
+
+## Arreglo urgente · acceso del profesor (18/11/2026, caché arr-20261118a)
+- Causa: el archivo de reglas «para pegar» del 17/11 se generó copiando `firestore.rules` sin sustituir el marcador `PROFESOR_EMAIL`. Con esas reglas publicadas nadie es profesor: la lectura de `config/profesores` da permission-denied y el portal muestra «no tiene permiso de profesor». Reproducido en el emulador (marcador → denegado; con correo → permitido).
+- Además, al volver a la puerta tras un error, el botón se quedaba en «Abriendo Google…» desactivado (formulario «ocupado»), y parecía que se quedaba cargando.
+- Cambios (src/portal/main.js): `mostrarGate` siempre deja el formulario y los botones libres; la comprobación de profesor tiene un tiempo máximo de 20 s; el mensaje de permiso avisa de revisar el correo en las reglas; si el panel falla al abrirse, se muestra el error en vez de quedarse en blanco.
+- Reglas: sin cambios en el repositorio. Hay que volver a pegar las reglas generadas con `node prepara-reglas.mjs <correo>` (nunca `firestore.rules` tal cual).
+- Pruebas: test:reglas 142/142, fb_e2e 59/59, tests unitarios en verde.
+- Probar a mano: pegar reglas → Ctrl+F5 → entrar como profesor.
