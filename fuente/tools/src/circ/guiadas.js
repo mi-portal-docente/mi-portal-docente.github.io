@@ -29,3 +29,13 @@ export function escribirEvaluaciones(apartados, ids) {
   const L = [...new Set(ids || [])]; return L.length ? [...resto, PREFIJO_EV + L.join(',')] : resto;
 }
 export const evaluacionAbierta = (apartados, id) => leerEvaluaciones(apartados).has(id);
+// Candado rápido del profesor en la lista del laboratorio: abre o cierra UNA práctica guiada (cN, y con ella su
+// autónoma aN) o un nivel de evaluación (nN) para un grupo. Usa los mismos tokens que el panel (Grupos →
+// «Prácticas guiadas»), así los dos quedan sincronizados. Si el grupo aún no tenía el control de guiadas
+// (todas abiertas), al cerrar una se activa con todas las demás abiertas.
+export function alternarBloqueo(apartados, id, abrir, idsGuiadas, idsEval) {
+  if (/^n\d+$/.test(id)) { const s = leerEvaluaciones(apartados); if (abrir) s.add(id); else s.delete(id); return escribirEvaluaciones(apartados, idsEval.filter((x) => s.has(x))); }
+  const s0 = leerGuiadas(apartados); if (!s0 && abrir) return (Array.isArray(apartados) ? apartados : []).slice();
+  const s = s0 ? new Set(s0) : new Set(idsGuiadas); if (abrir) s.add(id); else s.delete(id);
+  return escribirGuiadas(apartados, idsGuiadas.filter((x) => s.has(x)));
+}

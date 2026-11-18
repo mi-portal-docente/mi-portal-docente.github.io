@@ -154,6 +154,24 @@ const PORTAL = window.PORTAL = {
     },
   },
   pagina: () => (ACC.pagina ? ACC.pagina() : location.hash),
+  // Laboratorio de Circuitos (profesor): grupos con EEE y guardar sus «apartados» (candados de prácticas y
+  // niveles). Escribe lo mismo que el panel (grupo + su código de acceso), sin reglas nuevas.
+  circ: {
+    grupos() {
+      if (rol !== 'profesor' || !aula) return [];
+      let L = PORTAL.aula.gruposConAsignatura('eee');
+      if (!L.length) L = [...aula.st.grupos.values()].filter((g) => (g.asignaturas || []).includes('eee'));
+      return L.map((g) => ({ id: g.id, nombre: g.nombre || g.id, apartados: (g.apartados || []).slice() })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    },
+    async guardarApartados(grupoId, apartados) {
+      if (rol !== 'profesor' || !aula) throw new Error('no-profesor');
+      const g = aula.st.grupos.get(grupoId); if (!g) throw new Error('sin-grupo');
+      const b = writeBatch(fb.db);
+      b.update(doc(fb.db, 'grupos', g.id), { apartados });
+      if (g.codigo) b.update(doc(fb.db, 'codigos', g.codigo), { apartados });
+      await b.commit(); g.apartados = apartados.slice();
+    },
+  },
 };
 document.addEventListener('click', (e) => { if (e.target.closest('[data-portal="salir"]')) { e.preventDefault(); salir(); } });
 
@@ -332,7 +350,7 @@ function entrarAlumno(uid, s, c) {
     const m = motivoCodigo(snap, s.grupo); if (m) return expulsar(m);
     codDoc = snap.data();
     // cambios de asignaturas/apartados del grupo: se aplican al recargar la vista
-    if (window.PORTAL_SESION) { window.PORTAL_SESION.asignaturas = (codDoc.asignaturas || []).slice(); window.PORTAL_SESION.apartados = (codDoc.apartados || []).slice(); }
+    if (window.PORTAL_SESION) { window.PORTAL_SESION.asignaturas = (codDoc.asignaturas || []).slice(); window.PORTAL_SESION.apartados = (codDoc.apartados || []).slice(); window.dispatchEvent(new Event('portal-apartados')); }
   }, () => { }));
   // Entregas del laboratorio (fase 9): las nuevas van por grupo + nº (se ven desde cualquier ordenador);
   // las antiguas, ligadas al uid de este ordenador, se siguen leyendo. Si hay de las dos, gana la nueva.

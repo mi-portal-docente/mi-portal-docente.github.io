@@ -254,13 +254,51 @@ st = await pg.evaluate(async () => {
 });
 ok('Práctica 14 (c16): la entrega muestra «Guiada completada» (corrección automática) y no «Pendiente de corregir»', /Guiada completada/.test(st.bien) && !/Pendiente de corregir/i.test(st.bien + st.mal) && /sin superar/.test(st.mal), (st.bien + ' || ' + st.mal).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 200));
 ok('Al superar «Comprobar circuito» la guiada del alumno queda registrada sola', st.auto === 'c16:true', st.auto);
+// candados del profesor en la lista (prácticas y niveles), sincronizados con los tokens del panel
+await go('#eee/circuitos', 1500);
+st = await pg.evaluate(async () => {
+  const L = window.__circ, prev = window.PORTAL, prevS = window.PORTAL_SESION; const G = [{ id: 'g1', nombre: '1º A', apartados: ['circuitos'] }, { id: 'g2', nombre: '1º B', apartados: ['circuitos'] }]; const llam = [];
+  window.PORTAL = { rol: 'profesor', ambito: () => null, estadoEntrega: () => null, circ: { grupos: () => G.map(g => ({ ...g, apartados: g.apartados.slice() })), guardarApartados: async (id, ap) => { llam.push(id + '=' + ap.join('|')); G.find(g => g.id === id).apartados = ap.slice(); } } };
+  const out = {};
+  try {
+    L.refrescarHome();
+    out.bar = document.querySelector('.cx-gbar select')?.value; out.nCand = document.querySelectorAll('#cxHome .cx-cand').length;
+    out.emoji = /[\u{1F300}-\u{1FAFF}]/u.test([...document.querySelectorAll('#cxHome .cx-cand')].map(b => b.textContent).join(''));
+    document.querySelector('#cxHome [data-lock="c16"]').click(); await new Promise(r => setTimeout(r, 150));
+    out.cerrada = document.querySelector('#cxHome [data-lock="c16"]')?.classList.contains('ce') && document.querySelector('#cxHome a[href="#eee/circuitos/c16"]')?.classList.contains('cerrada');
+    out.g1 = G[0].apartados.join('|'); out.g2 = G[1].apartados.join('|');
+    const sel = document.querySelector('.cx-gbar select'); sel.value = 'g2'; sel.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 50));
+    out.g2abierta = document.querySelector('#cxHome [data-lock="c16"]')?.classList.contains('ab');
+    sel.value !== 'g1' && (document.querySelector('.cx-gbar select').value = 'g1', document.querySelector('.cx-gbar select').dispatchEvent(new Event('change', { bubbles: true })));
+    location.hash = '#eee/circuitos/evaluacion'; await new Promise(r => setTimeout(r, 600));
+    out.nCandEv = document.querySelectorAll('#cxHome .cx-evcard .cx-cand').length;
+    document.querySelector('#cxHome [data-lock="n1"]').click(); await new Promise(r => setTimeout(r, 150));
+    out.n1 = G[0].apartados.join('|');
+    // alumno del grupo 1º A
+    window.PORTAL = { rol: 'alumno', ambito: () => null, estadoEntrega: () => null }; window.PORTAL_SESION = { apartados: G[0].apartados.slice(), asignaturas: ['eee'] };
+    location.hash = '#eee/circuitos'; await new Promise(r => setTimeout(r, 600));
+    out.alC16 = !!document.querySelector('#cxHome div.cx-card.locked') && !document.querySelector('#cxHome a[href="#eee/circuitos/c16"]') && !!document.querySelector('#cxHome a[href="#eee/circuitos/c15"]') && !document.querySelector('#cxHome .cx-cand');
+    location.hash = '#eee/circuitos/c16'; await new Promise(r => setTimeout(r, 900));
+    out.url = location.hash;
+    location.hash = '#eee/circuitos/a16'; await new Promise(r => setTimeout(r, 900));
+    out.urlA = location.hash;
+    location.hash = '#eee/circuitos/n1'; await new Promise(r => setTimeout(r, 900));
+    out.urlN1 = location.hash + ':' + (L.view);
+  } finally { window.PORTAL = prev; window.PORTAL_SESION = prevS; }
+  out.llam = llam.length; return out;
+});
+ok('Candados del profesor: selector de grupo, un candado (icono de línea) por práctica y por nivel', st.bar === 'g1' && st.nCand === 29 && st.nCandEv === 5 && !st.emoji, JSON.stringify(st).slice(0, 300));
+ok('Candado: cerrar la práctica 14 (c16) solo en 1º A, con los mismos tokens que el panel', st.cerrada && /guiadas:/.test(st.g1) && !/c16/.test(st.g1.split('guiadas:')[1]) && st.g2 === 'circuitos' && st.g2abierta, `${st.g1} · ${st.g2}`);
+ok('Candado de nivel: abre el nivel 1 de evaluación para 1º A', /evaluacion:n1/.test(st.n1), st.n1);
+ok('Alumno: la práctica cerrada se ve difuminada y no se puede entrar (ni por URL a la guiada ni a la autónoma); el nivel abierto sí', st.alC16 && st.url === '#eee/circuitos' && !/a16/.test(st.urlA) && st.urlN1 === '#eee/circuitos/n1:n1', JSON.stringify({ a: st.alC16, u: st.url, ua: st.urlA, n: st.urlN1 }));
+await go('#eee/circuitos', 1200);
 // borrar cables: tocar/pinchar un cable lo selecciona (aunque debajo haya agujeros) y se borra con Supr o con «Borrar cable»
 async function wireCase(page, mobile) {
   if (!mobile) { await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(600); }
   await page.evaluate(() => { location.hash = '#eee/circuitos/libre'; }); await page.waitForTimeout(2000);
   await page.evaluate(() => { const L = window.__circ; L.cancelWire(); L.commit(() => { L.model = { parts: [], wires: [] }; }); L.afterChange();
     L.autoPlace(L.freshPart('resistor'), { at: 'b10', rot: 0 }); L.autoPlace(L.freshPart('led', { color: 'rojo' }), { at: 'e20', rot: 0 });
-    L.commit(() => L.model.wires.push({ id: 'wA', a: 'h:j5', b: 'h:j25', color: 'rojo' }, { id: 'wB', a: 'h:f4', b: 'h:f28', color: 'negro' })); L.select(null); L.homeView(false, true, true); });
+    L.commit(() => L.model.wires.push({ id: 'wA', a: 'h:j11', b: 'h:j21', color: 'rojo' }, { id: 'wB', a: 'h:f9', b: 'h:f23', color: 'negro' })); L.select(null); L.homeView(false, true, true); });
   await page.waitForTimeout(1600);
   // punto del cable visible en pantalla (no tapado por botones ni paneles), empezando por la fracción t
   const pt = (id, t0) => page.evaluate(([id, t0]) => { const L = window.__circ; const cv = L.renderer.domElement; const r = cv.getBoundingClientRect(); let first = null;
@@ -268,6 +306,8 @@ async function wireCase(page, mobile) {
   const out = {};
   out.asig = await page.evaluate(() => document.body.classList.contains('con-asigbar') && !!document.querySelector('#asigbar, .asigbar'));
   let p = await pt('wA', 0.3);
+  for (let i = 0; i < 20; i++) { await page.waitForTimeout(300); const q = await pt('wA', 0.3); const quieto = Math.hypot(q.x - p.x, q.y - p.y) < 0.5; p = q; if (quieto) break; } // cámara ya quieta
+  out.p = [Math.round(p.x), Math.round(p.y)]; out.cv = await page.evaluate(() => { const r = window.__circ.renderer.domElement.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(',') + ' sy=' + scrollY + ' vv=' + innerWidth + 'x' + innerHeight; });
   if (mobile) await page.touchscreen.tap(p.x, p.y + 1); else { await page.mouse.move(p.x, p.y + 2); await page.mouse.down(); await page.mouse.up(); }
   await page.waitForTimeout(250);
   out.selA = await page.evaluate(() => ({ s: window.__circ.sel?.id || null, wiring: !!window.__circ.wiring }));

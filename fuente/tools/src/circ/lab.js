@@ -18,7 +18,7 @@ import { TIPOS_AVERIA, leerMontaje } from '../lms/motores/averia.js';
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const LS = 'circ:v1:';
-import { guiadaAbierta, evaluacionAbierta } from './guiadas.js';
+import { guiadaAbierta, evaluacionAbierta, alternarBloqueo } from './guiadas.js';
 import { EVALS, evalDe, practicaDe, corregirNivel, autonomaDe, idAutonoma } from './evaluaciones.js';
 import { confirmar } from '../portal/dialogo.js';
 import { lsKey as lsKeyBase, migrarLegado as migrarBase } from './almacen.js';
@@ -35,6 +35,8 @@ const evAbierta = (id) => portal()?.rol !== 'alumno' || evaluacionAbierta(window
 const entOk = (id) => !!portal()?.estadoEntrega?.(id)?.datos?.comprobacion?.ok;
 const guiadaHecha = (id) => !!store.get('done:' + id) || entOk(id) || autoHecha(id);
 const autoHecha = (id) => !!store.get('autodone:' + id) || entOk(idAutonoma(id));
+// Candados del profesor en la lista: grupo elegido (el que se recuerda en este navegador, o el primero con EEE)
+const profGrupos = () => (portal()?.rol === 'profesor' && portal()?.circ?.grupos?.()) || [];
 const fNota = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
 const ICON = { rotate: '⟳', del: '🗑', home: '⌂', top: '⊤', fit: '⤢', sound: '🔊', mute: '🔇', help: '?', flow: '⚡', xray: '▦', pins: '🏷', hq: '✦' };
 
@@ -111,6 +113,12 @@ export class CircuitLab {
     });
     $('#cxFile').onchange = (e) => { const f = e.target.files[0]; if (f) this.importFile(f); e.target.value = ''; };
     document.addEventListener('keydown', (e) => this.onKey(e));
+    // candado rápido (profesor) y selector de grupo, en la lista de prácticas y de niveles
+    this.host.addEventListener('click', (e) => { const b = e.target.closest('[data-lock]'); if (!b) return; e.preventDefault(); e.stopPropagation(); this.alternarCandado(b.dataset.lock, b); }, true);
+    this.host.addEventListener('change', (e) => { const sg = e.target.closest('[data-cxgrupo]'); if (sg) { store.set('pref:grupoCand', sg.value); this.refrescarHome(); } });
+    // cambios en directo: el profesor abre o cierra (alumno) / llegan los grupos (profesor)
+    window.addEventListener('portal-apartados', () => this.refrescarHome());
+    window.addEventListener('portal-aula', () => { if (portal()?.rol === 'profesor') this.refrescarHome(); });
     this.host.addEventListener('pointerdown', (e) => { const c = e.target.closest('[data-add]'); if (c && this.isEditor() && !this.readOnly) this.catalogDown(e, c); });
   }
   isEditor() { return this.host.querySelector('.cx').classList.contains('is-editor') && getComputedStyle(this.host).display !== 'none'; }
@@ -225,10 +233,10 @@ export class CircuitLab {
     return `<h2>Evaluación de circuitos <small>por niveles</small></h2>
       <p class="cx-ev-intro">Cada nivel es una prueba con varios circuitos de las prácticas guiadas. Aquí <b>no hay pasos ni pistas</b>: lees el enunciado, montas cada circuito tú solo y pulsas <b>Enviar</b>. El simulador comprueba si cada circuito cumple lo pedido y ves al momento si está bien y tu nota${alumno ? ', que queda guardada como entrega para tu profesor' : ''}.</p>
       ${alumno && cerr ? `<p class="cx-bloq-aviso">${ic('lock')} Tu profesor abre los niveles cuando toca hacer la prueba. Los que tienen candado todavía están cerrados.</p>` : ''}
-      <div class="cx-cards">${EVALS.map(e => { const ab = evAbierta(e.id); const tag = ab ? 'a' : 'div'; const r = store.get('evres:' + e.id); const ent = portal()?.estadoEntrega?.(e.id);
-        const badge = !ab ? `<span class="cx-badge">${ic('lock')} Cerrado</span>` : ent?.nota != null ? `<span class="cx-badge ok">Nota ${esc(String(ent.nota).replace('.', ','))}</span>` : r ? `<span class="cx-badge ${r.ok ? 'ok' : ''}">Enviado · ${fNota(r.nota)}</span>` : '';
-        return `<${tag} class="cx-card cx-evcard ${ab ? '' : 'locked'}" ${ab ? `href="#eee/circuitos/${e.id}"` : 'aria-disabled="true"'}>
-        <div class="cx-card-h"><span class="cx-num">N${e.nivel}</span><span class="cx-ic">${ic('clipboard-check')}</span>${badge}</div>
+      <div class="cx-cards">${EVALS.map(e => { const ab = evAbierta(e.id); const tag = ab ? 'a' : 'div'; const r = store.get('evres:' + e.id); const ent = portal()?.estadoEntrega?.(e.id); const C = this.grupoCandado(); const pc = C && !this.candadoAbierto(C.g, e.id);
+        const badge = !ab ? `<span class="cx-badge">${ic('lock')} Cerrado</span>` : pc ? `<span class="cx-badge" title="Cerrado para ${esc(C.g.nombre)}">Cerrado</span>` : ent?.nota != null ? `<span class="cx-badge ok">Nota ${esc(String(ent.nota).replace('.', ','))}</span>` : r ? `<span class="cx-badge ${r.ok ? 'ok' : ''}">Enviado · ${fNota(r.nota)}</span>` : '';
+        return `<${tag} class="cx-card cx-evcard ${ab ? '' : 'locked'} ${pc ? 'cerrada' : ''}" ${ab ? `href="#eee/circuitos/${e.id}"` : 'aria-disabled="true"'}>
+        <div class="cx-card-h"><span class="cx-num">N${e.nivel}</span><span class="cx-ic">${ic('clipboard-check')}</span>${badge}${this.candadoHTML(e.id, 'Nivel ' + e.nivel)}</div>
         <h3>Nivel ${e.nivel} · ${esc(e.title)}</h3><div class="cx-sub">${esc(e.sub)}</div>
         <div class="cx-meta"><span>${e.circuitos.length} circuitos</span><span>⏱ ${esc(e.duration)}</span><span>Prácticas ${e.circuitos.map(c => practicaDe(c).n).join(', ')}</span></div></${tag}>`; }).join('')}</div>`;
   }
@@ -353,22 +361,49 @@ export class CircuitLab {
     this.$('#cxCrumbs').innerHTML = base + (v === 'home' ? '<span>Circuitos</span>' : `<a href="#eee/circuitos">Circuitos</a> › <span>${this.solo ? (this.solo.tipo === 'auto' ? `<a href="#eee/circuitos/${this.solo.circs[0].id}">Práctica ${this.solo.circs[0].n}</a> › Autónoma` : `<a href="#eee/circuitos/evaluacion">Evaluación</a> › Nivel ${this.solo.ev.nivel}`) : this.av ? 'Encuentra la avería: ' + esc(this.av.titulo || '') : this.pr ? 'Práctica ' + this.pr.n + ': ' + esc(this.pr.title) : 'Modo libre'}</span>`);
     this.$('#cxProf').innerHTML = (this.opts.profesor ? `Profesor: <b>${esc(this.opts.profesor)}</b>` : '') + (portal()?.chipHTML?.() || '');
   }
+  refrescarHome() { if (this.view === 'home' && !this._candando) { const h = this.$('#cxHome'); if (h) h.innerHTML = this.homeHTML(); } }
+  grupoCandado() { const G = profGrupos(); if (!G.length) return null; const id = store.get('pref:grupoCand'); return { G, g: G.find(x => x.id === id) || G[0] }; }
+  // estado del candado de una práctica (cN) o nivel (nN) para el grupo elegido
+  candadoAbierto(g, id) { return /^n\d+$/.test(id) ? evaluacionAbierta(g.apartados, id) : guiadaAbierta(g.apartados, id); }
+  candadoHTML(id, nombre) {
+    const C = this.grupoCandado(); if (!C) return '';
+    const ab = this.candadoAbierto(C.g, id);
+    const t = `${nombre} · ${ab ? 'abierta' : 'cerrada'} para ${C.g.nombre}. Pulsa para ${ab ? 'cerrarla' : 'abrirla'}.`;
+    return `<button type="button" class="cx-cand ${ab ? 'ab' : 'ce'}" data-lock="${esc(id)}" aria-pressed="${!ab}" aria-label="${esc(t)}" title="${esc(t)}">${ic(ab ? 'lock-open' : 'lock')}</button>`;
+  }
+  grupoBarHTML() {
+    const C = this.grupoCandado(); if (!C) return '';
+    return `<div class="cx-gbar">${ic('users')}<label>Candados para el grupo <select data-cxgrupo aria-label="Grupo al que afectan los candados">${C.G.map(g => `<option value="${esc(g.id)}" ${g.id === C.g.id ? 'selected' : ''}>${esc(g.nombre)}</option>`).join('')}</select></label>
+      <span class="cx-small">Pulsa el candado de cada tarjeta para abrirla o cerrarla a <b>${esc(C.g.nombre)}</b>. Es lo mismo que Panel → Grupos → «Prácticas guiadas».</span></div>`;
+  }
+  async alternarCandado(id, btn) {
+    const C = this.grupoCandado(); const P = portal(); if (!C || !P?.circ || this._candando) return;
+    const abrir = !this.candadoAbierto(C.g, id);
+    const nuevos = alternarBloqueo(C.g.apartados, id, abrir, PRACTICES.map(p => p.id), EVALS.map(e => e.id));
+    const pr = PRACTICES.find(p => p.id === id), ev = evalDe(id);
+    const nombre = pr ? `Práctica ${pr.n}` : ev ? `Nivel ${ev.nivel}` : id;
+    this._candando = true; if (btn) btn.disabled = true;
+    try { await P.circ.guardarApartados(C.g.id, nuevos); this.toast(`${nombre} ${abrir ? 'abierta' : 'cerrada'} para ${esc(C.g.nombre)}.`, 2500); }
+    catch (e) { this.toast('❌ No se ha podido guardar: ' + esc(e?.message || 'revisa la conexión.'), 5000); }
+    finally { this._candando = false; this.refrescarHome(); }
+  }
   homeHTML() {
     const done = (id) => store.get('done:' + id);
     const started = (id) => store.get('auto:' + id)?.model?.parts?.length;
     const primera = PRACTICES.find(p => abierta(p.id));
-    const bloq = PRACTICES.some(p => !abierta(p.id));
+    const bloq = PRACTICES.some(p => !abierta(p.id)); const C = this.grupoCandado();
     return `<div class="cx-hwrap">
       <section class="cx-hero"><div><h1>Laboratorio de <span>Circuitos</span></h1>
         <p>Monta circuitos eléctricos en una <b>protoboard 3D</b>, pulsa <b>▶ Iniciar simulación</b> y comprueba cómo se encienden los LED, lucen las bombillas, gira el motor o suena el zumbador. Mide con el <b>polímetro</b> como en el taller, sin miedo a romper nada.</p>
         <div class="cx-hbtns">${primera ? `<a class="cx-sim big" href="#eee/circuitos/${primera.id}">Empezar por la práctica ${primera.n} →</a>` : ''}<a class="cx-btn big" href="#eee/circuitos/libre">Modo libre</a></div></div>
         <div class="cx-hero-art">${LOGO}</div></section>
       <nav class="cx-htabs" role="tablist" aria-label="Secciones del laboratorio"><a role="tab" href="#eee/circuitos" aria-selected="${this.homeTab !== 'eval'}" class="${this.homeTab !== 'eval' ? 'on' : ''}">${ic('book-open')} Prácticas guiadas</a><a role="tab" href="#eee/circuitos/evaluacion" aria-selected="${this.homeTab === 'eval'}" class="${this.homeTab === 'eval' ? 'on' : ''}">${ic('clipboard-check')} Evaluación de circuitos</a></nav>
+      ${this.grupoBarHTML()}
       ${this.homeTab === 'eval' ? this.evalHomeHTML() : `<h2>Prácticas guiadas <small>de dificultad creciente</small></h2>
       ${bloq ? `<p class="cx-bloq-aviso">${ic('lock')} Tu profesor va desbloqueando las prácticas una a una. Las que tienen candado se abrirán más adelante.</p>` : ''}
       ${TEMAS.map(T => `<h3 class="cx-tema"><span>Tema ${T.tema}</span> ${esc(T.title)}</h3>
-      <div class="cx-cards">${PRACTICES.filter(p => p.tema === T.tema).map(p => { const ab = abierta(p.id); const tag = ab ? 'a' : 'div'; return `<${tag} class="cx-card ${guiadaHecha(p.id) ? 'done' : ''} ${ab ? '' : 'locked'}" ${ab ? `href="#eee/circuitos/${p.id}"` : 'aria-disabled="true"'}>
-        <div class="cx-card-h"><span class="cx-num">${p.n}</span><span class="cx-ic">${p.icon}</span>${!ab ? `<span class="cx-badge">${ic('lock')} Bloqueada</span>` : !guiadaHecha(p.id) && started(p.id) ? '<span class="cx-badge">En curso</span>' : ''}</div>
+      <div class="cx-cards">${PRACTICES.filter(p => p.tema === T.tema).map(p => { const ab = abierta(p.id); const tag = ab ? 'a' : 'div'; const pc = C && !this.candadoAbierto(C.g, p.id); return `<${tag} class="cx-card ${guiadaHecha(p.id) ? 'done' : ''} ${ab ? '' : 'locked'} ${pc ? 'cerrada' : ''}" ${ab ? `href="#eee/circuitos/${p.id}"` : 'aria-disabled="true"'}>
+        <div class="cx-card-h"><span class="cx-num">${p.n}</span><span class="cx-ic">${p.icon}</span>${!ab ? `<span class="cx-badge">${ic('lock')} Bloqueada</span>` : pc ? `<span class="cx-badge" title="Cerrada para ${esc(C.g.nombre)}">Cerrada</span>` : !guiadaHecha(p.id) && started(p.id) ? '<span class="cx-badge">En curso</span>' : ''}${this.candadoHTML(p.id, 'Práctica ' + p.n)}</div>
         <h3>${esc(p.title)}</h3><div class="cx-sub">${esc(p.sub)}</div>
         <div class="cx-meta"><span>${esc(p.level)}</span><span>⏱ ${esc(p.duration)}</span><span>${Object.keys(p.ra).map(r => 'RA' + r).join(' · ')}</span>${p.cuaderno ? `<span title="Apartados del cuaderno de prácticas">Cuaderno ${esc(p.cuaderno)}</span>` : ''}</div>${ab && guiadaHecha(p.id) ? `<div class="cx-lvl">${`<span class="cx-badge ok">${ic('check')} Guiada completada</span>`}${autoHecha(p.id) ? `<span class="cx-badge ok">${ic('check')} Autónoma completada</span>` : '<span class="cx-badge">Autónoma pendiente</span>'}</div>` : ''}</${tag}>`; }).join('')}</div>`).join('')}
       <h3 class="cx-tema"><span>Por tu cuenta</span> Modo libre y averías</h3>

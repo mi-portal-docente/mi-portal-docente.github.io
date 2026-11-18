@@ -230,3 +230,19 @@ body.scr-apartados #apartados { display: flex; }
 /* cable seleccionado: botón de borrar bien visible arriba (también en el móvil) */
 .cx-insp .cx-delw { margin: 6px 0 8px; } .cx-insp .cx-btn-del { width: 100%; min-height: 42px; font-size: 15px; color: #b42318; border-color: #f3b8b2; background: #fff5f4; } .cx-insp .cx-btn-del:hover { border-color: #b42318; } .cx-delnote { font-size: 12.5px; color: #8a5a00; margin-bottom: 6px; }
 .cx-badge.ko { background: #fde8e6; color: #b42318; }
+/* candados de prácticas y niveles: tarjeta cerrada difuminada (cristal) para el alumno; candado rápido para el profesor */
+.cx-card { position: relative; }
+.cx-card.locked { pointer-events: none; user-select: none; }
+.cx-card.locked > :not(.cx-card-h) { filter: blur(1.6px); opacity: .55; }
+.cx-card.locked::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: rgba(255,255,255,.35); -webkit-backdrop-filter: blur(1.5px) saturate(1.2); backdrop-filter: blur(1.5px) saturate(1.2); pointer-events: none; }
+.cx-card.locked .cx-card-h { position: relative; z-index: 1; }
+.cx-card.cerrada { opacity: .72; border-top-color: #9aa5ad; background: rgba(255,255,255,.75); }
+.cx-cand { margin-left: auto; flex: none; width: 38px; height: 38px; display: inline-grid; place-items: center; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.85); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #126b3e; cursor: pointer; position: relative; z-index: 2; }
+.cx-cand .ic { width: 19px; height: 19px; }
+.cx-cand.ce { color: #b42318; border-color: #f3b8b2; background: #fff5f4; }
+.cx-cand:hover { border-color: var(--tq); } .cx-cand:disabled { opacity: .5; cursor: progress; }
+.cx-badge + .cx-cand { margin-left: 6px; }
+.cx-gbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0 4px; padding: 10px 14px; border-radius: 14px; background: rgba(255,255,255,.8); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--line); }
+.cx-gbar .ic { width: 18px; height: 18px; color: var(--pri); } .cx-gbar label { font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+.cx-gbar select { font: inherit; padding: 6px 8px; border-radius: 9px; border: 1px solid var(--line); background: #fff; }
+.cx-badge { white-space: nowrap; }

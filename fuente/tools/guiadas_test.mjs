@@ -1,5 +1,5 @@
 // Pruebas: desbloqueo de prácticas guiadas por grupo (token en «apartados»).
-import { leerGuiadas, escribirGuiadas, guiadaAbierta, sinTokens, leerEvaluaciones, escribirEvaluaciones, evaluacionAbierta } from './src/circ/guiadas.js';
+import { leerGuiadas, escribirGuiadas, guiadaAbierta, sinTokens, leerEvaluaciones, escribirEvaluaciones, evaluacionAbierta, alternarBloqueo } from './src/circ/guiadas.js';
 let ok = 0, fallos = 0; const t = (n, c) => { if (c) { ok++; console.log('OK  ', n); } else { fallos++; console.log('FALLO', n); } };
 t('Sin token: todas abiertas (grupos de antes)', leerGuiadas(['circuitos', 'esp32']) === null && guiadaAbierta(['circuitos'], 'c9'));
 t('Activar el control sin ninguna: todas cerradas', guiadaAbierta(escribirGuiadas(['circuitos'], []), 'c1') === false);
@@ -19,4 +19,14 @@ t('Evaluación: solo los niveles abiertos', evaluacionAbierta(e, 'n1') && evalua
 t('Evaluación: cerrar todos quita el token', JSON.stringify(escribirEvaluaciones(e, [])) === '["circuitos","guiadas:c1"]');
 t('Evaluación: guardar guiadas no toca el token de evaluación', escribirGuiadas(e, ['c1', 'c2']).includes('evaluacion:n1,n3'));
 t('sinTokens quita también el de evaluación', JSON.stringify(sinTokens(e)) === '["circuitos"]');
+// candado rápido del profesor (lista del laboratorio): mismos tokens que el panel
+const IG = ['c1', 'c2', 'c3'], IE = ['n1', 'n2'];
+const k1 = alternarBloqueo(['circuitos'], 'c2', false, IG, IE);
+t('Candado: cerrar una guiada en un grupo sin control deja las demás abiertas', !guiadaAbierta(k1, 'c2') && guiadaAbierta(k1, 'c1') && guiadaAbierta(k1, 'c3') && k1[0] === 'circuitos');
+const k2 = alternarBloqueo(k1, 'c2', true, IG, IE);
+t('Candado: volver a abrirla (orden de las prácticas, sin duplicados)', k2[1] === 'guiadas:c1,c2,c3');
+t('Candado: abrir en un grupo sin control no cambia nada', JSON.stringify(alternarBloqueo(['circuitos'], 'c1', true, IG, IE)) === '["circuitos"]');
+const k3 = alternarBloqueo(k2, 'n2', true, IG, IE);
+t('Candado: abrir un nivel de evaluación no toca las guiadas', evaluacionAbierta(k3, 'n2') && !evaluacionAbierta(k3, 'n1') && k3.includes('guiadas:c1,c2,c3'));
+t('Candado: cerrar el último nivel quita su token', JSON.stringify(alternarBloqueo(k3, 'n2', false, IG, IE)) === JSON.stringify(k2));
 console.log(`\n${ok}/${ok + fallos} pruebas de prácticas guiadas OK`); if (fallos) process.exit(1);
