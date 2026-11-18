@@ -237,6 +237,47 @@ await pg.setViewportSize({ width: 820, height: 1180 }); await go('#eee/circuitos
 await pg.screenshot({ path: SHOTS + 'circ_tablet.png' });
 await pg.setViewportSize({ width: 390, height: 844 }); await wait(800);
 await pg.screenshot({ path: SHOTS + 'circ_movil.png' });
+// borrar cables: tocar/pinchar un cable lo selecciona (aunque debajo haya agujeros) y se borra con Supr o con «Borrar cable»
+async function wireCase(page, mobile) {
+  if (!mobile) { await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(600); }
+  await page.evaluate(() => { location.hash = '#eee/circuitos/libre'; }); await page.waitForTimeout(2000);
+  await page.evaluate(() => { const L = window.__circ; L.cancelWire(); L.commit(() => { L.model = { parts: [], wires: [] }; }); L.afterChange();
+    L.autoPlace(L.freshPart('resistor'), { at: 'b10', rot: 0 }); L.autoPlace(L.freshPart('led', { color: 'rojo' }), { at: 'e20', rot: 0 });
+    L.commit(() => L.model.wires.push({ id: 'wA', a: 'h:j5', b: 'h:j25', color: 'rojo' }, { id: 'wB', a: 'h:f4', b: 'h:f28', color: 'negro' })); L.select(null); L.homeView(false, true, true); });
+  await page.waitForTimeout(900);
+  // punto del cable visible en pantalla (no tapado por botones ni paneles), empezando por la fracción t
+  const pt = (id, t0) => page.evaluate(([id, t0]) => { const L = window.__circ; const cv = L.renderer.domElement; const r = cv.getBoundingClientRect(); let first = null;
+    for (const t of [t0, 0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8]) { const v = L.wobjs.get(id).curve.getPoint(t).clone(); v.project(L.camera); const p = { x: r.left + (v.x * .5 + .5) * r.width, y: r.top + (-v.y * .5 + .5) * r.height }; first = first || p; if (document.elementFromPoint(p.x, p.y + 4) === cv && document.elementFromPoint(p.x, p.y) === cv) return p; } return first; }, [id, t0]);
+  const out = {};
+  out.asig = await page.evaluate(() => document.body.classList.contains('con-asigbar') && !!document.querySelector('#asigbar, .asigbar'));
+  let p = await pt('wA', 0.3);
+  if (mobile) await page.touchscreen.tap(p.x, p.y + 1); else { await page.mouse.move(p.x, p.y + 2); await page.mouse.down(); await page.mouse.up(); }
+  await page.waitForTimeout(250);
+  out.selA = await page.evaluate(() => ({ s: window.__circ.sel?.id || null, wiring: !!window.__circ.wiring }));
+  if (mobile) { const vis = await page.evaluate(() => { const b = document.querySelector('#cxInsp [data-tool="del"]'); if (!b) return false; const r = b.getBoundingClientRect(), q = document.querySelector('#cxInsp').getBoundingClientRect(); return r.height > 0 && r.bottom <= q.bottom + 1 && r.top >= q.top - 1; }); out.btnVisible = vis; await page.tap('#cxInsp [data-tool="del"]'); }
+  else await page.keyboard.press('Delete');
+  await page.waitForTimeout(250);
+  out.left = await page.evaluate(() => window.__circ.model.wires.map(w => w.id).join(','));
+  p = await pt('wB', 0.6);
+  if (mobile) await page.touchscreen.tap(p.x, p.y); else { await page.mouse.move(p.x, p.y); await page.mouse.down(); await page.mouse.up(); }
+  await page.waitForTimeout(250);
+  out.selB = await page.evaluate(() => window.__circ.sel?.id || null);
+  if (mobile) { if (await page.$('#cxInsp [data-tool="del"]')) await page.tap('#cxInsp [data-tool="del"]'); } else await page.keyboard.press('Backspace');
+  await page.waitForTimeout(250);
+  out.left2 = await page.evaluate(() => window.__circ.model.wires.length);
+  return out;
+}
+{ const r = await wireCase(pg, false);
+  ok('Escritorio: pinchar un cable (vista superior, sobre agujeros) lo selecciona y Supr/Retroceso lo borran', r.selA.s === 'wA' && !r.selA.wiring && r.left === 'wB' && r.left2 === 0, JSON.stringify(r)); }
+{ const mctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await mctx.route('**/js/firebase-config.js*', r => r.fulfill({ contentType: 'application/javascript', body: "window.PORTAL_FIREBASE={apiKey:'',projectId:''};" }));
+  { const _cfg = leerConfig(); await mctx.addInitScript(([key, val]) => { localStorage.setItem(key, val); }, ['portal.acceso', JSON.stringify({ version: _cfg.version, hash: hashCodigo(codigoClase(), _cfg.salt) })]); }
+  const mp = await mctx.newPage(); mp.on('pageerror', e => errs.push('móvil pageerror: ' + e.message));
+  await mp.goto(base + '#asig/eee/laboratorio'); await mp.waitForTimeout(1500);
+  const r = await wireCase(mp, true);
+  await mp.screenshot({ path: SHOTS + 'circ_movil_borrar_cable.png' });
+  ok('Móvil (con la barra de la asignatura): tocar un cable fino lo selecciona y «Borrar cable» (visible) lo borra', r.selA.s === 'wA' && !r.selA.wiring && r.btnVisible && r.left === 'wB' && r.left2 === 0, JSON.stringify(r));
+  await mctx.close(); }
 ok('Sin errores en consola', errs.length === 0, errs.slice(0, 5).join(' | '));
 console.log(`\n${results.filter(r => r.ok).length}/${results.length} comprobaciones OK`);
 await b.close();

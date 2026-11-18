@@ -226,3 +226,6 @@ body.scr-apartados #apartados { display: flex; }
 .cx-avres { margin: 12px 0; padding: 10px 12px; border-radius: 12px; box-shadow: inset 0 0 0 1.5px #ff3b30; }
 .cx-avres.ok { box-shadow: inset 0 0 0 1.5px #34c759; }
 .cx-avok { color: #248a3d; }
+
+/* cable seleccionado: botón de borrar bien visible arriba (también en el móvil) */
+.cx-insp .cx-delw { margin: 6px 0 8px; } .cx-insp .cx-btn-del { width: 100%; min-height: 42px; font-size: 15px; color: #b42318; border-color: #f3b8b2; background: #fff5f4; } .cx-insp .cx-btn-del:hover { border-color: #b42318; } .cx-delnote { font-size: 12.5px; color: #8a5a00; margin-bottom: 6px; }

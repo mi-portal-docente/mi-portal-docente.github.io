@@ -748,7 +748,23 @@ export class CircuitLab {
   hitPart(e) { if (e) this.setNDC(e); const hit = this.ray.intersectObjects(this.partsG.children, true).find(h => !h.object.userData.term && h.object.isMesh); if (!hit) return null; let o = hit.object; while (o && !o.userData.partId) o = o.parent; return o?.userData.partId || null; }
   hitProbe() { const h = this.ray.intersectObjects(this.probesG.children, true).find(x => x.object.userData.probe); return h ? h.object.userData.probe : null; }
   hitTerm() { const h = this.ray.intersectObjects(this.terms, false)[0]; return h ? h.object.userData.term : null; }
-  hitWire() { const h = this.ray.intersectObjects(this.wiresG.children, true)[0]; return h ? h.object.userData.wireId : null; }
+  hitWireRay() { const h = this.ray.intersectObjects(this.wiresG.children, true).find(x => x.object.userData.wireId); return h ? { id: h.object.userData.wireId, dist: h.distance } : null; }
+  // cable bajo el puntero: primero el rayo exacto y, si falla, el cable más cercano en pantalla (los cables son finos: margen mayor con el dedo)
+  hitWire(e, tolMul = 1) {
+    const h = this.hitWireRay(); if (h) return h.id;
+    if (!e || !this.wobjs.size) return null;
+    const r = this.renderer.domElement.getBoundingClientRect(); const tol = e.pointerType === 'touch' || e.pointerType === 'pen' ? 14 * tolMul : 7 * tolMul;
+    const px = e.clientX - r.left, py = e.clientY - r.top; const v = new THREE.Vector3(); let best = null, bd = tol;
+    for (const [id, o] of this.wobjs) {
+      if (!o.curve) continue; let prev = null;
+      for (let i = 0; i <= 40; i++) {
+        v.copy(o.curve.getPoint(i / 40)).project(this.camera); const q = { x: (v.x * 0.5 + 0.5) * r.width, y: (-v.y * 0.5 + 0.5) * r.height };
+        if (prev) { const dx = q.x - prev.x, dy = q.y - prev.y, L2 = dx * dx + dy * dy; const t = L2 ? Math.max(0, Math.min(1, ((px - prev.x) * dx + (py - prev.y) * dy) / L2)) : 0; const d = Math.hypot(px - prev.x - t * dx, py - prev.y - t * dy); if (d < bd) { bd = d; best = id; } }
+        prev = q;
+      }
+    }
+    return best;
+  }
   planeAt(y) { const p = new THREE.Vector3(); return this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), p) ? p : null; }
   holeUnder() { const p = this.planeAt(BT); if (!p || Math.abs(p.x) > BOARD_W / 2 || Math.abs(p.z) > BOARD_D / 2) return null; return holeAt(p.x, p.z, 0.5); }
 
@@ -765,14 +781,17 @@ export class CircuitLab {
     if (term) { this.controls.enabled = false; this.down.term = term; return; }
     // con un cable a medio tender, los agujeros libres tienen prioridad (aunque una pieza los tape en la vista)
     if (this.wiring) { const h = this.holeUnder(); if (h && !this.occupied().has(h)) { this.controls.enabled = false; this.down.hole = h; return; } }
-    const pid = this.hitPart();
+    // un cable que pasa por delante de una pieza se puede seleccionar (antes la pieza lo tapaba siempre)
+    const wr = this.wiring ? null : this.hitWireRay();
+    let pid = this.hitPart();
+    if (pid && wr) { const ph = this.ray.intersectObjects(this.partsG.children, true).find(h => !h.object.userData.term && h.object.isMesh); if (ph && wr.dist < ph.distance) pid = null; }
     if (pid) {
       this.controls.enabled = false; this.down.part = pid;
       const p = this.part(pid);
       if (this.running && (p.type === 'button' || p.type === 'tact')) { p.state.pressed = true; this.pressing = p; this.stateChanged(p, true); }
       return;
     }
-    const w = this.hitWire(); if (w) this.down.wire = w;
+    const w = this.running || !this.wiring ? (wr ? wr.id : this.hitWire(e, (() => { const h = this.holeUnder(); return h && !this.occupied().has(h) ? 0.5 : 1; })())) : null; if (w) this.down.wire = w;
     this.down.hole = this.holeUnder();
     if (this.wiring && this.down.hole) this.controls.enabled = false;
   }
@@ -800,8 +819,9 @@ export class CircuitLab {
       if (this.running && p && (p.type === 'switch' || p.type === 'spdt' || p.type === 'slide' || p.type === 'limit')) { if (p.type === 'switch') p.state.closed = !p.state.closed; else p.state.pos = p.state.pos ? 0 : 1; this.buzz.click(); this.stateChanged(p, true); }
       this.select({ kind: 'part', id: d.part }); return;
     }
+    // tocar un cable lo selecciona (antes, si debajo había un agujero de la protoboard, empezaba un cable nuevo y no se podía borrar)
+    if (d.wire && !this.wiring) { this.select({ kind: 'wire', id: d.wire }); return; }
     if (!this.running && (d.term || d.hole)) { this.wireClick(d.term || 'h:' + d.hole); return; }
-    if (d.wire) { this.select({ kind: 'wire', id: d.wire }); return; }
     if (this.wiring) { this.cancelWire(); return; }
     this.select(null);
   }
@@ -1146,10 +1166,11 @@ export class CircuitLab {
       const w = this.model.wires.find(x => x.id === s.id); if (!w) { box.style.display = 'none'; return; }
       box.style.display = 'block';
       box.innerHTML = `<div class="cx-ih"><b>Cable</b><button class="cx-x" data-act="desel" title="Cerrar">✕</button></div>
+        <div class="cx-ibtns cx-delw"><button class="cx-btn cx-btn-del" data-tool="del" ${this.running ? 'disabled' : ''}>🗑 Borrar cable</button></div>${this.running ? '<div class="cx-delnote">Detén la simulación para borrar o cambiar el cable.</div>' : ''}
         <div class="cx-small">De <b>${esc(this.termName(w.a))}</b><br>a <b>${esc(this.termName(w.b))}</b></div>
         ${(() => { const k = this.wireKindOf(w), e = this.wireEnds(w), ok = validKinds(socketOf(w.a, this.model), socketOf(w.b, this.model)); const i = this.running ? this.lastSim?.wireI?.[w.id] : null; return `<div class="cx-lab">Tipo de cable</div><div class="cx-small"><b>${esc(WIRE_KINDS[k].name)}</b>: ${esc(END[e[0]].short)} en un lado y ${esc(END[e[1]].short)} en el otro.</div>${ok.length > 1 && !this.running ? `<div class="cx-kinds">${ok.map(x => `<button class="cx-kbtn ${x === k ? 'on' : ''}" data-wkind="${x}">${esc(WIRE_KINDS[x].name)}</button>`).join('')}</div>` : ''}${i != null ? `<div class="cx-live">I = ${esc(fmtSI(Math.abs(i), 'A'))}${Math.abs(i) > 2e-5 ? (i > 0 ? ' (del primer extremo al segundo)' : ' (del segundo extremo al primero)') : ' · no pasa corriente'}</div>` : ''}`; })()}
         <div class="cx-lab">Color (teclas 0–9)</div><div class="cx-colors">${WIRE_COLORS.map(([n, h], i) => `<button title="${n} (${i})" class="${w.color === n ? 'on' : ''}" style="background:${h}" data-wcolor="${n}" ${this.running ? 'disabled' : ''}></button>`).join('')}</div>
-        <div class="cx-ibtns"><button class="cx-btn" data-tool="del" ${this.running ? 'disabled' : ''}>🗑 Borrar cable</button></div>`;
+`;
       box.querySelectorAll('[data-wcolor]').forEach(b => b.onclick = () => this.setWireColor(b.dataset.wcolor));
       return;
     }
