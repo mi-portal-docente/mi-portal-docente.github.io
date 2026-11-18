@@ -443,10 +443,30 @@ function drawMeter(g, txt, mode) {
   g.font = '700 20px system-ui'; g.textAlign = 'left'; g.fillText(mode ? (mode === 'Ω' ? 'Ω' : mode === '·)))' ? '·)))' : mode === 'V' ? 'V ⎓' : 'A ⎓') : 'OFF', 12, 28);
 }
 
+// Cuánto se levanta el cuerpo de cada pieza de protoboard para que se vean las patas entre el cuerpo y la placa
+// (solo es visual: las patas siguen en los mismos agujeros, así que montajes y comprobaciones no cambian)
+export const ALZA = { tact: 0.75, button: 0.75, switch: 0.75, slide: 0.85, spdt: 0.85, limit: 0.6, relay: 0.65, fuse: 0.55, bulb: 0.55, pot: 0.65, buzzer: 0.65, cap: 0.45, ldr: 0.4, npn: 0.4, resistor: 0.35, diode: 0.35, led: 0.3, rgb: 0.3 };
+let ARO_MAT = null, PATA_MAT = null;
+function patasVisibles(g, part) {
+  const def = PARTS[part.type]; const dy = ALZA[part.type] ?? 0.4; if (!def?.board || !dy) return;
+  g.userData.inner.position.y = dy;
+  const h = dy + 0.5; const pataGeo = geoC('pataVis|' + h, () => new THREE.CylinderGeometry(0.1, 0.1, h, 10)); const aroGeo = geoC('aroAgujero', () => new THREE.RingGeometry(0.17, 0.31, 20).rotateX(-Math.PI / 2));
+  PATA_MAT = PATA_MAT || M(0xd3d7dc, { metalness: 0.92, roughness: 0.22 });
+  ARO_MAT = ARO_MAT || new THREE.MeshStandardMaterial({ color: 0x5b6570, metalness: 0.7, roughness: 0.35, polygonOffset: true, polygonOffsetFactor: -2 });
+  const patas = new THREE.Group(); patas.name = 'patas'; g.add(patas);
+  for (const [, dx, dz] of def.pins) {
+    // tramo de pata que queda a la vista entre la placa y el cuerpo levantado
+    const l = new THREE.Mesh(pataGeo, PATA_MAT); l.position.set(dx, BT - 0.45 + h / 2, dz); l.castShadow = true; patas.add(l);
+    // aro discreto alrededor del agujero ocupado: marca el punto exacto de inserción
+    const a = new THREE.Mesh(aroGeo, ARO_MAT); a.position.set(dx, BT + 0.015, dz); a.receiveShadow = true; a.renderOrder = 1; patas.add(a);
+  }
+}
 export function buildPart(part) {
   const g = new THREE.Group(); const inner = new THREE.Group(); g.add(inner);
   (B[part.type] || (() => box(2, 2, 2, M(0xff00ff), 0, BT, 0, inner)))(inner, part);
   g.userData.update = inner.userData.update; g.userData.glowY = inner.userData.glowY; g.userData.inner = inner; g.userData.drawV = inner.userData.drawV;
+  patasVisibles(g, part);
+  if (g.userData.glowY != null) g.userData.glowY += inner.position.y;
   return g;
 }
 // Esferas invisibles para pinchar en los terminales de las piezas de mesa
