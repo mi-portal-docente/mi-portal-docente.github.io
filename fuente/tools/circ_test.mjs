@@ -237,6 +237,23 @@ await pg.setViewportSize({ width: 820, height: 1180 }); await go('#eee/circuitos
 await pg.screenshot({ path: SHOTS + 'circ_tablet.png' });
 await pg.setViewportSize({ width: 390, height: 844 }); await wait(800);
 await pg.screenshot({ path: SHOTS + 'circ_movil.png' });
+// estado de la entrega de una guiada: corrección automática («Guiada completada»), nunca «Pendiente de corregir»;
+// y al superar «Comprobar circuito» el alumno la deja registrada sola (el profesor la ve en su progreso)
+await go('#eee/circuitos/c16', 2000);
+st = await pg.evaluate(async () => {
+  const L = window.__circ, prev = window.PORTAL; const llamadas = [];
+  window.PORTAL = { rol: 'alumno', estadoEntrega: () => null, entregar: (x) => { llamadas.push(x); return Promise.resolve(); } };
+  try {
+    const out = {};
+    for (const ok of [true, false]) { window.PORTAL.estadoEntrega = () => ({ fecha: Date.now(), nota: null, datos: { comprobacion: { ok } } }); out[ok ? 'bien' : 'mal'] = L.entregaHTML(); }
+    window.PORTAL.estadoEntrega = () => null;
+    L.loadSolution(); L.guideAction('check'); await new Promise(r => setTimeout(r, 200));
+    out.auto = llamadas.map(x => x.practica + ':' + x.datos.comprobacion.ok).join(',');
+    return out;
+  } finally { window.PORTAL = prev; }
+});
+ok('Práctica 14 (c16): la entrega muestra «Guiada completada» (corrección automática) y no «Pendiente de corregir»', /Guiada completada/.test(st.bien) && !/Pendiente de corregir/i.test(st.bien + st.mal) && /sin superar/.test(st.mal), (st.bien + ' || ' + st.mal).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 200));
+ok('Al superar «Comprobar circuito» la guiada del alumno queda registrada sola', st.auto === 'c16:true', st.auto);
 // borrar cables: tocar/pinchar un cable lo selecciona (aunque debajo haya agujeros) y se borra con Supr o con «Borrar cable»
 async function wireCase(page, mobile) {
   if (!mobile) { await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(600); }
@@ -244,7 +261,7 @@ async function wireCase(page, mobile) {
   await page.evaluate(() => { const L = window.__circ; L.cancelWire(); L.commit(() => { L.model = { parts: [], wires: [] }; }); L.afterChange();
     L.autoPlace(L.freshPart('resistor'), { at: 'b10', rot: 0 }); L.autoPlace(L.freshPart('led', { color: 'rojo' }), { at: 'e20', rot: 0 });
     L.commit(() => L.model.wires.push({ id: 'wA', a: 'h:j5', b: 'h:j25', color: 'rojo' }, { id: 'wB', a: 'h:f4', b: 'h:f28', color: 'negro' })); L.select(null); L.homeView(false, true, true); });
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(1600);
   // punto del cable visible en pantalla (no tapado por botones ni paneles), empezando por la fracción t
   const pt = (id, t0) => page.evaluate(([id, t0]) => { const L = window.__circ; const cv = L.renderer.domElement; const r = cv.getBoundingClientRect(); let first = null;
     for (const t of [t0, 0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8]) { const v = L.wobjs.get(id).curve.getPoint(t).clone(); v.project(L.camera); const p = { x: r.left + (v.x * .5 + .5) * r.width, y: r.top + (-v.y * .5 + .5) * r.height }; first = first || p; if (document.elementFromPoint(p.x, p.y + 4) === cv && document.elementFromPoint(p.x, p.y) === cv) return p; } return first; }, [id, t0]);
@@ -254,7 +271,7 @@ async function wireCase(page, mobile) {
   if (mobile) await page.touchscreen.tap(p.x, p.y + 1); else { await page.mouse.move(p.x, p.y + 2); await page.mouse.down(); await page.mouse.up(); }
   await page.waitForTimeout(250);
   out.selA = await page.evaluate(() => ({ s: window.__circ.sel?.id || null, wiring: !!window.__circ.wiring }));
-  if (mobile) { const vis = await page.evaluate(() => { const b = document.querySelector('#cxInsp [data-tool="del"]'); if (!b) return false; const r = b.getBoundingClientRect(), q = document.querySelector('#cxInsp').getBoundingClientRect(); return r.height > 0 && r.bottom <= q.bottom + 1 && r.top >= q.top - 1; }); out.btnVisible = vis; await page.tap('#cxInsp [data-tool="del"]'); }
+  if (mobile) { const vis = await page.evaluate(() => { const b = document.querySelector('#cxInsp [data-tool="del"]'); if (!b) return false; const r = b.getBoundingClientRect(), q = document.querySelector('#cxInsp').getBoundingClientRect(); return r.height > 0 && r.bottom <= q.bottom + 1 && r.top >= q.top - 1; }); out.btnVisible = vis; if (vis) await page.tap('#cxInsp [data-tool="del"]'); else out.top = await page.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y + 1); const L = window.__circ; return (e?.id || e?.className || e?.tagName) + ' · toast=' + (document.querySelector('#cxToast')?.textContent || '').slice(0, 80) + ' · hw=' + L.hitWire({ clientX: x, clientY: y + 1, pointerType: 'touch' }); }, p); }
   else await page.keyboard.press('Delete');
   await page.waitForTimeout(250);
   out.left = await page.evaluate(() => window.__circ.model.wires.map(w => w.id).join(','));

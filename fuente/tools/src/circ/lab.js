@@ -1325,17 +1325,29 @@ export class CircuitLab {
     if (!e) return `<p class="cx-small">Cuando termines, entrega la práctica al profesor. Se envían tu montaje, tus respuestas y el resultado de «Comprobar circuito», solo con tu grupo y tu número de lista.</p>
       <div class="cx-ibtns"><button class="cx-sim" data-act="entregar">📤 Entregar al profesor</button></div>`;
     let h = `<div class="cx-ent-ok">📤 <b>Entregado</b> · ${esc(f(e.fecha))}${e.pendiente ? ' · enviando…' : ''}</div>`;
-    if (e.nota != null) h += `<div class="cx-ent-nota">Nota: <b>${esc(String(e.nota).replace('.', ','))}</b></div>`;
-    else h += `<div class="cx-small">Pendiente de corregir.</div>`;
+    // las prácticas guiadas se corrigen solas con «Comprobar circuito»: el estado es el de esa comprobación
+    // (antes decía que estaba pendiente de que la corrigiera el profesor, y no es así)
+    const ok = !!e.datos?.comprobacion?.ok;
+    h += `<div class="cx-lvl">${ok ? `<span class="cx-badge ok">${ic('check')} Guiada completada</span>` : '<span class="cx-badge ko">Comprobación sin superar</span>'}</div>`;
+    if (e.nota != null) h += `<div class="cx-ent-nota">Nota del profesor: <b>${esc(String(e.nota).replace('.', ','))}</b></div>`;
+    else h += `<div class="cx-small">${ok ? 'Corrección automática: el circuito está bien. Tu profesor ya lo ve en tu progreso.' : 'Corrección automática: el circuito entregado todavía no supera «Comprobar circuito». Corrígelo y vuelve a entregar.'}</div>`;
     if (e.comentario) h += `<div class="cx-ent-com">💬 ${esc(e.comentario)}</div>`;
     if (e.nota == null) h += `<div class="cx-ibtns"><button class="cx-btn" data-act="entregar">↻ Volver a entregar</button></div>`;
     return h;
   }
+  // alumno: al superar «Comprobar circuito» la guiada queda registrada sola (como la autónoma), para que el
+  // profesor la vea completada sin esperar a «Entregar». No pisa una entrega ya calificada ni una ya en verde.
+  autoEntregaGuiada() {
+    const P = portal(), pr = this.pr; if (!P || P.rol !== 'alumno' || !pr || this._entregando || !P.entregar) return;
+    const e = P.estadoEntrega?.(pr.id); if (e && (e.nota != null || e.datos?.comprobacion?.ok)) return;
+    this.entregar(true);
+  }
   refreshEntrega() { const el = this.$('#cxEntrega'); if (el) el.innerHTML = this.entregaHTML(); }
   calcQres(pr, answers) { return pr.questions.map((q, i) => { const a = answers?.[i]; if (a == null || a === '') return null; if (q.choices) return +a === q.ans; const v = parseFloat(String(a).replace(',', '.')); return isFinite(v) && Math.abs(v - q.ans) <= Math.max(q.tol * Math.abs(q.ans), 1e-9); }); }
-  entregar() {
+  entregar(auto) {
     const P = portal(), pr = this.pr, g = this.g; if (!P || !pr || this._entregando) return;
     const res = runChecks(pr, this.model, { map: g.map, measured: g.measured }); this.checkResult = res;
+    if (auto && !res.ok) return;
     if (!res.ok && !(this.opts.confirm || confirm)('La comprobación del circuito todavía no está bien. ¿Quieres entregarla igualmente?')) { this.renderSide(); return; }
     const q = this.calcQres(pr, g.answers);
     const datos = {
@@ -1346,7 +1358,7 @@ export class CircuitLab {
     };
     this._entregando = true; this.renderSide();
     P.entregar({ practica: pr.id, tipo: 'circuitos', titulo: `Práctica ${pr.n}: ${pr.title}`.slice(0, 120), datos })
-      .then(() => this.toast('📤 ¡Práctica entregada al profesor!', 3500), (e) => this.toast('❌ No se ha podido entregar: ' + esc(e?.mensaje || 'revisa la conexión.'), 5000))
+      .then(() => this.toast(auto ? '✅ Guiada completada: tu profesor ya lo ve.' : '📤 ¡Práctica entregada al profesor!', 3500), (e) => this.toast('❌ No se ha podido entregar: ' + esc(e?.mensaje || 'revisa la conexión.'), 5000))
       .finally(() => { this._entregando = false; this.renderSide(); });
   }
   // ------------------------------------------------------------ revisión de una entrega (profesor, solo lectura)
@@ -1490,7 +1502,7 @@ export class CircuitLab {
     if (!pr || this.readOnly) return;
     if (act === 'entregar') return this.entregar();
     if (act === 'autostep') this.autoStep();
-    if (act === 'check') { this.checkResult = runChecks(pr, this.model, { map: g.map, measured: g.measured }); if (this.checkResult.ok) { store.set('done:' + pr.id, true); this.toast('✅ ¡Práctica superada!', 4000); } this.renderSide(); this.$('.cx-check')?.scrollIntoView({ block: 'nearest' }); }
+    if (act === 'check') { this.checkResult = runChecks(pr, this.model, { map: g.map, measured: g.measured }); if (this.checkResult.ok) { store.set('done:' + pr.id, true); this.toast('✅ ¡Práctica superada! Guiada completada.', 4000); this.autoEntregaGuiada(); } this.renderSide(); this.$('.cx-check')?.scrollIntoView({ block: 'nearest' }); }
     if (act === 'solution') { if (!(this.opts.confirm || confirm)('¿Cargar la solución completa? Tu montaje actual se puede recuperar con Deshacer.')) return; this.loadSolution(); }
     if (act === 'answers') { this.qres = pr.questions.map((q, i) => { const a = g.answers[i]; if (a == null || a === '') return null; if (q.choices) return +a === q.ans; const v = parseFloat(String(a).replace(',', '.')); return isFinite(v) && Math.abs(v - q.ans) <= Math.max(q.tol * Math.abs(q.ans), 1e-9); }); this.renderSide(); }
     if (act === 'showans') { this.showAnswers = true; this.renderSide(); }
