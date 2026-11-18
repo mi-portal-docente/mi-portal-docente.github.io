@@ -254,17 +254,37 @@ function espEntregaHTML(L) {
     <div id="espEstado" class="esp-estado">${espEstadoHTML(L)}</div></div>`;
 }
 function brandHTML() {
-  return `<a href="#inicio" class="brand" title="Inicio">SuperProfe · Alumnos</a>`;
+  return `<a href="#inicio" class="brand" title="Inicio"><span class="brand-t">SuperProfe · Alumnos</span></a>`;
 }
 // Navegación del encabezado, igual en todas las pantallas (alumno: su Curso; profesor: + Biblioteca y Panel).
 const topNav = (k = '') => portal()?.navHTML?.(k) || `<nav class="top-nav" aria-label="Principal"><a class="top-nav-a ${k === 'asig' ? 'on' : ''}" href="#asignaturas" ${k === 'asig' ? 'aria-current="page"' : ''}>📚 Asignaturas</a></nav>`;
 const cabecera = (titulo, k = '') => `<header class="scr-top">${brandHTML()}<div class="scr-ttl">${esc(titulo)}</div>${topNav(k)}</header>`;
 // Barra de la asignatura (encabezado + pestañas Trabajo de clase, Tablón, Laboratorio…) que se queda arriba
 // en los laboratorios y simuladores: el laboratorio se abre debajo, sin tapar la navegación de la asignatura.
+// Encabezados alineados con el contenido: las barras de arriba (encabezado, barra de la asignatura, migas y
+// cabeceras de los simuladores) usan los mismos bordes izquierdo y derecho que el contenedor principal de la
+// pantalla (Curso, asignatura, inicio de los laboratorios…). En los simuladores a pantalla completa, 14 px.
+const CONT_PAGINA = '.subj-wrap, .as-hero-in, .as-wrap, .cx-hwrap, .vv-hw, .bib-wrap, .pn-wrap';
+function alinearBarras() {
+  const R = document.documentElement, W = R.clientWidth || innerWidth;
+  const scr = [...document.querySelectorAll('.screen')].find((x) => getComputedStyle(x).display !== 'none') || null;
+  const c = [...(scr || document).querySelectorAll(CONT_PAGINA)].find((e) => e.offsetParent !== null && e.getBoundingClientRect().width > 200);
+  let izq = 14, der = 14;
+  if (c) { const r = c.getBoundingClientRect(), cs = getComputedStyle(c); izq = r.left + parseFloat(cs.paddingLeft); der = W - (r.right - parseFloat(cs.paddingRight)); }
+  const sb = scr ? Math.max(0, scr.offsetWidth - scr.clientWidth) : 0;
+  R.style.setProperty('--lat-izq', Math.max(8, Math.round(izq)) + 'px');
+  R.style.setProperty('--lat-der', Math.max(8, Math.round(der)) + 'px');
+  R.style.setProperty('--lat-sb', sb + 'px');
+  R.classList.add('barras-al'); R.classList.toggle('barras-pagina', !!c);
+}
+let _alT = 0;
+function alinearLuego() { alinearBarras(); clearTimeout(_alT); _alT = setTimeout(alinearBarras, 120); setTimeout(alinearBarras, 600); }
+window.addEventListener('resize', () => { clearTimeout(_alT); _alT = setTimeout(alinearBarras, 60); });
+window.addEventListener('hashchange', () => setTimeout(alinearLuego, 0));
 function mostrarBarraAsig(id, tab = 'laboratorio') {
   const el = $('#asigbar'); if (!el) return;
   const a = id && asignatura(id);
-  if (!a) { el.hidden = true; el.innerHTML = ''; document.body.classList.remove('con-asigbar'); document.documentElement.style.removeProperty('--asigbar-h'); return; }
+  if (!a) { el.hidden = true; el.innerHTML = ''; document.body.classList.remove('con-asigbar'); document.documentElement.style.removeProperty('--asigbar-h'); setTimeout(alinearLuego, 0); return; }
   const T = pestañas();
   el.style.setProperty('--c', a.color || '');
   // Una sola fila (para no quitar alto al visor 3D): marca · asignatura · pestañas · navegación general.
@@ -272,7 +292,7 @@ function mostrarBarraAsig(id, tab = 'laboratorio') {
   el.hidden = false; document.body.classList.add('con-asigbar');
   const medir = () => { if (!el.hidden) document.documentElement.style.setProperty('--asigbar-h', el.offsetHeight + 'px'); };
   medir(); if (!el._ro && window.ResizeObserver) { el._ro = new ResizeObserver(() => { medir(); window.dispatchEvent(new Event('resize')); }); el._ro.observe(el); }
-  window.dispatchEvent(new Event('resize'));
+  window.dispatchEvent(new Event('resize')); setTimeout(alinearLuego, 0);
 }
 function coverHTML() {
   const P = portal(); const prof = !!P?.esProfesor; const alumno = P?.rol === 'alumno'; const ses = window.PORTAL_SESION;

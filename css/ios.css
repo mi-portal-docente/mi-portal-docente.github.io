@@ -1177,3 +1177,46 @@ a.cx-sim, a.cx-btn { text-decoration: none; display: inline-flex; align-items: c
 .pn-pg-c i.a.on, .pn-pg-k.a.on { background: #007aff; }
 .pn-pg-t { font-weight: 700; padding: 4px 8px !important; }
 html[data-theme="dark"] .pn-pg tbody th { background: #2c2c2e; }
+
+/* ---------- barras superiores sin solapes y alineadas con el contenido (18-11) ----------
+   - La barra de la asignatura ya no es una rejilla de 4 columnas fijas (la navegación general cabía en
+     11,5rem y se montaba encima de las pestañas «Laboratorio» / «Actividades de clase»): ahora es flexible,
+     en una fila en pantallas anchas y en dos filas (pestañas debajo) en las estrechas.
+   - Todas las barras usan los bordes del contenido (--lat-izq / --lat-der, medidos en main.js). */
+.asigbar .asb-top { display: flex; align-items: center; flex-wrap: nowrap; column-gap: 12px; row-gap: 2px; }
+.asigbar .asb-top > * { min-width: 0; }
+.asigbar .asb-top .brand { flex: none; }
+.asigbar .asb-top .brand .brand-t { display: none; } /* en la barra de la asignatura solo el logotipo (el nombre ya está en la cabecera) */
+.asigbar .asb-asig { flex: 0 1 auto; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
+.asigbar .asb-tabs { flex: 1 1 auto; }
+.asigbar .asb-top .top-nav { flex: none; margin-left: auto; justify-self: auto; overflow: visible; }
+@media (max-width: 1239px) {
+  .asigbar .asb-top { flex-wrap: wrap; padding-top: 6px; padding-bottom: 4px; }
+  .asigbar .asb-tabs { order: 5; flex: 1 0 100%; }
+}
+@media (max-width: 700px) {
+  .asigbar .asb-top .top-nav { display: none; }
+}
+html.barras-al .scr-top, html.barras-al .crumbs, html.barras-al .cx-top, html.barras-al .cx-crumbs,
+html.barras-al .vv-top, html.barras-al .vv-crumbs, html.barras-al header.top {
+  padding-left: var(--lat-izq); padding-right: calc(var(--lat-der) - var(--lat-sb, 0px));
+}
+html.barras-al .asigbar .asb-top { padding-left: var(--lat-izq); padding-right: var(--lat-der); }
+/* páginas con la esquina de sesión (tema + cuenta): la esquina termina en el borde derecho del contenido y la
+   navegación del encabezado se para antes de ella */
+html.barras-al.barras-pagina body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .scr-top { padding-right: calc(var(--lat-der) - var(--lat-sb, 0px) + var(--esquina-w, 44px) + 12px); }
+html.barras-al.barras-pagina body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .tema-caja { right: var(--lat-der); }
+/* dentro de un simulador con la barra de la asignatura: sin la marca repetida ni la navegación repetida */
+body.con-asigbar header.top > .brand, body.con-asigbar .vv-crumbs .top-nav { display: none; }
+/* textos largos de las barras: una línea con puntos suspensivos en vez de montarse */
+.cx-top .cx-b1, .cx-top .cx-ptt, header.top .ttl, .vv-top .vv-b1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* encabezado de las páginas (Curso, asignatura, Biblioteca, Panel…): fila flexible; si la navegación no cabe
+   pasa a una segunda fila (y se desliza en el móvil) en vez de montarse sobre la marca o el título */
+.scr-top:not(.asb-top) { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 2px; padding-top: 8px; padding-bottom: 8px; min-height: 64px; box-sizing: border-box; }
+.scr-top:not(.asb-top) > .brand { flex: none; }
+.scr-top:not(.asb-top) > .scr-ttl { flex: 1 1 0; min-width: 0; }
+.scr-top:not(.asb-top) > .top-nav { flex: 0 1 auto; margin-left: auto; min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.scr-top:not(.asb-top) > .top-nav::-webkit-scrollbar { display: none; }
+.scr-top:not(.asb-top) > :is(.pn-who, .scr-end, .au-chip) { flex: 0 1 auto; min-width: 0; }
+@media (max-width: 860px) { .scr-top:not(.asb-top) > .scr-ttl { display: none; } }
+@media (max-width: 600px) { .scr-top:not(.asb-top) > .top-nav { flex: 1 0 100%; order: 5; justify-content: flex-start; } }

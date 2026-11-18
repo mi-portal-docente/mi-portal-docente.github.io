@@ -204,7 +204,7 @@ async function runPractice(id, shotAt, after) {
 const PRS = await pg.evaluate(() => window.__circ ? null : null);
 const ids = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17', 'c18', 'c19', 'c20', 'c21', 'c22', 'c23', 'c24', 'c25', 'c26', 'c27', 'c28', 'c29'];
 const SH = { c10: 'pulsador', c11: 'interruptor', c12: 'rele', c17: 'fusible', c18: 'final_carrera', c19: 'diodo', c20: 'transistor', c21: 'automatismo', c22: 'led_serie', c23: 'resistencia_comun', c24: 'control_ramas', c25: 'tres_interruptores', c26: 'reto_combinaciones', c27: 'condensador', c28: 'rgb', c29: 'luz_nocturna' };
-for (const id of ids) { const r = await runPractice(id, id === 'c2' ? 3 : 0, SH[id]); ok(`Práctica ${id}: todos los pasos + comprobación en verde + preguntas`, r.ok, `${r.steps} pasos · ${r.msg}`); }
+for (const id of (process.env.RAPIDO ? [] : ids)) { const r = await runPractice(id, id === 'c2' ? 3 : 0, SH[id]); ok(`Práctica ${id}: todos los pasos + comprobación en verde + preguntas`, r.ok, `${r.steps} pasos · ${r.msg}`); }
 // botón Ver solución en c4 (desde cero)
 await clearAll(); await go('#eee/circuitos/c5', 2000);
 await pg.click('[data-act="solution"]'); await wait(500); await pg.click('#cxSim'); await wait(800);
