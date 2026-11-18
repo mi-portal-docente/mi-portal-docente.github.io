@@ -920,6 +920,7 @@ export class CircuitLab {
     const sk = socketOf(key, this.model), K = WIRE_KINDS[this.wireKind];
     if (!this.wiring) {
       if (!this.canEndAt(key)) return;
+      const kp = this.kindDelPaso(key); if (kp && !canStart(this.wireKind, sk) && canStart(kp, sk)) { this.wireKind = kp; this.renderWBar(); }
       if (!canStart(this.wireKind, sk)) {
         const ok = startKinds(sk);
         this.toast(`❌ El cable <b>${esc(K.name)}</b> no se puede conectar en ${esc(SOCKETS[sk].name)}: ${esc(whyNot(this.wireKind, sk, sk).replace(/\.$/, ''))}.<br>Elige: ${this.kindButtons(ok)}`, 7000);
@@ -933,6 +934,7 @@ export class CircuitLab {
     if (key === this.wiring.a) { this.cancelWire(); return; }
     if (!this.canEndAt(key)) return;
     const a = this.wiring.a, sa = socketOf(a, this.model);
+    { const kp = this.kindDelPaso(a, key); if (kp && fitKind(this.wireKind, sa, sk) < 0 && fitKind(kp, sa, sk) >= 0) { this.wireKind = kp; this.renderWBar(); } }
     if (fitKind(this.wireKind, sa, sk) < 0) {
       const ok = validKinds(sa, sk);
       this.toast(`❌ Con un cable <b>${esc(K.name)}</b> no se puede unir ${esc(SOCKETS[sa].name)} con ${esc(SOCKETS[sk].name)}. ${esc(whyNot(this.wireKind, sa, sk))}${ok.length ? '<br>Para estos dos terminales sirve: ' + this.kindButtons(ok) : ''}`, 8000);
@@ -1470,13 +1472,26 @@ export class CircuitLab {
       const st = pr.steps[g.idx]; if (st.measure && st.key) g.measured[st.key] = true;
       g.idx++; g.snap = this.snapFor(pr.steps[g.idx]);
     }
-    if (g.idx !== before || force) {
+    if (g.idx !== before || force) { this.cableDelPaso();
       if (g.idx !== before) { this.autosave(); this.toast(g.idx >= pr.steps.length ? '🎉 ¡Pasos completados! Pulsa «Comprobar circuito».' : `✔ ¡Bien! Paso ${before + 1} hecho. Ahora el paso ${g.idx + 1}.`, 2200); }
       if (this.tab === 'guia') { const P = this.$('#cxPanel'); const sc = P.scrollTop; this.renderSide(); const cur = this.$('#cxCur'); if (cur && g.idx !== before) cur.scrollIntoView({ block: 'nearest' }); else P.scrollTop = sc; }
       this.updateGhost();
     } else if (this.tab === 'guia' && pr.steps[g.idx]?.measure) { const el = this.$('#cxCur .cx-read b'); if (el) el.textContent = this.meterText(); }
     const cur = pr.steps[g.idx]; this.$('#cxSim').classList.toggle('pulse', !!(cur && ((cur.sim && !this.running) || (cur.stop && this.running))));
   }
+  // Tipo de cable (macho-macho, macho-hembra, cocodrilo…) que pide el paso guiado actual
+  kindDelPaso(a, b) {
+    const st = this.pr && this.g && this.pr.steps[this.g.idx]; if (!st?.wire) return null;
+    if (st.wire.kind) return st.wire.kind;
+    const map = this.g.map; const mk = (k) => { const m = /^p:([^:]+):(.+)$/.exec(k); return m ? `p:${map[m[1]]}:${m[2]}` : k; };
+    const ka = mk(st.wire.a), kb = mk(st.wire.b);
+    if (a && b && !((a === ka && b === kb) || (a === kb && b === ka))) return null;
+    if (a && !b && a !== ka && a !== kb) return null;
+    return bestKind(socketOf(ka, this.model), socketOf(kb, this.model));
+  }
+  // Al llegar a un paso de cable se deja elegido el tipo de cable que indica (antes se quedaba el del paso anterior
+  // y, siguiendo los pasos al pie de la letra, salía «❌ … no se puede unir agujero con agujero»).
+  cableDelPaso() { const k = this.kindDelPaso(); if (k && WIRE_KINDS[k] && k !== this.wireKind && !this.wiring) { this.wireKind = k; this.renderWBar(); } }
   snapFor(st) { if (!st?.act || st.act.test !== 'toggled') return null; const p = this.part(this.g.map[st.act.part]); return p ? JSON.stringify(p.state) : null; }
   updateGhost() {
     if (!this.renderer) return;
@@ -1542,6 +1557,30 @@ export class CircuitLab {
     if (act === 'answers') { this.qres = pr.questions.map((q, i) => { const a = g.answers[i]; if (a == null || a === '') return null; if (q.choices) return +a === q.ans; const v = parseFloat(String(a).replace(',', '.')); return isFinite(v) && Math.abs(v - q.ans) <= Math.max(q.tol * Math.abs(q.ans), 1e-9); }); this.renderSide(); }
     if (act === 'showans') { this.showAnswers = true; this.renderSide(); }
     if (act === 'reset') { if (!(this.opts.confirm || confirm)('¿Empezar la práctica de nuevo? Se borrará el montaje.')) return; this.toggleSim(false); this.commit(() => { this.model = { parts: [], wires: [] }; }); Object.assign(g, { idx: 0, map: {}, measured: {}, answers: {}, snap: null }); this.checkResult = null; this.qres = null; this.showAnswers = false; store.del('done:' + pr.id); this.afterChange(); this.renderSide(); }
+  }
+  // Auditoría geométrica (la usan los tests): cables cuyo conector o cuyo tramo atraviesa el cuerpo de una pieza
+  // que no es la suya (p. ej. un cable enchufado en un agujero que queda debajo de un diodo).
+  cuerpoBox(p) {
+    const o = this.objs.get(p.id); const inner = o?.g?.userData?.inner; if (!inner) return null;
+    o.g.updateMatrixWorld(true); const bx = new THREE.Box3();
+    inner.traverse(m => { if (!m.isMesh || !m.visible || m.userData.term || (m.material?.transparent && m.material.opacity < 0.6)) return; if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); bx.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); });
+    return bx.isEmpty() ? null : bx;
+  }
+  auditarCables() {
+    const out = [], cuerpos = [];
+    for (const p of this.model.parts) { if (PARTS[p.type].meter) continue; const bx = this.cuerpoBox(p); if (bx) cuerpos.push({ p, bx: bx.expandByVector(new THREE.Vector3(-0.12, -0.05, -0.12)) }); }
+    const mia = (k, p) => k.startsWith(`p:${p.id}:`) || (PARTS[p.type].board && Object.values(partHoles(p) || {}).includes(k.replace(/^h:/, '')));
+    for (const w of this.model.wires) {
+      const o = this.wobjs.get(w.id); if (!o?.curve) continue;
+      const pts = []; for (let i = 0; i <= 80; i++) pts.push(o.curve.getPoint(i / 80));
+      for (const k of [w.a, w.b]) { const h = this.termWorld(k), c = k === w.a ? pts[0] : pts[80]; for (let i = 1; i <= 10; i++) pts.push(h.clone().lerp(c, i / 10)); }
+      for (const { p, bx } of cuerpos) {
+        if (mia(w.a, p) || mia(w.b, p)) continue;
+        const r = 0.17; const hit = pts.some(q => q.x > bx.min.x - r && q.x < bx.max.x + r && q.z > bx.min.z - r && q.z < bx.max.z + r && q.y > bx.min.y && q.y < bx.max.y + r);
+        if (hit) out.push(`${w.id} (${w.a.replace(/^h:/, '')}→${w.b.replace(/^h:/, '')}) atraviesa ${p.id}`);
+      }
+    }
+    return out;
   }
   autoStep() {
     const st = this.pr.steps[this.g.idx]; if (!st) return;
