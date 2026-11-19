@@ -19,6 +19,7 @@ import { subirArchivo } from './archivos.js';
 import { IDS_ELEMENTO, seccionDe, seccionesDe, seccionesActivas } from '../lms/secciones.js';
 import { carasHTML } from './caras-ui.js';
 import { crearGestionSecciones } from './secciones-ui.js';
+import { crearExportar } from './exportar-ui.js';
 
 const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const TIPOS_ENTREGA_EV = (it) => it.tipo !== 'material' && it.tipo !== 'info';
@@ -57,7 +58,9 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const directo = prof ? crearDirectoProfe({ db, aula, gruposDe }) : null;
   if (editor) { editor.exportar = (it) => json.exportar(it); editor.desdeBanco = (asig, cb) => banco.elegir(asig, cb); }
   const curso = () => st.cursos.get(st.cursoSel) || null;
-  const gestionSec = prof ? crearGestionSecciones({ db, aula, pintar: () => pintar(), asig: () => C.asig, items: () => itemsAsig(C.asig), temas: () => temasAsig(C.asig, []) }) : null;
+  const exportar = prof ? crearExportar({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal() }) : null;
+  const gestionSec = prof ? crearGestionSecciones({ db, aula, pintar: () => pintar(), asig: () => C.asig, items: () => itemsAsig(C.asig), temas: () => temasAsig(C.asig, []),
+    extra: () => `<button class="btn" data-cl="exportarZip">${ic('file-down')} Exportar asignatura en PDF</button>` }) : null;
   const ahora = () => Date.now();
 
   // ------------------------------------------------------------------ datos
@@ -217,7 +220,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
         <details class="cl-mas"><summary class="btn tiny" aria-label="Más acciones">⋮</summary><div class="cl-menu">
           <button data-cl="editar">✏️ Editar</button><button data-cl="renombrar">🔤 Cambiar el título</button>
           <label>Mover a <select data-cl-mover>${opt('', 'Sin tema', it.tema || '')}${temas.map((t) => opt(t.id, t.nombre, it.tema || '')).join('')}</select></label>
-          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="duplicarEn">${ic('copy-plus')} Duplicar en otro grupo o curso…</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button>${TIPOS_ENTREGA_EV(it) ? `<button data-cl="evidencias">${ic('download')} Exportar evidencias (reclamaciones)</button>` : ''}<button data-cl="borrar" class="pn-peligro">🗑 Mover a la papelera</button></div></details></span></div>`;
+          <button data-cl="duplicar">⧉ Duplicar</button><button data-cl="duplicarEn">${ic('copy-plus')} Duplicar en otro grupo o curso…</button><button data-cl="exportarJSON">${ic('download')} Exportar JSON</button>${it.tipo === 'examen' ? `<button data-cl="pdfCuestionario">${ic('file-down')} PDF (enunciado y soluciones)</button>` : ''}${TIPOS_ENTREGA_EV(it) ? `<button data-cl="evidencias">${ic('download')} Exportar evidencias (reclamaciones)</button>` : ''}<button data-cl="borrar" class="pn-peligro">🗑 Mover a la papelera</button></div></details></span></div>`;
   }
 
   // ---- Lo que ve el alumno. Para el profesor es una VISTA PREVIA fiel de un grupo: solo lo publicado y ya
@@ -566,6 +569,8 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       C.crear = false;
       if (acc === 'nuevo') { pintar(); editor.abrir(null, { tipo: b.dataset.tipo, asig: C.asig, curso: st.cursoSel, tema: C.filtro || null, ...(IDS_ELEMENTO.includes(C.vista) && seccionDe({ tipo: b.dataset.tipo }) !== C.vista ? { seccion: C.vista } : {}) }); return; }
       if (acc.startsWith('sec')) return gestionSec.click(b, acc);
+      if (acc === 'exportarZip') return exportar.abrirAsignatura({ asig: C.asig, items: itemsAsig(C.asig), temas: temasAsig(C.asig, []) });
+      if (acc === 'pdfCuestionario' && it) return exportar.abrirCuestionario(it);
       if (acc === 'nuevoTema') { pintar(); return nuevoTema(); }
       if (acc === 'reutilizar') { pintar(); return reutilizar(); }
       if (acc === 'importar') return importar();

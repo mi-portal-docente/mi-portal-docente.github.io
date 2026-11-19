@@ -211,6 +211,32 @@ try {
   ok('móvil: cada sección con icono', (await M.pg.$$('#asig .as-tabs [role=tab] .as-ti svg')).length >= 6);
   await M.pg.screenshot({ path: CAP + 'v5_alumno_movil_tareas.png' });
 
+  // ---------------------------------------------------------------- v5 fase 4: exportar la asignatura en PDF (ZIP)
+  await poner('items/itTst008', { ...base, tipo: 'examen', titulo: 'Test: la ley de Ohm', tema: 'tmUno01', orden: 8, puntos: 10, examen: { desde: Date.now() - 864e5, hasta: Date.now() + 864e5, limiteMin: 20, barajar: true } });
+  await poner('examenes/itTst008', { curso, asig: 'eee', desde: Date.now() - 864e5, hasta: Date.now() + 864e5, limiteMin: 20, barajar: true, grupos: [G.id], preguntas: [{ id: 'q1', tipo: 'test', enunciado: '¿En qué unidad se mide la resistencia?', puntos: 1, opciones: ['Voltio', 'Ohmio', 'Amperio'] }, { id: 'q2', tipo: 'vf', enunciado: 'La tensión se mide en paralelo.', puntos: 1 }] });
+  await poner('claves/itTst008', { respuestas: { q1: 1, q2: true } });
+  await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo [data-cl=exportarZip]', { timeout: 15000 });
+  await P.pg.waitForSelector('#asTrabajo .cl-it[data-item=itTst008]', { timeout: 15000 });
+  await P.pg.click('#asTrabajo [data-cl=exportarZip]'); await P.pg.waitForSelector('.cl-modal [data-m=exZip]');
+  ok('exportar: casillas por sección y por tema', (await P.pg.$$('.cl-modal [data-ex-sec]')).length === 6 && (await P.pg.$$('.cl-modal [data-ex-tema]')).length >= 3);
+  await P.pg.waitForTimeout(800); await P.pg.screenshot({ path: CAP + 'v5_f4_exportar_dialogo.png' });
+  const [dl] = await Promise.all([P.pg.waitForEvent('download', { timeout: 60000 }), P.pg.click('.cl-modal [data-m=exZip]')]);
+  const rutaZip = CAP + 'v5_f4_ejemplo.zip'; await dl.saveAs(rutaZip);
+  const { execFileSync } = await import('node:child_process');
+  const info = JSON.parse(execFileSync('python3', ['-c', `import zipfile,json,sys
+z=zipfile.ZipFile(sys.argv[1]); n=z.namelist(); m=json.loads(z.read('manifiesto.json'))
+print(json.dumps({'n':n,'m':m,'pdf':all(z.read(x)[:4]==b'%PDF' for x in n if x.endswith('.pdf')),'sol':z.read([x for x in n if x.endswith('_soluciones.pdf')][0]).count(b'%PDF')}))`, rutaZip]).toString());
+  ok('exportar: ZIP con carpetas por sección y tema, indice.pdf y manifiesto.json', info.n.includes('indice.pdf') && info.n.includes('manifiesto.json') && info.n.some((x) => /^1_Teoria\/01_SA1_Electricidad\/Apuntes_de_la_ley_de_Ohm\.pdf$/.test(x)), info.n.join(' '));
+  ok('exportar: el test del portal pasa a PDF (preguntas y, aparte, soluciones)', info.n.includes('4_Test/01_SA1_Electricidad/Test_la_ley_de_Ohm.pdf') && info.n.includes('4_Test/01_SA1_Electricidad/Test_la_ley_de_Ohm_soluciones.pdf') && info.pdf);
+  ok('exportar: manifiesto con sección, tema, título y archivo, sin datos de alumnos', info.m.archivos.some((a) => a.seccion === 'test' && a.tema === 'SA1 · Electricidad' && a.titulo === 'Test: la ley de Ohm' && a.archivo) && !/codigo|numero|alumno/i.test(JSON.stringify(info.m)));
+  await P.pg.click('.cl-modal [data-m=cerrar]');
+  // PDF de un cuestionario desde su menú
+  await P.pg.evaluate(() => document.querySelector('#asTrabajo [data-item=itTst008] [data-cl=pdfCuestionario]').click());
+  await P.pg.waitForSelector('.cl-modal [data-m=pdfSol]');
+  const [dl2] = await Promise.all([P.pg.waitForEvent('download', { timeout: 30000 }), P.pg.click('.cl-modal [data-m=pdfSol]')]);
+  ok('cuestionario: «PDF (enunciado y soluciones)» descarga las soluciones en PDF', /_soluciones\.pdf$/.test(dl2.suggestedFilename()), dl2.suggestedFilename());
+  await P.pg.click('.cl-modal [data-m=cerrar]');
+
   // ---------------------------------------------------------------- migración solo en lectura
   const despues = JSON.stringify(await Promise.all(Object.keys(ITEMS).map((id) => leer('items/' + id).then((d) => d.fields))));
   ok('migración en lectura: ningún elemento se ha reescrito (tampoco se añade «seccion»)', antes === despues && !/"seccion"/.test(despues));

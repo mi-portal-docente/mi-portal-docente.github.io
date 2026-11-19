@@ -113,3 +113,5 @@ LIBRERÍAS DE TERCEROS (aula virtual · solo MIT, BSD o Apache)
 - Laboratorios y actividades 3D: modelos 100 % procedurales (código propio con three.js; RoomEnvironment y
   BufferGeometryUtils de los ejemplos de three.js, MIT). Sin modelos ni texturas externas.
 - Hoja de cálculo (fórmulas, gráficos y tabla dinámica): código propio (sin librería).
+- jsPDF 4.2.1 (MIT): «Exportar asignatura en PDF» y PDF de los cuestionarios, en vendor/jspdf/ (licencia en LICENSE).
+  Se carga solo al exportar. El ZIP de la exportación es código propio (el mismo que el del .docx), sin JSZip.

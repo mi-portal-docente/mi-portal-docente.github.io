@@ -755,3 +755,17 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
   valen lo mismo, ya no se enseña «(20 %)». Las rúbricas guardadas no cambian.
 - Pruebas: notas_v5_test.mjs (2), plataforma_test y aula_modelo_test 56/56, aula_e2e 119/119 (nueva: «Por criterio»), barra_test 40/40.
 - Probar a mano: Panel → Cuaderno → «Por criterio» con un grupo que tenga notas.
+
+### Fase 4 · Exportar asignatura en PDF (ZIP) y PDF de cuestionarios — HECHA (caché v5-20261119d)
+- Gestión → «Exportar asignatura en PDF»: casillas por sección y por tema → ZIP generado en el navegador y descargado en el equipo
+  (no se envía a ningún sitio; el portal no se conecta a Drive). Carpetas 1_Teoria/, 2_Ejercicios_clase/, 3_Tareas/, 4_Test/,
+  5_Examenes/, 6_Laboratorio/ con una carpeta por tema (01_…, 00_Sin_tema); los PDF del portal (el oficial y los demás adjuntos PDF,
+  también los de materiales/); los cuestionarios del portal pasados a PDF (preguntas y, aparte, _soluciones.pdf); indice.pdf con la lista
+  (y lo que no se haya podido leer); manifiesto.json (sección, tema, título, archivo y origen si lo hay). Sin datos de alumnos.
+- En el menú de cada cuestionario: «PDF (enunciado y soluciones)» (adelanta el punto 6.6 del encargo).
+- Librería: jsPDF 4.2.1 (MIT) en vendor/jspdf/, cargada solo al exportar; anotada en LEEME.txt. El ZIP es el código propio de lms/docx.js
+  (ya existía), así que no hace falta JSZip.
+- Archivos: src/lms/exportar-zip.js (plan, nombres, manifiesto, texto de preguntas), src/portal/exportar-ui.js, aula-clase.js.
+- Pruebas: exportar_zip_test.mjs (7), secciones_e2e 44/44 (descarga el ZIP y lo abre: carpetas, PDF válidos, manifiesto; PDF de soluciones).
+  Ejemplo generado en /workspace/capturas-v5/v5_f4_ejemplo.zip (datos de prueba).
+- Probar a mano: EEE → Gestión → «Exportar asignatura en PDF» → Descargar ZIP y abrirlo; en un cuestionario, menú → «PDF (enunciado y soluciones)».
