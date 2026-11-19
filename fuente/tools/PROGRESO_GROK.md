@@ -838,3 +838,17 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
   v5_f6_plantilla_generados.png, v5_f6_test_repaso.pdf.
 - Probar a mano: Cuaderno → casilla de un examen entregado (orden del alumno y semilla); editor de una abierta → «Plantea | 1 | 0,25»;
   Panel → Analítica → examen → «Alumno × criterio» → CSV; Banco → Plantillas → Generar → «PDF Test de repaso».
+
+### Resumen final v5 (19/11/2026) · lo que falta y riesgos para los datos
+- Hecho: secciones (F1), nombre (F2), notas sin porcentajes (F3), exportar ZIP/PDF (F4), Biblioteca y cursos (B5), importador (B6 p5),
+  banco y exámenes 6a–6f. Main en caché v5-20261119h.
+- Falta / decisiones abiertas: activar secciones en el resto de asignaturas (interruptor, cuando Pablo lo diga); añadir una asignatura
+  nueva a la Biblioteca sigue exigiendo tocar src/lms/biblioteca.js; la semilla del alumno no se guarda como campo aparte (se
+  rehace con elemento + grupo_nº).
+- Riesgos para los datos:
+  1. Reglas v5 sin pegar: el portal funciona como antes, pero no se guardan plantillas, secciones ni origen (avisa en pantalla). No se pierde nada.
+  2. Si el profesor cambia las preguntas de un examen ya hecho, la «versión del alumno» de la revisión se rehace con la lista nueva
+     (la nota no cambia: las respuestas van por id de pregunta). Recomendación: duplicar el examen en vez de editarlo después.
+  3. Las preguntas antiguas del banco (sin tema, dificultad ni paso) siguen igual; tema y dificultad van dentro de `q`, sin cambio de reglas.
+  4. Ninguna migración reescribe ni borra entregas, notas, evidencias ni pesos antiguos (las secciones se deducen al leer).
+  5. Los CSV y PDF van sin nombres (solo nº de lista); los PDF de soluciones no deben llegar a los alumnos.
