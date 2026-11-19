@@ -90,7 +90,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await pg.click('#asTrabajo [data-cl=banco]');
   await pg.waitForSelector('.cl-modal .bk');
   await pg.click('.cl-modal summary:has-text("Pegar JSON")');
-  const B = [1, 2, 3].map((i) => ({ tipo: 'vf', enunciado: 'Afirmación A' + i, correcta: true, criterio: 'eee_c1_1' })).concat([1, 2].map((i) => ({ tipo: 'test', enunciado: 'Pregunta B' + i, opciones: ['x', 'y'], correcta: 0, criterio: 'eee_c2_1' })));
+  const B = [1, 2, 3].map((i) => ({ tipo: 'vf', enunciado: 'Afirmación A' + i, correcta: true, criterio: 'eee_c1_1', ...(i === 1 ? { tema: 'SA1 · Electricidad', dificultad: 1 } : {}) })).concat([1, 2].map((i) => ({ tipo: 'test', enunciado: 'Pregunta B' + i, opciones: ['x', 'y'], correcta: 0, criterio: 'eee_c2_1' })));
   await pg.fill('.cl-modal [data-m-f=json]', JSON.stringify(B));
   await pg.click('.cl-modal [data-m=añadirJSON]');
   await pg.waitForSelector('.cl-modal [data-bk-n="eee_c2_1"]', { timeout: 15000 });
@@ -110,5 +110,26 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const qs = gen.fields?.preguntas?.arrayValue?.values || [];
   const crits = qs.map((v) => v.mapValue.fields.criterio?.stringValue).sort().join();
   ok('generar examen: 2 del criterio c1_1 (de 4) y 1 del c2_1 (de 2), en borrador', crits === 'eee_c1_1,eee_c1_1,eee_c2_1', crits);
+  // v5 · filtros por criterio, tema y dificultad
+  await pg.selectOption('.cl-modal [data-bk-f=dificultad]', '1');
+  ok('banco v5: filtro por dificultad (1 básica) y la etiqueta de tema', /^1 de \d+ preguntas/.test((await pg.textContent('#bkNF')).trim()) && /SA1 · Electricidad/.test(await pg.textContent('#bkLista')));
+  await pg.selectOption('.cl-modal [data-bk-f=tema]', 'SA1 · Electricidad'); await pg.selectOption('.cl-modal [data-bk-f=criterio]', 'eee_c2_1');
+  ok('banco v5: los tres filtros a la vez (ninguna)', /Ninguna pregunta con ese filtro/.test(await pg.textContent('#bkLista')));
+  await pg.selectOption('.cl-modal [data-bk-f=criterio]', ''); await pg.selectOption('.cl-modal [data-bk-f=tema]', ''); await pg.selectOption('.cl-modal [data-bk-f=dificultad]', '');
+  // v5 · plantilla: 1 pregunta del c1_1 → examen, test de repaso y recuperación con preguntas distintas
+  await pg.selectOption('#bkPl [data-pl-i="0"] [data-pl=criterio]', 'eee_c1_1'); await pg.fill('#bkPl [data-pl-i="0"] [data-pl=n]', '1');
+  await pg.fill('.cl-modal [data-m-f=plTitulo]', 'Control SA1');
+  await pg.check('[data-pl-v=repaso]'); await pg.check('[data-pl-v=recuperacion]');
+  if (await pg.$('[data-m=plGuardar]')) {
+    await pg.click('[data-m=plGuardar]'); await pg.waitForSelector('.bk-plc:has-text("Control SA1")', { timeout: 15000 });
+    ok('banco v5: guardar la plantilla (plantillas/, solo profesor)', true);
+    await pg.check('[data-pl-v=repaso]'); await pg.check('[data-pl-v=recuperacion]');
+  }
+  await shot(pg, 'v5_banco_plantillas');
+  await pg.click('[data-m=plGenerar]'); await pg.waitForSelector('#bkPlMsg [data-m=abrirEx] >> nth=2', { timeout: 15000 });
+  const idsV = await pg.$$eval('#bkPlMsg [data-m=abrirEx]', (l) => l.map((x) => x.dataset.id));
+  const ens = []; const secs = [];
+  for (const x of idsV) { const e = await docREST('examenes/' + x); ens.push(...(e.fields?.preguntas?.arrayValue?.values || []).map((v) => v.mapValue.fields.enunciado.stringValue)); const it = await docREST('items/' + x); secs.push(it.fields?.seccion?.stringValue || '-'); }
+  ok('banco v5: examen, test de repaso y recuperación (borrador) con preguntas distintas', idsV.length === 3 && ens.length === 3 && new Set(ens).size === 3, ens.join(' | ') + ' · ' + secs.join(','));
   await pg.click('.cl-modal [data-m=cerrar]');
 }

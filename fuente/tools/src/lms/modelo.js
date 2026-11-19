@@ -36,6 +36,7 @@ export function corregirExamen(preguntas, claves, respuestas, manual = {}, ctx =
     }
     else if (TIPOS_PREGUNTA[q.tipo]) {
       got = redondea(p * TIPOS_PREGUNTA[q.tipo].corregir(q, k, r, ctx), 4); // emparejar, ordenar, huecos (parcial), numérica, zonas, clasificar, tabla
+      if (Number(q.paso) > 0 && got < p) got = redondea(Math.floor(got / Number(q.paso) + 1e-9) * Number(q.paso), 4); // v5 · escalones de puntuación
       if (TIPOS_PREGUNTA[q.tipo].revisar?.(q, k, r, ctx)) revisar.push(q.id); // respuesta abierta: la corrige el profesor
     }
     detalle[q.id] = got; puntos += got;

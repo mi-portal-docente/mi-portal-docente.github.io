@@ -139,6 +139,29 @@ preguntas sueltas. «Exportar el banco» da este mismo formato:
 ] }
 ```
 
+**v5 · campos opcionales del banco** (19/11/2026):
+
+| Campo | Qué es |
+|---|---|
+| `tema` | Tema o SA de la pregunta (texto, 120 letras). Sirve para filtrar y para las plantillas. |
+| `dificultad` | 1 (básica), 2 (media) o 3 (avanzada); también vale `"básica"`, `"media"`, `"avanzada"`. Los exámenes de plantilla salen ordenados de menos a más difícil. |
+| `apartados` | Solo en `abierta`: `[{ "texto": "Plantea", "puntos": 0.5 }, { "texto": "Resuelve", "puntos": 1 }]`. Es su rúbrica: el profesor puntúa cada apartado por niveles (0 · 0,25 · 0,5…). Los puntos de la pregunta son la suma. |
+| `paso` | Solo en las de puntuación parcial (emparejar, ordenar, huecos, clasificar, tabla): la nota parcial va por escalones de ese tamaño, p. ej. `0.25`. |
+
+```text
+{ "preguntas": [
+  { "tipo": "vf", "enunciado": "La corriente se mide en amperios", "correcta": true, "criterio": "eee_c1_1", "tema": "SA1 · Electricidad", "dificultad": 1 },
+  { "tipo": "ordenar", "enunciado": "Ordena los pasos para medir tensión", "elementos": ["Elegir V", "Conectar en paralelo", "Leer"], "puntos": 1, "paso": 0.25, "criterio": "eee_c1_2", "tema": "SA3 · Medidas", "dificultad": 2 },
+  { "tipo": "abierta", "enunciado": "Calcula la resistencia equivalente", "criterio": "eee_c2_1", "dificultad": 3,
+    "apartados": [ { "texto": "Plantea la fórmula", "puntos": 0.5 }, { "texto": "Resultado con unidades", "puntos": 0.5 } ] }
+] }
+```
+
+**Plantillas de examen** (en el mismo Banco): filas «n preguntas de tal criterio, tema y dificultad». Con una plantilla
+se generan a la vez el **examen**, un **test de repaso** y la **recuperación**, como borradores y sin repetir preguntas entre
+ellos. Las plantillas se guardan en `plantillas/` (solo el profesor; necesita las reglas v5). Cada alumno recibe las
+preguntas y las opciones en otro orden (semilla fija por examen y alumno, así que al revisar se ve lo mismo que vio él).
+
 ## Explicación interactiva (`"tipo": "explicacion"`)
 
 Diapositivas que el alumno pasa con «Anterior / Siguiente» (o las flechas del teclado), preguntas de

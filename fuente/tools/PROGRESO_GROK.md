@@ -798,3 +798,19 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
   Laboratorio oculto), aula_e2e 120/120, unitarias OK, acceso 28/28, barra 90/90. Reglas sin cambios.
 - Probar a mano: Gestión → Importar JSON → pegar {"secciones":[{"id":"examenes","nombre":"Pruebas escritas"}]} → Validar → Guardar:
   cambia solo ese nombre.
+
+### Bloque 6 · Punto 6a y 6b: banco con dificultad y filtros, importador del banco, plantillas de examen — HECHO (caché v5-20261119g)
+- Ya existía: banco por asignatura con criterio (banco/{id}), «Generar rápido por criterio», copiar preguntas de un examen, exportar JSON,
+  «Del banco…» en el editor. Se reutiliza todo.
+- 6a: cada pregunta puede llevar «tema» y «dificultad» (1 básica, 2 media, 3 avanzada; también vale la palabra). Van dentro de `q`, así
+  que banco/{id} no cambia de reglas y las preguntas antiguas (sin tema ni dificultad) siguen igual. Filtros por criterio, tema
+  («Sin tema» incluido) y dificultad, con etiqueta de dificultad en gris/rojo. Importador: tema, dificultad, «apartados» (abiertas →
+  su rúbrica con puntos) y «paso» (escalones de la puntuación parcial). Al pasar al examen se quitan tema y dificultad (también en
+  «Del banco…»). Documentado en LEEME.txt y FORMATO_IMPORTAR.md.
+- 6b: plantillas de examen (filas «n preguntas de criterio/tema/dificultad», máx. 30), ordenadas de menos a más difícil; de una plantilla
+  salen Examen (sección Exámenes), Test de repaso (sección Test) y Recuperación (Exámenes) sin repetir preguntas, como borrador.
+  Guardar/usar/borrar plantillas en plantillas/{id} (solo profesor; la regla ya estaba en las reglas v5 de la Fase 1 con pruebas en
+  v5.test.mjs). Sin reglas v5 se puede generar pero no guardar plantillas.
+- Pruebas: banco_v5_test 8/8, plataforma_test 41/41, importador_v5 8/8, exportar_zip 7/7, secciones 11/11; E2E plataforma fase 2 21/21
+  (filtros, plantilla guardada, 3 versiones distintas). Reglas sin cambios. Captura /workspace/capturas-v5/v5_f6_banco_plantillas.png.
+- Probar a mano: Gestión → Banco de preguntas → filtros; Plantillas → una fila, marcar Test de repaso y Recuperación → Generar.

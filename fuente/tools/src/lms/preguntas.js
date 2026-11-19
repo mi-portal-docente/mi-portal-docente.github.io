@@ -256,18 +256,21 @@ export function validarPregunta(q, i, err) {
   const id = q.id != null && /^[\w-]{1,30}$/.test(String(q.id)) ? String(q.id) : 'q' + (i + 1);
   const extra = T.validar(q, (ruta, t) => err(ruta, /^Pregunta \d/.test(t) ? t : `Pregunta ${i + 1}: ${t}`));
   if (!extra) return null;
-  return { id, tipo: q.tipo, enunciado: corto(q.enunciado, 2000), puntos, ...(criterio ? { criterio } : {}), ...extra };
+  // v5 · «paso»: la puntuación parcial va por escalones (p. ej. 0,25 → 0 · 0,25 · 0,5 …), nunca todo o nada en las de varias partes
+  let paso = null;
+  if (q.paso != null && q.paso !== '') { paso = Number(String(q.paso).replace(',', '.')); if (!(paso > 0 && paso <= 100)) { err('paso', `Pregunta ${i + 1}: «paso» tiene que ser un número mayor que 0 (p. ej. 0.25).`); paso = null; } else if (!T.parcial) err('paso', `Pregunta ${i + 1}: «paso» solo vale en preguntas con puntuación parcial (${Object.entries(TIPOS_PREGUNTA).filter(([, x]) => x.parcial).map(([k]) => k).join(', ')}).`); }
+  return { id, tipo: q.tipo, enunciado: corto(q.enunciado, 2000), puntos, ...(criterio ? { criterio } : {}), ...extra, ...(paso && T.parcial ? { paso } : {}) };
 
 }
 
 // Pregunta del profesor → { publica (para examenes), clave (para claves) }
 export function separarPregunta(q) {
   const T = TIPOS_PREGUNTA[q.tipo]; const s = T.separar(q, semilla(q.id + '|' + q.enunciado));
-  return { publica: { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...s.publica }, clave: s.clave ?? null };
+  return { publica: { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.paso ? { paso: q.paso } : {}), ...s.publica }, clave: s.clave ?? null };
 }
 // Pregunta pública + clave → forma del profesor
 export function unirPregunta(q, k) {
   const T = TIPOS_PREGUNTA[q.tipo];
-  return { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...(T ? T.exportar(q, k) : {}) };
+  return { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.paso ? { paso: q.paso } : {}), ...(T ? T.exportar(q, k) : {}) };
 }
 export { barajar };

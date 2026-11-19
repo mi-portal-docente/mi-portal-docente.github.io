@@ -595,3 +595,12 @@ html[data-theme="dark"] .vz-bar, html[data-theme="dark"] .vz-alt { background: #
 .cl-adj-a > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cl-adj-a > span:last-child { white-space: nowrap; }
 @media print { html.visor-abierto body > *:not(.vz) { display: none !important; } .vz.vz-solover { display: none !important; } }
+/* v5 · banco: dificultad, tema, filtros y plantillas de examen */
+.js-tq.bk-d1 { color: #506C88; background: rgba(80, 108, 136, .12); }
+.js-tq.bk-d2 { color: #3d556d; background: rgba(80, 108, 136, .24); }
+.js-tq.bk-d3 { color: #DE0714; background: rgba(222, 7, 20, .10); }
+.js-tq.bk-tema { text-transform: none; font-weight: 500; }
+.bk-filtros select, .bk-pl select { max-width: 14em; }
+.bk-pl td { vertical-align: middle; }
+.bk-pls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.bk-plc { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; background: var(--fill); padding: 2px 4px 2px 2px; }
