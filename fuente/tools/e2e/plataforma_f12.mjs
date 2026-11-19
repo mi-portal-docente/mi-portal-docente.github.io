@@ -17,13 +17,13 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
     preguntas: [
       { id: 'cla', tipo: 'clasificar', enunciado: 'Clasifica los materiales', puntos: 4, grupos: [{ nombre: 'Conductores', elementos: ['Cobre', 'Aluminio'] }, { nombre: 'Aislantes', elementos: ['Plástico', 'Madera'] }] },
       { id: 'tab', tipo: 'tabla', enunciado: 'Completa la tabla', puntos: 3, columnas: ['Magnitud', 'Unidad', 'Símbolo'], filas: [['Tensión', '[[voltio]]', '[[V]]'], ['Intensidad', '[[amperio]]', 'A']] },
-      { id: 'abi', tipo: 'abierta', enunciado: 'Explica por qué se funde un fusible', extension: 'larga', rubrica: [{ c: 'Explica la causa', p: 2 }, { c: 'Vocabulario técnico', p: 1 }] }] };
+      { id: 'abi', tipo: 'abierta', enunciado: 'Explica por qué se funde un fusible', extension: 'larga', rubrica: [{ c: 'Explica la causa', p: 2 }, { c: 'Vocabulario técnico', p: 1, paso: 0.25 }] }] };
   const [id, prev] = await crear(EX);
   ok('importar examen con clasificar, tabla y respuesta abierta', /Clasificar en grupos.*Completar tabla.*Respuesta abierta/s.test(prev), prev.slice(0, 160));
   const exs = JSON.stringify(await docREST('examenes/' + id)); const cls = JSON.stringify(await docREST('claves/' + id));
   ok('examen sin soluciones (los grupos y las celdas están solo en «claves»)', !/voltio|amperio/.test(exs) && /voltio/.test(cls) && /Conductores/.test(exs));
   await menu(pg, id, 'editar'); await pg.waitForSelector('.ap-q [data-qf=grupos]', { timeout: 15000 });
-  ok('editor: clasificar, tabla y rúbrica de la abierta se editan en texto', /Conductores: (Cobre; Aluminio|Aluminio; Cobre)/.test(await pg.inputValue('.ap-q [data-qf=grupos]')) && /Tensión \| \[\[voltio\]\] \| \[\[V\]\]/.test(await pg.inputValue('.ap-q [data-qf=tabla]')) && /Explica la causa \| 2/.test(await pg.inputValue('.ap-q [data-qf=rubricaQ]')) && (await pg.inputValue('.ap-q [data-qf=extension]')) === 'larga', [await pg.inputValue('.ap-q [data-qf=grupos]'), await pg.inputValue('.ap-q [data-qf=tabla]'), await pg.inputValue('.ap-q [data-qf=rubricaQ]')].join(' ## '));
+  ok('editor: clasificar, tabla y rúbrica de la abierta se editan en texto', /Conductores: (Cobre; Aluminio|Aluminio; Cobre)/.test(await pg.inputValue('.ap-q [data-qf=grupos]')) && /Tensión \| \[\[voltio\]\] \| \[\[V\]\]/.test(await pg.inputValue('.ap-q [data-qf=tabla]')) && /Explica la causa \| 2/.test(await pg.inputValue('.ap-q [data-qf=rubricaQ]')) && /Vocabulario técnico \| 1 \| 0.25/.test(await pg.inputValue('.ap-q [data-qf=rubricaQ]')) && (await pg.inputValue('.ap-q [data-qf=extension]')) === 'larga', [await pg.inputValue('.ap-q [data-qf=grupos]'), await pg.inputValue('.ap-q [data-qf=tabla]'), await pg.inputValue('.ap-q [data-qf=rubricaQ]')].join(' ## '));
   await shot(pg, 'f12_editor_preguntas');
   await pg.check('#apItemForm [name=estado][value=publicar]'); await pg.click('#apItemForm button[type=submit]');
   await pg.waitForSelector(`#asTrabajo .cl-it.pub[data-item="${id}"]`, { timeout: 15000 });
@@ -60,7 +60,8 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   let nt = await docREST(`notas/${id}_${T.GE.id}_11`);
   ok('autocorrección parcial: clasificar 3/4 → 3 pt, tabla 2/3 → 2 pt, abierta pendiente (0) → 5/10', Math.abs(num(nt.fields?.nota) - 5) < 0.01, String(num(nt.fields?.nota)));
   await pg.click(`td[data-celda="${id}"][data-n="11"]`); await pg.waitForSelector('#apDetalle .ap-qrub', { timeout: 15000 });
-  ok('cuaderno: la respuesta larga se ve con formato y la rúbrica con niveles 1–4', !!(await pg.$('#apDetalle .ap-ab strong')) && (await pg.$$('#apDetalle [data-ap-qn]')).length === 8);
+  ok('cuaderno: la respuesta larga se ve con formato y la rúbrica por apartados con subniveles (0 incluido; paso 0,25 en el 2.º)', !!(await pg.$('#apDetalle .ap-ab strong')) && (await pg.$$('#apDetalle [data-ap-qn]')).length === 10 && !!(await pg.$('#apDetalle [data-ap-qn="abi|1|0.25"]')) && !!(await pg.$('#apDetalle [data-ap-qn="abi|0|0"]')), String((await pg.$$('#apDetalle [data-ap-qn]')).length));
+  await (await pg.$('#apDetalle .ap-qrub'))?.screenshot({ path: '/workspace/capturas-v5/v5_f6_subniveles_apartados.png' }).catch(() => { });
   await pg.click('#apDetalle [data-ap-qn="abi|0|2"]'); await pg.click('#apDetalle [data-ap-qn="abi|1|0.5"]');
   ok('niveles de la rúbrica: Excelente (2) + Suficiente (0,5) → 2,5 puntos y nota 7,5', (await pg.inputValue('#apDetalle .ap-qpts[data-qid=abi]')) === '2.5' && Math.abs(Number(await pg.inputValue('#apNota')) - 7.5) < 0.01, await pg.inputValue('#apNota'));
   await shot(pg, 'f12_cuaderno_rubrica');

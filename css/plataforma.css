@@ -604,3 +604,8 @@ html[data-theme="dark"] .vz-bar, html[data-theme="dark"] .vz-alt { background: #
 .bk-pl td { vertical-align: middle; }
 .bk-pls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .bk-plc { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; background: var(--fill); padding: 2px 4px 2px 2px; }
+/* v5 · 6e: tabla alumno × criterio de un examen */
+.an-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.an-ac td, .an-ac th { white-space: nowrap; }
+.an-ac td b { color: var(--txt, #1d1d1f); }
+.bk-pdfs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; width: 100%; }

@@ -7,7 +7,7 @@ import { doc, setDoc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/fi
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { asignatura, TIPOS } from '../lms/biblioteca.js';
-import { fmtNota, barajar, semilla, leeEnlaces, urlSegura, idTrabajo, TIPOS_ENTREGA, corregirExamen, tipoAdjunto } from '../lms/modelo.js';
+import { fmtNota, barajar, semilla, versionAlumno, leeEnlaces, urlSegura, idTrabajo, TIPOS_ENTREGA, corregirExamen, tipoAdjunto } from '../lms/modelo.js';
 import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTipoPregunta } from './examen-ui.js';
 import { crearModoExamen } from './modo-examen.js';
 import { montarPruebaProfe } from './prueba-profe.js';
@@ -223,8 +223,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (!examen) throw { code: 'permission-denied' };
     const tr = st.trabajos.get(it.id) || { inicio: Date.now(), respuestas: {} };
     Object.assign(ex, { id: it.id, examen, resp: { ...(tr.respuestas || {}) }, guardado: Date.now(), enviando: false, error: '' });
-    const s = semilla(it.id + '|' + al);
-    const qs = examen.barajar ? barajar(examen.preguntas || [], s) : (examen.preguntas || []);
+    const V = versionAlumno(examen, it.id, al); const s = V.semilla; const qs = V.preguntas; // 6c: su versión (orden, opciones y datos)
     const r = (q) => ex.resp[q.id];
     actual.el.innerHTML = barraSup() + `<div class="au-page au-examen">${cabeceraItem(it)}
       <div class="au-reloj" id="auReloj" role="timer"></div>

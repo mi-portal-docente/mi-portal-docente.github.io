@@ -69,3 +69,26 @@ export function tablaPorCriterio(registros) {
   }
   return { criterios: crit, filas };
 }
+
+// v5 · 6e: resultado de UN examen por alumno y criterio (para pasarlo a SuperProfe y QE). Sin nombres: solo nº de lista.
+// entregas: [{ n, respuestas, detalle?, s? }] (detalle = lo puesto a mano por el profesor, que manda).
+// → { criterios: [...], filas: [{ n, celdas: { criterio: { got, max, nota } } }] } (nota 0–10 del criterio, sin medias).
+export function examenAlumnoCriterio(preguntas, claves, entregas, critExamen = '') {
+  const P = preguntas || [];
+  const crit = [...new Set(P.map((q) => q.criterio || critExamen || SIN_CRITERIO))].sort((a, b) => (a === '') - (b === '') || a.localeCompare(b, 'es', { numeric: true }));
+  const filas = (entregas || []).filter((e) => e && e.n != null).sort((a, b) => a.n - b.n).map((e) => {
+    const auto = corregirExamen(P, claves || {}, e.respuestas || {}, {}, e.s != null ? { s: e.s } : {}).detalle; const celdas = {};
+    for (const q of P) {
+      const c = q.criterio || critExamen || SIN_CRITERIO; const p = ptsDe(q);
+      const got = Math.max(0, Math.min(p, Number(e.detalle && q.id in e.detalle ? e.detalle[q.id] : auto[q.id]) || 0));
+      const x = celdas[c] || { got: 0, max: 0 }; x.got = redondea(x.got + got, 4); x.max = redondea(x.max + p, 4); celdas[c] = x;
+    }
+    Object.values(celdas).forEach((x) => { x.nota = x.max ? redondea((x.got / x.max) * 10) : 0; });
+    return { n: e.n, celdas };
+  });
+  return { criterios: crit, filas };
+}
+// CSV de esa tabla: nº de lista y, por criterio, su nota (0–10). Cabecera con los criterios.
+export function csvAlumnoCriterio(T) {
+  return [['nº de lista', ...T.criterios.map((c) => c || 'sin criterio')], ...T.filas.map((f) => [String(f.n).padStart(2, '0'), ...T.criterios.map((c) => (f.celdas[c] ? fmtNota(f.celdas[c].nota) : ''))])];
+}

@@ -10,7 +10,7 @@ import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
 import { IDS_ELEMENTO, seccionDe, seccionesDe, seccionesActivas } from '../lms/secciones.js';
 import { criterioValido, motor } from '../lms/elemento.js';
 import '../lms/motores/index.js';
-import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta } from '../lms/preguntas.js';
+import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta, leerRubricaQ, rubricaQTexto } from '../lms/preguntas.js';
 import { categoriaDe, idItem, leeEnlaces, enlacesTexto, TIPOS_ENTREGA, enlaceValido, visibleAlDe } from '../lms/modelo.js';
 import { editorRubricaHTML, leerEditorRubrica, accionRubrica, cambioRubrica } from './rubrica-ui.js';
 import { completarPiac } from '../lms/motores/piac.js';
@@ -215,7 +215,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       : q.tipo === 'zonas' ? `<label class="pn-f">Imagen (https://… o materiales/…)<input data-qf="imagen" maxlength="500" value="${esc(q.imagen || '')}"></label><label class="pn-f">Zonas en % de la imagen, una por línea: «x, y, ancho, alto | nombre | sí» (sí = correcta)<textarea data-qf="zonasTxt" rows="3" maxlength="2000" placeholder="40, 30, 20, 15 | Condensador | sí">${esc(zonasTexto(q.zonas))}</textarea></label>${q.imagen ? `<div class="ex-zonas ex-zonas-prof"><img src="${esc(q.imagen)}" alt="">${(q.zonas || []).map((z) => `<span class="ex-zona ${z.correcta === false ? '' : 'ok'}" style="left:${z.x}%;top:${z.y}%;width:${z.w}%;height:${z.h}%" title="${esc(z.nombre || '')}"></span>`).join('')}</div>` : ''}`
       : q.tipo === 'clasificar' ? `<label class="pn-f">Grupos, uno por línea: «Grupo: elemento; elemento; …» (al alumno le salen todos mezclados y los arrastra)<textarea data-qf="grupos" rows="3" maxlength="4000" placeholder="Conductores: cobre; hierro&#10;Aislantes: plástico; madera">${esc(clasificarTexto(q.grupos))}</textarea></label>`
       : q.tipo === 'tabla' ? `<label class="pn-f">Tabla: 1.ª línea, los títulos; después una fila por línea. Celdas separadas por «|»; las que completa el alumno, entre [[ ]] (otras válidas con «|» dentro)<textarea data-qf="tabla" rows="4" maxlength="6000" placeholder="Magnitud | Unidad | Símbolo&#10;Tensión | [[voltio]] | [[V]]">${esc(tablaTexto(q))}</textarea></label>`
-      : q.tipo === 'abierta' ? `<div class="ap-fila"><label class="pn-f">Extensión<select data-qf="extension"><option value="corta" ${q.extension !== 'larga' ? 'selected' : ''}>Corta (unas líneas)</option><option value="larga" ${q.extension === 'larga' ? 'selected' : ''}>Larga (editor con formato)</option></select></label></div><label class="pn-f">Rúbrica (opcional, «Criterio | puntos» por línea; los puntos de la pregunta serán la suma)<textarea data-qf="rubricaQ" rows="3" maxlength="3000" placeholder="Explica la causa | 2&#10;Usa el vocabulario técnico | 1">${esc((q.rubrica || []).map((r) => `${r.c} | ${r.p}`).join('\n'))}</textarea></label>`
+      : q.tipo === 'abierta' ? `<div class="ap-fila"><label class="pn-f">Extensión<select data-qf="extension"><option value="corta" ${q.extension !== 'larga' ? 'selected' : ''}>Corta (unas líneas)</option><option value="larga" ${q.extension === 'larga' ? 'selected' : ''}>Larga (editor con formato)</option></select></label></div><label class="pn-f">Rúbrica por apartados (opcional, «Criterio | puntos» o «Criterio | puntos | paso» por línea, p. ej. «Plantea | 1 | 0,25»; los puntos de la pregunta serán la suma)<textarea data-qf="rubricaQ" rows="3" maxlength="3000" placeholder="Explica la causa | 2&#10;Usa el vocabulario técnico | 1">${esc(rubricaQTexto(q.rubrica))}</textarea></label>`
       : ''}</div>`).join('');
   }
   function leerPreguntas() {
@@ -237,7 +237,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       if (q.tipo === 'zonas') { q.imagen = el.querySelector('[data-qf=imagen]').value.trim(); q.zonas = leeZonas(el.querySelector('[data-qf=zonasTxt]').value); }
       if (q.tipo === 'clasificar') q.grupos = lineas('grupos').slice(0, 6).map((l) => { const i = l.indexOf(':'); return { nombre: (i < 0 ? l : l.slice(0, i)).trim(), elementos: i < 0 ? [] : l.slice(i + 1).split(';').map((x) => x.trim()).filter(Boolean) }; });
       if (q.tipo === 'tabla') { const L = lineas('tabla').map(celdas); q.columnas = L[0] || []; q.filas = L.slice(1, 31).map((c) => ({ c })); }
-      if (q.tipo === 'abierta') { q.extension = el.querySelector('[data-qf=extension]').value; const R = lineas('rubricaQ').slice(0, 8).map((l) => { const i = l.lastIndexOf('|'); return { c: (i < 0 ? l : l.slice(0, i)).trim(), p: Number(String(i < 0 ? '1' : l.slice(i + 1)).trim().replace(',', '.')) || 1 }; }); if (R.length) { q.rubrica = R; q.puntos = R.reduce((a, r) => a + r.p, 0); } else delete q.rubrica; }
+      if (q.tipo === 'abierta') { q.extension = el.querySelector('[data-qf=extension]').value; const R = leerRubricaQ(lineas('rubricaQ'), q.rubrica); if (R.length) { q.rubrica = R; q.puntos = R.reduce((a, r) => a + r.p, 0); } else delete q.rubrica; }
     });
   }
   function leer(f) {

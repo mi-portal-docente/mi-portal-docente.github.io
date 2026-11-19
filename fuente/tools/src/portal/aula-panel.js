@@ -8,13 +8,13 @@ import { leerResultado } from '../act/resultado.js';
 import { esc, nombreArchivo } from './util.js';
 import { ic } from './ico.js';
 import { BIBLIOTECA, asignatura, TIPOS, CATEGORIAS, ETAPAS } from '../lms/biblioteca.js';
-import { semillaAlumno } from '../lms/modelo.js';
+import { semillaAlumno, versionAlumno, subniveles } from '../lms/modelo.js';
 import { valoresAlumno, sustituir } from '../lms/formula.js';
 import { corregirExamen, notaRubrica, categoriaDe, fmtNota, redondea, idItem, idTrabajo, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, csv, urlSegura, TIPOS_ENTREGA } from '../lms/modelo.js';
 import { ordenarItems, nombreUnidad, textoHTML } from './aula-vistas.js';
 import { respuestaTexto, solucionTexto } from './examen-ui.js';
 import { resumenSalidas } from './modo-examen.js';
-import { notaPorCriterio, filasCriterios, tablaPorCriterio, analizarExamen } from '../lms/analitica.js';
+import { notaPorCriterio, filasCriterios, tablaPorCriterio, analizarExamen, examenAlumnoCriterio, csvAlumnoCriterio } from '../lms/analitica.js';
 import { motor } from '../lms/elemento.js';
 import { estadoTrabajo, cuentaComoEntrega, ordenarVersiones, ESTADOS_TRABAJO } from '../lms/entrega.js';
 import { estadoChipHTML } from './entrega-ui.js';
@@ -32,6 +32,13 @@ const pad = (n) => String(n).padStart(2, '0');
 const fFecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const aLocal = (t) => { if (!t) return ''; const d = new Date(t); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 const deLocal = (v) => (v ? new Date(v).getTime() : null);
+// v5 · 6d: botones de subniveles de un apartado de la rúbrica de una abierta (0 incluido: nunca todo o nada)
+const NIV4 = ['Sin hacer', 'Insuficiente', 'Suficiente', 'Bien', 'Excelente'];
+function nivelesBotones(qid, i, rc) {
+  const L = subniveles(rc.p, rc.paso); const cuatro = !(Number(rc.paso) > 0 && Number(rc.p) / Number(rc.paso) <= 12);
+  return L.map((v, k) => `<button type="button" class="btn tiny" data-ap-qn="${esc(qid)}|${i}|${v}" title="${esc(cuatro ? (k && rc.niveles?.[k - 1] ? rc.niveles[k - 1] : NIV4[k]) + ' · ' + fmtNota(v) : fmtNota(v) + ' puntos')}">${cuatro ? k : esc(fmtNota(v))}</button>`).join('');
+}
+
 export function cursoSugerido(d = new Date()) { const y = d.getFullYear(); const a = d.getMonth() >= 6 ? y : y - 1; return `${a}/${String((a + 1) % 100).padStart(2, '0')}`; }
 const idCurso = (nombre) => 'c' + String(nombre).replace(/[^0-9A-Za-z]+/g, '-').replace(/^-|-$/g, '').slice(0, 30);
 async function enLotes(ops) { for (let i = 0; i < ops.length; i += 400) { const b = writeBatch(ops[i].db); ops.slice(i, i + 400).forEach((o) => o.fn(b)); await b.commit(); } }
@@ -241,16 +248,17 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       else {
         const pq = ex.examen?.preguntas || []; const k = ex.claves?.respuestas || {}; const r = tr?.respuestas || {};
         const manual = {}; pq.forEach((q) => { if (det[q.id] != null) manual[q.id] = det[q.id]; });
-        auto = corregirExamen(pq, k, r, manual, { s: semillaAlumno(it.id, `${grupoSel().id}_${ab.n}`) });
-        h += `<h4>Respuestas · ${esc(fmtNota(auto.puntos))} / ${esc(fmtNota(auto.max))} puntos</h4><ol class="ap-resp">${pq.map((q) => {
+        const alId = `${grupoSel().id}_${ab.n}`; const V = versionAlumno(ex.examen, it.id, alId); const numEx = new Map(pq.map((q, i) => [q.id, i + 1]));
+        auto = corregirExamen(pq, k, r, manual, { s: V.semilla });
+        h += `<h4>Respuestas · ${esc(fmtNota(auto.puntos))} / ${esc(fmtNota(auto.max))} puntos</h4>${ex.examen?.barajar || pq.some((q) => q.tipo === 'variables') ? `<p class="pn-small ap-ver" id="apVersion">${ic('shuffle')} Su versión: ${ex.examen?.barajar ? 'preguntas y opciones en el orden que le salieron' : 'en el orden del examen'}${pq.some((q) => q.tipo === 'variables') ? ', con sus propios datos' : ''} · semilla <code>${V.semilla}</code></p>` : ''}<ol class="ap-resp">${V.preguntas.map((q) => {
           const v = r[q.id]; const txt = respuestaTexto(q, v);
           const sol = solucionTexto(q, k[q.id]);
           const p = auto.detalle[q.id]; const okk = p >= (q.puntos || 1);
           const ab = q.tipo === 'abierta';
           const resp = ab && q.extension === 'larga' && v != null ? `<div class="ap-ab dc-ro">${limpiarDoc(String(v))}</div>` : `<div>➜ <b>${esc(txt)}</b></div>`;
-          const rub = ab && q.rubrica?.length ? `<table class="pn-t ap-qrub">${q.rubrica.map((rc, i) => `<tr><td>${esc(rc.c)}</td><td class="c"><span class="ap-niv">${[1, 2, 3, 4].map((nv) => `<button type="button" class="btn tiny" data-ap-qn="${esc(q.id)}|${i}|${rc.p * nv / 4}" title="${['Insuficiente', 'Suficiente', 'Bien', 'Excelente'][nv - 1]}">${nv}</button>`).join('')}</span><input type="number" class="ap-qr" data-qid="${esc(q.id)}" data-ri="${i}" min="0" max="${esc(rc.p)}" step="0.25" value="${esc(det[q.id + '_r' + i] ?? '')}"> / ${esc(fmtNota(rc.p))}</td></tr>`).join('')}</table>` : '';
-          return `<li class="${ab && !(q.id in det) ? 'med' : okk ? 'ok' : p > 0 ? 'med' : 'ko'}"><div>${esc(q.tipo === 'variables' ? sustituir(q.enunciado, valoresAlumno(q.variables, semillaAlumno(it.id, `${grupoSel().id}_${A.abierta.n}`), q.id)) : q.enunciado)}</div>${resp}${ab ? '' : `<div class="pn-small">Solución: ${esc(sol || '(manual)')}</div>`}${rub}
-            <label class="pn-small">Puntos <input type="number" class="ap-qpts" data-qid="${esc(q.id)}" min="0" max="${esc(q.puntos || 1)}" step="0.25" value="${esc(p)}"> / ${esc(fmtNota(q.puntos || 1))}${auto.revisar.includes(q.id) ? ' · <b>revisar</b>' : ''}</label></li>`;
+          const rub = ab && q.rubrica?.length ? `<table class="pn-t ap-qrub">${q.rubrica.map((rc, i) => `<tr><td>${esc(rc.c)}</td><td class="c"><span class="ap-niv" role="group" aria-label="Subniveles">${nivelesBotones(q.id, i, rc)}</span><input type="number" class="ap-qr" data-qid="${esc(q.id)}" data-ri="${i}" min="0" max="${esc(rc.p)}" step="${esc(rc.paso || 0.25)}" value="${esc(det[q.id + '_r' + i] ?? '')}"> / ${esc(fmtNota(rc.p))}</td></tr>`).join('')}</table>` : '';
+          return `<li class="${ab && !(q.id in det) ? 'med' : okk ? 'ok' : p > 0 ? 'med' : 'ko'}"><div>${esc(q.tipo === 'variables' ? sustituir(q.enunciado, valoresAlumno(q.variables, V.semilla, q.id)) : q.enunciado)}${ex.examen?.barajar ? ` <span class="pn-small">(n.º ${numEx.get(q.id)} del examen)</span>` : ''}</div>${resp}${ab ? '' : `<div class="pn-small">Solución: ${esc(sol || '(manual)')}</div>`}${rub}
+            <label class="pn-small">Puntos <input type="number" class="ap-qpts" data-qid="${esc(q.id)}" min="0" max="${esc(q.puntos || 1)}" step="${esc(q.paso || 0.25)}" value="${esc(p)}"> / ${esc(fmtNota(q.puntos || 1))}${q.paso ? ` <span class="pn-small">(de ${esc(fmtNota(q.paso))} en ${esc(fmtNota(q.paso))})</span>` : ''}${auto.revisar.includes(q.id) ? ' · <b>revisar</b>' : ''}</label></li>`;
         }).join('')}</ol>`;
         if (it.examen?.pantallaCompleta || ex.examen?.pantallaCompleta) h += salidasHTML(id);
       }
@@ -437,7 +445,8 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (!A.cargaEx.has(it.id)) { A.anCarga = A.anCarga || new Set(); if (!A.anCarga.has(it.id)) { A.anCarga.add(it.id); cargarExamenProfe(it.id).then(() => { if (A.sub === 'analitica') pintar(); }).catch(() => { }).finally(() => A.anCarga.delete(it.id)); } return bar + '<p class="pn-small">Cargando el examen…</p>'; }
     const ex = A.cargaEx.get(it.id);
     if (ex instanceof Promise || !ex) return bar + '<p class="pn-small">Cargando el examen…</p>';
-    const entregas = [...A.trabajos.values()].filter((t) => t.item === it.id && t.estado !== 'en_curso').map((t) => ({ respuestas: t.respuestas || {}, detalle: A.notas.get(t.id)?.detalle, s: semillaAlumno(it.id, t.al) }));
+    const entregas = [...A.trabajos.values()].filter((t) => t.item === it.id && t.estado !== 'en_curso').map((t) => ({ n: t.numero, respuestas: t.respuestas || {}, detalle: A.notas.get(t.id)?.detalle, s: semillaAlumno(it.id, t.al) }));
+    const TC = examenAlumnoCriterio(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, entregas, it.criterio || ''); A.anTC = { T: TC, titulo: it.titulo, grupo: g.nombre };
     const R = analizarExamen(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, entregas);
     const corto = (t, n = 90) => (t.length > n ? t.slice(0, n - 1) + '…' : t);
     if (!R.n) return bar + `<p class="pn-vacio">Nadie de ${esc(g.nombre)} ha entregado «${esc(it.titulo)}» todavía.</p>`;
@@ -446,7 +455,8 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
         <section class="pn-card an-sec" id="anCrit"><h3>${ic('target')} Por criterio</h3><table class="pn-t an-t"><thead><tr><th>Criterio</th><th class="c">Preguntas</th><th>Acierto</th></tr></thead><tbody>${R.porCriterio.map((c) => `<tr><td><code>${esc(c.criterio || 'sin criterio')}</code></td><td class="c">${c.preguntas}</td><td>${barra(c.pct)}</td></tr>`).join('')}</tbody></table></section>
         <section class="pn-card an-sec" id="anFall"><h3>${ic('triangle-exclamation-point')} Preguntas más falladas</h3>${R.masFalladas.length ? `<ol class="an-fall">${R.masFalladas.map((q) => `<li><b>P${q.num}</b> ${esc(corto(q.enunciado))} <span class="pn-small">· ${esc(q.criterio || 'sin criterio')} · ${q.fallos} de ${R.n} sin la máxima${q.blanco ? ` · ${q.blanco} en blanco` : ''}</span> ${barra(q.pct)}</li>`).join('')}</ol>` : '<p class="pn-small">Todas las preguntas tienen un 100 % de acierto.</p>'}</section>
       </div>
-      <section class="pn-card an-sec" id="anPreg"><h3>${ic('circle-question-mark')} Por pregunta</h3><table class="pn-t an-t"><thead><tr><th>Nº</th><th>Pregunta</th><th>Criterio</th><th class="c">Sin la máxima</th><th>Acierto</th></tr></thead><tbody>${R.porPregunta.map((q) => `<tr><td>P${q.num}</td><td>${esc(corto(q.enunciado, 120))}</td><td><code>${esc(q.criterio || '—')}</code></td><td class="c">${q.fallos}</td><td>${barra(q.pct)}</td></tr>`).join('')}</tbody></table></section>`;
+      <section class="pn-card an-sec" id="anPreg"><h3>${ic('circle-question-mark')} Por pregunta</h3><table class="pn-t an-t"><thead><tr><th>Nº</th><th>Pregunta</th><th>Criterio</th><th class="c">Sin la máxima</th><th>Acierto</th></tr></thead><tbody>${R.porPregunta.map((q) => `<tr><td>P${q.num}</td><td>${esc(corto(q.enunciado, 120))}</td><td><code>${esc(q.criterio || '—')}</code></td><td class="c">${q.fallos}</td><td>${barra(q.pct)}</td></tr>`).join('')}</tbody></table></section>
+      <section class="pn-card an-sec" id="anAlCrit"><h3>${ic('table')} Alumno × criterio</h3><p class="pn-small">Puntos de cada criterio en este examen y su nota (0–10), por nº de lista. Sin medias: para pasarlo a SuperProfe y a QE.</p><div class="an-scroll"><table class="pn-t an-t an-ac"><thead><tr><th class="ap-n">Nº</th>${TC.criterios.map((c) => `<th><code>${esc(c || 'sin criterio')}</code></th>`).join('')}</tr></thead><tbody>${TC.filas.map((f) => `<tr><th class="ap-n">${pad(f.n)}</th>${TC.criterios.map((c) => { const x = f.celdas[c]; return `<td>${x ? `<b>${esc(fmtNota(x.nota))}</b> <span class="pn-small">${esc(fmtNota(x.got))}/${esc(fmtNota(x.max))} pt</span>` : '·'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div><div class="pn-acts"><button class="btn small" data-ap="csvExCrit">${ic('download')} CSV alumno × criterio</button></div></section>`;
   }
 
   // =============================================================== limpieza (aula)
@@ -492,6 +502,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       if (acc === 'corregirAl' && A.abierta && st.items.get(A.abierta.k)) { corr.abrir(st.items.get(A.abierta.k), grupoSel(), A.abierta.n); pintar(true); return; }
       if (acc === 'publicarNotas' && col) await publicarNotas(col);
       if (acc === 'csvNotas') exportarCSV();
+      if (acc === 'csvExCrit' && A.anTC) { const url = URL.createObjectURL(new Blob([csv(csvAlumnoCriterio(A.anTC.T))], { type: 'text/csv;charset=utf-8' })); const x = document.createElement('a'); x.href = url; x.download = `criterios-${nombreArchivo(A.anTC.titulo).replace(/ /g, '_')}-${nombreArchivo(A.anTC.grupo).replace(/ /g, '_')}.csv`; document.body.appendChild(x); x.click(); x.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); }
       if (acc === 'csvCriterios') { b.disabled = true; try { await exportarCSVCriterios(); } finally { b.disabled = false; } }
       if (acc === 'vistaNotas') { A.vistaNotas = b.dataset.v === 'criterio' ? 'criterio' : 'actividad'; A.abierta = null; pintar(true); return; }
       // P1: «Quitar nota» deja la nota en blanco y sin publicar; el documento (y su historial) se conserva.

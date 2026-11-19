@@ -30,6 +30,13 @@ export default async function ({ T, BASE, ok, shot }) {
   const preg = await pg.$$eval('#anPreg tbody tr', (l) => l.map((r) => r.cells[1].textContent + '=' + r.cells[4].textContent.trim()));
   ok('Analítica: % por pregunta (huecos 50 %) primero la más fallada', preg[0] === 'Completa=50 %' && preg.length === 5, preg.join(' · '));
   ok('Analítica: lista de preguntas más falladas', /Completa/.test(await pg.textContent('#anFall')) && (await pg.$$('#anFall li')).length === 1);
+  // v5 · 6e: alumno × criterio del examen (nota 0–10 por criterio) y su CSV
+  const ac = await pg.$$eval('#anAlCrit tbody tr', (l) => l.map((r) => [...r.cells].map((c) => c.textContent.trim()).join('|')));
+  ok('6e: tabla alumno × criterio (nº 03: c1_1 10, c1_2 7,5, c1_3 10)', ac.length === 1 && /^03\|10 [^|]*\|7,5 [^|]*\|10 /.test(ac[0]), ac.join(' / '));
+  const [dl2] = await Promise.all([pg.waitForEvent('download', { timeout: 20000 }), pg.click('[data-ap=csvExCrit]')]);
+  const t2 = readFileSync(await dl2.path(), 'utf8').replace(/^\ufeff/, '').split(/\r\n/).map((l) => l.split(';').map((x) => x.replace(/^"|"$/g, '')));
+  ok('6e: CSV alumno × criterio (nº de lista y una columna por criterio, sin nombres)', t2[0].join('|') === 'nº de lista|eee_c1_1|eee_c1_2|eee_c1_3' && t2[1].join('|') === '03|10|7,5|10', t2.map((f) => f.join('|')).join(' / '));
+  await (await pg.$('#anAlCrit'))?.screenshot({ path: '/workspace/capturas-v5/v5_f6_alumno_criterio.png' }).catch(() => { });
   await shot(pg, 'f3_analitica');
   await pg.setViewportSize({ width: 390, height: 844 }); await pg.waitForTimeout(400);
   await shot(pg, 'f3_analitica_movil');

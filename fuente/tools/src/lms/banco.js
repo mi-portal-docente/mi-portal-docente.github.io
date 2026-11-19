@@ -33,7 +33,7 @@ export function leerPreguntasBanco(texto, criterioPorDefecto = '') {
   L.forEach((q0, i) => {
     const q = { ...q0, criterio: q0?.criterio || criterioPorDefecto || undefined };
     // v5 · «apartados» en una respuesta abierta = su rúbrica (cada apartado con sus puntos; el profesor puntúa por niveles)
-    if (q.tipo === 'abierta' && Array.isArray(q0?.apartados) && !q0.rubrica) q.rubrica = q0.apartados.map((a) => ({ c: a?.texto ?? a?.c ?? a?.criterio, p: a?.puntos ?? a?.p, ...(a?.niveles ? { niveles: a.niveles } : {}) }));
+    if (q.tipo === 'abierta' && Array.isArray(q0?.apartados) && !q0.rubrica) q.rubrica = q0.apartados.map((a) => ({ c: a?.texto ?? a?.c ?? a?.criterio, p: a?.puntos ?? a?.p, ...(a?.niveles ? { niveles: a.niveles } : {}), ...(a?.paso != null ? { paso: Number(String(a.paso).replace(',', '.')) } : {}) }));
     else if (q0?.apartados != null && q.tipo !== 'abierta') errores.push(`Pregunta ${i + 1}: «apartados» solo vale en las de respuesta abierta (para las demás usa «paso»).`);
     const meta = metaPregunta(q0, i, errores);
     const r = validarPregunta(q, i, (ruta, t) => errores.push(t));

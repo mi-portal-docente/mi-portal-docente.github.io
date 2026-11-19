@@ -223,7 +223,7 @@ export const TIPOS_PREGUNTA = {
       const extension = q.extension ?? 'corta'; if (!['corta', 'larga'].includes(extension)) { err('extension', '«extension» tiene que ser "corta" o "larga".'); return null; }
       const R = q.rubrica ?? [];
       if (!Array.isArray(R) || R.length > 8 || R.some((x) => !x || !esTexto(x.c ?? x.criterio) || !(Number(x.p ?? x.puntos) > 0))) { err('rubrica', '«rubrica» tiene que ser una lista (máx. 8) de criterios: [{ "c": "Explica el porqué", "p": 2 }, …].'); return null; }
-      const rubrica = R.map((x) => ({ c: corto(x.c ?? x.criterio, 200), p: Number(x.p ?? x.puntos), ...(listaTextos(x.niveles) && x.niveles.length === 4 ? { niveles: x.niveles.map((t) => corto(t, 200)) } : {}) }));
+      const rubrica = R.map((x) => ({ c: corto(x.c ?? x.criterio, 200), p: Number(x.p ?? x.puntos), ...(listaTextos(x.niveles) && x.niveles.length === 4 ? { niveles: x.niveles.map((t) => corto(t, 200)) } : {}), ...(Number(x.paso) > 0 && Number(x.paso) <= Number(x.p ?? x.puntos) ? { paso: Number(x.paso) } : {}) })); // v5 · 6d: «paso» = subniveles del apartado (0 · 0,25 · 0,5…)
       const o = { extension, ...(rubrica.length ? { rubrica } : {}) };
       if (rubrica.length) o.puntos = rubrica.reduce((a, x) => a + x.p, 0);
       return o;
@@ -263,6 +263,19 @@ export function validarPregunta(q, i, err) {
 
 }
 
+// v5 · 6d: rúbrica de una abierta en el editor, una línea por apartado: «Criterio | puntos» o «Criterio | puntos | paso»
+// (paso = subniveles, p. ej. 0,25). Conserva los niveles descritos que ya tuviera el apartado con el mismo texto.
+const numES = (x) => Number(String(x).trim().replace(',', '.'));
+export function leerRubricaQ(lineas, previa = []) {
+  return (lineas || []).slice(0, 8).map((l) => {
+    const t = l.split('|'); let c = l; let p = 1; let paso = null;
+    if (t.length >= 3 && numES(t[t.length - 1]) > 0 && numES(t[t.length - 2]) > 0) { paso = numES(t.pop()); p = numES(t.pop()); c = t.join('|'); }
+    else { const i = l.lastIndexOf('|'); if (i >= 0) { c = l.slice(0, i); p = numES(l.slice(i + 1)) || 1; } }
+    c = c.trim(); const ant = (previa || []).find((r) => r.c === c);
+    return { c, p, ...(ant?.niveles ? { niveles: ant.niveles } : {}), ...(paso && paso <= p ? { paso } : {}) };
+  });
+}
+export const rubricaQTexto = (R) => (R || []).map((r) => `${r.c} | ${r.p}${r.paso ? ' | ' + r.paso : ''}`).join('\n');
 // Pregunta del profesor → { publica (para examenes), clave (para claves) }
 export function separarPregunta(q) {
   const T = TIPOS_PREGUNTA[q.tipo]; const s = T.separar(q, semilla(q.id + '|' + q.enunciado));

@@ -145,7 +145,7 @@ preguntas sueltas. «Exportar el banco» da este mismo formato:
 |---|---|
 | `tema` | Tema o SA de la pregunta (texto, 120 letras). Sirve para filtrar y para las plantillas. |
 | `dificultad` | 1 (básica), 2 (media) o 3 (avanzada); también vale `"básica"`, `"media"`, `"avanzada"`. Los exámenes de plantilla salen ordenados de menos a más difícil. |
-| `apartados` | Solo en `abierta`: `[{ "texto": "Plantea", "puntos": 0.5 }, { "texto": "Resuelve", "puntos": 1 }]`. Es su rúbrica: el profesor puntúa cada apartado por niveles (0 · 0,25 · 0,5…). Los puntos de la pregunta son la suma. |
+| `apartados` | Solo en `abierta`: `[{ "texto": "Plantea", "puntos": 0.5 }, { "texto": "Resuelve", "puntos": 1 }]`. Es su rúbrica: el profesor puntúa cada apartado con botones de subniveles. Cada apartado puede llevar `"paso": 0.25` (botones 0 · 0,25 · 0,5 … hasta sus puntos); sin paso, 0 y los 4 niveles (¼, ½, ¾, todo). Los puntos de la pregunta son la suma. En el editor: «Criterio \| puntos \| paso» por línea. |
 | `paso` | Solo en las de puntuación parcial (emparejar, ordenar, huecos, clasificar, tabla): la nota parcial va por escalones de ese tamaño, p. ej. `0.25`. |
 
 ```text
@@ -153,7 +153,7 @@ preguntas sueltas. «Exportar el banco» da este mismo formato:
   { "tipo": "vf", "enunciado": "La corriente se mide en amperios", "correcta": true, "criterio": "eee_c1_1", "tema": "SA1 · Electricidad", "dificultad": 1 },
   { "tipo": "ordenar", "enunciado": "Ordena los pasos para medir tensión", "elementos": ["Elegir V", "Conectar en paralelo", "Leer"], "puntos": 1, "paso": 0.25, "criterio": "eee_c1_2", "tema": "SA3 · Medidas", "dificultad": 2 },
   { "tipo": "abierta", "enunciado": "Calcula la resistencia equivalente", "criterio": "eee_c2_1", "dificultad": 3,
-    "apartados": [ { "texto": "Plantea la fórmula", "puntos": 0.5 }, { "texto": "Resultado con unidades", "puntos": 0.5 } ] }
+    "apartados": [ { "texto": "Plantea la fórmula", "puntos": 0.5, "paso": 0.25 }, { "texto": "Resultado con unidades", "puntos": 0.5 } ] }
 ] }
 ```
 

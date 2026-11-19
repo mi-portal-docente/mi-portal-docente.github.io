@@ -142,7 +142,9 @@ SUPERPROFE PABLO PARA ALUMNOS · v5 (secciones por asignatura, 19/11/2026)
 - Banco y exámenes (Gestión → Banco de preguntas): cada pregunta con criterio, tema y dificultad (1 básica, 2 media,
   3 avanzada) y filtros por los tres; plantillas de examen (n preguntas por criterio/tema/dificultad, de menos a más
   difícil) que generan examen, test de repaso y recuperación sin repetir preguntas; «apartados» en las abiertas y «paso»
-  (p. ej. 0,25) en las de puntuación parcial. Importar al banco: {"preguntas":[{"tipo":"vf","enunciado":"…",
+  (p. ej. 0,25) en las de puntuación parcial. Cada alumno tiene su versión (preguntas y opciones barajadas y sus datos) con una
+  semilla que sale del examen y de su grupo y nº: el profesor la ve al revisar. Apartados de las abiertas con subniveles
+  (0 · 0,25 · 0,5…; «Criterio | puntos | paso» en el editor). Importar al banco: {"preguntas":[{"tipo":"vf","enunciado":"…",
   "correcta":true,"criterio":"eee_c1_1","tema":"SA1","dificultad":1}]}. Detalle en FORMATO_IMPORTAR.md.
 - Notas: el portal muestra la nota de cada actividad (con su rúbrica) y nada más; la nota final la calcula QE.
   El cuaderno tiene la vista «Por criterio» (nº de lista × criterio, sin medias).

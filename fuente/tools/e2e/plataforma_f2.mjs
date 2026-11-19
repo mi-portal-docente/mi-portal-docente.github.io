@@ -1,5 +1,6 @@
 // Fase 2 · tipos de pregunta nuevos, modo examen (registro de salidas), puntuación parcial y banco
 const menu = (pg, id, acc) => pg.evaluate(([i, a]) => document.querySelector(`#asTrabajo [data-item="${i}"] [data-cl=${a}]`).click(), [id, acc]);
+const SHOTS_V5 = process.env.SHOTS_V5 || '/workspace/capturas-v5/';
 export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJSON, local }) {
   const pg = T.P.pg;
   await pg.goto(BASE + '#asig/eee/trabajo');
@@ -82,6 +83,9 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await pg.click(`td[data-celda="${id}"][data-n="3"]`);
   await pg.waitForSelector('#apDetalle .ex-sal, #apDetalle :text("Sin salidas")', { timeout: 15000 });
   ok('cuaderno: el profesor ve las salidas (informativo) y la respuesta de cada tipo', /la pestaña/.test(await pg.textContent('#apDetalle')) && /Tensión → Voltio/.test(await pg.textContent('#apDetalle')) && /no cambia la nota/.test(await pg.textContent('#apDetalle')));
+  // v5 · 6c: el profesor ve la versión del alumno (su orden y su semilla)
+  ok('6c: la revisión dice que es su versión, con la semilla', /Su versión: preguntas y opciones en el orden que le salieron/.test((await pg.textContent('#apVersion').catch(() => '')) || '') && /semilla \d+/.test(await pg.textContent('#apVersion')));
+  await (await pg.$('#apDetalle'))?.screenshot({ path: SHOTS_V5 + 'v5_f6_revision_version_alumno.png' }).catch(() => { });
   await shot(pg, 'f2_cuaderno_salidas');
 
   // ---------------------------------------------------------------- banco
@@ -131,5 +135,13 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const ens = []; const secs = [];
   for (const x of idsV) { const e = await docREST('examenes/' + x); ens.push(...(e.fields?.preguntas?.arrayValue?.values || []).map((v) => v.mapValue.fields.enunciado.stringValue)); const it = await docREST('items/' + x); secs.push(it.fields?.seccion?.stringValue || '-'); }
   ok('banco v5: examen, test de repaso y recuperación (borrador) con preguntas distintas', idsV.length === 3 && ens.length === 3 && new Set(ens).size === 3, ens.join(' | ') + ' · ' + secs.join(','));
+  // v5 · 6f: PDF (enunciado y soluciones) de lo que acaba de generar la plantilla
+  for (const [sel, nom] of [['[data-m=plPdf][data-v=repaso]:not([data-sol])', 'enunciado'], ['[data-m=plPdf][data-v=repaso][data-sol]', 'soluciones']]) {
+    const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 20000 }), pg.click(sel)]);
+    const f = await dl.path(); const { readFileSync } = await import('node:fs'); const buf = readFileSync(f);
+    ok(`6f: PDF del test de repaso generado (${nom})`, buf.slice(0, 5).toString() === '%PDF-' && /Test_de_repaso.*\.pdf$/.test(dl.suggestedFilename()) && (nom === 'soluciones') === /_soluciones/.test(dl.suggestedFilename()), dl.suggestedFilename() + ' ' + buf.length);
+    if (nom === 'enunciado') { const { copyFileSync } = await import('node:fs'); copyFileSync(f, SHOTS_V5 + 'v5_f6_test_repaso.pdf'); }
+  }
+  await shot(pg, 'v5_banco_generados'); await pg.screenshot({ path: SHOTS_V5 + 'v5_f6_plantilla_generados.png' });
   await pg.click('.cl-modal [data-m=cerrar]');
 }

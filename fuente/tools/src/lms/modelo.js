@@ -75,6 +75,22 @@ export const pesosPorDefecto = () => Object.fromEntries(CATEGORIAS.map((c) => [c
 // Barajado determinista (mismo orden para el mismo alumno si recarga la página).
 // Semilla de un alumno en un examen (la misma en su navegador y en la corrección del profesor).
 export const semillaAlumno = (itemId, al) => semilla(itemId + '|' + al);
+// v5 · 6d: subniveles de un apartado de rúbrica (nunca todo o nada). Con «paso» (p. ej. 0,25): 0, 0,25, 0,5… hasta los puntos
+// (si salen más de 12 botones, se usan los 4 niveles). Sin paso: 0 y los 4 niveles (¼, ½, ¾ y todo).
+export function subniveles(p, paso) {
+  const P = Number(p) > 0 ? Number(p) : 1; const d = Number(paso);
+  if (d > 0 && P / d <= 12) { const L = []; for (let k = 0; k * d < P - 1e-9; k++) L.push(redondea(k * d, 4)); L.push(redondea(P, 4)); return L; }
+  return [0, 1, 2, 3, 4].map((k) => redondea((P * k) / 4, 4));
+}
+// v5 · 6c: la versión del examen de un alumno (la misma en su navegador y en la revisión del profesor).
+// La semilla sale del elemento y del alumno (grupo_nº), que ya están guardados en su trabajo: se puede rehacer siempre.
+// Devuelve { semilla, preguntas (en su orden), opciones: { idPregunta: [índices de las opciones en su orden] } }.
+export function versionAlumno(examen, itemId, al) {
+  const s = semillaAlumno(itemId, al); const P = examen?.preguntas || [];
+  const preguntas = examen?.barajar ? barajar(P, s) : P.slice(); const opciones = {};
+  if (examen?.barajar) for (const q of preguntas) if (q.tipo === 'test') opciones[q.id] = barajar((q.opciones || []).map((_, i) => i), s ^ semilla(q.id));
+  return { semilla: s, preguntas, opciones };
+}
 export function semilla(str) { let h = 2166136261; for (const ch of String(str)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 export function barajar(arr, seed) {
   const a = arr.slice(); let s = seed >>> 0 || 1;

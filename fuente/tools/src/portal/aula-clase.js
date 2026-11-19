@@ -54,7 +54,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const gruposDe = (cursoId, asig) => [...st.grupos.values()].filter((g) => (!asig || (g.asignaturas || []).includes(asig)) && (g.curso ? g.curso === cursoId : true)).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const editor = prof ? crearEditor({ db, aula, gruposDe }) : null;
   const json = prof ? crearJson({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal(), gruposDe }) : null;
-  const banco = prof ? crearBanco({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal(), gruposDe }) : null;
+  const banco = prof ? crearBanco({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal(), gruposDe, pdf: (o) => exportar.pdfPreguntas(o) }) : null;
   const directo = prof ? crearDirectoProfe({ db, aula, gruposDe }) : null;
   if (editor) { editor.exportar = (it) => json.exportar(it); editor.desdeBanco = (asig, cb) => banco.elegir(asig, cb); }
   const curso = () => st.cursos.get(st.cursoSel) || null;

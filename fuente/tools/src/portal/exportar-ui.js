@@ -140,5 +140,11 @@ export function crearExportar({ db, aula, modal, cerrarModal }) {
       b.disabled = false;
     });
   }
-  return { abrirAsignatura, abrirCuestionario, generarZip, cerrar: cerrarModal };
+  // v5 · 6f: PDF de preguntas que aún no están guardadas como elemento (p. ej. lo que acaba de generar una plantilla)
+  async function pdfPreguntas({ titulo, asig, preguntas, soluciones = false }) {
+    const jsPDF = await cargarJsPDF(); const a = asignatura(asig);
+    const bytes = pdfCuestionario(jsPDF, { titulo, sub: a?.corto || asig, preguntas, soluciones });
+    descargar(bytes, `${nombreSeguro(titulo)}${soluciones ? '_soluciones' : ''}.pdf`, 'application/pdf');
+  }
+  return { abrirAsignatura, abrirCuestionario, generarZip, pdfPreguntas, cerrar: cerrarModal };
 }

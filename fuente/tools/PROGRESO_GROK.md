@@ -814,3 +814,27 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
 - Pruebas: banco_v5_test 8/8, plataforma_test 41/41, importador_v5 8/8, exportar_zip 7/7, secciones 11/11; E2E plataforma fase 2 21/21
   (filtros, plantilla guardada, 3 versiones distintas). Reglas sin cambios. Captura /workspace/capturas-v5/v5_f6_banco_plantillas.png.
 - Probar a mano: Gestión → Banco de preguntas → filtros; Plantillas → una fila, marcar Test de repaso y Recuperación → Generar.
+
+### Bloque 6 · Puntos 6c, 6d, 6e y 6f — HECHO (caché v5-20261119h)
+(Se publican juntos porque tocan los mismos archivos: aula-panel.js, modelo.js.)
+- 6c · examen distinto por alumno. Ya existía: preguntas y opciones barajadas por alumno y datos propios en las numéricas con
+  variables, con una semilla fija = elemento + grupo_nº (los dos ya se guardan en su trabajo, así que se puede rehacer siempre;
+  no hace falta campo nuevo ni reglas nuevas). Nuevo: `versionAlumno()` en lms/modelo.js (la usan el alumno y el profesor) y, al
+  revisar en el cuaderno, las respuestas salen en el orden que le salieron al alumno, con «(n.º X del examen)» y la semilla.
+  La nota no depende del orden (respuestas por id).
+- 6d · puntuación por apartados con subniveles. Ya existía: parcial en emparejar/ordenar/huecos/clasificar/tabla, rúbrica de
+  las abiertas con 4 niveles, ajuste a mano de 0,25 en 0,25. Nuevo: «paso» en las de parcial (6a) y en cada apartado de la
+  rúbrica de una abierta (botones 0 · 0,25 · 0,5 … hasta sus puntos; sin paso, 0 y los 4 niveles: ahora con botón 0). En el
+  editor, «Criterio | puntos | paso» por línea; la línea antigua «Criterio | puntos» sigue valiendo. Arreglado de paso: el editor
+  ya no pierde los niveles descritos de los apartados al guardar.
+- 6e · alumno × criterio. Ya existía (Fase 3): cuaderno «Por criterio» y CSV largo. Nuevo: en Analítica de cada examen, tabla
+  nº de lista × criterio (puntos y nota 0–10 del criterio, sin medias) y «CSV alumno × criterio» (sin nombres).
+- 6f · PDF de cualquier examen o test. Ya existía (Fase 4): menú del cuestionario → «PDF (enunciado y soluciones)». Nuevo: al
+  generar desde una plantilla, botones «PDF» y «Soluciones» de cada versión (examen, test de repaso, recuperación).
+- Pruebas: examen_v5_test 8/8 (nuevo), banco_v5 8/8, plataforma_test 41/41, importador_v5 8/8, exportar_zip 7/7, secciones 11/11,
+  aula_modelo 15/15; E2E plataforma fases 2,3,12 52/52 (6c semilla, 6d subniveles, 6e tabla y CSV, 6f PDF); aula_e2e 120/120;
+  secciones_e2e 47/47; test:reglas 149/149 (reglas sin cambios).
+- Capturas: /workspace/capturas-v5/v5_f6_revision_version_alumno.png, v5_f6_subniveles_apartados.png, v5_f6_alumno_criterio.png,
+  v5_f6_plantilla_generados.png, v5_f6_test_repaso.pdf.
+- Probar a mano: Cuaderno → casilla de un examen entregado (orden del alumno y semilla); editor de una abierta → «Plantea | 1 | 0,25»;
+  Panel → Analítica → examen → «Alumno × criterio» → CSV; Banco → Plantillas → Generar → «PDF Test de repaso».

@@ -15,7 +15,7 @@ import { confirmar } from './dialogo.js';
 const aBanco = (q) => (Array.isArray(q.pares) ? { ...q, pares: q.pares.map((p) => ({ i: p[0], d: p[1] })) } : q);
 const deBanco = (q) => (Array.isArray(q?.pares) ? { ...q, pares: q.pares.map((p) => (Array.isArray(p) ? p : [p.i, p.d])) } : q);
 
-export function crearBanco({ db, aula, modal, cerrarModal, gruposDe }) {
+export function crearBanco({ db, aula, modal, cerrarModal, gruposDe, pdf }) {
   const st = aula.st;
   async function cargar(asig) { const qs = await getDocs(query(collection(db, 'banco'), where('asig', '==', asig))); return qs.docs.map((d) => { const x = d.data(); return { id: d.id, ...x, q: deBanco(x.q) }; }); }
   async function guardar(asig, preguntas) {
@@ -36,7 +36,7 @@ export function crearBanco({ db, aula, modal, cerrarModal, gruposDe }) {
     let banco = []; let cargando = true;
     const F = { criterio: '', tema: '', dificultad: '' };
     const P = { nombre: '', reglas: [{ criterio: '', tema: '', dificultad: '', n: 2 }] };
-    let plantillas = []; let plantErr = '';
+    let plantillas = []; let plantErr = ''; let generados = [];
     const v5 = () => st.reglasV5 === true;
     const criterios = () => porCriterio(banco).map((c) => c.criterio);
     const filaHTML = (r, i) => `<tr data-pl-i="${i}"><td><select data-pl="criterio" aria-label="Criterio">${optS('', 'Cualquiera', r.criterio)}${criterios().map((c) => optS(c, c, r.criterio)).join('')}</select></td>
@@ -122,7 +122,8 @@ export function crearBanco({ db, aula, modal, cerrarModal, gruposDe }) {
         const hechos = vs.map((v) => ({ v, ...nuevoExamen(v === 'examen' ? base : `${VERSIONES[v]} · ${base}`, r.versiones[v], { pc: pc && v !== 'repaso', seccion: SEC[v] }) }));
         const lote = writeBatch(db); hechos.forEach((h) => h.aplicar(lote));
         b.disabled = true; try { await lote.commit(); } finally { b.disabled = false; }
-        const m2 = m.querySelector('#bkPlMsg'); m2.innerHTML = `Guardado como borrador: ${hechos.map((h) => `<button class="btn small" data-m="abrirEx" data-id="${esc(h.id)}">${ic('pencil')} ${esc(VERSIONES[h.v])} (${r.versiones[h.v].length})</button>`).join(' ')}`; m2.className = 'pn-msg ok';
+        generados = hechos.map((h) => ({ v: h.v, titulo: h.v === 'examen' ? base : `${VERSIONES[h.v]} · ${base}`, preguntas: r.versiones[h.v] }));
+        const m2 = m.querySelector('#bkPlMsg'); m2.innerHTML = `Guardado como borrador: ${hechos.map((h) => `<button class="btn small" data-m="abrirEx" data-id="${esc(h.id)}">${ic('pencil')} ${esc(VERSIONES[h.v])} (${r.versiones[h.v].length})</button>`).join(' ')}${pdf ? `<span class="bk-pdfs">${hechos.map((h) => `<button class="btn tiny" data-m="plPdf" data-v="${h.v}" title="Enunciado en PDF">${ic('file-text')} PDF ${esc(VERSIONES[h.v])}</button><button class="btn tiny" data-m="plPdf" data-v="${h.v}" data-sol="1" title="Soluciones en PDF (no se las pases a los alumnos)">${ic('key')} Soluciones</button>`).join('')}</span>` : ''}`; m2.className = 'pn-msg ok';
         return;
       }
       if (acc === 'añadirJSON') {
@@ -155,6 +156,7 @@ export function crearBanco({ db, aula, modal, cerrarModal, gruposDe }) {
         b.disabled = true; await lote.commit(); b.disabled = false;
         msg.innerHTML = `Examen «${esc(titulo)}» con ${r.preguntas.length} preguntas guardado como borrador. <button class="btn small" data-m="abrirEx" data-id="${esc(id)}">${ic('pencil')} Abrir en el editor</button>`; msg.className = 'pn-msg ok';
       }
+      if (acc === 'plPdf') { const g = generados.find((x) => x.v === b.dataset.v); if (!g || !pdf) return; b.disabled = true; try { await pdf({ titulo: g.titulo, asig, preguntas: g.preguntas, soluciones: b.dataset.sol === '1' }); } catch (e) { const m2 = m.querySelector('#bkPlMsg'); m2.append(' No se ha podido generar el PDF.'); } finally { b.disabled = false; } return; }
       if (acc === 'abrirEx') { const id = b.dataset.id; cerrarModal(); setTimeout(() => window.PORTAL?.aula?.editar?.(id), 300); }
       if (acc === 'exportar') {
         const json = JSON.stringify({ preguntas: banco.map((x) => ({ ...x.q, criterio: x.criterio })) }, null, 2);
