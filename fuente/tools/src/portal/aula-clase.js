@@ -3,7 +3,7 @@
 //  · Profesor: «+ Crear» (tarea, tarea de cuestionario, pregunta, material, reutilizar publicación, tema),
 //    arrastrar y soltar elementos dentro de un tema, entre temas y los propios temas (con botones ↑ ↓
 //    como alternativa de teclado), publicar / programar / borrador, e importar la estructura de Classroom.
-import { collection, doc, getDocs, query, where, writeBatch, updateDoc, deleteDoc, setDoc, Timestamp, limit } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, writeBatch, updateDoc, deleteDoc, setDoc, Timestamp, limit } from 'firebase/firestore';
 import { confirmar, pedirTexto, avisar } from './dialogo.js';
 import { exportarEvidencias } from './evidencias.js';
 import { esc } from './util.js';
@@ -409,6 +409,8 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const datos = Object.fromEntries(Object.entries(it).filter(([k]) => k !== 'id'));
     b.set(doc(db, 'items', id), { ...datos, curso: destino.curso || it.curso, tema: destino.tema !== undefined ? destino.tema : it.tema ?? null, titulo: (destino.titulo || it.titulo).slice(0, 150), orden: destino.orden ?? (it.orden ?? 0) + 0.5, grupos: destino.grupos || it.grupos || [], publicado: false, visible: [], pub: null, actualizado: Date.now(), ...('visibleAl' in it ? { visibleAl: [] } : {}) });
     if (it.tipo === 'examen') { const { examen, claves } = await aula.examen(it.id, { claves: true }); if (examen) b.set(doc(db, 'examenes', id), { ...examen, desde: Timestamp.fromMillis(examen.desde), hasta: Timestamp.fromMillis(examen.hasta), grupos: destino.grupos || examen.grupos || [], publicado: false }); b.set(doc(db, 'claves', id), claves || { respuestas: {} }); }
+    // v5: sección, PDF y versión interactiva van en el elemento (se copian arriba); el origen en Drive está en origenes/{id} (solo profesor)
+    if (st.reglasV5 === true) { try { const o = (await getDoc(doc(db, 'origenes', it.id))).data(); if (o) b.set(doc(db, 'origenes', id), { ...o, curso: destino.curso || it.curso }); } catch (e) { /* sin origen */ } }
     await b.commit(); return id;
   }
   async function renombrar(it) {

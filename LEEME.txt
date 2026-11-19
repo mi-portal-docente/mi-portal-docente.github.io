@@ -115,3 +115,33 @@ LIBRERÍAS DE TERCEROS (aula virtual · solo MIT, BSD o Apache)
 - Hoja de cálculo (fórmulas, gráficos y tabla dinámica): código propio (sin librería).
 - jsPDF 4.2.1 (MIT): «Exportar asignatura en PDF» y PDF de los cuestionarios, en vendor/jspdf/ (licencia en LICENSE).
   Se carga solo al exportar. El ZIP de la exportación es código propio (el mismo que el del .docx), sin JSZip.
+
+SUPERPROFE PABLO PARA ALUMNOS · v5 (secciones por asignatura, 19/11/2026)
+- Secciones: Avisos · Teoría · Ejercicios en clase · Tareas · Test · Exámenes · Laboratorio y «Gestión» (profesor).
+  Activadas en EEE y Proyecto; las demás, desde Gestión → «Secciones de la asignatura». Cada elemento va a su sección
+  según su tipo (sin reescribir nada en Firestore) o según su campo «seccion».
+- Importar JSON (Gestión → Importar JSON): campos nuevos opcionales seccion, tema (por nombre), pdf, interactivo,
+  origen (solo profesor, en origenes/) y la lista «secciones» de la asignatura. Ejemplo completo:
+  {
+    "secciones": [ { "id": "teoria", "nombre": "Teoría", "orden": 1, "visible": true },
+                   { "id": "laboratorio", "nombre": "Laboratorio", "orden": 6, "visible": false } ],
+    "elementos": [
+      { "formato": "superprofe/elemento@1", "tipo": "tarea", "seccion": "tareas", "tema": "SA1 · Empresa espejo",
+        "titulo": "T3 · Empresa espejo", "instrucciones": "Lee el PDF y entrega tu ficha.", "puntos": 10,
+        "criterio": "piac_c2_1",
+        "pdf": { "archivo": "archivos/abc123", "nombre": "PIAC_SA1_T3_Alumno_v3.pdf", "descarga": false },
+        "interactivo": { "tipo": "explicacion", "ref": "iexplica0001" },
+        "origen": { "drive": "<id del archivo en Drive>", "ruta": "1_PIAC_SA1/T3_Empresa_espejo", "version": "v3" } },
+      { "tipo": "material", "tema": "SA1 · Empresa espejo", "titulo": "Apuntes SA1",
+        "pdf": { "archivo": "archivos/def456", "nombre": "PIAC_SA1_Apuntes_v2.pdf" } }
+    ]
+  }
+  Sin «seccion», se deduce del tipo. Todo entra como borrador. Detalle en fuente/tools/src/lms/semilla/FORMATO_IMPORTAR.md.
+- Exportar para otro compañero: Gestión → «Exportar asignatura en PDF» (ZIP con carpetas por sección y tema,
+  indice.pdf y manifiesto.json; sin datos de alumnos; se genera y descarga en el navegador, sin Drive).
+- Notas: el portal muestra la nota de cada actividad (con su rúbrica) y nada más; la nota final la calcula QE.
+  El cuaderno tiene la vista «Por criterio» (nº de lista × criterio, sin medias).
+- Volver a dar una asignatura: «Añadir al curso» propone copiar el contenido del último curso que la tuvo (borrador).
+  Al copiar un curso, «Reutilizar publicación» o duplicar, se copian sección, PDF, versión interactiva y origen;
+  las secciones de la asignatura (config/secciones) no dependen del curso y se conservan.
+- Reglas de Firestore v5: hay que pegarlas en la consola (las genera prepara-reglas.mjs con el correo del profesor).

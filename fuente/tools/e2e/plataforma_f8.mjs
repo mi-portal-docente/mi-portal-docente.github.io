@@ -59,7 +59,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const idR = await importarYPublicar(pg, BASE, 'eee', REC, { pegarJSON, guardarJSON }, async (p) => {
     await p.fill('#apItemForm [name=para]', '3'); await p.fill('#apItemForm [name=fechaEntrega]', local(manana));
     await p.click('[data-ed=plantillaRubrica]');
-    ok('plantilla de rúbrica: 5 criterios ponderados con autoría (en la tabla)', /Autoría.*\| 1,5/.test(await p.inputValue('#apItemForm [data-rb-texto]')) && (await p.$$('#apItemForm .rb-fila')).length === 5);
+    ok('plantilla de rúbrica: 5 criterios con autoría, sin pesos por defecto (2 puntos cada uno)', /Autoría.*\| 2\b/.test(await p.inputValue('#apItemForm [data-rb-texto]')) && (await p.$$('#apItemForm .rb-fila')).length === 5);
   });
   const docR = JSON.stringify(await docREST('items/' + idR));
   ok('recuperación publicada solo para el nº 3 (visible vacío, visibleAl = grupo_3)', docR.includes(`${T.GE.id}_3`) && /"visible":\{"arrayValue":\{\}\}/.test(docR.replace(/\s/g, '')), docR.slice(0, 200));

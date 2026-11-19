@@ -231,7 +231,7 @@ await P.pg.click(`#asTrabajo [data-item="${ID_REF}"] [data-cl=up]`); await P.pg.
 const temaRec = await P.pg.getAttribute('#asTrabajo .cl-tema:has(.cl-th h3:text-is("RECUPERACIÓN POR BLOQUES"))', 'data-tema');
 const temaEv = await P.pg.getAttribute('#asTrabajo .cl-tema:has(.cl-th h3:text-is("Evaluación Inicial"))', 'data-tema');
 async function arrastrar(desde, hasta, dy = 4) {
-  await P.pg.locator(desde).scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) { try { await P.pg.locator(desde).scrollIntoViewIfNeeded({ timeout: 3000 }); break; } catch (e) { await P.pg.waitForTimeout(400); } } // la lista se repinta tras el clic anterior
   const s0 = await P.pg.locator(desde).boundingBox();
   await P.pg.mouse.move(s0.x + 5, s0.y + s0.height / 2); await P.pg.mouse.down();
   await P.pg.mouse.move(s0.x + 15, s0.y + s0.height / 2 - 20, { steps: 4 });
@@ -403,7 +403,8 @@ await A.pg.screenshot({ path: SHOTS + 'aula_alumno_examen.png' });
 await A.pg.click('#auExamen button[type=submit]');
 await A.pg.waitForSelector('.au-ok:has-text("Examen entregado")', { timeout: 15000 });
 ok('entregar el examen', true);
-const trE = await (await fetch(`${REST}/trabajos/${ID_E}_${GA.id}_5`, owner)).json();
+let trE = null; // la escritura puede llegar al servidor un poco después de que la interfaz diga «entregado»
+for (let i = 0; i < 20; i++) { trE = await (await fetch(`${REST}/trabajos/${ID_E}_${GA.id}_5`, owner)).json(); if (trE.fields?.estado?.stringValue === 'entregado') break; await A.pg.waitForTimeout(500); }
 ok('el examen guarda las respuestas por id de pregunta y estado «entregado»', trE.fields?.estado?.stringValue === 'entregado' && Object.keys(trE.fields?.respuestas?.mapValue?.fields || {}).length === 3);
 await A.pg.goto(BASE + '#asig/tic1/trabajo');
 await A.pg.waitForSelector('#asTrabajo .au-est');
@@ -622,11 +623,20 @@ ok('Biblioteca: archivo de otros años («También en 2025/26»)', (await P.pg.$
 await P.pg.screenshot({ path: SHOTS + 'biblioteca_profesor_oscuro.png', fullPage: true });
 await P.pg.evaluate(() => window.portalTema?.elegir('light')); await P.pg.waitForTimeout(300);
 await P.pg.screenshot({ path: SHOTS + 'biblioteca_profesor_claro.png', fullPage: true });
+// v5 · al volver a dar una asignatura se copia del último curso que la tuvo (sección, PDF, interactivo y origen incluidos)
+const H5 = { ...owner.headers, 'Content-Type': 'application/json' };
+await fetch(`${REST}/items/iAnt5tic2x01`, { method: 'PATCH', headers: H5, body: JSON.stringify({ fields: { curso: { stringValue: 'c2025-26' }, asig: { stringValue: 'tic2' }, tipo: { stringValue: 'material' }, titulo: { stringValue: 'Apuntes del curso pasado' }, texto: { stringValue: '' }, enlaces: { arrayValue: {} }, grupos: { arrayValue: {} }, visible: { arrayValue: {} }, publicado: { booleanValue: true }, orden: { integerValue: '1000' }, seccion: { stringValue: 'laboratorio' }, interactivo: { mapValue: { fields: { tipo: { stringValue: 'laboratorio' }, ref: { stringValue: '#eee/circuitos' } } } } } }) });
+await fetch(`${REST}/origenes/iAnt5tic2x01`, { method: 'PATCH', headers: H5, body: JSON.stringify({ fields: { drive: { stringValue: 'ID_PRUEBA' }, ruta: { stringValue: 'TIC2/T1' }, version: { stringValue: 'v1' }, asig: { stringValue: 'tic2' }, curso: { stringValue: 'c2025-26' } } }) });
 // añadir T.I.Cs 2º Bach al curso
 await P.pg.click('#bibRes [data-cur=añadir][data-asig=tic2]');
 await P.pg.waitForFunction(() => document.querySelectorAll('#bibRes [data-cur=quitar]').length === 3, null, { timeout: 15000 });
 let cd = await cursoDoc();
 ok('«Añadir al curso» guarda la asignatura en el curso activo', cd.asigs.includes('tic2') && cd.asigs.length === 3, cd.asigs.join());
+let copia5 = null;
+for (let i = 0; i < 20 && !copia5; i++) { const L = (await (await fetch(`${REST}/items?pageSize=300`, owner)).json()).documents || []; copia5 = L.find((d) => d.fields?.titulo?.stringValue === 'Apuntes del curso pasado' && d.fields?.curso?.stringValue === cd.id) || null; if (!copia5) await P.pg.waitForTimeout(500); }
+const idC5 = copia5?.name.split('/').pop(); const oC5 = idC5 ? await (await fetch(`${REST}/origenes/${idC5}`, owner)).json() : null;
+ok('volver a dar una asignatura: se copia del último curso (borrador) con sección, versión interactiva y origen', !!copia5 && copia5.fields.seccion?.stringValue === 'laboratorio' && copia5.fields.publicado?.booleanValue === false && copia5.fields.interactivo?.mapValue?.fields?.ref?.stringValue === '#eee/circuitos' && oC5?.fields?.ruta?.stringValue === 'TIC2/T1' && (await fetch(`${REST}/items/iAnt5tic2x01`, owner)).status === 200, idC5 || 'sin copia');
+await P.pg.waitForFunction(() => /añadida al curso/.test(document.querySelector('#bibResumen')?.textContent || ''), null, { timeout: 15000 }).catch(() => {});
 ok('Biblioteca: aviso y contador tras añadir', /añadida al curso 2026\/27/.test(await P.pg.textContent('#bibResumen')) && /3\s*en el curso/.test(await P.pg.textContent('#bibResumen')));
 await P.pg.screenshot({ path: SHOTS + 'biblioteca_anadida.png' });
 await P.pg.goto(BASE + '#asignaturas');

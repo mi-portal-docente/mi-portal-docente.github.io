@@ -20,6 +20,7 @@ import { estadoTrabajo, cuentaComoEntrega, ordenarVersiones, ESTADOS_TRABAJO } f
 import { estadoChipHTML } from './entrega-ui.js';
 import { crearCorreccion } from './correccion-ui.js';
 import { limpiarDoc } from '../lms/doc-html.js';
+import { copiarContenido } from './aula-copia.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
 import { exportarCurso, limpiarCurso } from './curso-datos.js';
 import { totalCopia } from '../lms/copia.js';
@@ -115,29 +116,8 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     } catch (e) { msg.textContent = '❌ No se ha podido guardar (' + (e?.code || e?.message || 'error') + ').'; msg.className = 'pn-msg ko'; }
   }
   // Copia los elementos de un curso a otro (sin grupos y sin publicar), con sus exámenes y claves.
-  async function copiarCurso(origen, destino, asignaturas) {
-    const qs = await getDocs(query(collection(db, 'items'), where('curso', '==', origen)));
-    const qt = await getDocs(query(collection(db, 'temas'), where('curso', '==', origen)));
-    const ops = []; let n = 0; const mapa = new Map();
-    const hay = [...st.temas.values()].filter((t) => t.curso === destino);
-    for (const d of qt.docs) {
-      const t = d.data(); if (asignaturas && !asignaturas.includes(t.asig)) continue;
-      const ya = hay.find((x) => x.asig === t.asig && x.nombre === t.nombre); if (ya) { mapa.set(d.id, ya.id); continue; }
-      const id = 't' + idItem().slice(1); mapa.set(d.id, id);
-      ops.push({ db, fn: (b) => b.set(doc(db, 'temas', id), { curso: destino, asig: t.asig, nombre: t.nombre, orden: t.orden, ...(t.origen ? { origen: t.origen } : {}) }) });
-    }
-    for (const d of qs.docs) {
-      const x = d.data(); if (asignaturas && !asignaturas.includes(x.asig)) continue;
-      const id = idItem(); n++;
-      ops.push({ db, fn: (b) => b.set(doc(db, 'items', id), { ...x, curso: destino, tema: x.tema ? mapa.get(x.tema) || null : null, grupos: [], visible: [], publicado: false, pub: null, actualizado: Date.now() }) });
-      if (x.tipo === 'examen') {
-        const { examen, claves } = await aula.examen(d.id, { claves: true });
-        if (examen) ops.push({ db, fn: (b) => b.set(doc(db, 'examenes', id), { ...examen, desde: Timestamp.fromMillis(examen.desde), hasta: Timestamp.fromMillis(examen.hasta), grupos: [], publicado: false }) });
-        ops.push({ db, fn: (b) => b.set(doc(db, 'claves', id), claves || { respuestas: {} }) });
-      }
-    }
-    await enLotes(ops); return n;
-  }
+  // v5: la copia está en aula-copia.js (también la usa la Biblioteca); además copia el origen en Drive
+  const copiarCurso = (origen, destino, asignaturas) => copiarContenido({ db, aula, origen, destino, asignaturas });
   async function accionCurso(acc, c) {
     try {
       if (acc === 'cursoEditar') { A.cursoEdit = c.id; A.msg = ''; pintar(); A.el.scrollIntoView?.({ block: 'start' }); return; }

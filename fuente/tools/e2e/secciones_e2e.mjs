@@ -139,6 +139,14 @@ try {
     await P.pg.waitForSelector('#apItemForm', { state: 'detached', timeout: 15000 });
     await new Promise((r) => setTimeout(r, 800));
     ok('editor: guarda el origen nuevo y conserva sección e interactivo', (await leer('origenes/' + idG)).fields?.version?.stringValue === 'v3' && (await leer('items/' + idG)).fields?.seccion?.stringValue === 'laboratorio' && !!(await leer('items/' + idG)).fields?.interactivo);
+    // v5 · punto 7: duplicar / reutilizar copia sección, interactivo y origen (la copia se borra después para no tocar el resto de la prueba)
+    await P.pg.waitForSelector(`#asTrabajo [data-item="${idG}"] [data-cl=duplicar]`, { state: 'attached', timeout: 15000 });
+    await P.pg.evaluate((x) => document.querySelector(`#asTrabajo [data-item="${x}"] [data-cl=duplicar]`).click(), idG);
+    let dup = null;
+    for (let i = 0; i < 20 && !dup; i++) { const L = (await (await fetch(`${REST}/items?pageSize=300`, owner)).json()).documents || []; dup = L.find((d) => d.fields?.titulo?.stringValue === 'Guía del polímetro (copia)') || null; if (!dup) await new Promise((r) => setTimeout(r, 500)); }
+    const idDup = dup?.name.split('/').pop(); const oDup = idDup ? await leer('origenes/' + idDup) : null;
+    ok('duplicar / reutilizar: la copia lleva sección, versión interactiva y origen (borrador)', !!dup && dup.fields.seccion?.stringValue === 'laboratorio' && dup.fields.interactivo?.mapValue?.fields?.ref?.stringValue === '#eee/circuitos' && dup.fields.publicado?.booleanValue === false && oDup?.fields?.version?.stringValue === 'v3', idDup || 'sin copia');
+    if (idDup) { await fetch(`${REST}/items/${idDup}`, { method: 'DELETE', ...owner }); await fetch(`${REST}/origenes/${idDup}`, { method: 'DELETE', ...owner }); await new Promise((r) => setTimeout(r, 800)); }
   }
 
   // ---------------------------------------------------------------- Gestión: configurar secciones

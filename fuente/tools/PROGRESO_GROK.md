@@ -769,3 +769,19 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
 - Pruebas: exportar_zip_test.mjs (7), secciones_e2e 44/44 (descarga el ZIP y lo abre: carpetas, PDF válidos, manifiesto; PDF de soluciones).
   Ejemplo generado en /workspace/capturas-v5/v5_f4_ejemplo.zip (datos de prueba).
 - Probar a mano: EEE → Gestión → «Exportar asignatura en PDF» → Descargar ZIP y abrirlo; en un cuestionario, menú → «PDF (enunciado y soluciones)».
+
+### Bloque 5 · Punto 7: Biblioteca y cursos con secciones — HECHO (caché v5-20261119e)
+- Copiar curso (Panel → Cursos «Copiar de…») pasa a src/portal/aula-copia.js (lo usan el Panel y la Biblioteca). Copia el elemento
+  entero (sección, PDF, versión interactiva incluidos), cuestionarios y claves, como borrador y sin grupos; y además el origen en Drive
+  (origenes/{id}, solo profesor, solo con reglas v5).
+- «Reutilizar publicación» (de otro curso), «Duplicar» y «Duplicar en otro grupo o curso» usan copiar() de aula-clase.js: ya copiaban
+  todos los campos del elemento; ahora también el origen (origenes/{id}).
+- Biblioteca: al «Añadir al curso» una asignatura sin contenido en el curso activo, propone copiar el del último curso que la tuvo
+  (confirmación; borrador). No se borra nada del curso anterior.
+- Las secciones de la asignatura están en config/secciones (no por curso): se conservan solas.
+- Añadir una asignatura NUEVA a la Biblioteca sigue exigiendo tocar código (src/lms/biblioteca.js); no se ha cambiado.
+- Pruebas: aula_e2e 120/120 (nueva: volver a dar T.I.Cs II copia del curso pasado con sección, interactivo y origen); secciones_e2e 45/45
+  (nueva: duplicar copia sección, interactivo y origen); test:reglas 149/149; unitarias 112/112; circ 77/77, barra 90/90,
+  circ_auditoria 63/63, circ_estados 93/93, guiadas 20/20. Arreglado un tropiezo de tiempos en aula_e2e (arrastrar tema).
+- Probar a mano: Biblioteca → «Quitar del curso» una asignatura que tuviera contenido el curso pasado y «Añadir al curso» → aceptar
+  «Copiar» → aparecen los elementos como borrador en su sección.

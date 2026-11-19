@@ -352,9 +352,14 @@ async function accionCurso(b) {
   }
   b.disabled = true; decir('Guardando…');
   try {
-    await P.aula.cursoAsignatura(id, b.dataset.cur === 'quitar' ? 'quitar' : 'añadir');
+    const r = await P.aula.cursoAsignatura(id, b.dataset.cur === 'quitar' ? 'quitar' : 'añadir');
     if (curScreen === 'asig' && asigActual) pintarAsig(asigActual);
     decir(b.dataset.cur === 'quitar' ? `✔ «${a.corto}» quitada del curso ${c.curso}. Sigue en la Biblioteca.` : `✔ «${a.corto}» añadida al curso ${c.curso}.`);
+    // v5 · volver a dar una asignatura: se copia del último curso que la tuvo (como borrador, con secciones, PDF y versión interactiva)
+    if (r?.copiarDe && P.aula.copiarAsignatura && await confirmar(`«${a.corto}» no tiene contenido en ${c.curso}.\n\n¿Copiar el de ${r.copiarDe.nombre}? Se copia como borrador y sin grupos (temas, elementos, cuestionarios, PDF y versión interactiva). No se borra nada del curso anterior.`, { aceptar: 'Copiar' })) {
+      decir('Copiando…'); const n = await P.aula.copiarAsignatura(id, r.copiarDe.id);
+      decir(`✔ «${a.corto}» añadida al curso ${c.curso} con ${n} elemento${n === 1 ? '' : 's'} copiado${n === 1 ? '' : 's'} de ${r.copiarDe.nombre} (borrador).`);
+    }
   } catch (e) {
     b.disabled = false;
     decir(e?.message === 'demasiadas' ? 'Un curso puede tener como mucho 20 asignaturas.' : '❌ No se ha podido guardar (' + (e?.code || e?.message || 'error') + ').');

@@ -9,6 +9,7 @@ import { crearPanel } from './panel.js';
 import { esc, enHorario, conTimeout } from './util.js';
 import { ic } from './ico.js';
 import { crearAula } from './aula-datos.js';
+import { copiarContenido, ultimoCursoCon, tieneContenido } from './aula-copia.js';
 import { instalarVisorPDF, abrirPDF } from './visor-pdf.js';
 import { instalarBotones3D } from './modelo3d-ui.js';
 import { crearVistas } from './aula-vistas.js';
@@ -167,6 +168,15 @@ const PORTAL = window.PORTAL = {
         }
       }
       await b.commit();
+      // v5 · al volver a dar una asignatura: si este curso no tiene nada de ella, se propone copiar el último curso que la tuvo
+      if (accion === 'añadir') { try { if (!(await tieneContenido({ db: fb.db, curso: c.id, asig }))) { const u = await ultimoCursoCon({ db: fb.db, aula, asig, destino: c.id }); if (u) return { copiarDe: { id: u.id, nombre: u.nombre || u.id } }; } } catch (e) { /* sin propuesta */ } }
+      return null;
+    },
+    // Copia el contenido de la asignatura del curso «origen» al curso activo (como borrador, sin grupos).
+    async copiarAsignatura(asig, origen) {
+      if (rol !== 'profesor' || !aula) throw new Error('no-profesor');
+      const c = aula.cursoActivo(); if (!c) throw new Error('sin-curso');
+      return copiarContenido({ db: fb.db, aula, origen, destino: c.id, asignaturas: [asig] });
     },
   },
   pagina: () => (ACC.pagina ? ACC.pagina() : location.hash),
