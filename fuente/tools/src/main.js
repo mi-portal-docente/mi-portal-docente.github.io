@@ -254,7 +254,7 @@ function espEntregaHTML(L) {
     <div id="espEstado" class="esp-estado">${espEstadoHTML(L)}</div></div>`;
 }
 function brandHTML() {
-  return `<a href="#inicio" class="brand" title="Inicio"><span class="brand-t">SuperProfe · Alumnos</span></a>`;
+  return `<a href="#inicio" class="brand" title="Inicio"><span class="brand-t">SuperProfe<span class="brand-x"> Pablo para alumnos</span></span></a>`;
 }
 // Navegación del encabezado, igual en todas las pantallas (alumno: su Curso; profesor: + Biblioteca y Panel).
 const topNav = (k = '') => portal()?.navHTML?.(k) || `<nav class="top-nav" aria-label="Principal"><a class="top-nav-a ${k === 'asig' ? 'on' : ''}" href="#asignaturas" ${k === 'asig' ? 'aria-current="page"' : ''}>📚 Asignaturas</a></nav>`;
@@ -298,7 +298,7 @@ function mostrarBarraAsig(id, tab = 'laboratorio') {
 function coverHTML() {
   const P = portal(); const prof = !!P?.esProfesor; const alumno = P?.rol === 'alumno'; const ses = window.PORTAL_SESION;
   const mias = misAsignaturas();
-  return `<div class="cov-band"><div class="cov-top"><span class="cov-chip">${chip()}</span></div><div class="cov-brand">SuperProfe · Alumnos</div></div>
+  return `<div class="cov-band"><div class="cov-top"><span class="cov-chip">${chip()}</span></div><div class="cov-brand">SuperProfe Pablo para alumnos</div></div>
   <main class="cov-body">
     <div class="cov-ciclo">Bachillerato y CFGB · Informática y Comunicaciones</div>
     <div class="cov-sep"></div>

@@ -733,3 +733,12 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
   secciones_e2e 39/39, aula_e2e 118/118. Caché v5-20261119a.
 - Probar a mano: pegar las reglas nuevas (/workspace/portal-acceso/firestore.rules.para-pegar.txt) → Ctrl+F5 → EEE: pestañas de secciones;
   Gestión → «Secciones de la asignatura» (renombrar, ordenar, ocultar); como alumno, contador de pendientes y barra inferior en el móvil.
+
+### Fase 2 · Nombre «SuperProfe Pablo para alumnos» y las dos caras de cada elemento — HECHA (caché v5-20261119b)
+- Nombre completo en la pestaña, el manifest, la pantalla de entrada (también la de js/acceso.js) y la portada; en la cabecera,
+  completo desde 1280 px y «SuperProfe» si no cabe (móvil, tableta). `apple-mobile-web-app-title` y `short_name` siguen «SuperProfe».
+- PDF oficial y versión interactiva (§3 del encargo): ya publicado con la Fase 1 (src/lms/caras.js, portal/caras-ui.js): botones
+  «Ver PDF» (visor de solo lectura; «Permitir descargarlo» por archivo) y «Versión interactiva» solo si existe; campos `pdf` e
+  `interactivo` validados en las reglas; `origen` (Drive) solo en `origenes/{id}`, que solo lee el profesor. El portal no abre Drive.
+- Pruebas: acceso_test 28/28, barra_test 90/90 (con el nombre largo a 1280 y 1366 sin solapes).
+- Probar a mano: Ctrl+F5 → pestaña y entrada con el nombre nuevo; en un elemento, editor → «PDF oficial, versión interactiva y origen».

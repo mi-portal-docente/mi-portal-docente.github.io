@@ -1275,3 +1275,5 @@ body.con-asigbar header.top > .brand, body.con-asigbar .vv-crumbs .top-nav { dis
 .cl-v5 > summary { cursor: pointer; font-weight: 600; }
 .cl-origen { border: 1px dashed var(--sep2); border-radius: 12px; padding: 6px 10px; margin-top: 8px; }
 @media (max-width: 560px) { .cl-fila { grid-template-columns: 1fr; } .cl-fila > .cl-caras { padding: 0 10px 6px; } }
+/* v5 · nombre «SuperProfe Pablo para alumnos»: completo en pantallas anchas; «SuperProfe» si no cabe */
+@media (max-width: 1279px) { .brand .brand-x { display: none; } }
