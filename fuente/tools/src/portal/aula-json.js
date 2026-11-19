@@ -10,7 +10,7 @@ import { leerJSON, exportarElemento, motor } from '../lms/elemento.js';
 import { separarPregunta, unirPregunta, TIPOS_PREGUNTA } from '../lms/preguntas.js';
 import { idItem, categoriaDe, TIPOS_ENTREGA, fmtNota } from '../lms/modelo.js';
 import { TIPOS, asignatura } from '../lms/biblioteca.js';
-import { ACTIVAS_DEFECTO } from '../lms/secciones.js';
+import { ACTIVAS_DEFECTO, SECCIONES, fusionarSecciones, seccionesActivas } from '../lms/secciones.js';
 import { setDoc } from 'firebase/firestore';
 import { textoHTML } from './aula-vistas.js';
 
@@ -78,7 +78,7 @@ export function crearJson({ db, aula, modal, cerrarModal, gruposDe }) {
         texto = ta.value; const r = leerJSON(texto); elementos = r.elementos; secciones = r.secciones || null;
         m.querySelector('#jsErr').innerHTML = r.errores.length ? `<b>Hay ${r.errores.length} error${r.errores.length === 1 ? '' : 'es'}:</b><ul>${r.errores.slice(0, 30).map((e) => `<li>${e.ruta ? `<code>${esc(e.ruta)}</code> · ` : ''}${esc(e.texto)}</li>`).join('')}</ul>` : '';
         m.querySelector('#jsPrev').innerHTML = elementos.length ? `<h4>Vista previa (${elementos.length} elemento${elementos.length === 1 ? '' : 's'})</h4>${elementos.map(vistaPreviaHTML).join('')}` : '';
-        if (secciones) m.querySelector('#jsPrev').insertAdjacentHTML('afterbegin', `<p class="pn-small"><b>Secciones de la asignatura:</b> ${esc(secciones.map((x) => `${x.nombre}${x.visible ? '' : ' (oculta)'}`).join(' · '))}</p>`);
+        if (secciones) m.querySelector('#jsPrev').insertAdjacentHTML('afterbegin', `<p class="pn-small"><b>Secciones de la asignatura:</b> ${esc(secciones.map((x) => `${x.nombre || SECCIONES.find((b) => b.id === x.id)?.nombre || x.id}${x.visible === false ? ' (oculta)' : ''}`).join(' · '))}. Lo que no venga en el archivo se queda como está.${seccionesActivas(st.secConf, asig) ? '' : ' Esta asignatura todavía no usa secciones: actívalas en Gestión → «Secciones de la asignatura».'}</p>`);
         const nuevos = elementos.some((e) => e.seccion || e.pdf || e.interactivo || e.origen) || secciones;
         if (nuevos && st.reglasV5 !== true) m.querySelector('#jsErr').insertAdjacentHTML('beforeend', '<p class="sg-aviso">Sección, PDF, versión interactiva, origen y secciones se guardarán cuando pegues las <b>reglas nuevas (v5)</b>. Ahora se guarda el resto.</p>');
         m.querySelector('[data-m=guardar]').disabled = !elementos.length && !secciones;
@@ -102,7 +102,7 @@ export function crearJson({ db, aula, modal, cerrarModal, gruposDe }) {
             if (!nuevosT.has(n)) { const id = 't' + idItem().slice(1); const orden = Math.max(0, ...temasCurso.map((x) => x.orden || 0)) + 1000 * (nuevosT.size + 1); lote.set(doc(db, 'temas', id), { curso, asig, nombre: nom.trim().slice(0, 200), orden }); nuevosT.set(n, id); }
             return nuevosT.get(n);
           };
-          if (secciones && v5) { const conf = st.secConf || {}; await setDoc(doc(db, 'config', 'secciones'), { activas: Array.isArray(conf.activas) ? conf.activas : ACTIVAS_DEFECTO, asig: { ...(conf.asig || {}), [asig]: secciones } }); }
+          if (secciones && v5) { const conf = st.secConf || {}; await setDoc(doc(db, 'config', 'secciones'), { activas: Array.isArray(conf.activas) ? conf.activas : ACTIVAS_DEFECTO, asig: { ...(conf.asig || {}), [asig]: fusionarSecciones(conf.asig?.[asig], secciones) } }); }
           for (let i = 0; i < elementos.length; i += 100) {
             const lote = writeBatch(db);
             for (const el of elementos.slice(i, i + 100)) {
@@ -113,7 +113,7 @@ export function crearJson({ db, aula, modal, cerrarModal, gruposDe }) {
             }
             await lote.commit();
           }
-          msg.textContent = `${ids.length === 1 ? 'Guardado' : ids.length + ' elementos guardados'} como borrador.${secciones && v5 ? ' Secciones guardadas.' : ''}`; msg.className = 'pn-msg ok';
+          msg.textContent = `${ids.length ? `${ids.length === 1 ? 'Guardado' : ids.length + ' elementos guardados'} como borrador.` : ''}${secciones && v5 ? ' Secciones guardadas.' : ''}`.trim(); msg.className = 'pn-msg ok';
           m.querySelector('#jsPrev').insertAdjacentHTML('afterbegin', `<div class="pn-acts">${ids.length === 1 ? `<button class="btn primary" data-m="abrir" data-id="${esc(ids[0])}">${ic('pencil')} Abrir en el editor</button>` : ''}<button class="btn" data-m="cerrar">Cerrar</button></div>`);
         } catch (er) { b.disabled = false; msg.textContent = 'No se ha podido guardar (' + (er?.code || er?.message || 'error') + ').'; msg.className = 'pn-msg ko'; }
       }

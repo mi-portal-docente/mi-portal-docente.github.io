@@ -785,3 +785,16 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
   circ_auditoria 63/63, circ_estados 93/93, guiadas 20/20. Arreglado un tropiezo de tiempos en aula_e2e (arrastrar tema).
 - Probar a mano: Biblioteca → «Quitar del curso» una asignatura que tuviera contenido el curso pasado y «Añadir al curso» → aceptar
   «Copiar» → aparecen los elementos como borrador en su sección.
+
+### Bloque 6 · Punto 5: importador — HECHO (caché v5-20261119f)
+- Ya existía (Fase 1, src/lms/elemento.js + portal/aula-json.js): seccion, tema por nombre, pdf, interactivo, origen (aparte, en
+  origenes/) y la lista «secciones»; sin seccion se deduce del tipo; vista previa; aviso con reglas antiguas; Exportar JSON con origen.
+- Nuevo: «secciones» del archivo se FUSIONAN con las guardadas (fusionarSecciones/parcialSecciones en lms/secciones.js): basta poner
+  las que cambian; antes un archivo con una sola sección borraba el nombre/orden/visibilidad que el profesor tenía en las demás.
+  La vista previa lo dice y avisa si la asignatura aún no usa secciones (importar no las activa). Mensaje «Secciones guardadas.»
+  cuando el archivo solo trae secciones.
+- Documentado: LEEME.txt (ejemplo completo) y src/lms/semilla/FORMATO_IMPORTAR.md (sección v5 con ejemplo y reglas de fusión).
+- Pruebas: importador_v5_test 8/8 (nueva: fusión), secciones_e2e 47/47 (nueva: importar solo «examenes» conserva Apuntes y
+  Laboratorio oculto), aula_e2e 120/120, unitarias OK, acceso 28/28, barra 90/90. Reglas sin cambios.
+- Probar a mano: Gestión → Importar JSON → pegar {"secciones":[{"id":"examenes","nombre":"Pruebas escritas"}]} → Validar → Guardar:
+  cambia solo ese nombre.

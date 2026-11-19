@@ -136,7 +136,7 @@ SUPERPROFE PABLO PARA ALUMNOS · v5 (secciones por asignatura, 19/11/2026)
         "pdf": { "archivo": "archivos/def456", "nombre": "PIAC_SA1_Apuntes_v2.pdf" } }
     ]
   }
-  Sin «seccion», se deduce del tipo. Todo entra como borrador. Detalle en fuente/tools/src/lms/semilla/FORMATO_IMPORTAR.md.
+  Sin «seccion», se deduce del tipo. En «secciones» basta con las que cambian; lo demás se queda como estaba. Todo entra como borrador. Detalle en fuente/tools/src/lms/semilla/FORMATO_IMPORTAR.md.
 - Exportar para otro compañero: Gestión → «Exportar asignatura en PDF» (ZIP con carpetas por sección y tema,
   indice.pdf y manifiesto.json; sin datos de alumnos; se genera y descarga en el navegador, sin Drive).
 - Notas: el portal muestra la nota de cada actividad (con su rúbrica) y nada más; la nota final la calcula QE.

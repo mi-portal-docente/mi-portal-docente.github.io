@@ -6,7 +6,7 @@ import { enlaceValido, redondea } from './modelo.js';
 import { validarPregunta, TIPOS_PREGUNTA } from './preguntas.js';
 
 export const FORMATO_EL = 'superprofe/elemento@1';
-import { IDS_ELEMENTO, validarSecciones, limpiarSecciones } from './secciones.js';
+import { IDS_ELEMENTO, validarSecciones, parcialSecciones } from './secciones.js';
 import { validarPdf, validarInteractivo, validarOrigen } from './caras.js';
 // Motores de contenido (tipos nuevos): cada uno registra su validador con registrarMotor().
 // validar(contenido, err) añade errores con err(ruta, texto) y devuelve el contenido limpio.
@@ -133,7 +133,7 @@ export function leerJSON(texto) {
   const L = Array.isArray(j) ? j : Array.isArray(j?.elementos) ? j.elementos : [j];
   // v5 · { "secciones": [ … ], "elementos": [ … ] }: también las secciones de la asignatura
   let secciones = null;
-  if (j && !Array.isArray(j) && j.secciones != null) { const e = validarSecciones(j.secciones); if (e) return { errores: [{ ruta: 'secciones', texto: e }], elementos: [], secciones: null }; secciones = limpiarSecciones(j.secciones); if (!Array.isArray(j.elementos)) return { errores: [], elementos: [], secciones }; }
+  if (j && !Array.isArray(j) && j.secciones != null) { const e = validarSecciones(j.secciones); if (e) return { errores: [{ ruta: 'secciones', texto: e }], elementos: [], secciones: null }; secciones = parcialSecciones(j.secciones); if (!Array.isArray(j.elementos)) return { errores: [], elementos: [], secciones }; }
   if (!L.length) return { errores: [{ ruta: '', texto: 'La lista está vacía.' }], elementos: [] };
   if (L.length > 50) return { errores: [{ ruta: '', texto: 'Como mucho 50 elementos de una vez.' }], elementos: [] };
   const errores = []; const elementos = [];

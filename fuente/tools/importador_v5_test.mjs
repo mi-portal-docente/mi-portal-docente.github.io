@@ -57,3 +57,14 @@ test('Versión interactiva: otro elemento o enlace interno; nada si no existe', 
   assert.equal(interactivoDe({ interactivo: { tipo: 'laboratorio', ref: '#eee/circuitos/c3' } }).href, '#eee/circuitos/c3');
   assert.equal(interactivoDe({}), null); assert.equal(interactivoDe({ interactivo: { tipo: 'p5', ref: 'javascript:alert(1)' } }), null);
 });
+test('secciones del archivo: solo lo que trae; lo demás se queda como estaba', async () => {
+  const { fusionarSecciones, parcialSecciones } = await import('./src/lms/secciones.js');
+  assert.deepEqual(parcialSecciones([{ id: 'teoria' }, { id: 'x' }]), [{ id: 'teoria' }]);
+  const previas = [{ id: 'teoria', nombre: 'Apuntes', orden: 1, visible: true }, { id: 'laboratorio', nombre: 'Laboratorio', orden: 6, visible: false }];
+  const r = fusionarSecciones(previas, [{ id: 'laboratorio', visible: true }, { id: 'tareas', nombre: 'Trabajos' }]);
+  assert.deepEqual(r.find((s) => s.id === 'teoria'), { id: 'teoria', nombre: 'Apuntes', orden: 1, visible: true });
+  assert.deepEqual(r.find((s) => s.id === 'laboratorio'), { id: 'laboratorio', nombre: 'Laboratorio', orden: 6, visible: true });
+  assert.deepEqual(r.find((s) => s.id === 'tareas'), { id: 'tareas', nombre: 'Trabajos', orden: 3, visible: true });
+  assert.equal(r.length, 3);
+  assert.deepEqual(fusionarSecciones(undefined, [{ id: 'teoria', orden: 0 }]), [{ id: 'teoria', nombre: 'Teoría', orden: 0, visible: true }]);
+});

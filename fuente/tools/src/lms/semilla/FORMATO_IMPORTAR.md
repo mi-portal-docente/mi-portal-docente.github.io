@@ -523,3 +523,7 @@ Además, el archivo puede traer las **secciones de la asignatura** (orden, nombr
 - Todo se guarda **como borrador**. Sección, PDF, versión interactiva, origen y secciones necesitan las
   reglas de Firestore v5 pegadas; con las reglas antiguas se importa el resto y se avisa.
 - «Exportar JSON» de un elemento devuelve también estos campos (el `origen`, solo en la copia del profesor).
+- En «secciones» basta con poner las que cambian (p. ej. `[{ "id": "laboratorio", "visible": false }]`): lo que no venga
+  en el archivo (otras secciones, o el nombre u orden que no se indique) se queda como estaba. Importar secciones no activa
+  las secciones en una asignatura que aún no las usa (eso se hace en Gestión).
+- Sin `seccion`, el elemento va a la sección que toca por su tipo (tabla de arriba); sin `tema`, al tema elegido en la ventana.

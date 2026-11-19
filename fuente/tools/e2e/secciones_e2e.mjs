@@ -245,6 +245,18 @@ print(json.dumps({'n':n,'m':m,'pdf':all(z.read(x)[:4]==b'%PDF' for x in n if x.e
   ok('cuestionario: «PDF (enunciado y soluciones)» descarga las soluciones en PDF', /_soluciones\.pdf$/.test(dl2.suggestedFilename()), dl2.suggestedFilename());
   await P.pg.click('.cl-modal [data-m=cerrar]');
 
+  // ---------------------------------------------------------------- importar solo algunas secciones (lo demás se conserva)
+  await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo [data-cl=importarJSON]');
+  await P.pg.click('#asTrabajo [data-cl=importarJSON]'); await P.pg.waitForSelector('.cl-modal [data-m-f=json]');
+  await P.pg.fill('.cl-modal [data-m-f=json]', JSON.stringify({ secciones: [{ id: 'examenes', nombre: 'Pruebas escritas' }] })); await P.pg.click('.cl-modal [data-m=validar]');
+  ok('importar secciones: la vista previa lo enseña y avisa de que lo demás se queda', /Pruebas escritas\. Lo que no venga en el archivo se queda como está/.test(await P.pg.textContent('#jsPrev')));
+  await P.pg.click('.cl-modal [data-m=guardar]');
+  await P.pg.waitForFunction(() => /Secciones guardadas/.test(document.querySelector('#jsMsg')?.textContent || ''), null, { timeout: 15000 });
+  const L2 = (await leer('config/secciones')).fields?.asig?.mapValue?.fields?.eee?.arrayValue?.values?.map((v) => v.mapValue.fields) || [];
+  const s2 = (id) => L2.find((x) => x.id.stringValue === id);
+  ok('importar secciones: cambia solo lo que trae y conserva el resto (Apuntes, Laboratorio oculto)', s2('examenes')?.nombre?.stringValue === 'Pruebas escritas' && s2('teoria')?.nombre?.stringValue === 'Apuntes' && s2('laboratorio')?.visible?.booleanValue === false, JSON.stringify(L2.map((x) => x.id.stringValue + ':' + x.nombre?.stringValue)));
+  await P.pg.click('.cl-modal header [data-m=cerrar]').catch(() => {});
+
   // ---------------------------------------------------------------- migración solo en lectura
   const despues = JSON.stringify(await Promise.all(Object.keys(ITEMS).map((id) => leer('items/' + id).then((d) => d.fields))));
   ok('migración en lectura: ningún elemento se ha reescrito (tampoco se añade «seccion»)', antes === despues && !/"seccion"/.test(despues));

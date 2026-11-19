@@ -84,6 +84,22 @@ export function validarSecciones(L) {
 // Limpia una lista de secciones para guardarla.
 export const limpiarSecciones = (L) => (L || []).filter((s) => s && IDS_SECCION.includes(s.id)).map((s) => ({ id: s.id, nombre: String(s.nombre ?? SECCIONES.find((b) => b.id === s.id).nombre).trim().slice(0, 40), orden: Number(s.orden) || 0, visible: s.visible !== false }));
 
+// v5 · importador: deja solo los campos que trae el archivo (para no pisar con valores por defecto lo que ya había).
+export const parcialSecciones = (L) => (L || []).filter((s) => s && IDS_SECCION.includes(s.id)).map((s) => ({ id: s.id,
+  ...(s.nombre != null && String(s.nombre).trim() ? { nombre: String(s.nombre).trim().slice(0, 40) } : {}),
+  ...(s.orden != null && s.orden !== '' && Number.isFinite(Number(s.orden)) ? { orden: Number(s.orden) } : {}),
+  ...(s.visible != null ? { visible: s.visible !== false } : {}) }));
+// Junta las secciones guardadas de la asignatura con las del archivo: lo que no trae el archivo se queda como estaba
+// (o con su valor por defecto). Devuelve la lista limpia para guardar en config/secciones.asig[asig].
+export function fusionarSecciones(previas, nuevas) {
+  const pre = new Map((Array.isArray(previas) ? previas : []).filter((s) => s && IDS_SECCION.includes(s.id)).map((s) => [s.id, s]));
+  const nu = new Map(parcialSecciones(nuevas).map((s) => [s.id, s]));
+  return limpiarSecciones(SECCIONES.filter((b) => pre.has(b.id) || nu.has(b.id)).map((b) => {
+    const p = pre.get(b.id) || {}; const n = nu.get(b.id) || {};
+    return { id: b.id, nombre: n.nombre ?? p.nombre ?? b.nombre, orden: n.orden ?? (p.orden != null && p.orden !== '' ? Number(p.orden) : b.orden), visible: n.visible ?? (p.visible !== false) };
+  }));
+}
+
 // Pestañas antiguas de la asignatura → sección nueva (los enlaces de antes siguen funcionando).
 export const VISTA_ANTIGUA = { tablon: 'avisos', trabajo: 'teoria', organizacion: 'gestion', actividades: 'clase', laboratorio: 'laboratorio' };
 export function vistaNueva(vista, { prof = false, visibles = SECCIONES } = {}) {
