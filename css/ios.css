@@ -518,6 +518,8 @@ pre.code { background: #1c1c1e; }
 .cx-top .cx-logo rect { fill: var(--pri); }
 .cx-ptitle { color: var(--tinta); font-weight: 650; }
 .cx-pn { background: var(--pri); color: #fff; border-radius: 7px; }
+.cx-back { background: var(--fill); border: .5px solid var(--glass-borde); color: var(--tinta); border-radius: 10px; box-shadow: var(--glass-hilite); }
+.cx-back:hover { background: rgba(118, 118, 128, .2); }
 .cx-ib { background: var(--fill); border: 0; color: var(--tinta); border-radius: 10px; }
 .cx-ib:hover:not(:disabled) { background: rgba(118, 118, 128, .2); }
 .cx-top .cx-btn { background: var(--fill); color: var(--tinta); border: 0; }

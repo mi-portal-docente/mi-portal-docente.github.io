@@ -62,7 +62,7 @@ export class CircuitLab {
     return `<div class="cx is-home">
     <header class="cx-top">
       <a class="cx-brand" href="#eee/circuitos" title="Inicio del laboratorio">${LOGO}<span class="cx-bt"><span class="cx-b1">Laboratorio de <b>Circuitos</b></span><span class="cx-b2">Monta · simula · mide</span></span></a>
-      <div class="cx-ptitle" id="cxPTitle"></div>
+      <div class="cx-ptitle" id="cxPTitle"><button type="button" class="cx-back" id="cxVolver" data-act="volver-practicas" hidden title="Volver a las prácticas">${ic('arrow-left')}<span class="cx-back-t">Volver a las prácticas</span></button><span class="cx-ptxt" id="cxPTxt"></span></div>
       <div class="cx-actions">
         <button class="cx-ib" id="cxUndo" title="Deshacer (Ctrl+Z)">↶</button><button class="cx-ib" id="cxRedo" title="Rehacer (Ctrl+Y)">↷</button>
         <div class="cx-menu"><button class="cx-btn" id="cxFileBtn">Archivo ▾</button>
@@ -143,14 +143,16 @@ export class CircuitLab {
     if (view === 'evaluacion') { this.homeTab = 'eval'; view = 'home'; } else if (view === 'home') this.homeTab = 'guiadas';
     if (/^c\d+$/.test(view) && !abierta(view)) { setTimeout(() => this.toast('Esta práctica todavía está bloqueada: la desbloqueará tu profesor.', 4000), 300); view = 'home'; try { history.replaceState(null, '', '#eee/circuitos'); } catch (e) { } }
     if (view === 'home') {
+      if (this.view && this.view !== 'home') this.saveNow();
       this.view = 'home'; root.classList.add('is-home'); root.classList.remove('is-editor');
       this.$('#cxHome').innerHTML = this.homeHTML(); this.setCrumbs(); this.pause();
-      this.$('#cxPTitle').innerHTML = '';
+      this.setPTitle('');
       return;
     }
     root.classList.remove('is-home'); root.classList.add('is-editor');
     if (!this.renderer) this.initScene();
     if (this.view !== view) {
+      if (this.view && this.view !== 'home') this.saveNow();
       this.view = view; this.pr = PRACTICES.find(p => p.id === view) || null;
       this.sel = null; this.undoS = []; this.redoS = []; this.runtime = {};
       const saved = store.get('auto:' + view);
@@ -161,7 +163,7 @@ export class CircuitLab {
       this.tab = this.pr ? 'guia' : 'comp';
       this.checkResult = null; this.showAnswers = false; this.qres = null;
       this.seq = 1 + Math.max(0, ...this.model.parts.map(p => +String(p.id).replace(/\D/g, '') || 0), ...this.model.wires.map(w => +String(w.id).replace(/\D/g, '') || 0));
-      this.$('#cxPTitle').innerHTML = this.pr ? `<span class="cx-pn">${this.pr.n}</span><span class="cx-ptt">${esc(this.pr.title)}</span>` : '<span class="cx-pn">∞</span><span class="cx-ptt">Modo libre</span>';
+      this.setPTitle(this.pr ? `<span class="cx-pn">${this.pr.n}</span><span class="cx-ptt">${esc(this.pr.title)}</span>` : '<span class="cx-pn">∞</span><span class="cx-ptt">Modo libre</span>', true);
       this.onResize(); this.sync(); this.evalGuide(true); this.renderSide(); this.renderInsp(); this.homeView(true); this.status(''); this.updateUndo(); this.renderWBar(); this.toolState(); this.renderPinLabels();
       if (saved?.model?.parts?.length) this.toast('Se ha recuperado tu último montaje.');
     }
@@ -186,7 +188,7 @@ export class CircuitLab {
       if (!this.model.parts.some(p => PARTS[p.type].meter)) this.model.parts.push({ id: 'M' + (1 + this.model.parts.filter(p => p.type === 'meter').length), type: 'meter', pos: [27, 0], rot: 0, props: { mode: 'V', jack: 'VΩmA' }, state: defaultState('meter') });
       this.tab = 'averia'; this.checkResult = null; this.showAnswers = false; this.qres = null;
       this.seq = 1 + Math.max(0, ...this.model.parts.map(p => +String(p.id).replace(/\D/g, '') || 0), ...this.model.wires.map(w => +String(w.id).replace(/\D/g, '') || 0));
-      this.$('#cxPTitle').innerHTML = `<span class="cx-pn">${ic('search-check')}</span><span class="cx-ptt">${esc(def.titulo || 'Encuentra la avería')}</span>`;
+      this.setPTitle(`<span class="cx-pn">${ic('search-check')}</span><span class="cx-ptt">${esc(def.titulo || 'Encuentra la avería')}</span>`);
     }
     this.model.averia = def.averia;
     if (nuevo) { this.onResize(); this.sync(); this.renderInsp(); this.homeView(true); this.status(''); this.updateUndo(); this.renderWBar(); this.toolState(); this.renderPinLabels(); }
@@ -251,7 +253,7 @@ export class CircuitLab {
       this.view = view; this.pr = null; this.g = null; this.av = null;
       this.soloLoad(0);
       this.tab = 'solo';
-      this.$('#cxPTitle').innerHTML = ev.autonoma ? `<span class="cx-pn">${this.solo.circs[0].n}</span><span class="cx-ptt">Práctica autónoma · ${esc(ev.title)}</span>` : `<span class="cx-pn">N${ev.nivel}</span><span class="cx-ptt">Evaluación · ${esc(ev.title)}</span>`;
+      this.setPTitle(ev.autonoma ? `<span class="cx-pn">${this.solo.circs[0].n}</span><span class="cx-ptt">Práctica autónoma · ${esc(ev.title)}</span>` : `<span class="cx-pn">N${ev.nivel}</span><span class="cx-ptt">Evaluación · ${esc(ev.title)}</span>`, true);
       this.onResize(); this.homeView(true); this.status(''); this.renderWBar(); this.toolState(); this.renderPinLabels();
     }
     this.renderSide(); this.setCrumbs(); this.resume(); this.onResize();
@@ -279,6 +281,7 @@ export class CircuitLab {
       h += `<div class="cx-evres ${r.ok ? 'ok' : 'ko'}" role="status"><div class="cx-evnota"><span>Nota</span><b>${fNota(ent?.nota ?? r.nota)}</b></div><div><b>${r.correctos} de ${r.circuitos.length} circuitos correctos</b>${ent?.nota != null ? '<div class="cx-small">Nota puesta por tu profesor.</div>' : P?.rol === 'alumno' ? '<div class="cx-small">Entregada. Tu profesor la verá y puede revisarla.</div>' : '<div class="cx-small">Modo de prueba: no se guarda como entrega.</div>'}</div></div>
         <ul class="cx-evlist">${r.circuitos.map((x, i) => `<li class="${x.ok ? 'ok' : 'ko'}">${x.ok ? ic('circle-check') : ic('circle-x')} <b>Circuito ${i + 1}</b> · ${esc(x.titulo)}: ${x.ok ? 'correcto' : 'no correcto'} <span class="cx-small">(${x.bien}/${x.n} requisitos)</span></li>`).join('')}</ul>`;
       if (ent?.comentario) h += `<div class="cx-ent-com">💬 ${esc(ent.comentario)}</div>`;
+      h += this.navFinHTML();
       if (P?.rol !== 'alumno') h += `<div class="cx-ibtns"><button class="cx-btn" data-act="solo-otra">↺ Volver a intentarlo</button></div>`;
     } else {
       h += `<div class="cx-ibtns"><button class="cx-sim" data-act="solo-enviar" ${this._entregando ? 'disabled' : ''}>${ic('send')} ${this._entregando ? 'Enviando…' : 'Enviar la prueba'}</button></div>
@@ -299,7 +302,7 @@ export class CircuitLab {
       const it = r.circuitos[0];
       h += `<div class="cx-evres ${r.ok ? 'ok' : 'ko'}" role="status"><div class="cx-evnota"><span>Requisitos</span><b>${it.bien}/${it.n}</b></div><div><b>${r.ok ? '¡Bien hecho! Práctica autónoma completada.' : 'Todavía no está bien.'}</b><div class="cx-small">${r.ok ? (alumno ? 'Tu profesor ya lo ve en tu progreso.' : 'Modo de prueba: no se guarda como entrega.') : 'Revisa lo que falla, corrige el montaje y vuelve a comprobar.'}</div></div></div>
         <ul class="cx-evlist">${it.items.map(x => `<li class="${x.ok ? 'ok' : 'ko'}">${x.ok ? ic('circle-check') : ic('circle-x')} ${esc(x.t)}</li>`).join('')}</ul>
-        <div class="cx-ibtns"><button class="cx-btn" data-act="solo-otra">↺ ${r.ok ? 'Repetir' : 'Volver a intentarlo'}</button><a class="cx-btn" href="#eee/circuitos/${pr.id}">Volver a la guiada</a></div>`;
+        ${r.ok ? this.navFinHTML() : ''}<div class="cx-ibtns"><button class="cx-btn" data-act="solo-otra">↺ ${r.ok ? 'Repetir' : 'Volver a intentarlo'}</button><a class="cx-btn" href="#eee/circuitos/${pr.id}">Volver a la guiada</a></div>`;
     } else {
       h += `<div class="cx-ibtns"><button class="cx-sim" data-act="solo-enviar" ${this._entregando ? 'disabled' : ''}>${ic('circle-check')} ${this._entregando ? 'Guardando…' : 'Comprobar mi circuito'}</button><a class="cx-btn" href="#eee/circuitos/${pr.id}">Volver a la guiada</a></div>`;
     }
@@ -360,6 +363,30 @@ export class CircuitLab {
     if (v === 'revision') { this.$('#cxCrumbs').innerHTML = `<a href="#panel">Panel del profesor</a> › <a href="#panel/entregas">Entregas</a> › <span>Revisión</span>`; this.$('#cxProf').innerHTML = portal()?.chipHTML?.() || ''; return; }
     this.$('#cxCrumbs').innerHTML = base + (v === 'home' ? '<span>Circuitos</span>' : `<a href="#eee/circuitos">Circuitos</a> › <span>${this.solo ? (this.solo.tipo === 'auto' ? `<a href="#eee/circuitos/${this.solo.circs[0].id}">Práctica ${this.solo.circs[0].n}</a> › Autónoma` : `<a href="#eee/circuitos/evaluacion">Evaluación</a> › Nivel ${this.solo.ev.nivel}`) : this.av ? 'Encuentra la avería: ' + esc(this.av.titulo || '') : this.pr ? 'Práctica ' + this.pr.n + ': ' + esc(this.pr.title) : 'Modo libre'}</span>`);
     this.$('#cxProf').innerHTML = (this.opts.profesor ? `Profesor: <b>${esc(this.opts.profesor)}</b>` : '') + (portal()?.chipHTML?.() || '');
+  }
+  // Título de la práctica en la cabecera y botón «Volver a las prácticas» (no en la portada ni en una revisión).
+  setPTitle(html, volver) {
+    const btn = this.$('#cxVolver'), txt = this.$('#cxPTxt');
+    if (btn) btn.hidden = !volver;
+    if (txt) txt.innerHTML = html || '';
+  }
+  listaHash() { return (this.solo?.tipo === 'eval' || /^n\d+$/.test(this.view || '')) ? '#eee/circuitos/evaluacion' : '#eee/circuitos'; }
+  irALista() { this.saveNow(); location.hash = this.listaHash(); }
+  // Siguiente práctica del mismo listado si existe y no está cerrada por el candado del profesor.
+  siguientePractica() {
+    if (this.solo?.tipo === 'eval') {
+      const i = EVALS.findIndex(e => e.id === this.solo.id); const n = EVALS[i + 1];
+      return n && evAbierta(n.id) ? n.id : null;
+    }
+    const cur = this.solo?.tipo === 'auto' ? this.solo.circs[0] : this.pr;
+    if (!cur) return null;
+    const i = PRACTICES.findIndex(p => p.id === cur.id); const n = PRACTICES[i + 1];
+    return n && abierta(n.id) ? n.id : null;
+  }
+  irASiguiente() { const id = this.siguientePractica(); if (!id) return; this.saveNow(); location.hash = '#eee/circuitos/' + id; }
+  navFinHTML() {
+    const sig = this.siguientePractica();
+    return `<div class="cx-ibtns cx-navfin"><button type="button" class="cx-btn" data-act="volver-practicas">${ic('arrow-left')} Volver a las prácticas</button>${sig ? `<button type="button" class="cx-sim" data-act="siguiente-practica">${ic('arrow-right')} Siguiente práctica</button>` : ''}</div>`;
   }
   refrescarHome() { if (this.view === 'home' && !this._candando) { const h = this.$('#cxHome'); if (h) h.innerHTML = this.homeHTML(); } }
   grupoCandado() { const G = profGrupos(); if (!G.length) return null; const id = store.get('pref:grupoCand'); return { G, g: G.find(x => x.id === id) || G[0] }; }
@@ -1333,6 +1360,7 @@ export class CircuitLab {
     if (this.checkResult) {
       const r = this.checkResult;
       h += `<div class="cx-check ${r.ok ? 'ok' : 'ko'}"><div class="cx-ch">${r.ok ? '✅ ¡Circuito correcto y funcionando!' : '❌ Todavía hay algo que revisar'}</div><ul>${r.items.map(it => `<li class="${it.ok ? 'ok' : 'ko'}">${it.ok ? '✔' : '✖'} ${esc(it.label)}${it.info ? `<div class="cx-small">${esc(it.info)}</div>` : ''}</li>`).join('')}</ul></div>`;
+      if (r.ok) h += this.navFinHTML();
     }
     {
       const gh = guiadaHecha(pr.id), ah = autoHecha(pr.id);
@@ -1418,7 +1446,7 @@ export class CircuitLab {
     this.model = this.sanitize(m && m.model ? m.model : m);
     this.g = this.pr ? { idx: this.pr.steps.length, map: {}, measured: {}, answers: rev.respuestas || {}, snap: null } : null;
     this.tab = 'rev'; this.checkResult = null; this.qres = null; this.showAnswers = true;
-    this.$('#cxPTitle').innerHTML = `<span class="cx-pn">${this.pr ? this.pr.n : '?'}</span><span class="cx-ptt">Revisión · ${esc(rev.quien || '')}</span>`;
+    this.setPTitle(`<span class="cx-pn">${this.pr ? this.pr.n : '?'}</span><span class="cx-ptt">Revisión · ${esc(rev.quien || '')}</span>`);
     this.onResize(); this.sync(); this.updateGhost(); this.renderSide(); this.renderInsp(); this.homeView(true); this.updateUndo();
     this.status('Revisión de una entrega · <b>solo lectura</b>: gira la vista y pulsa ▶ Iniciar simulación para verla funcionar.');
     this.setCrumbs(); this.resume(); this.onResize();
@@ -1541,6 +1569,8 @@ export class CircuitLab {
     if (act === 'fusible') { const p = this.part(this.sel?.id); if (!p || p.type !== 'fuse' || this.readOnly) return; const fix = () => { p.state.blown = false; p.state.cambios = (p.state.cambios || 0) + 1; }; if (this.runtime[p.id]) this.runtime[p.id].heat = 0; if (!this.running) this.commit(fix); else { fix(); this.stateChanged(p, true); } this.toast('🔄 Fusible nuevo puesto (' + esc(fmtSI(+p.props.a, 'A')) + ').', 2500); return; }
     if (act === 'parkprobes') { const p = this.part(this.sel?.id); if (!p) return; this._liveOK = true; this.commit(() => { p.probes = { red: null, com: null }; p.park = { red: [4, 15], com: [-4, 15] }; }); this._liveOK = false; return; }
     if (act === 'rev-k' && this.revEv) { const k = +el.dataset.k; if (this.running) this.toggleSim(false); this.revEv.k = k; this.model = this.revEv.modelos[k]; this.runtime = {}; this.sel = null; this.sync(); this.renderInsp(); this.renderSide(); return; }
+    if (act === 'volver-practicas') { this.irALista(); return; }
+    if (act === 'siguiente-practica') { this.irASiguiente(); return; }
     if (act === 'rev-volver') { location.hash = '#panel/entregas'; return; }
     if (act === 'rev-guardar') {
       const msg = this.$('#cxGradeMsg'); const raw = this.$('#cxNota').value.trim().replace(',', '.'); const nota = raw === '' ? null : Math.round(+raw * 100) / 100;

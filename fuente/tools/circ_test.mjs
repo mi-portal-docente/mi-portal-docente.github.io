@@ -1,6 +1,6 @@
 // Verificación del Laboratorio de Circuitos (playwright-core + Chrome headless)
 import { chromium } from 'playwright-core';
-import { readFileSync } from 'fs';
+import { readFileSync, mkdirSync } from 'fs';
 import { hashCodigo, leerConfig } from './set-codigo.mjs';
 import { SHOTS, SITE_URL, codigoClase } from './rutas.mjs';
 const base = process.env.PORTAL_BASE || SITE_URL + 'index.html';
@@ -334,7 +334,55 @@ async function wireCase(page, mobile) {
   const r = await wireCase(mp, true);
   await mp.screenshot({ path: SHOTS + 'circ_movil_borrar_cable.png' });
   ok('Móvil (con la barra de la asignatura): tocar un cable fino lo selecciona y «Borrar cable» (visible) lo borra', r.selA.s === 'wA' && !r.selA.wiring && r.btnVisible && r.left === 'wB' && r.left2 === 0, JSON.stringify(r));
+  await mp.goto(base + '#eee/circuitos/c16'); await mp.waitForTimeout(2000);
+  const backMov = await mp.evaluate(() => { const b = document.querySelector('#cxVolver'); const r = b?.getBoundingClientRect(); return { ok: !!b && !b.hidden && r.width > 20 && r.height > 20 && r.y >= 0 && r.y < innerHeight, t: (b?.textContent || '').replace(/\s+/g, ' ').trim() }; });
+  ok('Móvil: el botón «Volver a las prácticas» se ve en la cabecera', backMov.ok && /Volver a las prácticas/.test(backMov.t), JSON.stringify(backMov));
   await mctx.close(); }
+
+// Botón «Volver a las prácticas» y botones al completar
+const VOLVER = '/workspace/capturas-volver/';
+try { mkdirSync(VOLVER, { recursive: true }); } catch (e) {}
+await clearAll();
+await go('#eee/circuitos/c16', 2000);
+ok('Guiada: el botón «Volver a las prácticas» está en la cabecera (icono de línea, sin emoji)', await pg.evaluate(() => { const b = document.querySelector('#cxVolver'); return !!(b && !b.hidden && /Volver a las prácticas/.test(b.textContent) && b.querySelector('svg.ic') && !/[\u{1F300}-\u{1FAFF}]/u.test(b.textContent)); }));
+await pg.screenshot({ path: VOLVER + 'practica-volver.png' });
+await pg.evaluate(() => { const L = window.__circ; if (!L.model.parts.length) L.autoPlace(L.freshPart('resistor', { r: 470 }), { at: 'b10', rot: 0 }); });
+const nGuardado = await pg.evaluate(() => window.__circ.model.parts.length);
+await pg.click('#cxVolver'); await wait(1500);
+ok('Guiada: «Volver a las prácticas» lleva a la lista de prácticas guiadas', await pg.evaluate(() => location.hash === '#eee/circuitos' && document.querySelector('.cx-htabs a.on')?.getAttribute('href') === '#eee/circuitos' && !!document.querySelector('.cx-card[href="#eee/circuitos/c16"]')));
+await go('#eee/circuitos/c16', 2000);
+ok('El montaje se conserva al salir y volver a la práctica', await pg.evaluate((n) => window.__circ.model.parts.length === n, nGuardado));
+
+await go('#eee/circuitos/libre', 2000);
+ok('Modo libre: el botón «Volver a las prácticas» está en la cabecera', await pg.evaluate(() => { const b = document.querySelector('#cxVolver'); return !!(b && !b.hidden && /Volver a las prácticas/.test(b.textContent)); }));
+await pg.click('#cxVolver'); await wait(1500);
+ok('Modo libre: vuelve a la lista de prácticas guiadas', await pg.evaluate(() => location.hash === '#eee/circuitos' && document.querySelector('.cx-htabs a.on')?.getAttribute('href') === '#eee/circuitos'));
+
+await go('#eee/circuitos/a5', 2000);
+ok('Autónoma: el botón «Volver a las prácticas» está en la cabecera', await pg.evaluate(() => { const b = document.querySelector('#cxVolver'); return !!(b && !b.hidden && /Volver a las prácticas/.test(b.textContent)); }));
+
+await go('#eee/circuitos/n1', 2000);
+ok('Nivel de evaluación: el botón «Volver a las prácticas» está en la cabecera', await pg.evaluate(() => { const b = document.querySelector('#cxVolver'); return !!(b && !b.hidden && /Volver a las prácticas/.test(b.textContent)); }));
+await pg.click('#cxVolver'); await wait(1500);
+ok('Nivel: vuelve a la pestaña «Evaluación de circuitos»', await pg.evaluate(() => location.hash === '#eee/circuitos/evaluacion' && document.querySelector('.cx-htabs a.on')?.getAttribute('href') === '#eee/circuitos/evaluacion'));
+
+await go('#eee/circuitos/c5', 2000);
+await pg.click('[data-act="solution"]'); await wait(500);
+await pg.click('#cxSim'); await wait(800);
+await pg.click('[data-act="check"]'); await wait(400);
+await pg.evaluate(() => document.querySelector('.cx-navfin')?.scrollIntoView({ block: 'center' })); await wait(200);
+st = await pg.evaluate(() => {
+  const nav = document.querySelector('.cx-check.ok ~ .cx-navfin, .cx-navfin');
+  const t = [...(nav?.querySelectorAll('button') || [])].map(b => b.textContent.replace(/\s+/g, ' ').trim());
+  return { okBox: !!document.querySelector('.cx-check.ok'), t, volver: t.some(x => /Volver a las prácticas/.test(x)), sig: t.some(x => /Siguiente práctica/.test(x)) };
+});
+ok('Al completar la guiada aparecen «Volver a las prácticas» y «Siguiente práctica»', st.okBox && st.volver && st.sig, JSON.stringify(st));
+await pg.screenshot({ path: VOLVER + 'completada-botones.png' });
+await pg.evaluate(() => { window.PORTAL = Object.assign(window.PORTAL || {}, { rol: 'alumno' }); window.PORTAL_SESION = Object.assign(window.PORTAL_SESION || {}, { apartados: ['guiadas:c5'] }); window.__circ.renderSide(); });
+await wait(200);
+ok('Si la siguiente práctica está cerrada por el candado, no se muestra «Siguiente práctica»', await pg.evaluate(() => !!document.querySelector('.cx-navfin [data-act="volver-practicas"]') && !document.querySelector('.cx-navfin [data-act="siguiente-practica"]')));
+await pg.evaluate(() => { if (window.PORTAL) window.PORTAL.rol = undefined; });
+
 ok('Sin errores en consola', errs.length === 0, errs.slice(0, 5).join(' | '));
 console.log(`\n${results.filter(r => r.ok).length}/${results.length} comprobaciones OK`);
 await b.close();
