@@ -20,6 +20,9 @@ const owner = { headers: { Authorization: 'Bearer owner' } };
 
 await fetch(`http://127.0.0.1:${FSP}/emulator/v1/projects/${PROJ}/databases/(default)/documents`, { method: 'DELETE' });
 await fetch(`http://127.0.0.1:${AUP}/emulator/v1/projects/${PROJ}/accounts`, { method: 'DELETE' });
+// v5: esta prueba recorre el modo clásico (Trabajo de clase · Tablón), que siguen usando las asignaturas sin
+// secciones; aquí se desactivan las secciones de EEE. El modo con secciones lo prueba secciones_e2e.mjs.
+await fetch(`${REST}/config/secciones`, { method: 'PATCH', headers: { ...owner.headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { activas: { arrayValue: { values: [] } } } }) });
 
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 async function contexto(nombre, viewport = { width: 1440, height: 900 }) {

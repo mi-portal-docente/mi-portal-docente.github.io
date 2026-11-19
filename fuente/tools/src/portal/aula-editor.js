@@ -2,10 +2,12 @@
 // tarea, tarea de cuestionario (examen del portal con autocorrección), pregunta, material y cuestionario
 // externo (formulario). Título, instrucciones, adjuntos (enlaces), puntos, fecha de entrega, tema,
 // grupos y estado: publicar ahora, programar o borrador. Las soluciones del examen van aparte (claves).
-import { doc, writeBatch, Timestamp } from 'firebase/firestore';
+import { doc, writeBatch, Timestamp, getDoc } from 'firebase/firestore';
+import { TIPOS_INTERACTIVO, validarInteractivo } from '../lms/caras.js';
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
+import { IDS_ELEMENTO, seccionDe, seccionesDe, seccionesActivas } from '../lms/secciones.js';
 import { criterioValido, motor } from '../lms/elemento.js';
 import '../lms/motores/index.js';
 import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta } from '../lms/preguntas.js';
@@ -45,6 +47,8 @@ export function estadoPub(it, now = Date.now()) {
 
 export function crearEditor({ db, aula, gruposDe }) {
   const st = aula.st;
+  // v5: elegir sección solo si la asignatura tiene secciones y las reglas nuevas están pegadas
+  const conSecciones = (e) => st.reglasV5 === true && seccionesActivas(st.secConf, e.asig);
   const E = { edit: null, preguntas: [], el: null, alGuardar: null };
   const temasDe = (curso, asig) => [...st.temas.values()].filter((t) => t.curso === curso && t.asig === asig).sort((a, b) => a.orden - b.orden);
 
@@ -86,6 +90,12 @@ export function crearEditor({ db, aula, gruposDe }) {
   }
   // abrir(it) edita; abrir(null, {tipo, tema, curso, asig}) crea.
   function abrir(it, nuevo = {}) {
+    E.origen = null; E.origenExiste = false;
+    // v5 · origen en Drive (solo profesor, origenes/{id}): se carga aparte y se rellena al llegar
+    if (it && st.reglasV5 === true) getDoc(doc(db, 'origenes', it.id)).then((d) => {
+      if (E.edit?.id !== it.id) return; E.origenExiste = d.exists(); E.origen = d.exists() ? d.data() : null;
+      const f = E.el?.querySelector('#apItemForm'); if (f && E.origen) for (const [k, n] of [['drive', 'orDrive'], ['ruta', 'orRuta'], ['version', 'orVer']]) if (f.elements[n] && !f.elements[n].value) f.elements[n].value = E.origen[k] || '';
+    }).catch(() => {});
     if (it) {
       E.edit = { ...it, tema: it.tema ?? null, estado: !it.publicado ? 'borrador' : it.pub && it.pub > Date.now() ? 'programar' : 'publicar' };
       E.preguntas = [];
@@ -106,12 +116,27 @@ export function crearEditor({ db, aula, gruposDe }) {
         categoria: categoriaDe(tipo), grupos: gruposDe(curso, asig).map((g) => g.id), publicado: false, estado: 'publicar', pub: null,
         orden: enTema.length ? Math.min(...enTema.map((x) => x.orden ?? 0)) - 1000 : 1000, origen: null, examen: tipo === 'examen' ? { desde: Date.now(), hasta: Date.now() + 864e5, limiteMin: 30, barajar: true } : null };
       // relleno previo (p. ej. «Asignar como tarea» de una actividad de clase)
-      for (const k of ['titulo', 'texto', 'enlaces', 'puntos', 'estado', 'criterio', 'contenido', 'rubrica', 'categoria', 'fechaEntrega']) if (nuevo[k] !== undefined) E.edit[k] = nuevo[k];
+      for (const k of ['titulo', 'texto', 'enlaces', 'puntos', 'estado', 'criterio', 'contenido', 'rubrica', 'categoria', 'fechaEntrega', 'seccion']) if (nuevo[k] !== undefined) E.edit[k] = nuevo[k];
       E.preguntas = [];
     }
     montar();
   }
 
+  // v5 · PDF oficial (uno de los adjuntos subidos al portal), versión interactiva y origen en Drive (solo profesor)
+  function carasEditorHTML(e) {
+    const arch = (e.enlaces || []).map((x) => ({ t: x.t || x.u, m: String(x.u).match(/^#archivo\/([A-Za-z0-9]{6,40})/) })).filter((x) => x.m);
+    const sel = e.pdf?.archivo || ''; const o = E.origen || {};
+    return `<details class="cl-v5" ${e.pdf || e.interactivo || E.origen ? 'open' : ''}><summary>${ic('file-text')} PDF oficial, versión interactiva y origen</summary>
+      <div class="ap-fila"><label class="pn-f">PDF oficial<select name="pdfArch">${opt('', arch.length ? 'El primer PDF adjunto' : 'Sube el PDF en «Adjuntos» y elígelo aquí', sel)}${sel && !arch.some((x) => 'archivos/' + x.m[1] === sel) ? opt(sel, e.pdf.nombre || sel, sel) : ''}${arch.map((x) => opt('archivos/' + x.m[1], x.t, sel)).join('')}</select></label>
+      <label class="pn-chk"><input type="checkbox" name="pdfDesc" ${e.pdf?.descarga ? 'checked' : ''}> Permitir descargarlo</label></div>
+      <div class="ap-fila"><label class="pn-f">Versión interactiva<select name="intTipo">${opt('', 'No tiene', e.interactivo?.tipo || '')}${Object.entries(TIPOS_INTERACTIVO).map(([k, n]) => opt(k, n, e.interactivo?.tipo || '')).join('')}</select></label>
+      <label class="pn-f">Elemento o enlace del portal<input name="intRef" maxlength="300" value="${esc(e.interactivo?.ref || '')}" placeholder="id de otro elemento o #eee/circuitos/c3"></label></div>
+      <fieldset class="cl-origen"><legend>${ic('lock')} Origen en Drive · solo lo ves tú</legend><div class="ap-fila">
+        <label class="pn-f">Id del archivo<input name="orDrive" maxlength="120" value="${esc(o.drive || '')}" autocomplete="off"></label>
+        <label class="pn-f">Ruta<input name="orRuta" maxlength="300" value="${esc(o.ruta || '')}" placeholder="1_PIAC_SA1/T3_Empresa_espejo"></label>
+        <label class="pn-f">Versión<input name="orVer" maxlength="30" value="${esc(o.version || '')}" placeholder="v3"></label></div>
+        <p class="pn-small">Para saber de qué archivo sale el PDF. Los alumnos no lo ven y el portal no abre Drive.</p></fieldset></details>`;
+  }
   function html() {
     const e = E.edit; const a = asignatura(e.asig);
     const ex = e.examen || { desde: Date.now(), hasta: Date.now() + 864e5, limiteMin: 30, barajar: true };
@@ -122,6 +147,8 @@ export function crearEditor({ db, aula, gruposDe }) {
     <header class="cl-dlg-h"><span class="cl-dlg-ic">${TIPOS[e.tipo]?.icon || '📄'}</span><h3>${e.id ? 'Editar' : 'Crear'}: ${esc(TIPOS[e.tipo]?.nombre || e.tipo)}</h3><span class="pn-small">${esc(a?.corto || e.asig)}</span><span class="pn-grow"></span>${e.id ? '<button class="btn small" type="button" data-ed="exportar" title="Exportar este elemento en JSON (lo guardado)">' + ic('download') + ' JSON</button>' : ''}<button class="btn" type="button" data-ed="cancelar" aria-label="Cerrar">✕</button></header>
     <div class="cl-dlg-b"><div class="cl-dlg-main">
       <label class="pn-f">Tipo<select name="tipo">${TIPOS_EDITOR.map((t) => opt(t, TIPOS[t].nombre, e.tipo)).join('')}</select></label>
+      ${st.reglasV5 === true ? carasEditorHTML(e) : ''}
+      ${conSecciones(e) ? (() => { const S = seccionesDe(st.secConf, e.asig); const nom = (id) => S.find((x) => x.id === id)?.nombre || id; return `<label class="pn-f">Sección<select name="seccion">${opt('', 'Según el tipo (' + nom(seccionDe({ ...e, seccion: null })) + ')', e.seccion || '')}${IDS_ELEMENTO.map((id) => opt(id, nom(id), e.seccion || '')).join('')}</select></label>`; })() : ''}
       <label class="pn-f">${e.tipo === 'pregunta' ? 'Pregunta' : 'Título'}<input name="titulo" maxlength="150" required value="${esc(e.titulo)}"></label>
       <label class="pn-f">Instrucciones${e.tipo === 'material' ? ' / descripción' : ''} (opcional)<textarea name="texto" rows="7" maxlength="20000" placeholder="Explica qué hay que hacer. **negrita** y los enlaces se ven como enlaces.">${esc(e.texto || '')}</textarea></label>
       ${e.tipo === 'pregunta' ? `<label class="pn-f">Opciones (una por línea; vacío = respuesta corta)<textarea name="opciones" rows="3" maxlength="2000">${esc((e.opciones || []).join('\n'))}</textarea></label>` : ''}
@@ -220,6 +247,10 @@ export function crearEditor({ db, aula, gruposDe }) {
     e.texto = String(fd.get('texto') || '').slice(0, 20000); e.enlaces = leeEnlaces(fd.get('enlaces'));
     e.grupos = fd.getAll('grupos').map(String); e.estado = String(fd.get('estado') || 'borrador'); e.pub = deLocal(fd.get('pub'));
     e.tema = String(fd.get('tema') || '') || null;
+    if (f.elements.pdfArch) { const v = String(fd.get('pdfArch') || ''); const o = f.elements.pdfArch.selectedOptions[0]; e.pdf = v ? { archivo: v, nombre: (o?.textContent || '').trim().slice(0, 150), descarga: !!fd.get('pdfDesc') } : null; }
+    if (f.elements.intTipo) { const t = String(fd.get('intTipo') || ''); e.intErr = null; e.interactivo = t ? validarInteractivo({ tipo: t, ref: String(fd.get('intRef') || '').trim() }, (r, x) => { e.intErr = x; }) : null; }
+    if (f.elements.orDrive) { const o = { drive: String(fd.get('orDrive') || '').trim().slice(0, 120), ruta: String(fd.get('orRuta') || '').trim().slice(0, 300), version: String(fd.get('orVer') || '').trim().slice(0, 30) }; E.origen = o.drive || o.ruta || o.version ? o : null; }
+    if (f.elements.seccion) e.seccion = IDS_ELEMENTO.includes(String(fd.get('seccion'))) ? String(fd.get('seccion')) : null;
     e.nota = String(fd.get('nota') || '').trim().slice(0, 2000); if (fd.get('quitarPend')) e.pendiente = false;
     if (f.elements.puntos) { const p = Number(String(fd.get('puntos') || '').replace(',', '.')); e.puntos = p > 0 ? Math.min(1000, p) : null; }
     if (f.elements.fechaEntrega) e.fechaEntrega = deLocal(fd.get('fechaEntrega'));
@@ -241,6 +272,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     const publicado = e.estado !== 'borrador';
     if (publicado && !e.grupos.length) return err('Para publicarlo, marca al menos un grupo en «Para».');
     if (e.estado === 'programar' && !(e.pub > Date.now())) return err('La fecha de publicación programada tiene que ser futura.');
+    if (e.intErr) return err(e.intErr);
     const esRec = e.tipo === 'recuperacion';
     if (esRec && publicado && !(e.para || []).length) return err('Escribe los nº de lista que hacen la recuperación (p. ej. 3, 7, 12).');
     const esEx = e.tipo === 'examen';
@@ -279,9 +311,12 @@ export function crearEditor({ db, aula, gruposDe }) {
     if (esRec) { data.para = e.para || []; data.visibleAl = publicado ? visibleAlDe(e.grupos, data.para) : []; }
     if (e.criterio && entregable && !esEx) data.criterio = e.criterio;
     if (e.contenido && M) data.contenido = e.contenido;
+    // v5: sección, PDF y versión interactiva (solo con las reglas nuevas; al editar no se pierden)
+    if (st.reglasV5) { if (e.seccion) data.seccion = e.seccion; if (e.pdf?.archivo) data.pdf = e.pdf; if (e.interactivo?.tipo) data.interactivo = e.interactivo; }
     try {
       const b = writeBatch(db);
       b.set(doc(db, 'items', id), data);
+      if (st.reglasV5 === true) { if (E.origen) b.set(doc(db, 'origenes', id), { ...E.origen, asig: e.asig, curso: e.curso }); else if (E.origenExiste) b.delete(doc(db, 'origenes', id)); }
       if (esEx) {
         const sep = E.preguntas.map((q) => (BASICAS.includes(q.tipo) ? null : separarPregunta(validarPregunta(q, 0, () => { }) || q)));
         const qs = E.preguntas.map((q, i) => sep[i] ? sep[i].publica : ({ id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.tipo === 'test' ? { opciones: q.opciones } : {}) }));

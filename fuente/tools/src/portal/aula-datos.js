@@ -8,7 +8,7 @@ const ms = (t) => (t && t.toMillis ? t.toMillis() : typeof t === 'number' ? t : 
 export { ms };
 
 export function crearAula({ db, rol, ses }) {
-  const st = { db, rol, ses, items: new Map(), temas: new Map(), anuncios: new Map(), trabajos: new Map(), notas: new Map(), cursos: new Map(), grupos: new Map(), listo: { items: false, temas: false, anuncios: false, trabajos: false, notas: false, cursos: false }, cursoSel: null, unsubs: [], unsubItems: null, unsubCurso: [], error: null };
+  const st = { db, rol, ses, items: new Map(), temas: new Map(), anuncios: new Map(), trabajos: new Map(), notas: new Map(), cursos: new Map(), grupos: new Map(), listo: { items: false, temas: false, anuncios: false, trabajos: false, notas: false, cursos: false }, cursoSel: null, secConf: null, reglasV5: null, unsubs: [], unsubItems: null, unsubCurso: [], error: null };
   let raf = 0;
   const avisar = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => window.dispatchEvent(new Event('portal-aula'))); };
   const err = (e) => { st.error = e?.code || 'error'; avisar(); };
@@ -23,6 +23,10 @@ export function crearAula({ db, rol, ses }) {
   }
   function leerTemas(qs) { st.temas = new Map(); qs.forEach((d) => st.temas.set(d.id, { id: d.id, ...d.data() })); st.listo.temas = true; avisar(); }
   function leerAnuncios(qs) { st.anuncios = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); st.anuncios.set(d.id, { id: d.id, ...x }); }); st.listo.anuncios = true; avisar(); }
+  // v5 · Configuración de las secciones (config/secciones). Con las reglas antiguas no se puede leer: se usan
+  // los valores por defecto y el portal sigue igual (reglasV5 = false: no se escriben los campos nuevos).
+  st.unsubs.push(onSnapshot(doc(db, 'config', 'secciones'), (d) => { st.secConf = d.exists() ? d.data() : null; st.reglasV5 = true; avisar(); },
+    () => { st.secConf = null; st.reglasV5 = false; avisar(); }));
   if (rol === 'alumno') {
     const asigs = (ses.asignaturas || []).filter((a) => a !== '*').slice(0, 30);
     const qT = ses.asignaturas?.includes('*') || !asigs.length ? collection(db, 'temas') : query(collection(db, 'temas'), where('asig', 'in', asigs));

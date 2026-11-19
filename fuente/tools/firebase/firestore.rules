@@ -242,6 +242,15 @@ service cloud.firestore {
         && request.resource.data.hasta > request.time
         && request.resource.data.hasta <= request.time + duration.value(2, 'h');
     }
+    // v5 · config/secciones: secciones de cada asignatura (orden, nombre, visible) y lista de asignaturas
+    // con secciones activadas. No son datos personales: la leen el profesor y los alumnos con sesión válida.
+    match /config/secciones {
+      allow read: if esProfesor() || alumnoOk();
+      allow write: if esProfesor()
+        && request.resource.data.keys().hasOnly(['activas', 'asig'])
+        && (!('activas' in request.resource.data) || listaCorta(request.resource.data.activas, 20))
+        && (!('asig' in request.resource.data) || (request.resource.data.asig is map && request.resource.data.asig.size() <= 20));
+    }
     match /config/{otro} {
       allow read, write: if false;
     }
@@ -506,7 +515,8 @@ service cloud.firestore {
       function itemOk(d) {
         return d.keys().hasOnly(['curso', 'asig', 'tema', 'unidad', 'tipo', 'titulo', 'texto', 'enlaces', 'fechaEntrega', 'puntos', 'rubrica',
                                  'categoria', 'grupos', 'visible', 'publicado', 'pub', 'orden', 'origen', 'examen', 'opciones', 'pendiente', 'nota', 'actualizado',
-                                 'criterio', 'contenido', 'para', 'visibleAl', 'papelera', 'copia', 'sinExternos'])
+                                 'criterio', 'contenido', 'para', 'visibleAl', 'papelera', 'copia', 'sinExternos',
+                                 'seccion', 'pdf', 'interactivo'])
           && d.keys().hasAll(['curso', 'asig', 'tipo', 'titulo', 'grupos', 'visible', 'publicado'])
           && textoCorto(d.curso, 40) && textoCorto(d.asig, 20)
           && (!('copia' in d) || d.copia is bool) && (!('sinExternos' in d) || d.sinExternos is bool)
@@ -524,6 +534,14 @@ service cloud.firestore {
           && (!('nota' in d) || d.nota == null || textoCorto(d.nota, 2000))
           && (!('criterio' in d) || d.criterio == null || textoCorto(d.criterio, 60))
           && (!('contenido' in d) || d.contenido == null || d.contenido is map)
+          // v5 · sección, PDF oficial (archivo del portal) y versión interactiva. El origen en Drive NO va aquí
+          // (lo leen los alumnos): va en origenes/{id}, solo profesor.
+          && (!('seccion' in d) || d.seccion == null || d.seccion in ['teoria', 'clase', 'tareas', 'test', 'examenes', 'laboratorio'])
+          && (!('pdf' in d) || d.pdf == null || (d.pdf is map && d.pdf.keys().hasOnly(['archivo', 'nombre', 'descarga'])
+               && textoCorto(d.pdf.archivo, 60) && d.pdf.archivo.matches('^archivos/[A-Za-z0-9]{6,40}$')
+               && textoCorto(d.pdf.get('nombre', ''), 150) && d.pdf.get('descarga', false) is bool))
+          && (!('interactivo' in d) || d.interactivo == null || (d.interactivo is map && d.interactivo.keys().hasOnly(['tipo', 'ref'])
+               && textoCorto(d.interactivo.tipo, 30) && textoCorto(d.interactivo.get('ref', ''), 300)))
           && listaCorta(d.grupos, 40) && listaCorta(d.visible, 40)
           && d.publicado is bool
           && (!('para' in d) || d.para == null || listaCorta(d.para, 40))
@@ -534,6 +552,29 @@ service cloud.firestore {
             || (d.tipo == 'recuperacion' && d.visible.size() == 0
                && ((d.publicado == true && d.get('visibleAl', []).size() > 0) || (d.publicado == false && d.get('visibleAl', []).size() == 0))));
       }
+    }
+
+    // v5 · origenes/{item}: de qué archivo de Drive sale el PDF de cada elemento (id, ruta y versión).
+    // SOLO el profesor: los alumnos nunca lo leen. El portal no abre Drive.
+    match /origenes/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}$')
+        && request.resource.data.keys().hasOnly(['drive', 'ruta', 'version', 'asig', 'curso'])
+        && textoCorto(request.resource.data.get('drive', ''), 120)
+        && textoCorto(request.resource.data.get('ruta', ''), 300)
+        && textoCorto(request.resource.data.get('version', ''), 30)
+        && textoCorto(request.resource.data.get('asig', ''), 20)
+        && textoCorto(request.resource.data.get('curso', ''), 40);
+    }
+    // v5 · plantillas/{id}: plantillas de examen («n preguntas de tal criterio, tema y dificultad»). Solo el profesor.
+    match /plantillas/{id} {
+      allow read, delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}$')
+        && request.resource.data.keys().hasOnly(['asig', 'nombre', 'reglas', 'fecha'])
+        && textoCorto(request.resource.data.asig, 20)
+        && textoCorto(request.resource.data.nombre, 120) && request.resource.data.nombre.size() > 0
+        && listaCorta(request.resource.data.reglas, 30)
+        && esNumero(request.resource.data.get('fecha', 0));
     }
 
     // archivos/{id}: archivos que el profesor adjunta al Trabajo de clase (PDF, imagen, Word…), sin Drive.

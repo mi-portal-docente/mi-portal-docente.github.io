@@ -471,3 +471,55 @@ Panel del profesor › Ajustes y limpieza › «Curso escolar: copia y limpieza�
 - «Limpiar curso escolar» descarga antes esta copia y pide dos confirmaciones (aceptar y escribir el nombre del curso).
   Borra trabajos (con comentarios, imágenes y modelos 3D), notas, versiones, registros, incidencias, PIAC y respuestas
   en directo del curso. El contenido (elementos, temas, anuncios, exámenes) solo se borra si se marca la casilla.
+
+## v5 · Secciones, PDF oficial, versión interactiva y origen (19/11/2026)
+
+Desde la v5, en las asignaturas con secciones (EEE y Proyecto, y las que se activen en «Gestión»), cada
+elemento va en una sección: `teoria`, `clase`, `tareas`, `test`, `examenes` o `laboratorio` («Avisos» es el
+tablón). Todos los campos nuevos son **opcionales**: sin ellos, el elemento se importa como siempre.
+
+| Campo | Qué es |
+|---|---|
+| `seccion` | Sección del elemento. Sin ella, se deduce del tipo: material/explicación → teoria; actividad, p5, web, info, ciber, bloques, interactiva → clase; tarea, pregunta, proyecto, piac, documento, hoja → tareas; examen (cuestionario) y cuestionario → test; examen con PDF o en modo examen y recuperación → examenes; práctica y avería → laboratorio. |
+| `tema` | **Nombre** del tema o SA. Si ya existe en el curso, va a ese; si no, se crea al final. Sin él, el tema elegido en la ventana. |
+| `pdf` | El documento oficial: `{ "archivo": "archivos/<id>", "nombre": "….pdf", "descarga": false }`. Tiene que ser un archivo **subido al portal** (Adjuntos → subir); nada de enlaces de Drive. Se ve en el visor de solo lectura; `descarga: true` deja descargarlo. Sin `pdf`, vale el primer adjunto PDF. |
+| `interactivo` | La versión interactiva: `{ "tipo": "explicacion", "ref": "<id de otro elemento>" }` o `{ "tipo": "laboratorio", "ref": "#eee/circuitos/c3" }`. Tipos: explicacion, interactiva, cuestionario, laboratorio, p5, web, bloques, hoja, otro. |
+| `origen` | De qué archivo de Drive sale el PDF: `{ "drive": "<id>", "ruta": "1_PIAC_SA1/T3_Empresa_espejo", "version": "v3" }`. **Solo lo ve el profesor** (se guarda aparte, en `origenes/`), no se abre Drive desde el portal y no se escribe nunca en el repositorio. |
+
+Además, el archivo puede traer las **secciones de la asignatura** (orden, nombre y si se ven), igual que en
+«Gestión → Secciones de la asignatura»:
+
+```json
+{
+  "secciones": [
+    { "id": "avisos", "nombre": "Avisos", "orden": 0, "visible": true },
+    { "id": "teoria", "nombre": "Teoría", "orden": 1, "visible": true },
+    { "id": "clase", "nombre": "Ejercicios en clase", "orden": 2, "visible": true },
+    { "id": "tareas", "nombre": "Tareas", "orden": 3, "visible": true },
+    { "id": "test", "nombre": "Test", "orden": 4, "visible": true },
+    { "id": "examenes", "nombre": "Exámenes", "orden": 5, "visible": true },
+    { "id": "laboratorio", "nombre": "Laboratorio", "orden": 6, "visible": false }
+  ],
+  "elementos": [
+    {
+      "formato": "superprofe/elemento@1",
+      "tipo": "tarea",
+      "seccion": "tareas",
+      "tema": "SA1 · Empresa espejo",
+      "titulo": "T3 · Empresa espejo",
+      "instrucciones": "Lee el PDF y entrega tu ficha de empresa.",
+      "puntos": 10,
+      "criterio": "piac_c2_1",
+      "pdf": { "archivo": "archivos/abc123", "nombre": "PIAC_SA1_T3_Alumno_v3.pdf", "descarga": false },
+      "interactivo": { "tipo": "explicacion", "ref": "iexplica0001" },
+      "origen": { "drive": "<id del archivo en Drive>", "ruta": "1_PIAC_SA1/T3_Empresa_espejo", "version": "v3" }
+    },
+    { "tipo": "material", "tema": "SA1 · Empresa espejo", "titulo": "Apuntes SA1",
+      "pdf": { "archivo": "archivos/def456", "nombre": "PIAC_SA1_Apuntes_v2.pdf" } }
+  ]
+}
+```
+
+- Todo se guarda **como borrador**. Sección, PDF, versión interactiva, origen y secciones necesitan las
+  reglas de Firestore v5 pegadas; con las reglas antiguas se importa el resto y se avisa.
+- «Exportar JSON» de un elemento devuelve también estos campos (el `origen`, solo en la copia del profesor).

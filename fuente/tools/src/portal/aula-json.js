@@ -2,7 +2,7 @@
 //  · Importar: pegas (o abres) un JSON con uno o varios elementos («superprofe/elemento@1»), se valida
 //    con errores en castellano, se ve una vista previa y se guarda SIEMPRE como borrador.
 //  · Exportar: cualquier elemento → JSON (sirve de copia y de plantilla para crear otros).
-import { doc, writeBatch, Timestamp } from 'firebase/firestore';
+import { doc, writeBatch, Timestamp, getDoc } from 'firebase/firestore';
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import '../lms/motores/index.js';
@@ -10,13 +10,15 @@ import { leerJSON, exportarElemento, motor } from '../lms/elemento.js';
 import { separarPregunta, unirPregunta, TIPOS_PREGUNTA } from '../lms/preguntas.js';
 import { idItem, categoriaDe, TIPOS_ENTREGA, fmtNota } from '../lms/modelo.js';
 import { TIPOS, asignatura } from '../lms/biblioteca.js';
+import { ACTIVAS_DEFECTO } from '../lms/secciones.js';
+import { setDoc } from 'firebase/firestore';
 import { textoHTML } from './aula-vistas.js';
 
 const fF = (t) => (t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
 
 // Elemento validado → documentos de Firestore (item; y examen + claves si es un examen). Siempre borrador.
-export function documentosDe(el, { curso, asig, tema = null, grupos = [], orden = 1000 }) {
+export function documentosDe(el, { curso, asig, tema = null, grupos = [], orden = 1000, v5 = false }) {
   const esEx = el.tipo === 'examen';
   const entregable = TIPOS_ENTREGA.includes(el.tipo) || esEx || !!motor(el.tipo)?.entregable;
   const separadas = esEx ? el.preguntas.map(separarPregunta) : [];
@@ -28,9 +30,12 @@ export function documentosDe(el, { curso, asig, tema = null, grupos = [], orden 
     pendiente: false, nota: el.nota || null, examen: esEx ? { desde: ex.desde, hasta: ex.hasta, limiteMin: ex.limiteMin, n: separadas.length, ...(ex.pantallaCompleta ? { pantallaCompleta: true } : {}) } : null, actualizado: Date.now() };
   if (el.criterio) item.criterio = el.criterio;
   if (el.contenido) item.contenido = el.contenido;
+  // v5 (solo con las reglas nuevas): sección, PDF oficial y versión interactiva. El origen va aparte (solo profesor).
+  if (v5) { if (el.seccion) item.seccion = el.seccion; if (el.pdf) item.pdf = el.pdf; if (el.interactivo) item.interactivo = el.interactivo; }
+  const origen = v5 && el.origen ? { ...el.origen, asig, curso } : null;
   const examen = esEx ? { grupos, publicado: false, desde: Timestamp.fromMillis(ex.desde), hasta: Timestamp.fromMillis(ex.hasta), limiteMin: ex.limiteMin, barajar: ex.barajar, preguntas: separadas.map((s) => s.publica), ...(ex.pantallaCompleta ? { pantallaCompleta: true } : {}) } : null;
   const claves = esEx ? { respuestas: Object.fromEntries(separadas.map((s) => [s.publica.id, s.clave])) } : null;
-  return { item, examen, claves };
+  return { item, examen, claves, origen };
 }
 
 // Vista previa (lo que se va a crear)
@@ -48,6 +53,8 @@ export function vistaPreviaHTML(el) {
       <ol class="js-prev-q">${el.preguntas.map((q) => `<li><span class="js-tq">${esc(TIPOS_PREGUNTA[q.tipo]?.nombre || q.tipo)}</span> ${esc(q.enunciado.slice(0, 200))} <span class="pn-small">(${esc(fmtNota(q.puntos))} pt${q.criterio ? ' · ' + esc(q.criterio) : ''})</span></li>`).join('')}</ol>`;
   }
   if (m?.resumen && el.contenido) h += `<p class="pn-small"><b>Contenido:</b> ${esc(m.resumen(el.contenido))}</p>`;
+  const v5 = [el.seccion ? 'sección ' + el.seccion : '', el.tema ? 'tema «' + el.tema + '»' : '', el.pdf ? 'PDF ' + (el.pdf.nombre || el.pdf.archivo) : '', el.interactivo ? 'versión interactiva (' + el.interactivo.tipo + ')' : '', el.origen ? 'origen ' + [el.origen.ruta, el.origen.version].filter(Boolean).join(' · ') + ' (solo profesor)' : ''].filter(Boolean);
+  if (v5.length) h += `<p class="pn-small"><b>v5:</b> ${esc(v5.join(' · '))}</p>`;
   return h + '</article>';
 }
 
@@ -55,7 +62,7 @@ export function crearJson({ db, aula, modal, cerrarModal, gruposDe }) {
   const st = aula.st;
   // ---------------------------------------------------------------- importar
   function importar({ curso, asig, tema = null, temas = [] }) {
-    let elementos = []; let texto = '';
+    let elementos = []; let texto = ''; let secciones = null;
     const ejemplo = JSON.stringify({ formato: 'superprofe/elemento@1', tipo: 'tarea', titulo: 'Título de la tarea', instrucciones: 'Qué hay que hacer.', puntos: 10, criterio: 'eee_c1_1' }, null, 2);
     const html = `<header class="cl-dlg-h"><h3>${ic('upload')} Importar JSON · ${esc(asignatura(asig)?.corto || asig)}</h3><span class="pn-grow"></span><button class="btn" data-m="cerrar" aria-label="Cerrar">${ic('x')}</button></header>
       <div class="cl-dlg-b1 js-imp">
@@ -68,32 +75,45 @@ export function crearJson({ db, aula, modal, cerrarModal, gruposDe }) {
     const m = modal(html, async (acc, b, m) => {
       const msg = m.querySelector('#jsMsg'); const ta = m.querySelector('[data-m-f=json]');
       const validar = () => {
-        texto = ta.value; const r = leerJSON(texto); elementos = r.elementos;
+        texto = ta.value; const r = leerJSON(texto); elementos = r.elementos; secciones = r.secciones || null;
         m.querySelector('#jsErr').innerHTML = r.errores.length ? `<b>Hay ${r.errores.length} error${r.errores.length === 1 ? '' : 'es'}:</b><ul>${r.errores.slice(0, 30).map((e) => `<li>${e.ruta ? `<code>${esc(e.ruta)}</code> · ` : ''}${esc(e.texto)}</li>`).join('')}</ul>` : '';
         m.querySelector('#jsPrev').innerHTML = elementos.length ? `<h4>Vista previa (${elementos.length} elemento${elementos.length === 1 ? '' : 's'})</h4>${elementos.map(vistaPreviaHTML).join('')}` : '';
-        m.querySelector('[data-m=guardar]').disabled = !elementos.length;
-        msg.textContent = elementos.length ? 'JSON correcto' : ''; msg.className = 'pn-msg ok';
+        if (secciones) m.querySelector('#jsPrev').insertAdjacentHTML('afterbegin', `<p class="pn-small"><b>Secciones de la asignatura:</b> ${esc(secciones.map((x) => `${x.nombre}${x.visible ? '' : ' (oculta)'}`).join(' · '))}</p>`);
+        const nuevos = elementos.some((e) => e.seccion || e.pdf || e.interactivo || e.origen) || secciones;
+        if (nuevos && st.reglasV5 !== true) m.querySelector('#jsErr').insertAdjacentHTML('beforeend', '<p class="sg-aviso">Sección, PDF, versión interactiva, origen y secciones se guardarán cuando pegues las <b>reglas nuevas (v5)</b>. Ahora se guarda el resto.</p>');
+        m.querySelector('[data-m=guardar]').disabled = !elementos.length && !secciones;
+        msg.textContent = elementos.length || secciones ? 'JSON correcto' : ''; msg.className = 'pn-msg ok';
       };
       if (acc === 'change' && b.dataset.mF === 'archivo' && b.files?.[0]) { ta.value = await b.files[0].text(); validar(); return; }
       if (acc === 'validar') return validar();
       if (acc === 'guardar') {
-        if (ta.value !== texto) validar(); if (!elementos.length) return;
+        if (ta.value !== texto) validar(); if (!elementos.length && !secciones) return;
+        const v5 = st.reglasV5 === true;
         b.disabled = true; msg.textContent = 'Guardando…'; msg.className = 'pn-msg';
         const temaSel = m.querySelector('[data-m-f=tema]').value || null; const grupos = gruposDe(curso, asig).map((g) => g.id);
         const enTema = [...st.items.values()].filter((x) => x.curso === curso && x.asig === asig && (x.tema ?? null) === temaSel);
         let orden = (enTema.length ? Math.min(...enTema.map((x) => x.orden ?? 0)) : 0) - 1000 * elementos.length;
         try {
           const ids = [];
+          // «tema» por nombre: el del curso con ese nombre o uno nuevo al final
+          const temasCurso = [...st.temas.values()].filter((t) => t.asig === asig && t.curso === curso); const nuevosT = new Map();
+          const temaPorNombre = (nom, lote) => {
+            const n = nom.trim().toLowerCase(); const t = temasCurso.find((x) => x.nombre.trim().toLowerCase() === n); if (t) return t.id;
+            if (!nuevosT.has(n)) { const id = 't' + idItem().slice(1); const orden = Math.max(0, ...temasCurso.map((x) => x.orden || 0)) + 1000 * (nuevosT.size + 1); lote.set(doc(db, 'temas', id), { curso, asig, nombre: nom.trim().slice(0, 200), orden }); nuevosT.set(n, id); }
+            return nuevosT.get(n);
+          };
+          if (secciones && v5) { const conf = st.secConf || {}; await setDoc(doc(db, 'config', 'secciones'), { activas: Array.isArray(conf.activas) ? conf.activas : ACTIVAS_DEFECTO, asig: { ...(conf.asig || {}), [asig]: secciones } }); }
           for (let i = 0; i < elementos.length; i += 100) {
             const lote = writeBatch(db);
             for (const el of elementos.slice(i, i + 100)) {
-              const id = idItem(); const d = documentosDe(el, { curso, asig, tema: temaSel, grupos, orden }); orden += 1000;
+              const id = idItem(); const d = documentosDe(el, { curso, asig, tema: el.tema ? temaPorNombre(el.tema, lote) : temaSel, grupos, orden, v5 }); orden += 1000;
               lote.set(doc(db, 'items', id), d.item); if (d.examen) { lote.set(doc(db, 'examenes', id), d.examen); lote.set(doc(db, 'claves', id), d.claves); }
+              if (d.origen) lote.set(doc(db, 'origenes', id), d.origen);
               ids.push(id);
             }
             await lote.commit();
           }
-          msg.textContent = `${ids.length === 1 ? 'Guardado' : ids.length + ' elementos guardados'} como borrador.`; msg.className = 'pn-msg ok';
+          msg.textContent = `${ids.length === 1 ? 'Guardado' : ids.length + ' elementos guardados'} como borrador.${secciones && v5 ? ' Secciones guardadas.' : ''}`; msg.className = 'pn-msg ok';
           m.querySelector('#jsPrev').insertAdjacentHTML('afterbegin', `<div class="pn-acts">${ids.length === 1 ? `<button class="btn primary" data-m="abrir" data-id="${esc(ids[0])}">${ic('pencil')} Abrir en el editor</button>` : ''}<button class="btn" data-m="cerrar">Cerrar</button></div>`);
         } catch (er) { b.disabled = false; msg.textContent = 'No se ha podido guardar (' + (er?.code || er?.message || 'error') + ').'; msg.className = 'pn-msg ko'; }
       }
@@ -106,6 +126,7 @@ export function crearJson({ db, aula, modal, cerrarModal, gruposDe }) {
   async function exportar(it) {
     let datos = {};
     if (it.tipo === 'examen') { try { const { examen, claves } = await aula.examen(it.id, { claves: true }); datos = { preguntas: examen?.preguntas || [], claves: claves?.respuestas || {}, examen }; } catch (e) { /* sin preguntas */ } }
+    if (st.reglasV5 === true) { try { const o = (await getDoc(doc(db, 'origenes', it.id))).data(); if (o) datos.origen = { drive: o.drive || '', ruta: o.ruta || '', version: o.version || '' }; } catch (e) { /* sin origen */ } }
     const json = JSON.stringify(exportarElemento(it, datos), null, 2);
     const nombre = (it.titulo || 'elemento').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '_').slice(0, 50) + '.json';
     modal(`<header class="cl-dlg-h"><h3>${ic('download')} Exportar JSON</h3><span class="pn-grow"></span><button class="btn" data-m="cerrar" aria-label="Cerrar">${ic('x')}</button></header>

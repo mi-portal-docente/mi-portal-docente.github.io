@@ -12,6 +12,7 @@ import { crearAula } from './aula-datos.js';
 import { instalarVisorPDF, abrirPDF } from './visor-pdf.js';
 import { instalarBotones3D } from './modelo3d-ui.js';
 import { crearVistas } from './aula-vistas.js';
+import { seccionesActivas, seccionesDe, seccionesVisibles, vistaNueva, pendientesPorSeccion, seccionDe } from '../lms/secciones.js';
 import { crearClase } from './aula-clase.js';
 import { crearDirectoAlumno } from './directo.js';
 
@@ -95,6 +96,21 @@ const PORTAL = window.PORTAL = {
     // Pestañas de la asignatura que dependen del aula: 'organizacion' (profesor), 'trabajo', 'tablon'.
     renderVista(el, asig, vista) { if (clase) clase.render(el, asig, vista); else if (el) el.innerHTML = ''; },
     renderTrabajo(el, asig) { this.renderVista(el, asig, 'trabajo'); },
+    // v5 · Secciones de la asignatura (null si no las tiene activadas). Alumno: solo las visibles.
+    secciones(asig) {
+      const conf = aula?.st.secConf || null; if (!aula || !seccionesActivas(conf, asig)) return null;
+      return rol === 'profesor' ? seccionesDe(conf, asig) : seccionesVisibles(conf, asig);
+    },
+    vistaNueva(asig, t) { const S = this.secciones(asig); return S ? vistaNueva(t, { prof: rol === 'profesor', visibles: S.filter((s) => s.visible) }) : null; },
+    // Contador de cada sección. Alumno: lo que tiene pendiente. Profesor: elementos «pendientes de completar».
+    contadores(asig) {
+      if (!aula) return {}; const t = Date.now();
+      if (rol === 'profesor') { const n = {}; for (const it of aula.st.items.values()) if (it.asig === asig && it.curso === aula.st.cursoSel && !it.papelera && it.pendiente) { const k = seccionDe(it); n[k] = (n[k] || 0) + 1; } return n; }
+      const L = [...aula.st.items.values()].filter((it) => it.asig === asig && !it.papelera && !(it.pub && it.pub > t));
+      return pendientesPorSeccion(L, vistas?.estado);
+    },
+    reglasV5() { return !!aula?.st.reglasV5; },
+    configSecciones() { return aula?.st.secConf || null; },
     // Actividades de clase: el profesor las asigna como tarea (tipo «actividad» con enlace interno) y el
     // alumno entrega el resultado como texto; el cuaderno lo lee para proponer la nota.
     asignarActividad({ asig, titulo, texto, enlace, tituloEnlace }) {

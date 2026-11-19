@@ -16,6 +16,9 @@ import { crearJson } from './aula-json.js';
 import { crearBanco } from './aula-banco.js';
 import { crearDirectoProfe } from './directo.js';
 import { subirArchivo } from './archivos.js';
+import { IDS_ELEMENTO, seccionDe, seccionesDe, seccionesActivas } from '../lms/secciones.js';
+import { carasHTML } from './caras-ui.js';
+import { crearGestionSecciones } from './secciones-ui.js';
 
 const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const TIPOS_ENTREGA_EV = (it) => it.tipo !== 'material' && it.tipo !== 'info';
@@ -54,6 +57,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const directo = prof ? crearDirectoProfe({ db, aula, gruposDe }) : null;
   if (editor) { editor.exportar = (it) => json.exportar(it); editor.desdeBanco = (asig, cb) => banco.elegir(asig, cb); }
   const curso = () => st.cursos.get(st.cursoSel) || null;
+  const gestionSec = prof ? crearGestionSecciones({ db, aula, pintar: () => pintar(), asig: () => C.asig, items: () => itemsAsig(C.asig), temas: () => temasAsig(C.asig, []) }) : null;
   const ahora = () => Date.now();
 
   // ------------------------------------------------------------------ datos
@@ -75,8 +79,8 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   // ------------------------------------------------------------------ pintar
   function render(el, asig, vista = C.vista) {
     if (!el) return; if (C.el !== el || C.asig !== asig) { C.filtro = null; C.crear = false; }
-    C.el = el; C.asig = asig; C.vista = vista === 'organizacion' ? (prof ? 'trabajo' : 'tablon') : vista;
-    if (!el.dataset.clOk) { el.dataset.clOk = '1'; el.addEventListener('click', onClick); el.addEventListener('change', onChange); el.addEventListener('submit', onSubmit); enlazarArrastre(el); el.addEventListener('keydown', onKey); }
+    C.el = el; C.asig = asig; C.vista = vista === 'organizacion' ? (prof ? 'trabajo' : 'tablon') : vista === 'avisos' ? 'tablon' : vista;
+    if (!el.dataset.clOk) { el.dataset.clOk = '1'; el.addEventListener('click', onClick); el.addEventListener('change', onChange); el.addEventListener('submit', onSubmit); enlazarArrastre(el); el.addEventListener('keydown', onKey); el.addEventListener('toggle', (e) => { if (e.target.matches?.('[data-sg-det]')) gestionSec?.toggle(e.target.open); }, true); }
     pintar();
   }
   function pintar() {
@@ -84,7 +88,9 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     if (el.contains(document.activeElement) && document.activeElement.matches('textarea, input[type=text], input:not([type])') && document.activeElement.value) return; // escribiendo un anuncio
     const abiertos = [...el.querySelectorAll('details.cl-mas[open]')].map((d) => d.closest('[data-item]')?.dataset.item);
     const v = C.vista;
-    el.innerHTML = (prof ? barraCursoHTML() : '') + `<div class="cl-cuerpo">${v === 'tablon' ? (prof ? tablonProfHTML() : tablonAlumnoHTML()) : trabajoHTML()}</div>` + (prof && v !== 'tablon' ? papeleraHTML() : '');
+    // v5: 'tablon' (Avisos) · una sección (teoria, clase, tareas…) · 'gestion' (profesor) · 'trabajo' (sin secciones)
+    const sec = IDS_ELEMENTO.includes(v) ? v : null; const gest = v === 'gestion' && prof;
+    el.innerHTML = (prof ? barraCursoHTML() : '') + `<div class="cl-cuerpo">${v === 'tablon' ? (prof ? tablonProfHTML() : tablonAlumnoHTML()) : gest ? gestionHTML() : trabajoHTML(sec)}</div>` + (prof && (v === 'trabajo' || gest) ? papeleraHTML() : '');
     abiertos.forEach((id) => el.querySelector(`[data-item="${CSS.escape(id || '')}"] details.cl-mas`)?.setAttribute('open', ''));
   }
   // P1 · Papelera: lo «borrado» del curso abierto se guarda aquí (sin publicar) y se puede restaurar.
@@ -149,26 +155,36 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       <section class="org-box"><h3>Seguimiento</h3><p class="pn-small">Notas de tareas, cuestionarios, actividades y prácticas de laboratorio.</p><a class="cl-link" href="#panel/notas">Abrir el cuaderno de calificaciones →</a><br><a class="cl-link" href="#panel/entregas">Entregas del laboratorio →</a></section></div></details>`;
   }
   // ---- Trabajo de clase
-  function trabajoHTML() {
+  // v5 · Gestión del profesor: lo que antes estaba en «Trabajo de clase» (todo junto, con filtros por estado,
+  // grupos y seguimiento, papelera), más la configuración de las secciones y la exportación.
+  function gestionHTML() {
     const w = cargando(); if (w) return w;
-    if (!prof) return trabajoAlumnoHTML(datosAlumno(null), false);
+    return gestionSec.html(C.asig) + trabajoHTML(null, true);
+  }
+  // Nombre de la sección en esta asignatura
+  const nomSec = (sec) => seccionesDe(st.secConf, C.asig).find((s) => s.id === sec)?.nombre || sec;
+  function trabajoHTML(sec = null, gestion = !sec) {
+    const w = cargando(); if (w) return w;
+    if (!prof) { const D = datosAlumno(null); if (sec) { D.items = D.items.filter((it) => seccionDe(it) === sec); const ids = new Set(D.items.map((i) => i.tema)); D.temas = D.temas.filter((t) => ids.has(t.id)); } return trabajoAlumnoHTML(D, false, sec); }
     const E = estructura(C.asig);
+    if (sec) { const L = E.items.filter((it) => seccionDe(it) === sec); const ids = new Set(L.map((i) => i.tema)); E.items = L; E.temas = E.temas.filter((t) => ids.has(t.id)); E.sin = E.sin.filter((it) => seccionDe(it) === sec); E.de = ((de) => (tid) => de(tid).filter((it) => seccionDe(it) === sec))(E.de); }
     const filtro = C.filtro && E.temas.some((t) => t.id === C.filtro) ? C.filtro : null;
     const bar = prof ? `<div class="cl-bar"><div class="cl-crear"><button class="btn primary cl-crear-b" data-cl="crear" aria-haspopup="true" aria-expanded="${C.crear}">＋ Crear</button>
         ${C.crear ? `<div class="cl-crear-m" role="menu">${[['tarea', 'Tarea'], ['examen', 'Tarea de cuestionario'], ['pregunta', 'Pregunta'], ['material', 'Material']].map(([t, n]) => `<button role="menuitem" data-cl="nuevo" data-tipo="${t}"><span>${icono(t)}</span>${n}</button>`).join('')}
           <hr><button role="menuitem" data-cl="reutilizar"><span>♻️</span>Reutilizar publicación</button><button role="menuitem" data-cl="nuevoTema"><span>🗂</span>Tema</button></div>` : ''}</div>
-        <button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">${ic('upload')} Importar JSON</button><button class="btn" data-cl="banco">${ic('archive')} Banco de preguntas</button><button class="btn" data-cl="directo">${ic('radio')} Pregunta en directo</button>${nDrive(E.items) ? `<button class="btn" data-cl="sustDrive" title="Sube los archivos (PDF, imágenes…) y sustituyen a los enlaces de Drive con el mismo nombre">${ic('upload')} Sustituir adjuntos de Drive <span class="pn-small">(${nDrive(E.items)})</span></button><input type="file" data-cl-sust multiple hidden>` : ''}<span class="pn-grow"></span>
-        </div>${chipsEstadoHTML(E)}` : '';
+        ${gestion ? `<button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">${ic('upload')} Importar JSON</button><button class="btn" data-cl="banco">${ic('archive')} Banco de preguntas</button><button class="btn" data-cl="directo">${ic('radio')} Pregunta en directo</button>${nDrive(E.items) ? `<button class="btn" data-cl="sustDrive" title="Sube los archivos (PDF, imágenes…) y sustituyen a los enlaces de Drive con el mismo nombre">${ic('upload')} Sustituir adjuntos de Drive <span class="pn-small">(${nDrive(E.items)})</span></button><input type="file" data-cl-sust multiple hidden>` : ''}` : `<span class="pn-small cl-sec-n">${E.items.length} en ${esc(nomSec(sec))}</span>`}<span class="pn-grow"></span>
+        </div>${gestion ? chipsEstadoHTML(E) : ''}` : '';
+    if (sec && !E.items.length) return bar + `<div class="cl-vacio"><p>Todavía no hay nada en «${esc(nomSec(sec))}».</p><p>Pulsa <b>＋ Crear</b> o cambia la sección de un elemento al editarlo (en «Gestión» está todo junto).</p></div>`;
     if (!E.items.length && !E.temas.length) return bar + (prof
       ? `<div class="cl-vacio"><p>Aquí aparecerá el trabajo de clase de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}.</p><p>Pulsa <b>⬇ Importar de Classroom</b> para cargar los temas y elementos que tenías en Classroom, o <b>＋ Crear</b> para empezar.</p></div>`
       : '<p class="au-vacio">Tu profesor todavía no ha publicado trabajo en esta asignatura.</p>');
     const lado = `<aside class="cl-lado"><button class="cl-lado-b ${filtro ? '' : 'on'}" data-cl="filtro" data-tema="">Todos los temas</button>${E.temas.map((t) => `<button class="cl-lado-b ${filtro === t.id ? 'on' : ''}" data-cl="filtro" data-tema="${esc(t.id)}">${esc(t.nombre)}</button>`).join('')}</aside>`;
     // filtro por estado (antes en «Organización»): con un filtro puesto solo se ven los temas que tienen algo
-    const fe = C.orgF !== 'todo'; const okE = filtroEstado();
+    const fe = gestion && C.orgF !== 'todo'; const okE = gestion ? filtroEstado() : () => true;
     const sinL = E.sin.filter(okE);
     const sin = (!filtro && (sinL.length || (prof && !fe))) ? `<section class="cl-tema cl-sin" data-tema="">${prof ? '<header class="cl-th cl-th-sin"><h3>Sin tema</h3></header>' : ''}<div class="cl-items" data-lista="">${sinL.map(itemHTML).join('') || (prof ? '<p class="cl-hueco">Arrastra aquí lo que no tenga tema.</p>' : '')}</div></section>` : '';
     const temas = E.temas.filter((t) => !filtro || t.id === filtro).map((t, i, L) => { const I = E.de(t.id).filter(okE); return fe && !I.length ? '' : temaHTML(t, I, i, L.length); }).join('');
-    return bar + `<div class="cl-grid">${lado}<div class="cl-temas" data-temas>${sin}${temas || (fe && !sin ? '<p class="pn-small">Nada con este filtro.</p>' : '')}</div></div>` + gruposSeguimientoHTML();
+    return bar + `<div class="cl-grid">${lado}<div class="cl-temas" data-temas>${sin}${temas || (fe && !sin ? '<p class="pn-small">Nada con este filtro.</p>' : '')}</div></div>` + (gestion ? gruposSeguimientoHTML() : '');
   }
   function temaHTML(t, items, i, n) {
     return `<section class="cl-tema" data-tema="${esc(t.id)}" id="tema-${esc(t.id)}">
@@ -194,7 +210,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const temas = temasAsig(C.asig, []);
     return `<div class="cl-it ${e.k}" draggable="true" data-item="${esc(it.id)}" tabindex="0" aria-label="${esc(it.titulo)} (${esc(e.t)})">
       <span class="cl-grip" title="Arrastra para mover" aria-hidden="true">⠿</span><span class="cl-ic t-${esc(it.tipo)}">${icono(it.tipo)}</span>
-      <span class="cl-tx"><a href="#trabajo/${esc(it.id)}" draggable="false"><b>${esc(it.titulo)}</b></a><span class="cl-meta">${esc(nombreTipo(it.tipo))}${metaItem(it) ? ' · ' + esc(metaItem(it)) : ''}</span>${it.nota ? `<span class="org-nota" title="${esc(it.nota)}">🔒 Nota privada: ${esc(it.nota)}</span>` : ''}</span>
+      <span class="cl-tx"><a href="#trabajo/${esc(it.id)}" draggable="false"><b>${esc(it.titulo)}</b></a><span class="cl-meta">${esc(nombreTipo(it.tipo))}${metaItem(it) ? ' · ' + esc(metaItem(it)) : ''}</span>${it.nota ? `<span class="org-nota" title="${esc(it.nota)}">🔒 Nota privada: ${esc(it.nota)}</span>` : ''}${IDS_ELEMENTO.includes(C.vista) ? carasHTML(it) : ''}</span>
       ${it.pendiente ? `<span class="cl-pend" title="${esc(it.nota || 'Faltan instrucciones o adjuntos')}">✎ ${PEND_T}</span>` : ''}<span class="cl-est e-${e.k}">${esc(e.t)}</span>
       <span class="cl-acts"><button class="btn tiny" data-cl="up" aria-label="Subir">↑</button><button class="btn tiny" data-cl="down" aria-label="Bajar">↓</button>
         <button class="btn tiny ${it.publicado ? '' : 'primary'}" data-cl="pub">${it.publicado ? '⏸ Retirar' : '📢 Publicar'}</button>
@@ -218,10 +234,12 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const [k, t] = prev ? ['', ''] : estado(it);
     const meta = [nombreTipo(it.tipo), it.tipo === 'examen' && it.examen?.hasta ? 'Cierra ' + fFecha(it.examen.hasta) : it.fechaEntrega ? 'Fecha de entrega: ' + fFecha(it.fechaEntrega) : '', it.puntos ? fmtNota(it.puntos) + ' puntos' : ''].filter(Boolean).join(' · ');
     const dentro = `<span class="cl-ic t-${esc(it.tipo)}" aria-hidden="true">${icono(it.tipo)}</span><span class="cl-tx"><b>${esc(it.titulo)}</b><span class="cl-meta">${esc(meta)}</span></span>${t ? `<span class="au-est e-${k}">${esc(t)}</span>` : ''}`;
-    return prev ? `<div class="cl-it cl-prev-it" data-prev-item>${dentro}</div>` : `<a class="cl-it" href="#trabajo/${esc(it.id)}" data-item="${esc(it.id)}">${dentro}</a>`;
+    if (prev) return `<div class="cl-it cl-prev-it" data-prev-item>${dentro}</div>`;
+    const caras = IDS_ELEMENTO.includes(C.vista) ? carasHTML(it) : '';
+    return caras ? `<div class="cl-fila"><a class="cl-it" href="#trabajo/${esc(it.id)}" data-item="${esc(it.id)}">${dentro}</a>${caras}</div>` : `<a class="cl-it" href="#trabajo/${esc(it.id)}" data-item="${esc(it.id)}">${dentro}</a>`;
   }
-  function trabajoAlumnoHTML(D, prev) {
-    if (!D.items.length) return `<p class="au-vacio">${prev ? 'Este grupo todavía no ve nada publicado en esta asignatura.' : 'Tu profesor todavía no ha publicado trabajo en esta asignatura.'}</p>`;
+  function trabajoAlumnoHTML(D, prev, secId = null) {
+    if (!D.items.length) return `<p class="au-vacio">${prev ? 'Este grupo todavía no ve nada publicado en esta asignatura.' : secId ? `Todavía no hay nada en «${esc(nomSec(secId))}».` : 'Tu profesor todavía no ha publicado trabajo en esta asignatura.'}</p>`;
     const ids = new Set(D.temas.map((t) => t.id)); const sin = D.items.filter((it) => !it.tema || !ids.has(it.tema));
     const filtro = !prev && C.filtro && D.temas.some((t) => t.id === C.filtro) ? C.filtro : null;
     const lado = prev ? '' : `<aside class="cl-lado"><button class="cl-lado-b ${filtro ? '' : 'on'}" data-cl="filtro" data-tema="">Todos los temas</button>${D.temas.map((t) => `<button class="cl-lado-b ${filtro === t.id ? 'on' : ''}" data-cl="filtro" data-tema="${esc(t.id)}">${esc(t.nombre)}</button>`).join('')}</aside>`;
@@ -546,7 +564,8 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'verTab') { C.verTab = b.dataset.v; pintar(); return; }
       if (acc === 'crear') { C.crear = !C.crear; pintar(); if (C.crear) C.el.querySelector('.cl-crear-m button')?.focus(); return; }
       C.crear = false;
-      if (acc === 'nuevo') { pintar(); editor.abrir(null, { tipo: b.dataset.tipo, asig: C.asig, curso: st.cursoSel, tema: C.filtro || null }); return; }
+      if (acc === 'nuevo') { pintar(); editor.abrir(null, { tipo: b.dataset.tipo, asig: C.asig, curso: st.cursoSel, tema: C.filtro || null, ...(IDS_ELEMENTO.includes(C.vista) && seccionDe({ tipo: b.dataset.tipo }) !== C.vista ? { seccion: C.vista } : {}) }); return; }
+      if (acc.startsWith('sec')) return gestionSec.click(b, acc);
       if (acc === 'nuevoTema') { pintar(); return nuevoTema(); }
       if (acc === 'reutilizar') { pintar(); return reutilizar(); }
       if (acc === 'importar') return importar();

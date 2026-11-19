@@ -699,3 +699,37 @@ las actividades ya no devuelve un punto tapado por una etiqueta HTML (busca en u
 - Reglas: sin cambios en el repositorio. Hay que volver a pegar las reglas generadas con `node prepara-reglas.mjs <correo>` (nunca `firestore.rules` tal cual).
 - Pruebas: test:reglas 142/142, fb_e2e 59/59, tests unitarios en verde.
 - Probar a mano: pegar reglas → Ctrl+F5 → entrar como profesor.
+
+## v5 · SuperProfe Pablo para alumnos: secciones por asignatura (19/11/2026, rama grok-arreglos → main, caché v5-20261119*)
+Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cada una publicada en main.
+
+### Fase 1 · Secciones por asignatura — HECHA
+- Secciones: Avisos · Teoría · Ejercicios en clase · Tareas · Test · Exámenes · Laboratorio y, para el profesor, «Gestión».
+  Lógica pura en `src/lms/secciones.js` (tabla tipo → sección, configuración, enlaces antiguos, contadores, agrupar por tema).
+- **Migración automática en lectura**: la sección se deduce del tipo (`seccionDe`); si el elemento trae `seccion`, manda esa.
+  No se reescribe ni se borra ningún documento (lo comprueba `secciones_e2e`). `examen` → Test; con PDF o «sin elementos externos» → Exámenes.
+- **Activado solo en EEE y Proyecto (proy2)** por defecto. Lista configurable en Gestión → «Secciones de la asignatura»
+  (se guarda en `config/secciones.activas`, sin tocar código). Las demás siguen con «Trabajo de clase · Tablón».
+- **Configurable por asignatura** (orden, nombre, ocultar) en `config/secciones.asig[asig] = [{ id, nombre, orden, visible }]`.
+  Una sección oculta no se abre ni con el enlace directo.
+- **Gestión** (profesor) = lo que estaba en «Trabajo de clase»: importar (Classroom/JSON), banco, pregunta en directo, filtros por estado,
+  grupos y seguimiento (cuaderno, entregas), programación de la asignatura y papelera; más la configuración de secciones.
+- En cada sección: agrupado por tema/SA en el orden del profesor con filtro por tema (lo de siempre, reutilizado); el profesor puede crear,
+  arrastrar, publicar… igual que antes. Ejercicios en clase incluye las actividades 3D; Laboratorio, los laboratorios 3D.
+- **Contador** en cada pestaña: alumno = lo que tiene pendiente (sin entregar, fuera de plazo/devuelto, borrador, examen abierto);
+  profesor = elementos «pendientes de completar».
+- **Enlaces antiguos**: `#asig/x/tablon` → avisos, `/actividades` → clase, `/laboratorio` → laboratorio, `/trabajo` → teoría (alumno) o
+  gestión (profesor). `#trabajo/<id>` sigue abriendo el elemento.
+- Editor: campo «Sección» (opcional, «según el tipo»), solo con las reglas v5. Al editar se conservan `seccion`, `pdf` e `interactivo`.
+- Diseño: pestañas píldora de cristal con icono Lucide y contador rojo en ordenador; barra inferior fija y desplazable en el móvil.
+- **Reglas** (en el repositorio, sin desplegar): `config/secciones` (leer profesor y alumno con sesión; escribir profesor), items con
+  `seccion`/`pdf`/`interactivo` validados, `origenes/{id}` y `plantillas/{id}` solo profesor. Pruebas: `firebase/test/v5.test.mjs`.
+- **Degradación**: con las reglas antiguas el portal funciona igual (secciones por defecto; el editor no escribe campos nuevos y Gestión avisa
+  de pegar las reglas). Comprobado con `REGLAS_VIEJAS=1` en `secciones_e2e`.
+- Pruebas: `secciones_test.mjs` (11), `firebase/test/v5.test.mjs` (en `npm run test:reglas`, 149/149), `e2e/secciones_e2e.mjs`.
+  `aula_e2e` recorre el modo clásico: desactiva las secciones de EEE al empezar (una línea) y sigue 118/118.
+- Verificación antes de publicar (19/11): build OK; tests unitarios 80/80 (secciones, importador_v5, aula_modelo, plataforma, protección, acceso, evaluaciones);
+  circ_test 77/77, barra_test 90/90, circ_auditoria 63/63, circ_estados 93/93, guiadas 20/20 (http local); test:reglas 149/149 (emulador);
+  secciones_e2e 39/39, aula_e2e 118/118. Caché v5-20261119a.
+- Probar a mano: pegar las reglas nuevas (/workspace/portal-acceso/firestore.rules.para-pegar.txt) → Ctrl+F5 → EEE: pestañas de secciones;
+  Gestión → «Secciones de la asignatura» (renombrar, ordenar, ocultar); como alumno, contador de pendientes y barra inferior en el móvil.

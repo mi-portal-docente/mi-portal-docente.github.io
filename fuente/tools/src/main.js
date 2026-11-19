@@ -8,7 +8,7 @@ import { MODULO, RA, SOFTWARE_STEPS, LIBS, TOOLS_BASE, SAFETY_BASE, BOARD_GUIDE,
 import { boardDesc, boardShort, COLOR_NAME } from './describe.js';
 import { BIBLIOTECA, asignatura } from './lms/biblioteca.js';
 import { bibliotecaHTML, enlazarBiblioteca, refrescarBiblioteca, tarjetaAsig } from './lms/vistas-biblio.js';
-import { asigHTML, pestañas, pestañaPorDefecto } from './asig.js';
+import { asigHTML, pestañas, pestañaPorDefecto, pestañaValida, conSecciones, tabHTML, refrescarContadores } from './asig.js';
 import { Actividad3D } from './act/motor.js';
 import { actividad, enlaceActividad } from './act/registro.js';
 import { instalarIconos, ic } from './ui/iconos.js';
@@ -281,14 +281,15 @@ let _alT = 0;
 function alinearLuego() { alinearBarras(); clearTimeout(_alT); _alT = setTimeout(alinearBarras, 120); setTimeout(alinearBarras, 600); }
 window.addEventListener('resize', () => { clearTimeout(_alT); _alT = setTimeout(alinearBarras, 60); });
 window.addEventListener('hashchange', () => setTimeout(alinearLuego, 0));
+let barraId = null;
 function mostrarBarraAsig(id, tab = 'laboratorio') {
-  const el = $('#asigbar'); if (!el) return;
+  const el = $('#asigbar'); if (!el) return; barraId = id || null;
   const a = id && asignatura(id);
   if (!a) { el.hidden = true; el.innerHTML = ''; document.body.classList.remove('con-asigbar'); document.documentElement.style.removeProperty('--asigbar-h'); setTimeout(alinearLuego, 0); return; }
-  const T = pestañas();
+  const T = pestañas(id); tab = pestañaValida(id, tab) || tab;
   el.style.setProperty('--c', a.color || '');
   // Una sola fila (para no quitar alto al visor 3D): marca · asignatura · pestañas · navegación general.
-  el.innerHTML = `<header class="scr-top asb-top">${brandHTML()}<a class="asb-asig" href="#asig/${esc(id)}" title="${esc(a.nombre || a.corto)}">${esc(a.corto)}</a><nav class="asb-tabs" aria-label="Secciones de ${esc(a.corto)}">${T.map(([k, i, t]) => `<a id="asb-${k}" href="#asig/${esc(id)}/${k}" class="${k === tab ? 'on' : ''}" ${k === tab ? 'aria-current="page"' : ''}><span aria-hidden="true">${i}</span> ${esc(t)}</a>`).join('')}</nav>${topNav('asig')}</header>`;
+  el.innerHTML = `<header class="scr-top asb-top">${brandHTML()}<a class="asb-asig" href="#asig/${esc(id)}" title="${esc(a.nombre || a.corto)}">${esc(a.corto)}</a><nav class="asb-tabs" aria-label="Secciones de ${esc(a.corto)}">${T.map((x) => tabHTML(id, x, x[0] === tab, { barra: true })).join('')}</nav>${topNav('asig')}</header>`;
   el.hidden = false; document.body.classList.add('con-asigbar');
   const medir = () => { if (!el.hidden) document.documentElement.style.setProperty('--asigbar-h', el.offsetHeight + 'px'); };
   medir(); if (!el._ro && window.ResizeObserver) { el._ro = new ResizeObserver(() => { medir(); window.dispatchEvent(new Event('resize')); }); el._ro.observe(el); }
@@ -397,9 +398,9 @@ function pintarAsig({ id, tab }) {
   const enCurso = misAsignaturas().some(a => a.id === id);
   const el = $('#asig'); const misma = asigActual && asigActual.id === id;
   el.innerHTML = asigHTML(id, tab, { cabecera: cabecera(asignatura(id).corto, enCurso || !portal()?.esProfesor ? 'asig' : 'biblio'), chip: chip(), enCurso });
-  asigActual = { id, tab };
+  asigActual = { id, tab, firma: pestañas(id).map((x) => x[0] + ':' + x[2]).join('|') };
   const A = portal()?.aula;
-  if (tab === 'trabajo' || tab === 'tablon') A?.renderVista?.($('#asTrabajo'), id, tab);
+  if (tab === 'trabajo' || tab === 'tablon' || conSecciones(id)) A?.renderVista?.($('#asTrabajo'), id, tab);
   if (misma) $('#tab-' + tab)?.focus({ preventScroll: true });
   const t = $('#tab-' + tab), bar = t?.parentNode; if (t && bar && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = t.offsetLeft - (bar.clientWidth - t.offsetWidth) / 2;
 }
@@ -598,9 +599,11 @@ function route() {
     const [, id, t, sub] = as;
     if (!asignatura(id) || !permitida(id)) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
     if (t === 'actividades' && sub) return abrirActividad(id, sub);
-    const tabs = pestañas().map(x => x[0]);
-    if (!tabs.includes(t)) { const d = pestañaPorDefecto(); history.replaceState(null, '', `#asig/${id}/${d}`); return showScreen('asig', { id, tab: d }); }
-    return showScreen('asig', { id, tab: t });
+    // pestañas antiguas (trabajo, tablon, actividades…) → la sección nueva, sin romper los enlaces de antes
+    const v = t ? pestañaValida(id, t) : null;
+    if (!v) { const d = pestañaPorDefecto(id); history.replaceState(null, '', `#asig/${id}/${d}`); return showScreen('asig', { id, tab: d }); }
+    if (v !== t) { history.replaceState(null, '', `#asig/${id}/${v}`); }
+    return showScreen('asig', { id, tab: v });
   }
   if (h === '#mis-trabajos') {
     if (!portal()?.aula?.activa?.()) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
@@ -695,7 +698,15 @@ else {
     if (curScreen === 'biblio') refrescarBiblioteca($('#biblio'), cursoProf());
     if (curScreen === 'cover') $('#cover').innerHTML = coverHTML();
     // estado de las actividades asignadas (entregada, nota…)
-    if (curScreen === 'asig' && asigActual?.tab === 'actividades') pintarAsig(asigActual);
+    if (curScreen === 'asig' && (asigActual?.tab === 'actividades' || asigActual?.tab === 'clase')) pintarAsig(asigActual);
+    // v5 · contadores de las secciones; si la sección abierta deja de existir (oculta / desactivada), se recoloca
+    if (curScreen === 'asig' && asigActual) {
+      const firma = pestañas(asigActual.id).map((x) => x[0] + ':' + x[2]).join('|');
+      if (pestañaValida(asigActual.id, asigActual.tab) !== asigActual.tab) route();
+      else if (asigActual.firma && firma !== asigActual.firma) pintarAsig(asigActual); // cambian nombres, orden u ocultas
+      else refrescarContadores(asigActual.id);
+    }
+    if (document.body.classList.contains('con-asigbar') && barraId) refrescarContadores(barraId);
     if (curScreen === 'act' && act && act.estado?.fase !== 'ronda') act.pintar();
     if (curScreen === 'circ' && lab?._avPend && location.hash === '#eee/circuitos/averia-' + lab._avPend) route();
   });

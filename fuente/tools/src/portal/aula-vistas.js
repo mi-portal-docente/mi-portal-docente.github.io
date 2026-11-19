@@ -1,6 +1,8 @@
 // Página de cada elemento del aula (#trabajo/<id>): material, tarea con entrega, actividad de clase,
 // examen con ventana y tiempo límite. (El «Trabajo de clase» y el tablón están en aula-clase.js.)
 // Sirven al alumno (con su grupo + nº + PIN) y al profesor (vista previa).
+import { carasHTML } from './caras-ui.js';
+import { seccionesActivas } from '../lms/secciones.js';
 import { doc, setDoc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { esc } from './util.js';
 import { ic } from './ico.js';
@@ -132,6 +134,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     let h = cabeceraItem(it);
     if (rol === 'profesor') h += `<div class="au-prof">${!it.publicado ? '⚪ Borrador' : it.pub && it.pub > Date.now() ? '🕒 Programado para el ' + esc(fFecha(it.pub)) : '🟢 Publicado'} · ${esc((it.grupos || []).length)} grupo(s) <button class="btn small" data-au="editar">✏️ Editar</button></div>`;
     if (rol === 'profesor' && (it.pendiente || it.nota)) h += `<div class="cl-nota-v ${it.pendiente ? 'pend' : ''}">🔒 <b>${it.pendiente ? 'Pendiente de completar' : 'Nota privada'}</b>${it.nota ? ' · ' + esc(it.nota) : ''} <span class="muted small">(solo la ves tú)</span></div>`;
+    if (it.pdf || it.interactivo || seccionesActivas(st.secConf, it.asig)) { const c = carasHTML(it); if (c) h += `<div class="au-caras">${c}</div>`; }
     if (it.fechaEntrega && it.tipo !== 'examen') h += `<div class="au-fecha">📅 Fecha de entrega: <b>${esc(fFecha(it.fechaEntrega))}</b></div>`;
     if (it.tipo === 'recuperacion' && rol === 'profesor') h += `<div class="au-aviso">${ic('user-check')} Solo la ven los nº de lista <b>${esc((it.para || []).join(', ') || '—')}</b> de sus grupos.</div>`;
     if (it.texto || !(it.contenido && montadorDe(it.tipo))) h += `<div class="au-texto">${it.texto ? textoHTML(it.texto) : '<p class="au-small">Sin instrucciones.</p>'}</div>`;

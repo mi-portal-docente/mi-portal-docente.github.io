@@ -6,6 +6,8 @@ import { enlaceValido, redondea } from './modelo.js';
 import { validarPregunta, TIPOS_PREGUNTA } from './preguntas.js';
 
 export const FORMATO_EL = 'superprofe/elemento@1';
+import { IDS_ELEMENTO, validarSecciones, limpiarSecciones } from './secciones.js';
+import { validarPdf, validarInteractivo, validarOrigen } from './caras.js';
 // Motores de contenido (tipos nuevos): cada uno registra su validador con registrarMotor().
 // validar(contenido, err) añade errores con err(ruta, texto) y devuelve el contenido limpio.
 const MOTORES = new Map();
@@ -106,9 +108,16 @@ export function validarElemento(j) {
     if (j.contenido == null || typeof j.contenido !== 'object') err('contenido', `El tipo «${tipo}» necesita «contenido» (ver FORMATO_IMPORTAR.md).`);
     else contenido = m.validar(j.contenido, (ruta, t) => err(`contenido${ruta ? '.' + ruta : ''}`, t));
   }
+  // v5 · sección, PDF oficial, versión interactiva, origen en Drive (solo profesor) y tema por nombre
+  let seccion = null;
+  if (j.seccion != null && j.seccion !== '') { if (!IDS_ELEMENTO.includes(j.seccion)) err('seccion', `Sección «${j.seccion}» desconocida. Puede ser: ${IDS_ELEMENTO.join(', ')} (o quítala: se deduce del tipo).`); else seccion = j.seccion; }
+  const pdf = validarPdf(j.pdf, err); const interactivo = validarInteractivo(j.interactivo, err); const origen = validarOrigen(j.origen, err);
+  if (j.tema != null && !esTexto(j.tema)) err('tema', '«tema» tiene que ser el nombre del tema (texto).');
+  const tema = esTexto(j.tema) && j.tema.trim() ? j.tema.trim().slice(0, 200) : null;
   const categoria = j.categoria != null ? String(j.categoria) : null;
   const el = { tipo, titulo: esTexto(j.titulo) ? j.titulo.trim().slice(0, 150) : '', texto: esTexto(instr) ? instr.slice(0, 20000) : '', enlaces, puntos: tipo === 'material' ? null : puntos,
-    fechaEntrega, criterio, rubrica, opciones, preguntas, examen, contenido, categoria, nota: esTexto(j.nota) ? j.nota.slice(0, 2000) : null };
+    fechaEntrega, criterio, rubrica, opciones, preguntas, examen, contenido, categoria, nota: esTexto(j.nota) ? j.nota.slice(0, 2000) : null,
+    seccion, pdf, interactivo, origen, tema };
   return { errores, el: errores.length ? null : el };
 }
 
@@ -122,6 +131,9 @@ export function leerJSON(texto) {
     return { errores: [{ ruta: '', texto: `No es un JSON válido${donde}. Revisa comas, comillas dobles "…" y llaves.` }], elementos: [] };
   }
   const L = Array.isArray(j) ? j : Array.isArray(j?.elementos) ? j.elementos : [j];
+  // v5 · { "secciones": [ … ], "elementos": [ … ] }: también las secciones de la asignatura
+  let secciones = null;
+  if (j && !Array.isArray(j) && j.secciones != null) { const e = validarSecciones(j.secciones); if (e) return { errores: [{ ruta: 'secciones', texto: e }], elementos: [], secciones: null }; secciones = limpiarSecciones(j.secciones); if (!Array.isArray(j.elementos)) return { errores: [], elementos: [], secciones }; }
   if (!L.length) return { errores: [{ ruta: '', texto: 'La lista está vacía.' }], elementos: [] };
   if (L.length > 50) return { errores: [{ ruta: '', texto: 'Como mucho 50 elementos de una vez.' }], elementos: [] };
   const errores = []; const elementos = [];
@@ -130,11 +142,11 @@ export function leerJSON(texto) {
     r.errores.forEach((e) => errores.push({ ruta: (L.length > 1 ? `[${i}]` + (e.ruta ? '.' : '') : '') + e.ruta, texto: (L.length > 1 ? `Elemento ${i + 1}: ` : '') + e.texto }));
     if (r.el) elementos.push(r.el);
   });
-  return { errores, elementos: errores.length ? [] : elementos };
+  return { errores, elementos: errores.length ? [] : elementos, secciones: errores.length ? null : secciones };
 }
 
 // Elemento del portal (item + preguntas con su solución) → JSON exportable (sirve de copia y de plantilla).
-export function exportarElemento(it, { preguntas = null, claves = null, examen = null } = {}) {
+export function exportarElemento(it, { preguntas = null, claves = null, examen = null, origen = null } = {}) {
   const o = { formato: FORMATO_EL, tipo: it.tipo, titulo: it.titulo };
   if (it.texto) o.instrucciones = it.texto;
   if (it.enlaces?.length) o.enlaces = it.enlaces.map((e) => ({ titulo: e.t || '', url: e.u }));
@@ -152,6 +164,10 @@ export function exportarElemento(it, { preguntas = null, claves = null, examen =
     o.preguntas = (preguntas || []).map((q) => exportarPregunta(q, k[q.id]));
   }
   if (it.nota) o.nota = it.nota;
+  if (it.seccion) o.seccion = it.seccion;
+  if (it.pdf?.archivo) o.pdf = { archivo: it.pdf.archivo, nombre: it.pdf.nombre || '', descarga: !!it.pdf.descarga };
+  if (it.interactivo?.tipo) o.interactivo = { tipo: it.interactivo.tipo, ref: it.interactivo.ref || '' };
+  if (origen) o.origen = origen; // solo en la copia del profesor
   return o;
 }
 // Pregunta (examenes + clave) → JSON (las de tipos nuevos guardan en la clave cómo deshacer el barajado)
