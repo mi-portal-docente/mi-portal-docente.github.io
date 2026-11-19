@@ -11,6 +11,8 @@ import { confirmar } from './dialogo.js';
 const fDia = (t) => (t ? new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '');
 const aDia = (t) => { if (!t) return ''; const d = new Date(t); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 const deDia = (v) => (v ? new Date(v + 'T12:00').getTime() : null);
+// v5: si todos los criterios valen lo mismo no se muestran porcentajes
+const pesosDistintos = (crit) => new Set((crit || []).map((k) => Number(k.peso))).size > 1;
 const media = (L) => (L.length ? Math.round((L.reduce((a, b) => a + b, 0) / L.length) * 10) / 10 : null);
 
 export function montarPiac(nodo, it, op) {
@@ -49,7 +51,7 @@ export function montarPiac(nodo, it, op) {
     return `<p class="au-small">Puntúa de 1 (insuficiente) a 4 (excelente) cada criterio. Tus compañeros no ven lo que les pones; tu profesor, sí.</p>
       ${orden.map((n) => { const ev = S.evals.get(n); const nota = ev ? notaPonderada(crit, ev.puntos) : null;
         return `<form class="pi-eval" data-pe="${n}"><h5>${ic(n === ses.numero ? 'user-check' : 'users')} ${n === ses.numero ? 'Autoevaluación' : 'Coevaluación · nº ' + n}${ev ? ` <span class="pi-ok">${ic('check')} Guardada${nota != null ? ' · ' + esc(fmtNota(nota)) : ''}</span>` : ''}</h5>
-        ${crit.map((k) => `<fieldset class="pi-crit"><legend>${esc(k.c)} <span class="au-small">(${esc(k.peso)} %)</span>${k.autoria ? ` <span class="pi-aut">${ic('shield-check')} Autoría</span>` : ''}</legend>
+        ${crit.map((k) => `<fieldset class="pi-crit"><legend>${esc(k.c)} ${pesosDistintos(crit) ? `<span class="au-small">(${esc(k.peso)} %)</span>` : ''}${k.autoria ? ` <span class="pi-aut">${ic('shield-check')} Autoría</span>` : ''}</legend>
           <div class="pi-niv">${NIVELES_RUBRICA.map(([v, t]) => `<label><input type="radio" name="${esc(k.id)}" value="${v}" ${ev?.puntos?.[k.id] === v ? 'checked' : ''} required> <span>${v} · ${t}</span></label>`).join('')}</div></fieldset>`).join('')}
         <label class="pn-f">Comentario (opcional)<textarea name="comentario" rows="2" maxlength="1000">${esc(ev?.comentario || '')}</textarea></label>
         <div class="au-acts"><button class="btn primary" type="submit">${ic('save')} Guardar</button></div></form>`; }).join('')}`;
@@ -79,7 +81,7 @@ export function montarPiac(nodo, it, op) {
       <p class="au-small">Una línea por equipo: «Nombre: nº, nº, nº». Solo con nº de lista (sin nombres).</p>
       ${grupos.map((g) => `<label class="pn-f">${esc(nombreGrupo(g))}<textarea data-pg="${esc(g)}" rows="4" maxlength="2000" placeholder="Equipo 1: 1, 4, 7&#10;Equipo 2: 2, 5, 8">${esc(equiposTexto(equipos, g))}</textarea></label>`).join('') || '<p class="au-small">Marca primero los grupos en «Editar».</p>'}
       <div class="au-acts"><button class="btn primary" data-pa="guardarEquipos">${ic('save')} Guardar equipos</button><span class="au-msg" data-pmsg>${esc(S.msg)}</span></div></details>
-      <div class="pi-rub"><h5>${ic('list-checks')} Rúbrica de la evaluación</h5><ul>${crit.map((k) => `<li>${esc(k.c)} · <b>${esc(k.peso)} %</b>${k.autoria ? ` <span class="pi-aut">${ic('shield-check')} Autoría</span>` : ''}</li>`).join('')}</ul></div>
+      <div class="pi-rub"><h5>${ic('list-checks')} Rúbrica de la evaluación</h5><ul>${crit.map((k) => `<li>${esc(k.c)}${pesosDistintos(crit) ? ` · <b>${esc(k.peso)} %</b>` : ''}${k.autoria ? ` <span class="pi-aut">${ic('shield-check')} Autoría</span>` : ''}</li>`).join('')}</ul></div>
       ${equipos.map((e) => { const T = S.tareas.filter((x) => x.equipo === e.id); const D = S.diario.filter((x) => x.equipo === e.id); const ab = S.abiertos[e.id];
         return `<section class="pi-resumen"><h5>${ic('users')} ${esc(e.nombre)} <span class="au-small">· ${esc(nombreGrupo(e.grupo))} · nº ${e.miembros.join(', ')}</span></h5>
           <div class="pi-cont">${ESTADOS_PIAC.map(([k, t]) => `<span class="pi-chip pi-${k}">${t}: <b>${T.filter((x) => x.estado === k).length}</b></span>`).join('')}<span class="pi-chip">Diario: <b>${D.length}</b></span>

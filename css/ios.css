@@ -1277,3 +1277,10 @@ body.con-asigbar header.top > .brand, body.con-asigbar .vv-crumbs .top-nav { dis
 @media (max-width: 560px) { .cl-fila { grid-template-columns: 1fr; } .cl-fila > .cl-caras { padding: 0 10px 6px; } }
 /* v5 · nombre «SuperProfe Pablo para alumnos»: completo en pantallas anchas; «SuperProfe» si no cabe */
 @media (max-width: 1279px) { .brand .brand-x { display: none; } }
+/* v5 · Cuaderno: «Por actividad» / «Por criterio» (sin medias ni porcentajes) */
+.ap-vista { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--card); border: .5px solid var(--sep); }
+.ap-vista-b { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.ap-vista-b.on { background: #DE0714; color: #fff; }
+.ap-vista-b .ic { width: 15px; height: 15px; }
+.ap-crit .ap-cc { white-space: nowrap; text-align: left; }
+.ap-cn { display: inline-block; min-width: 26px; margin: 1px 2px; padding: 1px 6px; border-radius: 999px; background: rgba(80, 108, 136, .12); font-variant-numeric: tabular-nums; font-size: 12.5px; text-align: center; }

@@ -10,11 +10,11 @@ import { ic } from './ico.js';
 import { BIBLIOTECA, asignatura, TIPOS, CATEGORIAS, ETAPAS } from '../lms/biblioteca.js';
 import { semillaAlumno } from '../lms/modelo.js';
 import { valoresAlumno, sustituir } from '../lms/formula.js';
-import { corregirExamen, notaRubrica, mediaPonderada, pesosPorDefecto, categoriaDe, fmtNota, redondea, idItem, idTrabajo, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, csv, urlSegura, TIPOS_ENTREGA } from '../lms/modelo.js';
+import { corregirExamen, notaRubrica, categoriaDe, fmtNota, redondea, idItem, idTrabajo, leeEnlaces, enlacesTexto, leeRubrica, rubricaTexto, csv, urlSegura, TIPOS_ENTREGA } from '../lms/modelo.js';
 import { ordenarItems, nombreUnidad, textoHTML } from './aula-vistas.js';
 import { respuestaTexto, solucionTexto } from './examen-ui.js';
 import { resumenSalidas } from './modo-examen.js';
-import { notaPorCriterio, filasCriterios, analizarExamen } from '../lms/analitica.js';
+import { notaPorCriterio, filasCriterios, tablaPorCriterio, analizarExamen } from '../lms/analitica.js';
 import { motor } from '../lms/elemento.js';
 import { estadoTrabajo, cuentaComoEntrega, ordenarVersiones, ESTADOS_TRABAJO } from '../lms/entrega.js';
 import { estadoChipHTML } from './entrega-ui.js';
@@ -65,8 +65,8 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       // Con datos nuevos solo se repinta la tabla: el detalle (lo que el profesor está calificando) no se toca.
       const g = grupoSel(); const key = g ? `${g.id}|${asigGrupo(g)}` : '';
       const W = $('#apTablaW');
-      if (!forzar && W && A.key === key && A.listoG) { W.innerHTML = tablaNotas(g, A.gAsig, pesosDe(g, A.gAsig)) || W.innerHTML; const D = $('#apDetalle'); if (D && !D.querySelector('form')) pintarDetalle(); return; }
-      A.key = key; B.innerHTML = notasHTML(); pintarDetalle();
+      if (!forzar && W && A.key === key && A.listoG) { if (A.vistaNotas === 'criterio') { pintarCriterios(g); return; } W.innerHTML = tablaNotas(g, A.gAsig) || W.innerHTML; const D = $('#apDetalle'); if (D && !D.querySelector('form')) pintarDetalle(); return; }
+      A.key = key; B.innerHTML = notasHTML(); if (A.vistaNotas === 'criterio') pintarCriterios(g); else pintarDetalle();
     }
     if (A.sub === 'analitica') { const f = document.activeElement; const id = f?.dataset?.apF; B.innerHTML = analiticaHTML(); if (id) $(`[data-ap-f="${id}"]`)?.focus(); }
   }
@@ -205,22 +205,23 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     return { estado: 'nada' };
   }
   function filas(g) { const max = Math.max(g.alumnos || 25, ...[...A.trabajos.values(), ...A.notas.values()].map((x) => x.numero || 0)); return Array.from({ length: Math.min(40, max) }, (_, i) => i + 1); }
-  function pesosDe(g, asig) { const c = st.cursos.get(g.curso || st.cursoSel); return { ...pesosPorDefecto(), ...((c?.pesos || {})[asig] || {}) }; }
+  // v5: el cuaderno ya no calcula medias ponderadas (los pesos antiguos de cursos/{id}.pesos se conservan, sin usarse).
   function notasHTML() {
     const g = grupoSel();
     if (!g) return '<p class="pn-vacio">Todavía no hay grupos.</p>';
     const asig = asigGrupo(g); escucharGrupo(g);
-    const pesos = pesosDe(g, asig); const cursoG = st.cursos.get(g.curso || '');
     const bar = `<div class="pn-bar"><label>Grupo <select data-ap-f="gGrupo">${[...ps.grupos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map((x) => opt(x.id, x.nombre + (st.cursos.get(x.curso || '') ? ' · ' + st.cursos.get(x.curso).nombre : ''), g.id)).join('')}</select></label>
       <label>Asignatura <select data-ap-f="gAsig">${(g.asignaturas || []).filter((x) => asignatura(x)).map((x) => opt(x, asignatura(x).corto, asig)).join('')}</select></label>
+      <span class="ap-vista" role="tablist" aria-label="Vista del cuaderno"><button type="button" role="tab" class="ap-vista-b ${A.vistaNotas === 'criterio' ? '' : 'on'}" aria-selected="${A.vistaNotas !== 'criterio'}" data-ap="vistaNotas" data-v="actividad">${ic('table')} Por actividad</button><button type="button" role="tab" class="ap-vista-b ${A.vistaNotas === 'criterio' ? 'on' : ''}" aria-selected="${A.vistaNotas === 'criterio'}" data-ap="vistaNotas" data-v="criterio">${ic('list-checks')} Por criterio</button></span>
       <span class="pn-grow"></span><button class="btn" data-ap="csvCriterios" title="Una fila por nº de lista, actividad y criterio: nº de lista, actividad, fecha, nota (0–10) y criterio. Sin nombres.">${ic('download')} Exportar CSV</button><button class="btn" data-ap="csvNotas" title="La tabla tal cual: una fila por nº de lista y una columna por actividad">${ic('table')} CSV (tabla)</button></div>`;
     if (!A.listoG || !st.listo.items) return bar + '<p class="pn-small">Cargando…</p>';
-    const t = tablaNotas(g, asig, pesos);
+    if (A.vistaNotas === 'criterio') return bar + `<p class="pn-small">Una fila por nº de lista y una columna por criterio: en cada casilla, las notas de las actividades de ese criterio (sin medias ni porcentajes; la calificación final la calcula QE). Las preguntas de los exámenes cuentan en su criterio.</p><div class="ap-tabla-wrap" id="apCritW"><p class="pn-small">Cargando…</p></div>`;
+    const t = tablaNotas(g, asig);
     if (!t) return bar + `<p class="pn-vacio">Todavía no hay tareas, proyectos ni exámenes de ${esc(asignatura(asig)?.corto || asig)} asignados a ${esc(g.nombre)}.</p>`;
     return bar + `<p class="pn-small">Clic en una casilla para ver la entrega y calificar. <b>Negrita</b> = nota publicada · <i>cursiva</i> = sin publicar · 📥 entregado · ⏳ examen empezado · ⏰ con retraso. Aquí solo se ve la nota de cada actividad: la calificación por criterios se calcula en SuperProfe y en QE.</p>
       <div class="ap-libro"><div class="ap-tabla-wrap" id="apTablaW">${t}</div><aside id="apDetalle" class="pn-det"></aside></div>`;
   }
-  function tablaNotas(g, asig, pesos) {
+  function tablaNotas(g, asig) {
     const cols = columnas(g, asig);
     if (!cols.length) return '';
     const head = `<tr><th class="ap-n">Nº</th>${cols.map((c) => {
@@ -408,6 +409,23 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   // Los exámenes con criterio en sus preguntas salen con una fila por criterio. Sin nombres.
   async function exportarCSVCriterios() {
     const g = grupoSel(); const asig = A.gAsig; if (!g) return;
+    const reg = await registrosCriterios(g, asig);
+    const F = filasCriterios(reg);
+    if (F.length < 2) { alert('Todavía no hay notas que exportar en este grupo y asignatura.'); return; }
+    const url = URL.createObjectURL(new Blob([csv(F)], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a');
+    a.href = url; a.download = `notas-criterios-${asig}-${nombreArchivo(g.nombre).replace(/ /g, '_')}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  // v5 · vista «Por criterio» del cuaderno: nº de lista × criterio, con las notas de cada actividad (sin media)
+  async function pintarCriterios(g) {
+    const W = $('#apCritW'); if (!W || !g) return; const asig = asigGrupo(g); const tok = (A.critTok = (A.critTok || 0) + 1);
+    let reg; try { reg = await registrosCriterios(g, asig); } catch (e) { W.innerHTML = '<p class="pn-small">No se han podido cargar las notas.</p>'; return; }
+    if (tok !== A.critTok || !W.isConnected) return;
+    const T = tablaPorCriterio(reg);
+    if (!T.criterios.length) { W.innerHTML = '<p class="pn-vacio">Todavía no hay notas en este grupo y asignatura.</p>'; return; }
+    const nom = (c) => c || 'Sin criterio';
+    W.innerHTML = `<table class="pn-t ap-tabla ap-crit"><thead><tr><th class="ap-n">Nº</th>${T.criterios.map((c) => `<th class="ap-col" title="${esc(nom(c))}"><div class="ap-cth">${esc(nom(c).length > 30 ? nom(c).slice(0, 29) + '…' : nom(c))}</div></th>`).join('')}</tr></thead><tbody>${filas(g).map((n) => { const f = T.filas.get(n) || {}; return `<tr><th class="ap-n">${pad(n)}</th>${T.criterios.map((c) => { const L = f[c] || []; return `<td class="ap-c ap-cc">${L.length ? L.map((x) => `<span class="ap-cn" title="${esc(x.actividad)}">${esc(fmtNota(x.nota))}</span>`).join('') : '·'}</td>`; }).join('')}</tr>`; }).join('')}</tbody></table>`;
+  }
+  async function registrosCriterios(g, asig) {
     const cols = columnas(g, asig); const reg = [];
     for (const c of cols) {
       if (c.lab) { for (const n of filas(g)) { const e = ps.entregas.filter((x) => x.grupo === g.id && x.numero === n && x.practica === c.lab && x.nota != null).sort((a, b) => b.fecha - a.fecha)[0]; if (e) reg.push({ n, actividad: c.titulo, fecha: e.fecha, nota: e.nota, criterio: '' }); } continue; }
@@ -419,10 +437,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
         L.forEach((x) => reg.push({ n, actividad: it.titulo, fecha, nota: x.nota, criterio: x.criterio }));
       }
     }
-    const F = filasCriterios(reg);
-    if (F.length < 2) { alert('Todavía no hay notas que exportar en este grupo y asignatura.'); return; }
-    const url = URL.createObjectURL(new Blob([csv(F)], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a');
-    a.href = url; a.download = `notas-criterios-${asig}-${nombreArchivo(g.nombre).replace(/ /g, '_')}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return reg;
   }
 
   // =============================================================== ANALÍTICA (exámenes)
@@ -498,10 +513,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       if (acc === 'publicarNotas' && col) await publicarNotas(col);
       if (acc === 'csvNotas') exportarCSV();
       if (acc === 'csvCriterios') { b.disabled = true; try { await exportarCSVCriterios(); } finally { b.disabled = false; } }
-      if (acc === 'guardarPesos') {
-        const g = grupoSel(); const p = {}; A.el.querySelectorAll('[data-peso]').forEach((i) => { p[i.dataset.peso] = Math.max(0, Math.min(100, Number(i.value) || 0)); });
-        await updateDoc(doc(db, 'cursos', g.curso), { [`pesos.${A.gAsig}`]: p }); $('#apPesosMsg').textContent = '✔ Guardado';
-      }
+      if (acc === 'vistaNotas') { A.vistaNotas = b.dataset.v === 'criterio' ? 'criterio' : 'actividad'; A.abierta = null; pintar(true); return; }
       // P1: «Quitar nota» deja la nota en blanco y sin publicar; el documento (y su historial) se conserva.
       if (acc === 'borrarNota') { const g = grupoSel(); if (await confirmar('¿Quitar la nota? Quedará en blanco y sin publicar.', { aceptar: 'Quitar nota' })) { await updateDoc(doc(db, 'notas', idTrabajo(A.abierta.k, g.id, A.abierta.n)), { nota: null, publicada: false, fecha: Date.now() }); pintarDetalle(); } }
       // P1: la entrega ya no se borra. Una tarea se «devuelve para corregir» (se conserva lo entregado en Versiones);

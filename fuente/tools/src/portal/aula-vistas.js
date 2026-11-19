@@ -46,7 +46,7 @@ export function adjuntosHTML(L) {
   if (!L?.length) return '';
   return `<div class="cl-adjs">${L.map((e) => { const arch = ES_ARCHIVO.test(e.u); const t = arch ? (([ic_, tt]) => ({ ic: ic_, t: tt + (/\/descarga$/.test(e.u) ? ' · ver y descargar' : ' · solo ver') }))(ICONO_ARCHIVO[tipoDeArchivo(e.t)]) : tipoAdjunto(e.u); const interno = String(e.u).startsWith('#'); return `<a class="cl-adj-c" href="${esc(urlSegura(e.u))}" ${interno ? '' : 'target="_blank" rel="noopener noreferrer"'}${/\.(stl|glb|gltf)($|[?#])/i.test(e.u) ? ` data-v3d-url="${esc(urlSegura(e.u))}"` : ''}><span class="cl-adj-ic">${t.ic}</span><span><b>${esc(e.t || e.u)}</b><span class="au-small">${esc(t.t)}</span></span></a>`; }).join('')}</div>`;
 }
-const barraSup = (activa = 'asig') => `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio">SuperProfe<span class="brand-x"> Pablo para alumnos</span></a><div class="scr-ttl">Aula virtual</div>${window.PORTAL?.navHTML ? window.PORTAL.navHTML(activa) : ''}<div class="au-chip">${window.PORTAL?.chipHTML ? window.PORTAL.chipHTML() : ''}</div></header>`;
+const barraSup = (activa = 'asig') => `<header class="scr-top"><a href="#inicio" class="brand" title="Inicio"><span class="brand-n">SuperProfe<span class="brand-x"> Pablo para alumnos</span></span></a><div class="scr-ttl">Aula virtual</div>${window.PORTAL?.navHTML ? window.PORTAL.navHTML(activa) : ''}<div class="au-chip">${window.PORTAL?.chipHTML ? window.PORTAL.chipHTML() : ''}</div></header>`;
 
 export function crearVistas({ db, aula, rol, ses, uid }) {
   instalarVisor(db, rol === 'profesor');

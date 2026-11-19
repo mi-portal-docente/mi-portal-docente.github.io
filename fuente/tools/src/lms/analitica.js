@@ -54,3 +54,18 @@ export function analizarExamen(preguntas, claves, entregas) {
   const porPregunta = [...preg].sort(orden);
   return { n, porPregunta, porCriterio: criterios.sort(orden), masFalladas: n ? porPregunta.filter((q) => q.pct < 100).slice(0, 5) : [] };
 }
+
+// v5 · Cuaderno por criterio (sin porcentajes ni medias: la nota final la calcula QE).
+// registros: [{ n, actividad, fecha, nota, criterio }] → { criterios: [...], filas: Map(n → { criterio: [{ actividad, nota, fecha }] }) }
+// Cada casilla lista las notas de las actividades de ese criterio, en orden de fecha. «Sin criterio» va al final.
+export function tablaPorCriterio(registros) {
+  const L = (registros || []).filter((r) => r && r.nota != null && !Number.isNaN(Number(r.nota)));
+  const crit = [...new Set(L.map((r) => String(r.criterio ?? '')))].sort((a, b) => (a === '') - (b === '') || a.localeCompare(b, 'es', { numeric: true }));
+  const filas = new Map();
+  for (const r of [...L].sort((a, b) => (a.fecha || 0) - (b.fecha || 0))) {
+    const f = filas.get(r.n) || {}; const c = String(r.criterio ?? '');
+    (f[c] = f[c] || []).push({ actividad: String(r.actividad ?? ''), nota: Math.max(0, Math.min(10, Number(r.nota))), fecha: r.fecha || 0 });
+    filas.set(r.n, f);
+  }
+  return { criterios: crit, filas };
+}

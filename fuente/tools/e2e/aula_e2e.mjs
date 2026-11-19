@@ -544,6 +544,14 @@ await P.pg.waitForTimeout(1200);
 const ntAct = await (await fetch(`${REST}/notas/${ID_ACT}_${GE.id}_3`, owner)).json();
 const notaAct = Number(ntAct.fields?.nota?.doubleValue ?? ntAct.fields?.nota?.integerValue);
 ok('cuaderno: «⚡ Poner notas» de la actividad (sin publicar)', notaAct === Math.round(((nTot - 1) / nTot) * 100) / 10 && ntAct.fields?.publicada?.booleanValue === false, String(notaAct));
+// v5 · cuaderno «Por criterio»: nº × criterio con las notas de cada actividad, sin media ni porcentajes
+await P.pg.click('[data-ap=vistaNotas][data-v=criterio]');
+await P.pg.waitForSelector('#apCritW table.ap-crit, #apCritW .pn-vacio', { timeout: 20000 });
+const crit3 = await P.pg.evaluate(() => { const t = document.querySelector('#apCritW table.ap-crit'); const fila = t && [...t.querySelectorAll('tbody tr')].find((r) => r.querySelector('th')?.textContent.trim() === '03'); return { tabla: !!t, celdas: fila ? [...fila.querySelectorAll('.ap-cn')].map((x) => x.textContent) : [], txt: document.querySelector('#apBody')?.textContent || '' }; });
+ok('cuaderno «Por criterio»: tabla nº × criterio con la nota de la actividad y sin media ni porcentajes', crit3.tabla && crit3.celdas.length >= 1 && !/media ponderada|Nota final|%/i.test(crit3.txt.replace(/sin medias ni porcentajes/, '')), JSON.stringify(crit3.celdas));
+if (process.env.CAPTURAS_V5) await P.pg.screenshot({ path: process.env.CAPTURAS_V5.replace(/\/?$/, '/') + 'v5_f3_cuaderno_por_criterio.png' });
+await P.pg.click('[data-ap=vistaNotas][data-v=actividad]');
+await P.pg.waitForSelector('#apTablaW td[data-celda]', { timeout: 20000 });
 await P.pg.selectOption('[data-ap-f=gGrupo]', GA.id);
 await P.pg.goto(BASE + '#panel/entregas');
 await P.pg.waitForSelector('#pnTabla [data-ent]:has-text("Vivienda")', { timeout: 20000 });

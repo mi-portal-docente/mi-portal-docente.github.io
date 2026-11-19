@@ -742,3 +742,16 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
   `interactivo` validados en las reglas; `origen` (Drive) solo en `origenes/{id}`, que solo lee el profesor. El portal no abre Drive.
 - Pruebas: acceso_test 28/28, barra_test 90/90 (con el nombre largo a 1280 y 1366 sin solapes).
 - Probar a mano: Ctrl+F5 → pestaña y entrada con el nombre nuevo; en un elemento, editor → «PDF oficial, versión interactiva y origen».
+
+### Fase 3 · Notas sin porcentajes: cuaderno por criterio — HECHA (caché v5-20261119c)
+- Lo que ya existía: el cuaderno ya no mostraba la media ponderada por categorías (solo la nota de cada actividad) y el CSV por
+  criterio ya estaba. Ningún sitio del alumno muestra media ni nota final.
+- Nuevo: en el cuaderno, píldoras «Por actividad» / «Por criterio». «Por criterio» = tabla nº de lista × criterio con las notas de cada
+  actividad de ese criterio (las preguntas de los exámenes cuentan en su criterio), sin medias ni porcentajes; la nota final la calcula QE.
+  Lógica pura `tablaPorCriterio` en src/lms/analitica.js.
+- Quitado: el código muerto que guardaba pesos por categoría (`guardarPesos`). Los pesos antiguos de `cursos/{id}.pesos` NO se borran
+  (se siguen copiando tal cual al editar el curso), solo dejan de usarse. `mediaPonderada` se conserva en lms/modelo.js por compatibilidad.
+- Rúbrica por defecto sin pesos: los 5 criterios de la plantilla valen lo mismo (2 puntos / 20 cada uno). En PIAC, si todos los criterios
+  valen lo mismo, ya no se enseña «(20 %)». Las rúbricas guardadas no cambian.
+- Pruebas: notas_v5_test.mjs (2), plataforma_test y aula_modelo_test 56/56, aula_e2e 119/119 (nueva: «Por criterio»), barra_test 40/40.
+- Probar a mano: Panel → Cuaderno → «Por criterio» con un grupo que tenga notas.
