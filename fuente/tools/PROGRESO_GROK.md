@@ -852,3 +852,10 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
   3. Las preguntas antiguas del banco (sin tema, dificultad ni paso) siguen igual; tema y dificultad van dentro de `q`, sin cambio de reglas.
   4. Ninguna migración reescribe ni borra entregas, notas, evidencias ni pesos antiguos (las secciones se deducen al leer).
   5. Los CSV y PDF van sin nombres (solo nº de lista); los PDF de soluciones no deben llegar a los alumnos.
+
+### Márgenes y móvil del alumno — HECHO (caché v5-20261120a, 20/11/2026)
+- Arreglos de maquetación en css/ios.css (y el nombre largo de la portada en dos tramos, para que en el móvil quepa «SuperProfe»).
+- La barra inferior de secciones (≤720 px) ya no queda debajo del contenido ni tapa el final de la página; el fondo difuminado deja de ensanchar el scroll; la navegación, la portada, Mis trabajos, el calendario (sin morado), el panel y los enunciados de examen se ven bien a todos los anchos.
+- Pruebas: margenes_e2e 204/204; barra_test 90/90; circ_test 77/77; secciones_e2e 47/47; aula_e2e 120/120. Reglas y firebase-config.js sin cambios.
+- Capturas: /workspace/capturas-margenes/antes y despues.
+- Probar a mano: Ctrl+F5; en el móvil, una asignatura de EEE y comprobar que la barra inferior de secciones se ve y se puede pulsar, y que la página no se desliza hacia los lados.
