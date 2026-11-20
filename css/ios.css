@@ -1284,3 +1284,78 @@ body.con-asigbar header.top > .brand, body.con-asigbar .vv-crumbs .top-nav { dis
 .ap-vista-b .ic { width: 15px; height: 15px; }
 .ap-crit .ap-cc { white-space: nowrap; text-align: left; }
 .ap-cn { display: inline-block; min-width: 26px; margin: 1px 2px; padding: 1px 6px; border-radius: 999px; background: rgba(80, 108, 136, .12); font-variant-numeric: tabular-nums; font-size: 12.5px; text-align: center; }
+/* ---------- márgenes y móvil del alumno (20-11) ----------
+   1. La barra inferior de secciones (móvil) quedaba DEBAJO del contenido: .as-hero (su contenedor) hacía de
+      contexto de apilamiento (z-index: 1) y #asPanel, que va después con el mismo z-index, se pintaba encima y se
+      quedaba los toques. Sin z-index en .as-hero, la barra (z-index: 60) queda por encima de todo en #asig.
+   2. #asig es una pantalla fija con su propio scroll: el hueco para la barra va en #asig, no en <body>; si no,
+      lo último de la página quedaba siempre tapado por la barra. */
+@media (max-width: 720px) {
+  body.scr-asig #asig > .as-hero { z-index: auto; }
+  body.scr-asig #asig:has(.as-tabs.as-secs) { padding-bottom: calc(84px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+  /* aviso visual de que la barra se desliza: los bordes se desvanecen en vez de cortar un icono a la mitad */
+  .as-tabs.as-secs { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); scroll-padding-inline: 14px; }
+}
+/* 3. En el móvil la navegación del encabezado baja a una segunda fila; esa fila ya no tiene la esquina de sesión
+      encima, así que puede usar todo el ancho (antes «Calendario» se cortaba en «Cal»). */
+@media (max-width: 600px) {
+  html.con-sesion body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .scr-top:not(.asb-top) > .top-nav {
+    flex-basis: calc(100% + var(--esquina-w, 44px) + 12px); max-width: none; margin-right: calc(-1 * (var(--esquina-w, 44px) + 12px)); margin-top: 8px; }
+  /* 4. portada: el chip de sesión se montaba encima del nombre «SuperProfe Pablo para alumnos»; baja a una
+        segunda fila, alineado a la derecha bajo la esquina de sesión */
+  html.con-sesion body.scr-cover .cov-top { top: 62px; right: 14px; }
+  /* y el nombre largo pasa a «SuperProfe» para no meterse debajo de la esquina */
+  html.con-sesion body.scr-cover .cov-brand .brand-x { display: none; }
+}
+/* 5. Las páginas del aula (Mis trabajos, Calendario, un trabajo abierto) sin contenedor de referencia dejaban la
+      navegación del encabezado debajo de la esquina de sesión: hueco para la esquina también en ese caso */
+html.barras-al:not(.barras-pagina) body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .scr-top:not(.asb-top) { padding-right: calc(var(--esquina-w, 44px) + 28px); }
+/* 6. textos largos sin espacios (enlaces pegados en las instrucciones, avisos…) se parten en vez de salirse */
+.au-page, .as-panel, .cl-items, .au-texto, .cl-anuncio, .ses-menu { overflow-wrap: break-word; }
+.au-texto a, .cl-items a, .as-panel p a { overflow-wrap: anywhere; }
+/* 7. «Mis trabajos» en el móvil: cada trabajo en una tarjeta (la tabla de 5 columnas se cortaba por la derecha) */
+@media (max-width: 600px) {
+  .mt-t thead { display: none; }
+  .mt-t, .mt-t tbody { display: block; width: 100%; }
+  .mt-t tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; border-bottom: .5px solid var(--sep); }
+  .mt-t td { display: block; padding: 0 !important; border: 0 !important; }
+  .mt-t td:first-child { flex: 1 0 100%; }
+  .mt-t td:nth-child(2), .mt-t td:nth-child(4) { font-size: 13px; color: var(--gris); }
+  .mt-t td.c { margin-left: auto; }
+}
+/* 8. el fondo difuminado (::before con scale(1.2)) iba en absoluto dentro de pantallas con scroll propio y las hacía
+      un 10 % más anchas y más altas: se podía deslizar la página hacia los lados (128 px en 1280) y había un hueco
+      vacío al final. Fijo a la ventana no cuenta para el scroll y además no se mueve al desplazar. */
+body.scr-subjects #subjects::before,
+body.scr-asig #asig::before,
+body.scr-aula #aula::before,
+body.scr-panelprof #panelprof::before,
+body.scr-biblio #biblio::before,
+body.scr-act:has(.labg) #act::before,
+#cover::before, .gate::before { position: fixed; }
+/* 9. al enfocar un campo (teclado del móvil) o saltar a un ancla, que no quede debajo de la cabecera pegajosa
+      ni de la barra inferior de secciones */
+.screen { scroll-padding-top: 96px; }
+@media (max-width: 720px) { body.scr-asig #asig { scroll-padding-bottom: calc(84px + env(safe-area-inset-bottom)); } }
+/* 10. tableta y móvil apaisado (601-1000 px): las pestañas empezaban en 14 px y el encabezado de la asignatura en 24 px */
+@media (min-width: 601px) and (max-width: 1000px) { .as-tabs { max-width: calc(100% - 48px); margin-left: 24px; } }
+/* 11. Panel del profesor: .pn (flex, que encoge) medía lo que la ventana y la cabecera pegajosa se iba al bajar */
+body.scr-panelprof #panelprof > .pn { flex: none; }
+/* 12. Modo examen y preguntas: el enunciado (legend del fieldset) iba montado sobre el borde de la tarjeta y, si
+       ocupaba dos líneas, la segunda quedaba encima de la tarjeta de las opciones. Flotando a todo el ancho, el
+       enunciado entra dentro de la tarjeta, encima de las opciones. */
+.au-q > legend { float: left; width: 100%; padding: 0; margin: 0 0 6px; line-height: 1.35; }
+.au-q > legend + * { clear: both; }
+.au-q::after { content: ""; display: block; clear: both; }
+/* 13. Barra de la asignatura dentro de los laboratorios (móvil): las pestañas se deslizan; los bordes se desvanecen
+       en vez de cortar un icono a la mitad, igual que la barra inferior de secciones */
+@media (max-width: 720px) {
+  .asb-tabs { -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 18px), transparent 100%); mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 18px), transparent 100%); }
+}
+/* 14. Calendario: el examen salía en morado y las fechas y el «hoy» en azul de sistema; pasan a la paleta del portal
+       (rojo de acento para fechas, hoy y exámenes; gris azulado para las entregas) */
+.ca-f { color: var(--acc, #DE0714); }
+.ca-dia.hoy .ca-n { background: var(--acc, #DE0714); }
+.ca-ev { background: rgba(80, 108, 136, .13); }
+.ca-ev.ex { background: rgba(222, 7, 20, .12); }
+.pi-aut { color: #3f5870; background: rgba(80, 108, 136, .14); } /* etiqueta «autónoma» de las prácticas: sin morado */

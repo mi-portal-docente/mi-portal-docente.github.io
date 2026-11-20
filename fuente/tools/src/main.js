@@ -298,7 +298,7 @@ function mostrarBarraAsig(id, tab = 'laboratorio') {
 function coverHTML() {
   const P = portal(); const prof = !!P?.esProfesor; const alumno = P?.rol === 'alumno'; const ses = window.PORTAL_SESION;
   const mias = misAsignaturas();
-  return `<div class="cov-band"><div class="cov-top"><span class="cov-chip">${chip()}</span></div><div class="cov-brand">SuperProfe Pablo para alumnos</div></div>
+  return `<div class="cov-band"><div class="cov-top"><span class="cov-chip">${chip()}</span></div><div class="cov-brand">SuperProfe<span class="brand-x"> Pablo para alumnos</span></div></div>
   <main class="cov-body">
     <div class="cov-ciclo">Bachillerato y CFGB · Informática y Comunicaciones</div>
     <div class="cov-sep"></div>
