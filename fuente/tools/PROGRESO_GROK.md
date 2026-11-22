@@ -950,3 +950,18 @@ tablero de la SA1, modo libre, juego, averías, materiales).
   - Capturas f_<mecanismo>_delante.png y _detras.png en /workspace/capturas-vivienda/ (capturas_mec.mjs).
   - Pendiente: las refs NU310118 y NU310318 no las he contrastado con una ficha (sí NU310518 y NU310618); en el enchufe el esquema
     trasero queda cerca del borne de tierra; caja de empalme sin referencia Schneider concreta.
+- Bloque G — HECHO (caché v5-20261122f): la SA1 y las prácticas nuevas, cada una con su marcado (t163u: «hazlo independiente a la otra guiada»).
+  - La guía de la SA1 (montaje.js) y los proyectos guiados (proyectos.js) vuelven EXACTAMENTE a como estaban antes del bloque F
+    (archivos restaurados de 40363d6^: «L y ↓», cruzamiento 1–4, sus preguntas y su material). Su lógica no cambia.
+  - Dos juegos de marcas en catalogo.js: MARCAS_SA1 (las de siempre) y MARCAS_REAL (New Unica: L/1, E1-E2/S1-S2). `MARCAS` y
+    `REFERENCIAS` eligen el juego con `varianteMarcas(real)` (modelo.js), que también pone los nombres de bornes y la descripción
+    de TIPOS. Se activa SOLO al abrir una práctica nueva (vp1–vp7, guiada y autónoma) o al revisar su entrega «v6»; en cualquier
+    otra pantalla (SA1, tablero, proyectos, libre, taller, casa, averías) se vuelve al marcado de siempre.
+  - Lo del bloque F que solo sale en las prácticas nuevas: esquema serigrafiado detrás, tecla roja de la fase, símbolo de tierra,
+    textos con referencias New Unica, marcas del plano y el fallo «WAGO 2273 con cable flexible» (sim.js). Los ids de los bornes
+    son los mismos en las dos variantes: ningún montaje guardado se rompe.
+  - Cruzamiento (prácticas): las etiquetas de los cables se colocan por fuera (arriba y abajo) y ya no tapan el esquema.
+  - viv_test vuelve a esperar su texto original (interruptor «L y ↓» en modo libre). viv_practicas_e2e comprueba las dos variantes:
+    práctica 2 L/1 con esquema, proyecto 1 L/↓ sin esquema, práctica 7 E1/E2/S1/S2, proyecto 5 cruzamiento 1–4.
+  - Pruebas: viv_modelo_test 16/16, viv_practicas_test 13/13, viv_tubos_test OK, viv_practicas_e2e OK (con las 4 comprobaciones nuevas), viv_emoji_e2e OK, viv_test 94/94, circ_test 77/77.
+  - Capturas: g_interruptor_p1-montar_detras.png (SA1/proyecto, L y ↓), g_interruptor_vp2_detras.png, g_cruzamiento_vp7_detras.png.

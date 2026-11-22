@@ -212,7 +212,7 @@ try {
   ok('visor 3D: cables reales con el cobre en el borne; pelado corto marcado en su borne', await LP(() => /N · azul.*pelado corto/.test(document.querySelector('.vv-vis-lb').textContent) && window.__viv.visor.cab.children.length >= 3 && window.__viv.visor.cab.children.every((g) => g.userData.tipo === 'conductor')));
   await pg.screenshot({ path: SHOTS + 'viv2_enchufe_detalle_pelado.png' });
   await L(() => { const v = window.__viv; v.visor.cerrar(); const it = v.m.parts.find((p) => p.type === 'interruptor'); v.ver3D(it.id); }); await wait(1200);
-  ok('mecanismo real por detrás: interruptor marcado L y 1, con tornillo y agujeros de conexión rápida', await LP(() => { const t = [...document.querySelectorAll('.vv-vis-lb .vv-vlb')].map((e) => e.textContent); return t.some((x) => x.startsWith('L · ')) && t.some((x) => x.startsWith('1 · ')); }));
+  ok('mecanismo real por detrás: interruptor marcado L y ↓, con tornillo y agujeros de conexión rápida', await LP(() => { const t = [...document.querySelectorAll('.vv-vis-lb .vv-vlb')].map((e) => e.textContent); return t.some((x) => x.startsWith('L · ')) && t.some((x) => x.startsWith('↓ · ')); }));
   await pg.screenshot({ path: SHOTS + 'viv2_interruptor_bornes.png' });
   await L(() => { const v = window.__viv; const c = v.m.cables.find((x) => (x.a.p === 'E1' && x.a.t === 'N') || (x.b.p === 'E1' && x.b.t === 'N')); (c.a.p === 'E1' ? c.ea : c.eb).pel = 10; }); await pclick('[data-vis=cerrar]'); await wait(200);
   // deshacer y rehacer

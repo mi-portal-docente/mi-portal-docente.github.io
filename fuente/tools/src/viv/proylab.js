@@ -7,7 +7,7 @@ import { FOTOS } from './creditos.js';
 import { FOTOS_PORTAL } from '../ui/fotos.js';
 // Foto real de cada proyecto en su tarjeta (los renders 3D se ven dentro del proyecto).
 const FOTO_PROY = { 1: 'img/viv/fotos/portalamparas.jpg', 2: 'img/viv/fotos/schuko_frente.jpg', 3: 'img/fotos/p3.webp', 4: 'img/viv/fotos/interruptor.jpg', 5: 'img/fotos/p5.webp', 6: 'img/viv/fotos/minutero.jpg', 7: 'img/fotos/cuadro.webp', 8: 'img/fotos/p8.webp' };
-import { partePorId, posParte, sanear, TIPOS } from './modelo.js';
+import { partePorId, posParte, sanear, TIPOS, varianteMarcas } from './modelo.js';
 import { medir } from './sim.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -68,6 +68,7 @@ const M = {
 
   // ------------------------------------------------------------ lección
   abrirProyecto(P, paso = 0, montar = false) {
+    varianteMarcas(false);
     this.proy = P; this.kind = montar ? 'proymontar' : 'proyecto'; this.modo = montar ? `p${P.n}-montar` : `p${P.n}`;
     const root = this.$('.vv'); root.dataset.modo = this.kind; ['es-casa', 'es-taller', 'es-montaje'].forEach((c) => root.classList.remove(c));
     this.tab = montar ? 'montar' : (this.tab && TABS_L.some(([k]) => k === this.tab) ? this.tab : 'pasos');

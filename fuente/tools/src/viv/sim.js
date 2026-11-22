@@ -4,7 +4,7 @@
 import { solve } from '../circ/sim.js';
 import { esEnchufe, TIPOS, COLORES, CARGAS, ADMISIBLE, fmtSec, partePorId, bornes, rutaCable, metrosCable, tuboEntre, nombreBorne, TUBOS_REF, REFERENCIA, clone,
   esMT, amperios, circuitoDe, curvaDe, tipoBorne, extremo, cablesDelTubo, largoTubo, huecoGrapas, dims } from './modelo.js';
-import { CIRCUITOS, FICHAS, BORNES, PROTEGE, tuboMinimo, GRAPA_MAX } from './catalogo.js';
+import { CIRCUITOS, FICHAS, BORNES, PROTEGE, tuboMinimo, GRAPA_MAX, marcasReales } from './catalogo.js';
 
 const RHO = 0.0172; // Ω·mm²/m (cobre)
 const V_RED = 230;
@@ -33,7 +33,7 @@ export function puntas(m) {
       let s = 'ok';
       if (p?.type === 'caja') {
         const f = FICHAS[p.fichas?.[ref.t]]; const key = k(ref.p, ref.t); const n = (cuenta.get(key) || 0) + 1; cuenta.set(key, n);
-        if (!f) s = 'sinFicha'; else if (n > f.vias) s = 'llena'; else if (c.sec < f.smin || c.sec > f.smax) s = 'seccion'; else if (f.kind === 'insercion') s = 'flexible'; // el H07V-K es flexible: el WAGO 2273 solo admite rígido
+        if (!f) s = 'sinFicha'; else if (n > f.vias) s = 'llena'; else if (c.sec < f.smin || c.sec > f.smax) s = 'seccion'; else if (f.kind === 'insercion' && marcasReales()) s = 'flexible'; // el H07V-K es flexible: el WAGO 2273 solo admite rígido
       }
       if (s === 'ok') {
         const B = BORNES[kind] || BORNES.mecanismo;

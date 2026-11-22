@@ -8,9 +8,9 @@ import { M, canvasTex, glowTexture } from '../circ/models3d.js';
 import { TIPOS, PALETA, COLORES, SECCIONES, CARGAS, fmtSec, vacio, partePorId, posParte, bornes, posBorne, nombreBorne, grupo, slotLibre, siguienteNombre, nuevoId,
   rutaTubo, rutaCable, tuboEntre, sanear, solucionTablero, averia, AVERIAS, REFERENCIA, TUBOS_REF, materiales, presupuesto, clone, dims, TAMANOS_TABLERO, ZT, ZMOD,
   esMT, esEnchufe, esMecanismo, amperios, circuitoDe, curvaDe, medidas, zBorne, tipoBorne, idealPelado, tramoTubo, largoTubo, puntoEnRuta, grapasAuto, huecoGrapas, extremo, prepararExtremos, prepararTodo,
-  posicionesCaja, tamCaja, cablesDelTubo, metrosCable, lineaTubo, recorridoCable, recorridoInterno, radioCable } from './modelo.js';
+  posicionesCaja, tamCaja, cablesDelTubo, metrosCable, lineaTubo, recorridoCable, recorridoInterno, radioCable, varianteMarcas } from './modelo.js';
 import { simular, comprobar, comprobarTablero, puntas, TXT_PUNTA, CONDUCE, medir, buscapolos } from './sim.js';
-import { CIRCUITOS, CALIBRES, CALIBRES_IGA, CALIBRES_ID, CURVAS, CAJAS, FICHAS, BORNES, LARGOS_PELADO, PUNTAS, TUBOS, tuboMinimo, GRAPA_MAX, MARCAS, HERRAMIENTAS, REFERENCIAS, PROTEGE } from './catalogo.js';
+import { CIRCUITOS, CALIBRES, CALIBRES_IGA, CALIBRES_ID, CURVAS, CAJAS, FICHAS, BORNES, LARGOS_PELADO, PUNTAS, TUBOS, tuboMinimo, GRAPA_MAX, MARCAS, marcasReales, HERRAMIENTAS, REFERENCIAS, PROTEGE } from './catalogo.js';
 import { mecanismo3D, bombilla3D, cajaEmpalme3D, modulo3D, cuadro3D, herramienta3D, rotulo } from './modelos3d.js';
 import { Visor } from './visor.js';
 import { entorno, calidad } from '../kit3d/base.js';
@@ -103,6 +103,7 @@ export class ViviendaLab {
   show(v = 'home') {
     const root = this.$('.vv'); this.visor?.cerrar(); this._pick = null; this._medidas = null;
     const rp = this.rutaPractica(v); if (!rp) { this.pr = null; this.prAuto = false; }
+    varianteMarcas(!!rp); // marcado real solo en las prácticas nuevas; la SA1 y los proyectos, con el suyo
     if (rp) { root.classList.remove('is-home'); root.classList.add('is-ed'); this.abrirPractica(rp.Pr, rp.auto); return; }
     const pp = parseProy(v); if (!pp) { this.proy = null; root.classList.remove('es-proy'); }
     if (v === 'home' || v === 'creditos') { this.modo = null; this.kind = v; root.classList.add('is-home'); root.classList.remove('is-ed'); this.pause(); this.$('#vvHome').innerHTML = v === 'creditos' ? this.creditosHTML() : this.homeHTML(); this.$('#vvTitulo').textContent = ''; this.crumbs(); this.stepbar(); this.strip(); this.$('#vvHome').scrollTop = 0; return; }
@@ -805,10 +806,10 @@ export class ViviendaLab {
       cables = cab3(B); info = '<b>Portalámparas E27</b>: el contacto central lleva la fase (el retorno del interruptor) y la rosca, el neutro. Pela 8–12 mm y aprieta con PH1 o plana de 3,5 mm.';
     } else {
       o = mecanismo3D(p.type, { on: p.on, pos: p.pos }); const B = o.userData.bornes; detras = true;
-      etiquetas = Object.entries(B).map(([t, b]) => { const cs = cabl(t); const mk = MARCA(p.type, t); const av = avisoPunta(t); return { txt: `${mk}${cs.length ? ' · ' + cs.map(desc).join(', ') : ' · libre'}${av ? ' · ⚠ ' + TXT_PUNTA[av] : ''}`, grupo: b.grupo, pos: b.pos, cls: (t === 'PE' ? 't' : t === 'N' ? 'n' : 'f') + (av ? ' aviso' : ''), cara: 'detras' }; });
+      etiquetas = Object.entries(B).map(([t, b]) => { const cs = cabl(t); const mk = MARCA(p.type, t); const av = avisoPunta(t); return { txt: `${mk}${cs.length ? ' · ' + cs.map(desc).join(', ') : ' · libre'}${av ? ' · ⚠ ' + TXT_PUNTA[av] : ''}`, grupo: b.grupo, pos: marcasReales() && p.type === 'cruzamiento' ? b.pos.clone().setY(b.pos.y + (b.pos.y >= 0 ? 0.8 : -0.8)) : b.pos, cls: (t === 'PE' ? 't' : t === 'N' ? 'n' : 'f') + (av ? ' aviso' : ''), cara: 'detras' }; }); // en el cruzamiento, las etiquetas por fuera para no tapar el esquema
       if (o.userData.agujeros) for (const [t, v] of Object.entries(o.userData.agujeros)) etiquetas.push({ txt: t === 'L' ? 'Fase (L)' : t === 'N' ? 'Neutro (N)' : 'Tierra ⏚', grupo: 'tecla', pos: v, cls: t === 'PE' ? 't' : t === 'N' ? 'n' : 'f' });
       cables = cab3(B);
-      info = `<b>${esc(T.nombre)}</b> · mecanismo de 45×45 mm en caja de superficie, marco de 81 mm y 60 mm entre tornillos. Por detrás lleva serigrafiado su esquema y cada borne está marcado (${Object.keys(B).map((t) => MARCA(p.type, t)).join(', ')}): mete el cable pelado ${BORNES.mecanismo.pel.join('–')} mm en su hueco y aprieta con PZ1 o plana de 3,5 mm.${p.type === 'enchufe' ? ' Mirando el enchufe de frente, la fase suele ir a la izquierda y el neutro a la derecha; la tierra va a las patillas metálicas.' : p.type === 'conmutador' ? ' El borne común (L o flecha) recibe la fase; los viajeros 1 y 2 van al otro conmutador.' : ''} ${esc(REFERENCIAS[p.type] || '')}`;
+      info = `<b>${esc(T.nombre)}</b> · mecanismo de 45×45 mm en caja de superficie, marco de 81 mm y 60 mm entre tornillos. Por detrás ${marcasReales() ? 'lleva serigrafiado su esquema y ' : ''}cada borne está marcado (${Object.keys(B).map((t) => MARCA(p.type, t)).join(', ')}): mete el cable pelado ${BORNES.mecanismo.pel.join('–')} mm en su hueco y aprieta con PZ1 o plana de 3,5 mm.${p.type === 'enchufe' ? ' Mirando el enchufe de frente, la fase suele ir a la izquierda y el neutro a la derecha; la tierra va a las patillas metálicas.' : p.type === 'conmutador' ? ' El borne común (L o flecha) recibe la fase; los viajeros 1 y 2 van al otro conmutador.' : ''} ${esc(REFERENCIAS[p.type] || '')}`;
     }
     return this.visor.abrir({ titulo: p.nombre, objeto: o, etiquetas, cables, info, detras });
   }
@@ -861,7 +862,7 @@ export class ViviendaLab {
   }
   review(rev) {
     const root = this.$('.vv'); root.classList.remove('is-home'); root.classList.add('is-ed'); this.visor?.cerrar();
-    let m = {}; try { m = JSON.parse(rev.montaje || '{}'); } catch (e) { m = {}; }
+    let m = {}; try { m = JSON.parse(rev.montaje || '{}'); } catch (e) { m = {}; } varianteMarcas(rev.practica === 'v6');
     this.modo = 'revision'; this.ro = true; this.rev = rev; this.red = false; this.res = null; this.chk = null; this.undoS = []; this.sel = null;
     this.initScene();
     if (rev.practica === PRACTICA_PROY) { this._revN = null; this.reviewProy(rev, m); this.crumbs(); return; }

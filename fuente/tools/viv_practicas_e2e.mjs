@@ -39,6 +39,17 @@ ok(await pg.evaluate(() => window.__viv.m.cables.length === 0), 'la autónoma em
 ok(await pg.locator('[data-pr="comprobar"]:not([disabled])').count() === 1, 'la autónoma se corrige al final con «Comprobar mi montaje»');
 await pg.click('[data-pr="comprobar"]'); await pg.waitForTimeout(1200);
 ok(await pg.locator('.vv-check.ko').count() === 1, 'sin montar, la comprobación final suspende');
+// Marcado: las prácticas nuevas llevan el real (L y 1, esquema detrás); la SA1 y los proyectos guiados, el suyo (L y ↓, sin esquema)
+const marcas = async (ruta, tipo) => { await go('#eee/vivienda/' + ruta, 3000);
+  await pg.evaluate(() => { const V = window.__viv; if (V.kind === 'practica') V.solucionPr(); else V.solucionProy?.(); }); await pg.waitForTimeout(600);
+  const r = await pg.evaluate((t) => { const V = window.__viv; const p = V.m.parts.find((q) => q.type === t); if (!p) return null; V.ver3D(p.id); return true; }, tipo); await pg.waitForTimeout(1200);
+  const lb = await pg.evaluate(() => [...document.querySelectorAll('.vv-vis-lb .vv-vlb')].map((e) => e.textContent.split(' · ')[0]));
+  const info = await pg.evaluate(() => document.querySelector('.vv-visor')?.textContent || '');
+  await pg.evaluate(() => document.querySelector('[data-vis="cerrar"]')?.click()); await pg.waitForTimeout(300); return r && { lb, esquema: /serigrafiado su esquema/.test(info) }; };
+const mPr = await marcas('vp2', 'interruptor'); ok(mPr && mPr.lb.includes('L') && mPr.lb.includes('1') && !mPr.lb.includes('↓') && mPr.esquema, 'práctica 2: interruptor marcado L y 1 con esquema detrás ' + JSON.stringify(mPr));
+const mPy = await marcas('p1-montar', 'interruptor'); ok(mPy && mPy.lb.includes('L') && mPy.lb.includes('↓') && !mPy.esquema, 'proyecto guiado 1: interruptor con sus marcas de siempre (L y ↓) ' + JSON.stringify(mPy));
+const mCz = await marcas('vp7', 'cruzamiento'); ok(mCz && ['E1', 'E2', 'S1', 'S2'].every((x) => mCz.lb.includes(x)), 'práctica 7: cruzamiento E1/E2/S1/S2 ' + JSON.stringify(mCz));
+const mCy = await marcas('p5-montar', 'cruzamiento'); ok(mCy && ['1', '2', '3', '4'].every((x) => mCy.lb.includes(x)), 'proyecto guiado 5: cruzamiento 1–4 ' + JSON.stringify(mCy));
 // candados: el alumno con token «vivienda:vp1» solo ve abierta la 1
 const rol = await pg.evaluate(() => { if (!window.PORTAL) window.PORTAL = {}; if (!window.PORTAL.rol) { try { window.PORTAL.rol = 'alumno'; } catch (e) { } } return window.PORTAL.rol; });
 if (rol === 'alumno') {

@@ -2,7 +2,7 @@
 // Se instala con instalarPracticas(ViviendaLab). Los datos y la corrección están en practicas.js.
 import { PRACTICAS, practica, modeloInicial, modeloSolucion, estadoPasos, comprobarPractica, textoCable, APARATOS, CIRCUITOS_VIV, ACCIONES, proyDe, conReserva } from './practicas.js';
 import { vivAbierta, alternarViv } from '../circ/guiadas.js';
-import { sanear } from './modelo.js';
+import { sanear, varianteMarcas } from './modelo.js';
 import { planoSVG, tablaCables } from './proyectos.js';
 import { ic } from '../ui/iconos.js';
 
@@ -81,6 +81,7 @@ const M = {
     if (!abiertaPr(Pr.id)) { setTimeout(() => this.toast('Esta práctica todavía está cerrada: la abrirá tu profesor.', 4000), 200); location.hash = '#eee/vivienda'; return; }
     if (auto && alumno() && !guiadaHechaPr(Pr.id)) { setTimeout(() => this.toast('Primero termina la guiada (todos los pasos en verde y «Comprobar» bien). Después podrás hacerla tú solo.', 4500), 200); location.hash = '#eee/vivienda/' + Pr.id; return; }
     const modo = Pr.id + (auto ? '-auto' : ''); const mismo = this.kind === 'practica' && this.modo === modo;
+    varianteMarcas(true);
     this.pr = Pr; this.prAuto = auto; this.kind = 'practica'; this.modo = modo; this.proy = null; this.rev = null; this.ro = false;
     const root = this.$('.vv'); root.dataset.modo = 'practica'; ['es-casa', 'es-taller', 'es-montaje', 'es-proy'].forEach((c) => root.classList.remove(c));
     this.$('#vvTitulo').innerHTML = `<span class="vv-pn">${Pr.n}</span><span>${esc(Pr.title)}${auto ? ' · autónoma' : ''}</span>`;

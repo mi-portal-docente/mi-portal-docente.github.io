@@ -2,7 +2,7 @@
 // Convenio: el objeto se apoya en z = 0 y su frente mira a +z; x → derecha, y ↑ arriba.
 // Las medidas siguen productos reales (ver catalogo.js) redondeadas para que se vean bien.
 import * as THREE from 'three';
-import { FICHAS, CAJAS, MARCAS } from './catalogo.js';
+import { FICHAS, CAJAS, MARCAS, marcasReales } from './catalogo.js';
 import { pbr, MATS, bloqueRedondo, rectRedondo } from '../kit3d/base.js';
 import { herramienta as kitHerr, punta as puntaKit } from '../kit3d/herramientas.js';
 import { grapa as grapaKit } from '../kit3d/cables.js';
@@ -146,7 +146,7 @@ export function mecanismo3D(tipo, o = {}) {
     caja(W, s2, e, PM, 0, 0, 0, cj); caja(W, e, D, PM, 0, s2 / 2 - e / 2, 0, cj); caja(W, e, D, PM, 0, -s2 / 2 + e / 2, 0, cj); caja(e, s2, D, PM, -W / 2 + e / 2, 0, 0, cj); caja(e, s2, D, PM, W / 2 - e / 2, 0, 0, cj);
     if (!o.tablero) { const k = cil(0.85, 0.05, MAT.gris(), 0, S / 2 + 0.01, 2.1, cj, 18); k.rotation.x = 0; }
   }
-  const marcas = MARCAS[tipo] || MARCAS[esEnch ? 'enchufe' : tipo] || {};
+  const marcas = MARCAS[tipo] || MARCAS[esEnch ? 'enchufe' : tipo] || {}; const real = marcasReales();
   // mecanismo: cuerpo, bastidor de 60 mm entre ejes con garras, y bornes marcados por detrás
   if (!o.tablero) {
     const mc2 = part('mecanismo');
@@ -170,14 +170,16 @@ export function mecanismo3D(tipo, o = {}) {
         for (const s of [-0.26, 0.26]) cil(0.15, 0.05, HUECO(), bx + s, by - 0.3, 0.92, mc2, 12);
         caja(0.55, 0.14, 0.05, HUECO(), bx, by - 0.62, 0.93, mc2);
       }
-      // pulsador de liberación de la conexión rápida: rojo en el borne de la fase (L), como en New Unica; en el cruzamiento, un color por par
-      if (!esEnch) caja(0.55, 0.14, 0.06, mat(mk === 'L' || /^E/.test(mk) ? 0xc81e1e : /^S/.test(mk) ? 0x2b2b2b : 0x9aa0a6, { roughness: 0.5 }), bx, by - 0.62, 0.9, mc2);
+      // prácticas nuevas: pulsador de liberación rojo en el borne de la fase (L), como en New Unica; en el cruzamiento, un color por par
+      // (la SA1 y los proyectos guiados siguen con su rótulo de siempre, debajo del borne)
+      if (!real) rotulo(mk, 0.9, 0.6, bx, by - 1.05, 0.94, mc2, { atras: true, color: col, w: 96, h: 64, font: 'bold 52px system-ui, sans-serif' });
+      else { if (!esEnch) caja(0.55, 0.14, 0.06, mat(mk === 'L' || /^E/.test(mk) ? 0xc81e1e : /^S/.test(mk) ? 0x2b2b2b : 0x9aa0a6, { roughness: 0.5 }), bx, by - 0.62, 0.9, mc2);
       const ly = by >= 0 ? Math.min(1.85, by + 0.85) : Math.max(-1.95, by - 0.85);
       if (t === 'PE') simbolo('tierra', 0.7, bx, ly, 0.93, mc2, '#2f9e44');
-      else rotulo(mk, 0.9, 0.6, bx, ly, 0.94, mc2, { atras: true, color: mk === 'L' && !esEnch ? '#c81e1e' : col, w: 96, h: 64, font: 'bold 52px system-ui, sans-serif' });
+      else rotulo(mk, 0.9, 0.6, bx, ly, 0.94, mc2, { atras: true, color: mk === 'L' && !esEnch ? '#c81e1e' : col, w: 96, h: 64, font: 'bold 52px system-ui, sans-serif' }); }
       G.userData.bornes[t] = { grupo: 'mecanismo', pos: new THREE.Vector3(bx, by - 0.35, 0.9) };
     }
-    for (let i = 0; i < (doble ? 2 : 1); i++) { if (tipo === 'minutero') break; const cx = -dx / 2 + i * dx; // esquema serigrafiado en la trasera
+    for (let i = 0; i < (doble ? 2 : 1); i++) { if (tipo === 'minutero' || !real) break; const cx = -dx / 2 + i * dx; // esquema serigrafiado en la trasera
       const ey = esEnch ? -0.3 : tipo === 'interruptor' || tipo === 'pulsador' ? -0.9 : 0; const eh = esEnch ? 0.95 : tipo === 'interruptor' || tipo === 'pulsador' ? 1.15 : 0.9;
       const es = new THREE.Mesh(geo(`p3.3|${eh}`, () => new THREE.PlaneGeometry(3.3, eh)), (() => { const kk = 'esqM|' + tipo; if (!mc.has(kk)) { const mm = new THREE.MeshBasicMaterial({ map: esquemaTex(tipo), side: THREE.FrontSide }); mm.userData.compartido = true; mc.set(kk, mm); } return mc.get(kk); })());
       es.position.set(cx, ey, 0.86); es.rotation.y = Math.PI; es.name = 'esquema'; mc2.add(es); }
