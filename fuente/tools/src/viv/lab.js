@@ -8,7 +8,7 @@ import { M, canvasTex, glowTexture } from '../circ/models3d.js';
 import { TIPOS, PALETA, COLORES, SECCIONES, CARGAS, fmtSec, vacio, partePorId, posParte, bornes, posBorne, nombreBorne, grupo, slotLibre, siguienteNombre, nuevoId,
   rutaTubo, rutaCable, tuboEntre, sanear, solucionTablero, averia, AVERIAS, REFERENCIA, TUBOS_REF, materiales, presupuesto, clone, dims, TAMANOS_TABLERO, ZT, ZMOD,
   esMT, esEnchufe, esMecanismo, amperios, circuitoDe, curvaDe, medidas, zBorne, tipoBorne, idealPelado, tramoTubo, largoTubo, puntoEnRuta, grapasAuto, huecoGrapas, extremo, prepararExtremos, prepararTodo,
-  posicionesCaja, tamCaja, cablesDelTubo, metrosCable } from './modelo.js';
+  posicionesCaja, tamCaja, cablesDelTubo, metrosCable, lineaTubo, recorridoCable, radioCable } from './modelo.js';
 import { simular, comprobar, comprobarTablero, puntas, TXT_PUNTA, CONDUCE, medir, buscapolos } from './sim.js';
 import { CIRCUITOS, CALIBRES, CALIBRES_IGA, CALIBRES_ID, CURVAS, CAJAS, FICHAS, BORNES, LARGOS_PELADO, PUNTAS, TUBOS, tuboMinimo, GRAPA_MAX, MARCAS, HERRAMIENTAS, REFERENCIAS, PROTEGE } from './catalogo.js';
 import { mecanismo3D, bombilla3D, cajaEmpalme3D, modulo3D, cuadro3D, herramienta3D, rotulo } from './modelos3d.js';
@@ -55,7 +55,7 @@ export class ViviendaLab {
     this.m = vacio(); this.modo = null; this.tool = 'mover'; this.colocar = null; this.sel = null;
     this.color = 'marron'; this.sec = 1.5; this.red = false; this.test = false; this.tocar = false; this.res = null;
     this.undoS = []; this.tab = 'guia'; this.chk = null; this.cableIni = null; this.tuboIni = null; this.ro = false;
-    this.realista = store.get('realista') !== false; this.rejilla = !!store.get('rejilla');
+    this.realista = store.get('realista') !== false; this.verTubos = false; this.tapas = false; this.rejilla = !!store.get('rejilla');
     this.punta = 'PZ1'; this.pelar = 'auto'; this.dTubo = 16; this.tamCaja = 100; this.inNuevo = 16; this.curvaNueva = 'C'; this.circNuevo = 'C2';
     this.multi = { modo: 'V', a: null, b: null, txt: '— — —' }; this.vistaActiva = 'tablero'; this.anims = [];
     this.taller = new Taller(this); this.casa = new CasaVista(this); this.montaje = new Montaje(this); this.redoS = [];
@@ -86,7 +86,7 @@ export class ViviendaLab {
       <section class="vv-view" id="vvView"><div id="vvGL"></div><div id="vvLabels" class="vv-labels"></div><div class="vtitle vv-vt" id="vvVT" hidden></div><div class="stepbar vv-stepbar" id="vvStep" hidden></div>
         <div class="vv-barra" id="vvBarra"></div>
         <div class="vv-multi" id="vvMulti" hidden></div>
-        <div class="vv-tools"><button data-v="vista" title="Vista de frente">⌂</button><button data-v="acercar" title="Acercar">＋</button><button data-v="alejar" title="Alejar">－</button></div>
+        <div class="vv-tools"><button data-v="vista" title="Vista de frente" aria-label="Vista de frente">${ic('house')}</button><button data-v="acercar" title="Acercar" aria-label="Acercar">${ic('zoom-in')}</button><button data-v="alejar" title="Alejar" aria-label="Alejar">${ic('zoom-out')}</button><span class="vv-tsep"></span><button data-v="verTubos" id="vvVerTubos" aria-pressed="false" title="Ver los cables por dentro del tubo (tubo transparente)" aria-label="Ver los cables por dentro del tubo">${ic('scan-eye')}</button><button data-v="tapas" id="vvTapas" aria-pressed="false" title="Poner o quitar los marcos y las teclas de los mecanismos" aria-label="Poner o quitar los marcos y las teclas">${ic('layers')}</button></div>
         <div class="vv-status" id="vvStatus"></div><div class="vv-toast" id="vvToast" hidden></div></section>
       <aside class="vv-side" id="vvSide"></aside>
     </div>
@@ -223,17 +223,15 @@ export class ViviendaLab {
     // tubos: tramo visible de borde a borde, diámetro real, grapas (malla instanciada) y medida
     const grapas = [];
     for (const t of m.tubos) {
-      const T = tramoTubo(m, t); if (T.pts.length < 2) continue; const tot = T.L + T.ini + T.fin;
-      const ruta = [puntoEnRuta(T.pts, T.ini)]; let acc = 0;
-      for (let i = 1; i < T.pts.length - 1; i++) { acc += Math.hypot(T.pts[i].x - T.pts[i - 1].x, T.pts[i].y - T.pts[i - 1].y); if (acc > T.ini && acc < tot - T.fin) ruta.push(T.pts[i]); }
-      ruta.push(puntoEnRuta(T.pts, tot - T.fin));
+      const T = tramoTubo(m, t); if (T.pts.length < 2) continue;
+      const ruta = lineaTubo(m, t);
       const rad = fin(t.d, 16) / 20; const zc = rad + 0.05;
       const path = new THREE.CurvePath(); for (let i = 1; i < ruta.length; i++) { const a = ruta[i - 1], b = ruta[i]; if (Number.isFinite(a.x + a.y + b.x + b.y) && Math.hypot(b.x - a.x, b.y - a.y) > 0.01) path.add(new THREE.LineCurve3(new THREE.Vector3(a.x, a.y, zc), new THREE.Vector3(b.x, b.y, zc))); }
       if (!path.curves.length) continue;
       const L = path.getLength(); const tx = this.texTubo().clone(); tx.repeat.set(Math.max(1, L / 1.2), 1); tx.needsUpdate = true;
       const sel = this.sel?.k === 'tubo' && this.sel.id === t.id; const mal = this.chk?.tubos?.has(t.id);
-      const o = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, Math.round(L / 2)), rad, 10, false), new THREE.MeshStandardMaterial({ map: tx, color: sel ? 0x7fb2ff : mal ? 0xff8080 : t.cort === 'ok' ? 0xffffff : 0xd8dde2, roughness: 0.6 })); o.material.userData = { desechable: true, mapa: true };
-      o.castShadow = true; G.add(o);
+      const vt = this.verTubos; const o = new THREE.Mesh(new THREE.TubeGeometry(path, Math.min(900, Math.max(8, Math.round(L / 0.5), ruta.length * 8)), rad, 14, false), new THREE.MeshStandardMaterial({ map: tx, color: sel ? 0x7fb2ff : mal ? 0xff8080 : t.cort === 'ok' ? 0xffffff : 0xd8dde2, roughness: 0.6, transparent: vt, opacity: vt ? 0.32 : 1, depthWrite: !vt, side: vt ? THREE.DoubleSide : THREE.FrontSide })); o.material.userData = { desechable: true, mapa: true };
+      o.castShadow = !vt; o.renderOrder = vt ? 2 : 0; G.add(o);
       for (const s of t.grapas || []) { const q = puntoEnRuta(T.pts, T.ini + s); if (q && Number.isFinite(q.x)) grapas.push({ x: q.x, y: q.y, h: q.dir === 'h', rad }); }
       const mid = puntoEnRuta(T.pts, T.ini + T.L / 2);
       if (this.realista && (t.med || t.cort !== 'ok')) lbl(`${t.med ? '📏 ' + num(largoTubo(m, t)) + ' cm' : ''}${!t.cort ? (t.med ? ' · ' : '') + 'sin cortar' : t.cort === 'corto' ? ' · corte sin medir' : ''} · Ø${t.d}`, mid.x, mid.y, 2 * rad + 0.8, t.cort === 'ok' ? 'mini' : 'mini aviso');
@@ -268,7 +266,7 @@ export class ViviendaLab {
         o = cajaEmpalme3D(tamCaja(p), p.fichas || {}, posicionesCaja(tamCaja(p)), { tapa: !!p.tapa }); o.position.set(c.x, c.y, 0);
         lbl(`${p.nombre} · ${tamCaja(p)}×${tamCaja(p)}`, c.x, c.y + md.h / 2 + 1.8, 3, 'ce');
       } else {
-        o = mecanismo3D(p.type, { tablero: true, on: p.on, pos: p.pos, empotrar: p.montaje === 'empotrar' }); o.position.set(c.x, c.y, 0);
+        o = mecanismo3D(p.type, { tablero: true, on: p.on, pos: p.pos, empotrar: p.montaje === 'empotrar', abierto: !this.tapas }); o.position.set(c.x, c.y, 0);
         const on = p.type === 'conmutador' || p.type === 'cruzamiento' ? p.pos : p.on;
         if (esEnchufe(p)) { const e = r?.enchufes?.find((x) => x.id === p.id); const cg = CARGAS.find((x) => x.id === p.carga); lbl(`${p.nombre}${e && this.red ? ` · ${Math.round(e.v)} V` : ''}${p.carga && p.carga !== 'nada' ? ` · ${cg?.n || ''}` : ''}`, c.x, c.y - 5.8, 2, e && e.vCarcasa > 50 ? 'peligro' : ''); }
         else lbl(p.nombre + (this.red && p.type !== 'cruzamiento' ? (on ? ' · ON' : ' · OFF') : ''), c.x, c.y - 5.8, 2, this.red ? (on ? 'on' : '') : '');
@@ -277,6 +275,7 @@ export class ViviendaLab {
       if (this.realista && !T.modulo && p.type !== 'manguera' && !p.fijado) lbl('🔩 sin fijar', c.x + md.w / 2, c.y + md.h / 2, 3, 'mini aviso');
       if (sel) this.marco(c.x, c.y, md.w + (T.modulo ? 0.6 : 1.5), md.h + (T.modulo ? 0.6 : 1.5), T.modulo ? ZMOD + 2.1 : 0.3);
       // bornes y su marcado (L, N, ⏚, 1, 2…)
+      if (this.tapas && esMecanismo(p)) continue; // con el marco y la tecla puestos no se ven los bornes
       for (const b of bornes(p)) {
         const ref = { p: p.id, t: b.t }; const k = p.id + ':' + b.t; const pb = posBorne(m, ref); if (!pb) continue;
         const ini = this.cableIni && this.cableIni.p === p.id && this.cableIni.t === b.t;
@@ -294,22 +293,22 @@ export class ViviendaLab {
       const rc = rutaCable(m, c); if (rc.pts.length < 2 || rc.pts.some((q) => !Number.isFinite(q.x) || !Number.isFinite(q.y))) continue;
       const key = rc.interno ? 'int' : [grupo(m, c.a.p), grupo(m, c.b.p)].sort().join('|'); const idx = porTramo.get(key) || 0; porTramo.set(key, idx + 1);
       const off = ((idx % 6) - 2.5) * 0.3;
-      const za = zBorne(m, c.a), zb = zBorne(m, c.b); const t = rc.tubo ? m.tubos.find((x) => x.id === rc.tubo) : null; const zt = t ? fin(t.d, 16) / 20 + 0.05 : 2.25;
-      const Pp = rc.pts.map((q, i) => new THREE.Vector3(q.x, q.y, i === 0 ? za : i === rc.pts.length - 1 ? zb : zt));
-      if (rc.enTubo && !rc.interno) {
-        for (let i = 1; i < Pp.length - 1; i++) { Pp[i].x += off; Pp[i].y += off; }
-        if (Pp.length === 2) { const a = Pp[0], b = Pp[1]; Pp.splice(1, 0, new THREE.Vector3(a.x + (b.x - a.x) * 0.2 + off, a.y + (b.y - a.y) * 0.2 + off, zt), new THREE.Vector3(a.x + (b.x - a.x) * 0.8 + off, a.y + (b.y - a.y) * 0.8 + off, zt)); }
-        else { const a = Pp[0], b = Pp[1]; Pp.splice(1, 0, new THREE.Vector3(a.x + (b.x - a.x) * 0.15 + off, a.y + (b.y - a.y) * 0.15 + off, zt)); const n = Pp.length, y = Pp[n - 2], z = Pp[n - 1]; Pp.splice(n - 1, 0, new THREE.Vector3(z.x + (y.x - z.x) * 0.15 + off, z.y + (y.y - z.y) * 0.15 + off, zt)); }
-      } else if (!rc.interno) { const a = Pp[0], b = Pp[Pp.length - 1]; Pp.splice(1, 0, new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, 6)); }
-      else { const a = Pp[0], b = Pp[1]; Pp.splice(1, 0, new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2 - 1.2, Math.max(a.z, b.z) + 0.8)); }
+      const za = zBorne(m, c.a), zb = zBorne(m, c.b);
+      const rec = rc.enTubo && !rc.interno ? recorridoCable(m, c) : null; let Pp;
+      if (rec) Pp = rec.map((q) => new THREE.Vector3(q.x, q.y, q.z));
+      else {
+        Pp = rc.pts.map((q, i) => new THREE.Vector3(q.x, q.y, i === 0 ? za : zb)); const a = Pp[0], b = Pp[Pp.length - 1];
+        if (!rc.interno) Pp = [a, new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, 6), b]; // suelto, fuera de tubo: se marca en rojo
+        else Pp = [a, new THREE.Vector3(a.x, a.y + (a.y > b.y ? 1 : -1) * 0.2, a.z + 0.9), new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, Math.max(a.z, b.z) + 1.3), new THREE.Vector3(b.x, b.y, b.z + 0.9), b];
+      }
+      void off;
       const Q = Pp.filter((v, i) => i === 0 || v.distanceTo(Pp[i - 1]) > 0.01); if (Q.length < 2) continue; // sin puntos repetidos (evita NaN)
-      const curva = new THREE.CatmullRomCurve3(Q, false, 'centripetal', 0.2);
+      const curva = new THREE.CatmullRomCurve3(Q, false, 'centripetal', 0.2); const rr = radioCable(c.sec || 1.5);
       const sel = this.sel?.k === 'cable' && this.sel.id === c.id; const mal = this.chk?.cables?.has(c.id);
-      const rr = c.sec >= 4 ? 0.36 : c.sec >= 2.5 ? 0.3 : 0.22;
       // aislamiento de PVC con el rotulado H07V-K continuo (como el cable real), del color normalizado
       const Lt = curva.getLength(); const tx = this.texCable(c.color, c.sec || 1.5, Lt);
       const mt = Object.assign(new THREE.MeshPhysicalMaterial({ map: tx, roughness: 0.4, clearcoat: 0.35, clearcoatRoughness: 0.35, emissive: sel ? 0x2244aa : mal ? 0x550000 : 0x000000 }), { userData: { desechable: true } });
-      const o = new THREE.Mesh(new THREE.TubeGeometry(curva, Math.max(16, Q.length * 14), rr, Q_.baja ? 8 : 12, false), mt); o.castShadow = true; G.add(o);
+      const o = new THREE.Mesh(new THREE.TubeGeometry(curva, Math.min(600, Math.max(24, Math.round(Lt * 3), Q.length * 4)), rr, Q_.baja ? 8 : 12, false), mt); o.castShadow = true; G.add(o);
       if (!rc.enTubo) { const d = new THREE.Mesh(new THREE.TubeGeometry(curva, 30, 0.5, 6, false), new THREE.MeshBasicMaterial({ color: 0xff3030, transparent: true, opacity: 0.25, depthWrite: false })); d.material.userData.desechable = true; G.add(d); }
       const Lc = curva.getLength();
       for (const lado of ['a', 'b']) { const e = extremo(c, lado); if (!e.pel || !(Lc > 0.2)) continue; const f = Math.min(0.45, e.pel / 10 / Lc); const u0 = lado === 'a' ? 0 : 1 - f, u1 = lado === 'a' ? f : 1;
@@ -367,7 +366,10 @@ export class ViviendaLab {
   // el borne más cercano en pantalla (cada borne está a su altura)
   borneEn(q, e) {
     let best = null, bd;
-    if (e && this.renderer) { bd = 12; for (const p of this.m.parts) for (const b of bornes(p)) { const ref = { p: p.id, t: b.t }; const pb = posBorne(this.m, ref); if (!pb) continue; const s = this.pantalla(pb.x, pb.y, zBorne(this.m, ref)); const d = Math.hypot(s.x - e.clientX, s.y - e.clientY); if (d < bd) { bd = d; best = ref; } } return best; }
+    if (e && this.renderer) { bd = 12; for (const p of this.m.parts) if (!(this.tapas && esMecanismo(p))) for (const b of bornes(p)) { const ref = { p: p.id, t: b.t }; const pb = posBorne(this.m, ref); if (!pb) continue; const s = this.pantalla(pb.x, pb.y, zBorne(this.m, ref)); const d = Math.hypot(s.x - e.clientX, s.y - e.clientY); if (d < bd) { bd = d; best = ref; } }
+      // los bornes están dentro del mecanismo: si el clic cae más cerca del centro de la pieza que del borne, se elige la pieza
+      if (best) { const P = partePorId(this.m, best.p); if (esMecanismo(P)) { const c = posParte(this.m, P); const s = this.pantalla(c.x, c.y, zBorne(this.m, best)); if (Math.hypot(s.x - e.clientX, s.y - e.clientY) < bd) return null; } }
+      return best; }
     bd = 1.5; for (const p of this.m.parts) for (const b of bornes(p)) { const pb = posBorne(this.m, { p: p.id, t: b.t }); if (!pb) continue; const d = Math.hypot(pb.x - q.x, pb.y - q.y); if (d < bd) { bd = d; best = { p: p.id, t: b.t }; } }
     return best;
   }
@@ -897,6 +899,7 @@ export class ViviendaLab {
     if (v === 'test') { this.test = true; this.cambio(!this.ro); if (this.res?.disparos?.some((d) => d.por === 'test')) { this.probado = true; this.toast('✅ El diferencial salta con el botón de prueba: funciona. Rearma con su palanca.'); this.lado(); } return; }
     if (v === 'borrar') return this.borrarSel();
     if (v === 'ver3d') { this.ver3D(); return; }
+    if (v === 'verTubos' || v === 'tapas') { this[v] = !this[v]; const bt = this.$(v === 'verTubos' ? '#vvVerTubos' : '#vvTapas'); if (bt) bt.setAttribute('aria-pressed', String(this[v])); this.toast(v === 'verTubos' ? (this.verTubos ? 'Tubo transparente: se ven los cables por dentro.' : 'Tubo corrugado normal.') : (this.tapas ? 'Marcos y teclas puestos: así queda la instalación terminada.' : 'Mecanismos sin marco: se ven los bornes para cablear.')); this.construir(); return; }
     if (v === 'vista') return this.vista(); if (v === 'acercar') return this.zoom(0.8); if (v === 'alejar') return this.zoom(1.25);
     if (v === 'comprobar') { this.hacerComprobacion(); this.lado(); return; }
     if (v === 'csv') return this.csv();

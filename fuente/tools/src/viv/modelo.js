@@ -37,21 +37,21 @@ export const TIPOS = {
   manguera: { nombre: 'Manguera de 3 hilos con clavija', corto: 'Manguera', icon: '🔌', unico: true, cat: 'Cuadro y acometida', ref: 'manguera',
     desc: 'Lleva la fase, el neutro y la tierra del enchufe del aula al cuadro. Solo la enchufa el profesor.', term: [] },
   bombilla: { nombre: 'Bombilla con portalámparas (60 W)', corto: 'Bombilla', icon: '💡', w: 9, h: 9, cat: 'Receptores y mecanismos', pref: 'Bombilla', borne: 'portalamparas', ref: 'bombilla',
-    desc: 'Portalámparas E27 con bombilla de 60 W: borne de fase (L) y de neutro (N).', term: [['L', -2, -5.4, 'Fase'], ['N', 2, -5.4, 'Neutro']] },
+    desc: 'Portalámparas E27 con bombilla de 60 W: borne de fase (L) y de neutro (N).', term: [['L', -1.6, -3.0, 'Fase'], ['N', 1.6, -3.0, 'Neutro']] },
   interruptor: mec({ nombre: 'Interruptor', corto: 'Interruptor', icon: '🔘', pref: 'Interruptor', ref: 'interruptor',
-    desc: 'Corta la FASE de la bombilla. Dos bornes: entrada L (1) y salida al punto de luz (2).', term: [['1', -2, 4.8, 'Entrada (L)'], ['2', 2, 4.8, 'Salida']] }),
+    desc: 'Corta la FASE de la bombilla. Dos bornes: entrada L (1) y salida al punto de luz (2).', term: [['1', -1.5, 1.3, 'Entrada (L)'], ['2', 1.5, 1.3, 'Salida']] }),
   conmutador: mec({ nombre: 'Conmutador', corto: 'Conmutador', icon: '🔀', pref: 'Conmutador', opcional: true, ref: 'conmutador',
-    desc: 'Para encender una luz desde dos sitios: común (L) y dos viajeros (1 y 2).', term: [['C', 0, 4.8, 'Común (L)'], ['1', -2.6, 4.8, 'Viajero 1'], ['2', 2.6, 4.8, 'Viajero 2']] }),
+    desc: 'Para encender una luz desde dos sitios: común (L) y dos viajeros (1 y 2).', term: [['C', 0, 1.5, 'Común (L)'], ['1', -1.6, -1.3, 'Viajero 1'], ['2', 1.6, -1.3, 'Viajero 2']] }),
   cruzamiento: mec({ nombre: 'Cruzamiento', corto: 'Cruzamiento', icon: '✖️', pref: 'Cruzamiento', opcional: true, ref: 'cruzamiento',
-    desc: 'Entre dos conmutadores, para encender desde tres sitios. Une 1-3 y 2-4, o 1-4 y 2-3.', term: [['1', -2.6, 4.8, 'Entrada 1'], ['2', -0.9, 4.8, 'Entrada 2'], ['3', 0.9, 4.8, 'Salida 3'], ['4', 2.6, 4.8, 'Salida 4']] }),
+    desc: 'Entre dos conmutadores, para encender desde tres sitios. Une 1-3 y 2-4, o 1-4 y 2-3.', term: [['1', -1.6, 1.3, 'Entrada 1'], ['2', 1.6, 1.3, 'Entrada 2'], ['3', -1.6, -1.3, 'Salida 3'], ['4', 1.6, -1.3, 'Salida 4']] }),
   pulsador: mec({ nombre: 'Pulsador', corto: 'Pulsador', icon: '🔔', pref: 'Pulsador', opcional: true, ref: 'pulsador',
-    desc: 'Solo cierra mientras lo pulsas (timbre, luz de escalera).', term: [['1', -2, 4.8, 'Entrada (L)'], ['2', 2, 4.8, 'Salida']] }),
+    desc: 'Solo cierra mientras lo pulsas (timbre, luz de escalera).', term: [['1', -1.5, 1.3, 'Entrada (L)'], ['2', 1.5, 1.3, 'Salida']] }),
   enchufe: mec({ nombre: 'Enchufe con toma de tierra (16 A)', corto: 'Enchufe', icon: '🔌', pref: 'Enchufe', ref: 'enchufe',
-    desc: 'Base Schuko 2P+T: fase (L), neutro (N) y tierra (⏚).', term: [['L', -2.6, 4.8, 'Fase'], ['PE', 0, 5.4, 'Tierra'], ['N', 2.6, 4.8, 'Neutro']] }),
+    desc: 'Base Schuko 2P+T: fase (L), neutro (N) y tierra (⏚).', term: [['L', -1.7, 0.5, 'Fase'], ['PE', 0, -1.6, 'Tierra'], ['N', 1.7, 0.5, 'Neutro']] }),
   enchufe2: mec({ nombre: 'Enchufe doble con toma de tierra (2 × 16 A)', corto: 'Enchufe doble', icon: '🔌', pref: 'Enchufe doble', ref: 'enchufe', opcional: true, w: 15.5,
-    desc: 'Dos bases Schuko en un marco doble, puenteadas por dentro: una sola entrada de fase (L), neutro (N) y tierra (⏚) para las dos.', term: [['L', -2.6, 4.8, 'Fase'], ['PE', 0, 5.4, 'Tierra'], ['N', 2.6, 4.8, 'Neutro']] }),
+    desc: 'Dos bases Schuko en un marco doble, puenteadas por dentro: una sola entrada de fase (L), neutro (N) y tierra (⏚) para las dos.', term: [['L', -5.25, 0.5, 'Fase'], ['PE', -3.55, -1.6, 'Tierra'], ['N', -1.85, 0.5, 'Neutro']] }),
   minutero: mec({ nombre: 'Minutero de escalera (temporizador)', corto: 'Minutero', icon: '⏱️', pref: 'Minutero', opcional: true, ref: 'minutero',
-    desc: 'Automático de escalera: al pulsar cualquier pulsador (borne 3) enciende la luz (borne ↓) unos segundos y la apaga solo. Lleva fase (L) y neutro (N).', term: [['L', -2.7, 4.8, 'Fase'], ['N', -0.9, 4.8, 'Neutro'], ['3', 0.9, 4.8, 'Pulsadores'], ['4', 2.7, 4.8, 'Salida a la luz']] }),
+    desc: 'Automático de escalera: al pulsar cualquier pulsador (borne 3) enciende la luz (borne ↓) unos segundos y la apaga solo. Lleva fase (L) y neutro (N).', term: [['L', -1.6, 1.3, 'Fase'], ['N', 1.6, 1.3, 'Neutro'], ['3', -1.6, -1.3, 'Pulsadores'], ['4', 1.6, -1.3, 'Salida a la luz']] }),
   caja: { nombre: 'Caja de empalme (vacía, con fichas)', corto: 'Caja de empalme', icon: '⬜', w: 10, h: 10, cat: 'Canalización', pref: 'CE', ref: 'caja',
     desc: 'Caja vacía de superficie: dentro se empalman los cables con fichas (conectores de palanca, de inserción o regletas). Elige el tamaño y las fichas.', term: [] },
 };
@@ -103,7 +103,7 @@ export function posBorne(m, ref) {
   const p = partePorId(m, ref.p); if (!p) return null; const c = posParte(m, p); if (!c) return null;
   const b = bornes(p).find((x) => x.t === ref.t); return b ? { x: c.x + b.dx, y: c.y + b.dy } : null;
 }
-export function zBorne(m, ref) { const p = partePorId(m, ref.p); return p && TIPOS[p.type].modulo ? ZMOD : p?.type === 'caja' ? 1.6 : ZT; }
+export function zBorne(m, ref) { const p = partePorId(m, ref.p); return p && TIPOS[p.type].modulo ? ZMOD : p?.type === 'caja' ? 1.6 : p?.type === 'bombilla' ? 1.8 : p?.type === 'cuadro' ? 2.4 : ZT; }
 export function nombreBorne(m, ref) {
   const p = partePorId(m, ref.p); if (!p) return '?'; const b = bornes(p).find((x) => x.t === ref.t);
   return `${p.nombre || TIPOS[p.type].corto} · ${ref.t}${b ? ` (${b.n.toLowerCase()})` : ''}`;
@@ -176,6 +176,58 @@ export function rutaCable(m, c) {
 // Longitud de cable en metros (recorrido + 15 cm por punta para conectar)
 export const metrosCable = (m, c) => { const r = rutaCable(m, c); return (largo(r.pts) + (r.interno ? 10 : 30)) / 100; };
 export const cablesDelTubo = (m, t) => m.cables.filter((c) => rutaCable(m, c).tubo === t.id);
+
+// ---------------------------------------------------------------- recorrido 3D: los cables van SIEMPRE por dentro del tubo
+// Eje visible del tubo (de boca a boca, entra 1 cm en cada pieza) con las curvas redondeadas como el corrugado real.
+export const RADIO_CURVA = 2.5;
+export function lineaTubo(m, t) {
+  const T = tramoTubo(m, t); if (T.pts.length < 2) return [];
+  const tot = T.L + T.ini + T.fin; const r = [puntoEnRuta(T.pts, T.ini)]; let acc = 0;
+  for (let i = 1; i < T.pts.length - 1; i++) { acc += Math.hypot(T.pts[i].x - T.pts[i - 1].x, T.pts[i].y - T.pts[i - 1].y); if (acc > T.ini && acc < tot - T.fin) r.push({ x: T.pts[i].x, y: T.pts[i].y }); }
+  r.push(puntoEnRuta(T.pts, tot - T.fin));
+  const P = r.map((q) => ({ x: q.x, y: q.y })).filter((q, i, a) => i === 0 || Math.hypot(q.x - a[i - 1].x, q.y - a[i - 1].y) > 0.01);
+  if (P.length < 3) return P;
+  const out = [P[0]];
+  for (let i = 1; i < P.length - 1; i++) {
+    const a = P[i - 1], v = P[i], b = P[i + 1]; const la = Math.hypot(v.x - a.x, v.y - a.y), lb = Math.hypot(b.x - v.x, b.y - v.y);
+    const rr = Math.min(RADIO_CURVA, la / 2, lb / 2); if (rr < 0.05) { out.push(v); continue; }
+    const p0 = { x: v.x + ((a.x - v.x) / la) * rr, y: v.y + ((a.y - v.y) / la) * rr }, p2 = { x: v.x + ((b.x - v.x) / lb) * rr, y: v.y + ((b.y - v.y) / lb) * rr };
+    for (let k = 0; k <= 6; k++) { const u = k / 6; out.push({ x: (1 - u) ** 2 * p0.x + 2 * (1 - u) * u * v.x + u * u * p2.x, y: (1 - u) ** 2 * p0.y + 2 * (1 - u) * u * v.y + u * u * p2.y }); }
+  }
+  out.push(P[P.length - 1]); return out;
+}
+// Radio del cable dibujado (cm) según la sección
+export const radioCable = (sec) => (sec >= 6 ? 0.4 : sec >= 4 ? 0.36 : sec >= 2.5 ? 0.3 : 0.24);
+// Altura del interior de cada pieza por donde corre el cable antes de entrar en el tubo
+function zInterior(m, p, zt) { if (!p) return zt; if (TIPOS[p.type].modulo || p.type === 'cuadro' || p.type === 'manguera') return Math.max(zt, 2.2); return zt; }
+// Puntos 3D {x,y,z} del cable c: del borne baja dentro de su caja, entra por la boca del tubo, sigue el eje del tubo
+// (con su sitio fijo dentro del haz, sin salirse de la pared) y sale por la otra boca hasta el otro borne.
+// Devuelve null si el cable no va por un tubo (suelto o dentro del mismo cuadro).
+export function recorridoCable(m, c) {
+  const rc = rutaCable(m, c); if (!rc.tubo) return null; const t = m.tubos.find((x) => x.id === rc.tubo); if (!t) return null;
+  let L = lineaTubo(m, t); if (L.length < 2) return null; const ga = grupo(m, c.a.p); if (t.a !== ga) L = L.slice().reverse();
+  const rad = (+t.d || 16) / 20, zt = rad + 0.05, rr = radioCable(c.sec || 1.5);
+  // sitio del cable en el haz: orden estable dentro del tubo, repartidos en círculo sin tocar la pared
+  const haz = cablesDelTubo(m, t); const k = Math.max(0, haz.findIndex((x) => x.id === c.id)); const n = haz.length;
+  const rb = n > 1 ? Math.max(0, rad - rr - 0.08) : 0; const ang = (2 * Math.PI * k) / Math.max(1, n) + 0.5;
+  let u = Math.cos(ang) * rb, v = Math.sin(ang) * rb;
+  if (t.a !== ga) u = -u; // el mismo sitio del haz visto desde el otro extremo
+  const nrm = (i) => { const a = L[Math.max(0, i - 1)], b = L[Math.min(L.length - 1, i + 1)]; const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1; return { x: -dy / l, y: dx / l, tx: dx / l, ty: dy / l }; };
+  const lane = L.map((q, i) => { const N = nrm(i); return { x: q.x + N.x * u, y: q.y + N.y * u, z: zt + v }; });
+  const pa = posBorne(m, c.a), pb = posBorne(m, c.b); const za = zBorne(m, c.a), zb = zBorne(m, c.b);
+  const Pa = partePorId(m, c.a.p), Pb = partePorId(m, c.b.p);
+  const entra = (pB, zB, P, q, N, sgn) => { // del borne a la boca del tubo, por dentro de la pieza
+    const zi = zInterior(m, P, zt + v); const mod = P && TIPOS[P.type].modulo;
+    const fuera = { x: q.x - sgn * N.tx * 1.2, y: q.y - sgn * N.ty * 1.2, z: q.z };
+    if (mod) { const sy = pB.y >= (posParte(m, P)?.y ?? pB.y) ? 1 : -1; return [{ x: pB.x, y: pB.y, z: zB }, { x: pB.x, y: pB.y + sy * 1.1, z: zB - 0.5 }, { x: pB.x, y: pB.y + sy * 2.2, z: zi + 1.2 }, { x: pB.x, y: pB.y + sy * 2.6, z: zi }, { x: fuera.x, y: pB.y + sy * 2.6, z: zi }, { x: fuera.x, y: fuera.y, z: zi }, fuera]; }
+    const dx = fuera.x - pB.x, dy = fuera.y - pB.y, l = Math.hypot(dx, dy) || 1; const e = Math.min(1.0, l / 3);
+    return [{ x: pB.x, y: pB.y, z: zB }, { x: pB.x + (dx / l) * e, y: pB.y + (dy / l) * e, z: zB - 0.15 }, { x: pB.x + (dx / l) * e * 2, y: pB.y + (dy / l) * e * 2, z: Math.max(zi, zB - 1.2) }, fuera];
+  };
+  const ini = entra(pa, za, Pa, lane[0], nrm(0), 1);
+  const fin = entra(pb, zb, Pb, lane[lane.length - 1], nrm(lane.length - 1), -1).reverse();
+  const pts = [...ini, ...lane, ...fin];
+  return pts.filter((q, i) => Number.isFinite(q.x + q.y + q.z) && (i === 0 || Math.hypot(q.x - pts[i - 1].x, q.y - pts[i - 1].y, q.z - pts[i - 1].z) > 0.02));
+}
 
 // ---------------------------------------------------------------- puntas de los cables (pelado y apriete)
 export const extremo = (c, lado) => (lado === 'a' ? c.ea : c.eb) || { pel: 0, apr: false };

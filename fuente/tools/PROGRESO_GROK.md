@@ -859,3 +859,18 @@ Encargo: /workspace/portal-v5/ESPEC-v5.md (redactado con Claude). Por fases, cad
 - Pruebas: margenes_e2e 204/204; barra_test 90/90; circ_test 77/77; secciones_e2e 47/47; aula_e2e 120/120. Reglas y firebase-config.js sin cambios.
 - Capturas: /workspace/capturas-margenes/antes y despues.
 - Probar a mano: Ctrl+F5; en el móvil, una asignatura de EEE y comprobar que la barra inferior de secciones se ve y se puede pulsar, y que la página no se desliza hacia los lados.
+
+### Vivienda · tablero eléctrico paso a paso (t158u + t159u, 22/11/2026)
+Pablo: prácticas una a una como en Circuitos (Guiada y Autónoma, candados), más realismo y siempre con el REBT; los cables nunca por
+encima de los tubos. t159u: la vivienda 3D completa (casa) se deja; solo paso a paso y tablero. No se borra nada (proyectos 1–8,
+tablero de la SA1, modo libre, juego, averías, materiales).
+- Bloque A — HECHO (caché v5-20261122a): cables por dentro del tubo y mecanismos realistas.
+  - modelo.js: `lineaTubo` (eje del tubo de boca a boca con curvas redondeadas) y `recorridoCable` (del borne baja dentro de la caja,
+    entra por la boca, sigue el eje con su sitio fijo en el haz sin tocar la pared, y sale por la otra boca; en el cuadro baja al
+    canal de abajo/arriba de la aparamenta). Bornes de los mecanismos y del portalámparas DENTRO de la pieza (antes, fuera de la caja).
+  - lab.js: tubos con las curvas redondeadas; botones (Lucide) «Ver los cables por dentro del tubo» (tubo translúcido) y
+    «Poner o quitar marcos y teclas». Sin marco se ve el mecanismo empotrable con bastidor, garras y bornes; con marco, tecla
+    basculante con arista y visor, schuko con alvéolos y contactos de tierra. Un clic en el centro de un mecanismo lo selecciona.
+  - Prueba nueva: viv_tubos_test.mjs (76 cables de los montajes de referencia: ningún punto fuera de la pared del tubo).
+  - Capturas: fuente/tools/capturas_viv.mjs → /workspace/capturas-vivienda/antes_* y d5_* (escritorio y 390×844).
+  - Pruebas: viv_test 94/94, viv_modelo_test OK, viv_tubos_test OK.

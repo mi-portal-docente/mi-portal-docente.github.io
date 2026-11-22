@@ -115,7 +115,8 @@ export function mecanismo3D(tipo, o = {}) {
   const cj = part('caja'); const S = 8.4, D = 4.2, e = 0.3;
   if (o.empotrar) { const m = pbr(0x3d6fb6, { roughness: 0.6 }); for (let i = 0; i < (doble ? 2 : 1); i++) { const ring = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.4, D, 28, 1, true), Object.assign(m.clone(), { side: THREE.DoubleSide })); ring.rotation.x = Math.PI / 2; ring.position.set(-dx / 2 + i * dx, 0, D / 2); cj.add(ring); cil(3.4, 0.2, m, -dx / 2 + i * dx, 0, 0, cj, 28); } }
   else {
-    const W = S + dx; caja(W, S, e, PLAST_MATE(), 0, 0, 0, cj); caja(W, e, D, PLAST_MATE(), 0, S / 2 - e / 2, 0, cj); caja(W, e, D, PLAST_MATE(), 0, -S / 2 + e / 2, 0, cj); caja(e, S, D, PLAST_MATE(), -W / 2 + e / 2, 0, 0, cj); caja(e, S, D, PLAST_MATE(), W / 2 - e / 2, 0, 0, cj);
+    const s2 = o.tablero ? S - 0.6 : S; const W = s2 + dx; const PM = o.tablero ? pbr(0xdedcd5, { roughness: 0.7 }) : PLAST_MATE();
+    caja(W, s2, e, PM, 0, 0, 0, cj); caja(W, e, D, PM, 0, s2 / 2 - e / 2, 0, cj); caja(W, e, D, PM, 0, -s2 / 2 + e / 2, 0, cj); caja(e, s2, D, PM, -W / 2 + e / 2, 0, 0, cj); caja(e, s2, D, PM, W / 2 - e / 2, 0, 0, cj);
     if (!o.tablero) { const k = cil(0.85, 0.05, MAT.gris(), 0, S / 2 + 0.01, 2.1, cj, 18); k.rotation.x = 0; }
   }
   const marcas = MARCAS[tipo] || MARCAS[esEnch ? 'enchufe' : tipo] || {};
@@ -149,9 +150,34 @@ export function mecanismo3D(tipo, o = {}) {
       for (const sy of [-1, 1]) { caja(0.9, 0.18, 2.3, MATS.acero(), cx, sy * 1.95, 1.0, mc2); caja(0.9, 0.5, 0.18, MATS.acero(), cx, sy * 1.75, 3.15, mc2); }
       caja(0.25, 3.6, 0.12, MATS.acero(), cx, 0, 0.88, mc2); tornillo(cx, 0.15, 0.98, mc2, 0.26, 'pz', true); }
   }
+  // En el tablero, «abierto» (sin marco ni tecla) para cablear: se ve el mecanismo empotrable dentro de su caja, con el
+  // bastidor metálico, las garras y los bornes de tornillo (el laboratorio dibuja encima los bornes y su marcado).
+  if (o.tablero && o.abierto) {
+    const mc2 = part('mecanismo');
+    for (let i = 0; i < (doble ? 2 : 1); i++) {
+      const cx = -dx / 2 + i * dx;
+      const cu = bloqueRedondo(5.0, 5.0, 1.9, 0.35, PLAST_MATE(), mc2, 0.1); cu.position.set(cx, 0, 0.3); // cuerpo del mecanismo
+      const bast = placaHueco(7.1, 7.1, 0.12, { w: 5.1, h: 5.1, rr: 0.4 }, 0.35, ZAMAK(), 1.95, mc2); bast.position.x = cx; // bastidor de 71 mm
+      for (const [sx, sy] of [[0, -3.0], [0, 3.0]]) { const r = bloqueRedondo(1.0, 0.35, 0.05, 0.17, HUECO(), mc2, 0.01); r.position.set(cx + sx, sy, 2.08); } // colisos de los tornillos de la placa
+      for (const sx of [-3.05, 3.05]) { caja(0.55, 1.6, 1.5, ZAMAK(), cx + sx, 0, 0.5, mc2); tornilloFrente(cx + sx, 0, 2.02, mc2, 0.2); } // garras con su tornillo
+      if (esEnch) { // bornes de latón y puente de tierra hacia los contactos (garras de tierra arriba y abajo)
+        caja(0.3, 4.4, 0.08, MATS.acero(), cx, 0, 2.2, mc2);
+        for (const sy of [-1, 1]) caja(1.4, 0.25, 0.5, MATS.acero(), cx, sy * 2.3, 1.95, mc2);
+        for (const sx of [-1.7, 1.7]) caja(1.2, 1.1, 0.25, LATON(), cx + sx, 0.5, 2.2, mc2);
+        caja(1.2, 1.0, 0.25, LATON(), cx, -1.6, 2.2, mc2);
+      } else if (tipo !== 'minutero') { // eje de la tecla y bloque de contactos
+        caja(3.6, 0.5, 0.2, HUECO(), cx, 0, 2.2, mc2); caja(3.9, 0.22, 0.22, MATS.acero(), cx, 0, 2.3, mc2);
+        for (const sx of [-1.5, 1.5]) for (const sy of [1.3, -1.3]) if (BORNES_MEC[tipo] && Object.keys(BORNES_MEC[tipo]).length > 2 || sy > 0) caja(1.1, 1.0, 0.18, LATON(), cx + sx, sy, 2.2, mc2);
+      } else { cil(1.0, 0.4, PLAST_MATE(), cx, 0, 2.2, mc2, 24); }
+      const r = rotulo(esEnch ? '16 A 250 V~ 2P+T' : tipo === 'minutero' ? '230 V~ 1–7 min' : '10 AX 250 V~', 3.6, 0.5, cx, -2.15, 2.24, mc2, { color: '#6b7278', w: 256, h: 36, font: 'bold 26px system-ui, sans-serif' }); void r;
+    }
+    if (o.empotrar) G.userData.partes.caja.visible = false;
+    return G;
+  }
   // marco y tecla / tapa
   const z0 = o.tablero ? D : 3.6;
-  const mr = part('marco'); placaHueco(8.1 + dx, 8.1, 0.8, { w: 4.6 + dx, h: 4.6, rr: 0.35 }, 0.6, PLAST(), z0, mr);
+  const mr = part('marco'); placaHueco(8.4 + dx, 8.4, 0.55, { w: 4.7 + dx, h: 4.7, rr: 0.35 }, 0.7, PLAST(), z0, mr);
+  if (o.tablero && !esEnch && tipo !== 'minutero') { const fondo = caja(4.7 + dx, 4.7, 0.1, HUECO(), 0, 0, z0, mr); void fondo; } // holgura oscura entre el marco y la tecla
   if (doble) caja(2.5, 4.6, 0.8, PLAST(), 0, 0, z0, mr);
   const tc2 = part('tecla');
   if (esEnch) {
@@ -178,7 +204,8 @@ export function mecanismo3D(tipo, o = {}) {
     simbolo('reloj', 0.75, -1.25, -1.4, z0 + 0.57, tc2, '#6b7278'); rotulo('1–7 min', 2.6, 0.8, 0.45, -1.4, z0 + 0.56, tc2, { color: '#6b7278', w: 192, h: 56, font: 'bold 36px system-ui, sans-serif' });
   } else {
     const on = tipo === 'interruptor' || tipo === 'pulsador' ? !!o.on : !!o.pos;
-    const t = teclaBasculante(4.1, 4.1, tc2); t.position.z = z0 + 0.35; t.rotation.x = on ? -0.07 : 0.07;
+    const t = teclaBasculante(4.3, 4.3, tc2); t.position.z = z0 + (o.tablero ? 0.55 : 0.35); t.rotation.x = on ? -0.12 : 0.12;
+    if (o.tablero) { caja(4.3, 0.04, 0.05, pbr(0xd9d6cc, { roughness: 0.5 }), 0, 0, z0 + 1.08, tc2); caja(1.0, 0.28, 0.06, pbr(0xbfc4c8, { roughness: 0.3, transparent: true, opacity: 0.8 }), 0, -1.65, z0 + 1.0, tc2); } // arista de la tecla y visor del piloto
     for (const sx of [-2.08, 2.08]) caja(0.06, 3.9, 0.3, HUECO(), sx, 0, z0 + 0.12, tc2); // holgura entre tecla y marco
     const sim = { conmutador: 'flechas', cruzamiento: 'cruce', pulsador: 'campana', interruptor: '' }[tipo];
     if (sim) simbolo(sim, 0.9, 1.3, -1.3, z0 + 0.62, tc2, '#a3aaaf');
