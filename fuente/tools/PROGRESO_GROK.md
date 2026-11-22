@@ -965,3 +965,31 @@ tablero de la SA1, modo libre, juego, averías, materiales).
     práctica 2 L/1 con esquema, proyecto 1 L/↓ sin esquema, práctica 7 E1/E2/S1/S2, proyecto 5 cruzamiento 1–4.
   - Pruebas: viv_modelo_test 16/16, viv_practicas_test 13/13, viv_tubos_test OK, viv_practicas_e2e OK (con las 4 comprobaciones nuevas), viv_emoji_e2e OK, viv_test 94/94, circ_test 77/77.
   - Capturas: g_interruptor_p1-montar_detras.png (SA1/proyecto, L y ↓), g_interruptor_vp2_detras.png, g_cruzamiento_vp7_detras.png.
+- Bloque H (t165u) — EN CURSO: las 7 prácticas de vivienda con la MISMA estructura que Circuitos 3D.
+  - Estructura de Circuitos 3D (estudiada en src/circ/lab.js, guiadas.js, evaluaciones.js y portal/panel.js):
+    1. Portada (homeHTML): hero con «Empezar por la práctica N» y «Modo libre»; pestañas `cx-htabs` «Prácticas guiadas» |
+       «Evaluación de circuitos» (#eee/circuitos/evaluacion); barra de grupo del profesor (`cx-gbar`, «Candados para el grupo»);
+       tarjetas `cx-card` por temas (nº, icono, insignia, candado, título, subtítulo, meta nivel/duración/RA); «Por tu cuenta»
+       (modo libre, averías) y «Cómo se usa».
+    2. Guiada (guideHTML): cabecera con nº, título, nivel y duración; barra de progreso «n / total pasos»; desplegables
+       «Objetivo y teoría», «Esquema eléctrico», «Material», «Resultados de aprendizaje»; pasos en orden (hecho / actual / por hacer)
+       y solo el actual explica qué hacer y dónde; «Comprobar circuito» y «Ver solución»; caja «Práctica autónoma»; preguntas;
+       reto; entrega.
+    3. Autónoma (aN): se abre al completar la guiada (el alumno no entra antes: aviso y vuelta a la guiada); sin pasos ni pistas,
+       con enunciado, esquema y material; se corrige con las mismas comprobaciones.
+    4. Insignias de dos niveles: «Guiada completada» y «Autónoma completada | pendiente» (en la tarjeta y en la guía).
+    5. Candados por grupo: token en `apartados` del grupo y del código («guiadas:c1,c2», niveles «evaluacion:n1»); tarjeta
+       `locked` con desenfoque y sin enlace para el alumno; el profesor ve el botón candado en cada tarjeta y elige el grupo;
+       entrar por enlace a una cerrada → aviso y vuelta a la portada. Panel → Grupos → «Prácticas guiadas» hace lo mismo.
+    6. Registro: progreso local por usuario (almacen.js: clave con el ámbito del usuario y migración de lo antiguo) y entrega
+       automática a Firestore al superar «Comprobar» (una entrega por práctica: cN guiada, aN autónoma, nN evaluación);
+       Panel → Grupos → «Progreso en Circuitos»: tabla nº de lista × práctica con dos puntos (guiada, autónoma) y totales.
+    7. «Evaluación de circuitos»: niveles N1…N5, cerrados hasta que el profesor los abre; cada nivel tiene varios circuitos sin
+       pasos ni pistas; «Enviar» corrige, da la nota (media de requisitos, 0–10) y la entrega (nN) con la nota propuesta.
+    8. Entregas y cuaderno: Panel → Entregas (filtro por práctica, «Ver el montaje», nota y comentario); cada id de entrega es
+       una columna de laboratorio en el cuaderno del grupo (aula-panel.js).
+  - Plan para vivienda (sin cambiar las reglas: la regex de `practica` ya admite v1–v9):
+    portada con las mismas pestañas y tarjetas cx-card; guía con los mismos desplegables (teoría REBT, esquema, material, norma)
+    y pasos con su «por qué»; autónoma tras la guiada; candados con el token «vivienda:» ya existente y «vivev:» para los niveles;
+    registro por usuario + entrega automática del registro «v6» (ya existente, compatible) al completar; «Progreso en Vivienda»
+    en el panel leyendo «v6»; «Evaluación de vivienda» con 3 niveles entregados como v7, v8 y v9.
