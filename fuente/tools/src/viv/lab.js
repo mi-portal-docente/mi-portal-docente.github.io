@@ -22,6 +22,7 @@ import { Montaje } from './montaje.js';
 import { CasaVista } from './casa3d.js';
 import { casaVacia, materialesCasa, sanearCasa, solucionCasa } from './casa.js';
 import { instalarProyectos, parseProy, PRACTICA_PROY } from './proylab.js';
+import { instalarPracticas } from './practilab.js';
 import { cuadro3D as cuadroDet } from './modelos3d.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -61,6 +62,10 @@ export class ViviendaLab {
     this.taller = new Taller(this); this.casa = new CasaVista(this); this.montaje = new Montaje(this); this.redoS = [];
     host.innerHTML = this.shellHTML(); this.$ = (s) => host.querySelector(s);
     this.visor = new Visor(this.$('#vvView'));
+    host.addEventListener('click', (e) => { const b = e.target.closest('[data-prlock]'); if (!b) return; e.preventDefault(); e.stopPropagation(); this.alternarCandadoPr(b.dataset.prlock, b); }, true);
+    host.addEventListener('change', (e) => { const sg = e.target.closest('[data-vvgrupo]'); if (sg) { store.set('pref:grupoCand', sg.value); if (this.kind === 'home') this.$('#vvHome').innerHTML = this.homeHTML(); } });
+    const refrescar = () => { if (this.kind === 'home' && !this._candando) this.$('#vvHome').innerHTML = this.homeHTML(); };
+    window.addEventListener('portal-apartados', refrescar); window.addEventListener('portal-aula', refrescar);
     host.addEventListener('click', (e) => this.onClick(e));
     host.addEventListener('change', (e) => this.onChange(e));
     host.addEventListener('input', (e) => { if (e.target.matches('[data-precio]')) this.onPrecio(e.target); });
@@ -97,6 +102,8 @@ export class ViviendaLab {
   // ------------------------------------------------------------------ pantallas
   show(v = 'home') {
     const root = this.$('.vv'); this.visor?.cerrar(); this._pick = null; this._medidas = null;
+    const rp = this.rutaPractica(v); if (!rp) { this.pr = null; this.prAuto = false; }
+    if (rp) { root.classList.remove('is-home'); root.classList.add('is-ed'); this.abrirPractica(rp.Pr, rp.auto); return; }
     const pp = parseProy(v); if (!pp) { this.proy = null; root.classList.remove('es-proy'); }
     if (v === 'home' || v === 'creditos') { this.modo = null; this.kind = v; root.classList.add('is-home'); root.classList.remove('is-ed'); this.pause(); this.$('#vvHome').innerHTML = v === 'creditos' ? this.creditosHTML() : this.homeHTML(); this.$('#vvTitulo').textContent = ''; this.crumbs(); this.stepbar(); this.strip(); this.$('#vvHome').scrollTop = 0; return; }
     root.classList.remove('is-home'); root.classList.add('is-ed');
@@ -120,11 +127,12 @@ export class ViviendaLab {
     this.cambio(false); this.vista(); this.resume();
   }
   crumbs() {
-    const t = this.proy && (this.kind === 'proyecto' || this.kind === 'proymontar') ? `Proyecto ${this.proy.n} · ${this.proy.title}${this.kind === 'proymontar' ? ' · móntalo tú' : ''}` : this.kind === 'creditos' ? TITULO.creditos : this.modo ? (this.kind === 'averia' ? 'Avería: ' + this.averia.n : TITULO[this.kind] || '') : '';
+    const t = this.kind === 'practica' && this.pr ? `Práctica ${this.pr.n} · ${this.pr.title}${this.prAuto ? ' · autónoma' : ''}` : this.proy && (this.kind === 'proyecto' || this.kind === 'proymontar') ? `Proyecto ${this.proy.n} · ${this.proy.title}${this.kind === 'proymontar' ? ' · móntalo tú' : ''}` : this.kind === 'creditos' ? TITULO.creditos : this.modo ? (this.kind === 'averia' ? 'Avería: ' + this.averia.n : TITULO[this.kind] || '') : '';
     this.$('#vvCrumbs').innerHTML = `<a href="#inicio">Inicio</a> › <a href="#asig/eee/laboratorio">Equipos eléctricos y electrónicos</a> › ${t ? `<a href="#eee/vivienda">Instalación de vivienda</a> › <span>${esc(t)}</span>` : '<span>Instalación de vivienda</span>'}`;
     this.host.querySelectorAll('[data-solo-prof]').forEach((b) => { b.hidden = !portal()?.esProfesor; });
   }
   homeHTML() { this._averias = AVERIAS; return this.homeProyHTML(); }
+  esMontaje() { return this.kind === 'proymontar' || this.kind === 'practica'; }
 
   // ------------------------------------------------------------------ escena
   initScene() {
@@ -255,7 +263,7 @@ export class ViviendaLab {
         const pts = [new THREE.Vector3(c.x + 1, c.y, 2), new THREE.Vector3(-1.5, c.y, 2), new THREE.Vector3(-3, c.y - 3, 2), new THREE.Vector3(-3, -12, 2)];
         const mg = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.75, 10), M(0x161616, { roughness: 0.5 })); mg.castShadow = true; G.add(mg);
         const cl = new THREE.Mesh(new THREE.BoxGeometry(4.5, 5.5, 4), M(0x1d1d1d)); cl.position.set(-3, -15, 2); G.add(cl);
-        lbl(this.red ? '🔌 Manguera enchufada (230 V)' : 'Manguera 3 × 2,5 mm² con clavija', 9, -6, 2, this.red ? 'on' : 'pie');
+        lbl(this.red ? 'Manguera enchufada (230 V)' : 'Manguera 3 × 2,5 mm² con clavija', 9, -6, 2, this.red ? 'on' : 'pie');
       } else if (p.type === 'bombilla') {
         const b = r?.bombillas?.find((x) => x.id === p.id); const luz = b ? b.luz : 0;
         o = bombilla3D(luz, { tablero: true }); o.position.set(c.x, c.y, 0);
@@ -515,9 +523,11 @@ export class ViviendaLab {
   guardarUndo() { this.undoS.push(JSON.stringify(this.m)); if (this.undoS.length > 60) this.undoS.shift(); this.redoS = []; }
   cambio(guardar = true) {
     if (this.vistaActiva === 'tablero') {
-      if (guardar && this.modo && !this.ro) store.set(this.kind === 'averia' ? 'av:' + this.averia.id : this.kind === 'proymontar' ? 'proy:' + this.proy.n : this.modo, this.m);
+      if (guardar && this.modo && !this.ro) store.set(this.kind === 'averia' ? 'av:' + this.averia.id : this.kind === 'proymontar' ? 'proy:' + this.proy.n : this.kind === 'practica' ? 'pr:m:' + this.modo : this.modo, this.m);
       if (this.kind === 'proymontar') this.pchk = null;
+      if (this.kind === 'practica' && guardar) this.prchk = null;
       this.chk = null; if (this.red) this.simular(); else this.res = null;
+      this.notarAcciones?.();
     }
     this.construir(); this.lado(); this.paleta(); this.estado(); this.barra(); this.pintarMulti();
     const u = this.$('#vvUndo'); if (u) u.disabled = this.vistaActiva === 'casa' ? !this.casa.undoS.length || this.ro : !this.undoS.length || this.ro || this.vistaActiva === 'taller' || this.vistaActiva === 'montaje';
@@ -565,7 +575,7 @@ export class ViviendaLab {
     const s = this.sel; if (!s || this.ro) return; this.guardarUndo(); const m = this.m;
     if (s.k === 'cable') m.cables = m.cables.filter((c) => c.id !== s.id);
     if (s.k === 'tubo') m.tubos = m.tubos.filter((t) => t.id !== s.id);
-    if (s.k === 'parte' && this.kind === 'proymontar') { this.undoS.pop(); this.toast('En los proyectos las piezas ya están colocadas: solo se borran cables.'); return; }
+    if (s.k === 'parte' && this.esMontaje()) { this.undoS.pop(); this.toast('En los proyectos las piezas ya están colocadas: solo se borran cables.'); return; }
     if (s.k === 'parte') {
       const ids = new Set([s.id, ...m.parts.filter((p) => p.cuadro === s.id).map((p) => p.id)]);
       m.parts = m.parts.filter((p) => !ids.has(p.id)); m.cables = m.cables.filter((c) => !ids.has(c.a.p) && !ids.has(c.b.p)); m.tubos = m.tubos.filter((t) => !ids.has(t.a) && !ids.has(t.b));
@@ -603,7 +613,7 @@ export class ViviendaLab {
     if (this.vistaActiva === 'casa') { P.innerHTML = this.casa.paletaHTML(); return; }
     if (this.kind === 'proyecto') { P.innerHTML = ''; return; }
     if (this.ro) { P.innerHTML = '<p class="vv-small">Revisión: solo lectura. Pulsa una pieza y abre «🔍 Ver en 3D».</p>'; return; }
-    if (this.kind === 'proymontar') { P.innerHTML = `<div class="vv-cab"><b>Cable</b> <span class="vv-small">(pulsa un borne y luego otro)</span>
+    if (this.esMontaje()) { P.innerHTML = `<div class="vv-cab"><b>Cable</b> <span class="vv-small">(pulsa un borne y luego otro)</span>
       <div class="vv-cols">${Object.entries(COLORES).map(([k, c]) => `<button data-color="${k}" class="${this.color === k ? 'on' : ''}" title="${c.n} · ${c.clase}" style="--c:${c.hex}${c.raya ? `;--r:${c.raya}` : ''}"><span></span>${c.n}<i>${esc(c.clase)}</i></button>`).join('')}</div>
       <div class="vv-secs">${SECCIONES.map((s) => `<button data-sec="${s}" class="${this.sec === s ? 'on' : ''}" title="Hasta ${PROTEGE[s]} A">${fmtSec(s)}</button>`).join('')}</div></div>
       <p class="vv-small">Alumbrado (C1): <b>1,5 mm²</b>. Enchufes (C2) y cuadro: <b>2,5 mm²</b>.</p>
@@ -624,6 +634,7 @@ export class ViviendaLab {
   }
   lado() {
     const S = this.$('#vvSide'); if (!S || !this.modo) return;
+    if (this.kind === 'practica' && this.pr) { this.practicaLado(); return; }
     if ((this.kind === 'proyecto' || this.kind === 'proymontar') && this.proy) { this.proyLado(); return; }
     if (this.vistaActiva === 'taller') { S.innerHTML = this.taller.ladoHTML(); return; }
     if (this.vistaActiva === 'montaje') { S.innerHTML = (this.ro ? `<section class="vv-insp">${this.revisionHTML()}</section>` : '') + this.montaje.ladoHTML() + (!this.ro && portal()?.rol === 'alumno' ? this.entregaHTML() : ''); return; }
@@ -871,6 +882,7 @@ export class ViviendaLab {
   onClick(e) {
     const t = e.target;
     if (!t.closest('.vv-menu')) { const dd = this.$('#vvDD'); if (dd) dd.hidden = true; }
+    if (this.kind === 'practica' && this.onClickPractica(t)) return;
     if ((this.kind === 'proyecto' || this.kind === 'proymontar') && this.onClickProy(t)) return;
     const tab = t.closest('[data-tab]'); if (tab) { if (this.vistaActiva === 'casa') { this.casa.tab = tab.dataset.tab; if (this.casa.tab === 'comprobar' && !this.casa.chk) this.casa.comprobar(); this.lado(); return; } this.tab = tab.dataset.tab; if (this.tab === 'comprobar' && !this.chk && this.m.parts.length) this.hacerComprobacion(); this.lado(); return; }
     if (this.vistaActiva === 'taller') {
@@ -921,6 +933,7 @@ export class ViviendaLab {
       if (!portal()?.esProfesor) return;
       if (this.vistaActiva === 'casa') { this.casa.onClick({ closest: (s) => (s === '[data-v]' ? { dataset: { v: 'casaSolucion' } } : null) }); return; }
       if (this.kind === 'proymontar') { if ((this.opts.confirm || confirm)('¿Cargar la solución de este proyecto? (se puede deshacer)')) this.solucionProy(); return; }
+      if (this.kind === 'practica') { if ((this.opts.confirm || confirm)('¿Cargar la solución de esta práctica? (se puede deshacer)')) this.solucionPr(); return; }
       if ((this.opts.confirm || confirm)('¿Cargar la solución del tablero de la SA1? (se puede deshacer)')) { this.guardarUndo(); this.m = solucionTablero(); this.red = false; this._dimKey = null; this.cambio(); } return; }
     if (v === 'exportar') { const model = this.vistaActiva === 'casa' ? this.casa.m : this.m; const url = URL.createObjectURL(new Blob([JSON.stringify({ app: 'laboratorio-vivienda', version: 2, model }, null, 1)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = this.vistaActiva === 'casa' ? 'vivienda-real.json' : 'instalacion-vivienda.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); return; }
     if (v === 'importar') { const f = this.$('#vvFile'); f.value = ''; f.onchange = async () => { try { const x = JSON.parse(await f.files[0].text()); const model = x.model || x; if (this.vistaActiva === 'casa') { this.casa.guardarUndo(); this.casa.m = sanearCasa(model); this.casa.cambio(); } else { this.guardarUndo(); this.m = sanear(model); this._dimKey = null; this.cambio(); } this.toast('Archivo importado.'); } catch (er) { this.toast('❌ Archivo no válido.'); } }; f.click(); return; }
@@ -980,3 +993,4 @@ export class ViviendaLab {
   pantallaCasa(x, y, z = 0) { return this.casa.pantalla(x, y, z, this.renderer.domElement); }
 }
 instalarProyectos(ViviendaLab);
+instalarPracticas(ViviendaLab);

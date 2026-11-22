@@ -1,0 +1,46 @@
+// e2e de las prácticas del tablero una a una:  PORTAL_BASE=http://localhost:8765/index.html node viv_practicas_e2e.mjs
+import { chromium } from 'playwright-core';
+import { hashCodigo, leerConfig } from './set-codigo.mjs';
+import { codigoClase } from './rutas.mjs';
+const base = process.env.PORTAL_BASE || 'http://localhost:8765/index.html';
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const cfg = leerConfig(); const code = codigoClase();
+let fallos = 0; const ok = (c, t) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + t); if (!c) fallos++; };
+const ctx = await b.newContext({ viewport: { width: 1280, height: 860 } });
+await ctx.route('**/js/firebase-config.js*', r => r.fulfill({ contentType: 'application/javascript', body: "window.PORTAL_FIREBASE={apiKey:'',projectId:''};" }));
+await ctx.addInitScript(([k, v]) => { if (!sessionStorage.getItem('vvInit')) { Object.keys(localStorage).filter((x) => x.startsWith('viv:')).forEach((x) => localStorage.removeItem(x)); sessionStorage.setItem('vvInit', '1'); } localStorage.setItem(k, v); }, ['portal.acceso', JSON.stringify({ version: cfg.version, hash: hashCodigo(code, cfg.salt) })]);
+const pg = await ctx.newPage(); pg.on('dialog', d => d.accept()); const errs = []; pg.on('pageerror', e => errs.push(e.message));
+const go = async (h, ms = 2500) => { await pg.evaluate((h) => { location.hash = h; }, h); await pg.waitForTimeout(ms); };
+await pg.goto(base + '#inicio'); await pg.waitForTimeout(1500);
+await go('#eee/vivienda');
+ok(await pg.locator('#vvPracticas .vv-prc').count() === 7, 'la portada lista las 7 prácticas');
+ok(await pg.locator('.vv-pcards .card').count() >= 1, 'los proyectos guiados siguen en la portada');
+ok(await pg.locator('text=Ejercicio guiado').count() >= 1, 'el ejercicio guiado del tablero de la SA1 sigue');
+ok((await pg.locator('#vvPracticas .vv-prs-k b').textContent()).trim() === '0', 'progreso 0 de 7');
+await go('#eee/vivienda/vp2', 3500);
+const n0 = await pg.locator('.vv-pasos > li').count(); ok(n0 >= 3, `vp2 tiene ${n0} pasos`);
+ok(await pg.locator('.vv-pasos > li.ok').count() === 0, 'al empezar ningún paso está en verde');
+await pg.evaluate(() => window.__viv.solucionPr()); await pg.waitForTimeout(1200);
+await pg.click('#vvRed'); await pg.waitForTimeout(1200);
+await pg.evaluate(() => { const V = window.__viv; const i = V.m.parts.find((p) => p.type === 'interruptor'); i.on = !i.on; V.cambio(); }); await pg.waitForTimeout(1200);
+const verdes = await pg.locator('.vv-pasos > li.ok').count(); ok(verdes === n0, `con la solución y tensión, ${verdes}/${n0} pasos en verde`);
+await pg.click('#vvRed').catch(() => {}); await pg.waitForTimeout(600);
+await pg.click('[data-pr="comprobar"]'); await pg.waitForTimeout(1500);
+ok(await pg.evaluate(() => JSON.parse(localStorage.getItem('viv:v1:pr:done:vp2'))) === true, 'Comprobar guarda la guiada como hecha');
+await go('#eee/vivienda');
+ok((await pg.locator('#vvPracticas .vv-prs-k b').textContent()).trim() === '1', 'progreso 1 de 7 en la portada');
+const dn = await pg.evaluate(() => [...document.querySelectorAll('#vvPracticas .vv-prc.done')].map((e) => e.querySelector('.vv-prgo')?.getAttribute('href')));
+ok(dn.length === 1 && dn[0] === '#eee/vivienda/vp2', 'la tarjeta 2 sale como hecha ' + JSON.stringify(dn));
+ok(await pg.locator('a[href="#eee/vivienda/vp2-auto"]').count() >= 1, 'se ofrece la autónoma de la práctica 2');
+await go('#eee/vivienda/vp2-auto', 3500);
+ok(await pg.evaluate(() => window.__viv.prAuto === true && window.__viv.kind === 'practica'), 'la autónoma se abre');
+// candados: el alumno con token «vivienda:vp1» solo ve abierta la 1
+const rol = await pg.evaluate(() => { if (!window.PORTAL) window.PORTAL = {}; if (!window.PORTAL.rol) { try { window.PORTAL.rol = 'alumno'; } catch (e) { } } return window.PORTAL.rol; });
+if (rol === 'alumno') {
+  await pg.evaluate(() => { window.PORTAL_SESION = Object.assign(window.PORTAL_SESION || {}, { apartados: ['vivienda:vp1'] }); window.dispatchEvent(new Event('portal-apartados')); });
+  await go('#eee/vivienda');
+  const nl = await pg.locator('#vvPracticas .vv-prc.locked').count(); ok(nl === 6, 'con el candado solo queda abierta la práctica 1 (' + nl + ' cerradas)');
+  await go('#eee/vivienda/vp3', 2500); ok(!/vp3/.test(await pg.evaluate(() => location.hash)), 'una práctica cerrada no se abre por enlace');
+} else console.log('(rol ' + rol + ': prueba de candados de alumno omitida)');
+ok(!errs.length, 'sin errores de página ' + errs.join(' | '));
+await b.close(); console.log(fallos ? `FALLOS ${fallos}` : 'TODO OK'); process.exit(fallos ? 1 : 0);

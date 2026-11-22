@@ -2,6 +2,7 @@ import { SUBJECTS, CENTRO, APARTADOS } from './subjects.js';
 import { CircuitLab } from './circ/lab.js';
 import { ViviendaLab } from './viv/lab.js';
 import { PRACTICES } from './circ/practices.js';
+import { sinTokens } from './circ/guiadas.js';
 import { Viewer, WIRE_CSS } from './scene.js';
 import { LESSONS } from './lessons.js';
 import { MODULO, RA, SOFTWARE_STEPS, LIBS, TOOLS_BASE, SAFETY_BASE, BOARD_GUIDE, WIRE_TYPES, BOARD_URL } from './common.js';
@@ -226,8 +227,9 @@ function permitida(id) {
 }
 function apartadoPermitido(id) {
   const ses = window.PORTAL_SESION;
-  if (!ses || !Array.isArray(ses.apartados) || !ses.apartados.length) return true;
-  return ses.apartados.includes(id);
+  const L = sinTokens(ses?.apartados); // los candados («guiadas:», «evaluacion:», «vivienda:») no son apartados
+  if (!ses || !Array.isArray(ses.apartados) || !L.length) return true;
+  return L.includes(id);
 }
 // Chip de sesión (grupo · nº · Salir / Profesor · Panel · Salir) que pinta el control de acceso.
 const chip = () => (window.PORTAL && window.PORTAL.chipHTML ? window.PORTAL.chipHTML() : '');

@@ -38,10 +38,11 @@ const M = {
     const pr = progreso(); const est = (k) => { const e = portal()?.estadoEntrega?.(k); return e ? `<span class="vv-chip ${e.nota != null ? 'ok' : ''}">${e.nota != null ? 'Nota ' + String(e.nota).replace('.', ',') : '📤 Entregado'}</span>` : ''; };
     const card = (P) => { const g = pr[P.n] || {}; return `<a class="card vv-pc" href="#eee/vivienda/p${P.n}"><img src="${FOTO_PROY[P.n] || `img/viv/proy/p${P.n}.jpg`}" alt="" loading="lazy" decoding="async"><div class="vv-pcb"><div class="vv-pch"><span class="num">${P.n}</span><b>${esc(P.title)}</b>${g.ok ? '<span class="vv-chip ok">✔ Montado</span>' : ''}</div>
       <div class="muted small">${esc(P.level)} · ${esc(P.duration)} · ${esc(P.circuito)}</div><div class="small">${esc(P.short)}</div></div></a>`; };
-    return `<div class="vv-hw vv-hw3"><div class="vv-hero3"><h2>Instalación eléctrica de una vivienda · paso a paso</h2>
-      <p class="lead">${PROYECTOS.length} proyectos de dificultad creciente, como en el laboratorio ESP32. En cada paso: qué material <b>coges</b>, qué <b>herramienta</b> eliges, dónde va cada cable (con su <b>color y sección</b> reglamentarios) y qué <b>compruebas</b> antes de seguir. Después lo <b>montas tú</b> en el tablero 3D, lo mides con el polímetro y lo pruebas con tensión.</p>
+    return `<div class="vv-hw vv-hw3"><div class="vv-hero3"><h2>Instalación eléctrica de una vivienda · tablero 3D</h2>
+      <p class="lead">Monta en un tablero 3D, como en el taller, el cuadro con el IGA, el diferencial y los PIAs, los puntos de luz y los enchufes. Cada práctica se comprueba sola y sigue el <b>REBT</b> (ITC-BT-25, electrificación básica): colores, secciones y protecciones de una vivienda en España.</p>
       <div class="vv-norma"><span><b>Fase</b> marrón · negro · gris</span><span><b>Neutro</b> azul</span><span><b>Tierra</b> amarillo-verde</span><span><b>Alumbrado</b> 1,5 mm² · PIA 10 A</span><span><b>Enchufes</b> 2,5 mm² · PIA 16 A</span></div></div>
-      <h3 class="vv-sec">Proyectos ${est(PRACTICA_PROY)}</h3><div class="cards vv-pcards">${PROYECTOS.map(card).join('')}</div>
+      ${this.homePracticasHTML ? this.homePracticasHTML() : ''}
+      <h3 class="vv-sec">Proyectos guiados <small>lecciones paso a paso con herramientas</small> ${est(PRACTICA_PROY)}</h3><div class="cards vv-pcards">${PROYECTOS.map(card).join('')}</div>
       <h3 class="vv-sec">Otras prácticas</h3><p class="muted small">Modos abiertos y prácticas anteriores (se conservan tus montajes y entregas).</p>
       <div class="cards vv-ocards">
         <a class="card" href="#eee/vivienda/libre"><span class="num">🧰</span><div><b>Modo libre ${est('v2')}</b><div class="small">Diseña tu instalación en un tablero a medida, con todas las piezas.</div></div></a>

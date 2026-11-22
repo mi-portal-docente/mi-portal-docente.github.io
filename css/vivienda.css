@@ -206,3 +206,54 @@ body.scr-viv #viv { display: flex; overflow: hidden; }
 @media (max-width: 1100px) { .vv.es-proy .vv-ed { grid-template-columns: 0 1fr 400px; } .vv-herrs { grid-template-columns: repeat(2, 1fr); } .vv .cards, .vv-ocards { grid-template-columns: 1fr !important; } }
 .vv-stepbar[hidden], .vv-vt[hidden], .vv-strip[hidden] { display: none !important; }
 .vv.es-proy[data-modo="proymontar"] .vv-vt { display: none; }
+
+/* ---- Prácticas del tablero una a una (como Circuitos): tarjetas de cristal, un acento, candados ---- */
+.vv-prs { margin: 6px 0 22px; }
+.vv-prs-h { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; }
+.vv-prs-h h2 { margin: 0 0 4px; font-size: 1.35rem; } .vv-prs-h h2 small { font-weight: 600; color: var(--gris, #5c5c60); font-size: .8em; }
+.vv-prs-lead { margin: 0; max-width: 62ch; color: var(--gris, #5c5c60); }
+.vv-prs-k { flex: none; text-align: center; padding: 10px 16px; border-radius: var(--r-lg, 20px); background: var(--card, #fff); box-shadow: var(--sh1); min-width: 92px; }
+.vv-prs-k b { display: block; font-size: 2.1rem; line-height: 1; color: var(--acc, #DE0714); } .vv-prs-k span { font-size: .78rem; color: var(--gris, #5c5c60); }
+.vv-prs-go { display: inline-flex; align-items: center; gap: 6px; margin: 12px 0 4px; }
+.vv-gbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0; padding: 10px 12px; border-radius: var(--r, 14px); background: var(--card2, #f7f7fa); }
+.vv-gbar .ic { width: 18px; height: 18px; color: #506C88; } .vv-gbar select { margin-left: 6px; }
+.vv-bloq { display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: var(--r, 14px); background: var(--ambar-tint, #fff4e0); color: var(--ambar-t, #9a5200); }
+.vv-prcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; margin-top: 12px; }
+.vv-prc { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: var(--r-lg, 20px); background: var(--card, #fff); box-shadow: var(--sh1); color: inherit; text-decoration: none; transition: transform .15s, box-shadow .15s; min-width: 0; }
+a.vv-prc:hover { transform: translateY(-2px); box-shadow: var(--sh2, var(--sh1)); }
+.vv-prc.done { box-shadow: inset 0 3px 0 #34c759, var(--sh1); }
+.vv-prc.locked { opacity: .55; filter: grayscale(.6); cursor: not-allowed; } .vv-prc.cerrada { outline: 2px dashed rgba(180, 35, 24, .35); outline-offset: -2px; }
+.vv-prh { display: flex; align-items: center; gap: 8px; }
+.vv-prn { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; color: #fff; background: var(--acc, #DE0714); flex: none; }
+.vv-pri { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgba(80, 108, 136, .12); color: #506C88; flex: none; } .vv-pri .ic { width: 19px; height: 19px; }
+.vv-prc h3 { margin: 4px 0 0; font-size: 1.02rem; line-height: 1.25; } .vv-prc p { margin: 0; color: var(--gris, #5c5c60); font-size: .9rem; }
+.vv-prm { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; } .vv-prm span { font-size: .74rem; padding: 3px 8px; border-radius: 999px; background: rgba(80, 108, 136, .10); color: #3d556d; }
+.vv-prl { display: flex; flex-wrap: wrap; gap: 6px; }
+.vv-badge { display: inline-flex; align-items: center; gap: 4px; font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--ambar-tint, #fff4e0); color: var(--ambar-t, #9a5200); text-decoration: none; margin-left: auto; }
+.vv-prl .vv-badge { margin-left: 0; } .vv-badge.ok { background: var(--verde-tint, #e7f7ec); color: var(--verde, #248a3d); } .vv-badge .ic { width: 13px; height: 13px; }
+.vv-cand { flex: none; width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 12px; border: 1px solid var(--line, #dadcde); background: rgba(255, 255, 255, .85); color: #126b3e; cursor: pointer; margin-left: auto; }
+.vv-badge + .vv-cand { margin-left: 6px; } .vv-cand.ce { color: #b42318; border-color: #f3b8b2; background: #fff5f4; } .vv-cand .ic { width: 18px; height: 18px; } .vv-cand:disabled { opacity: .5; }
+/* panel de la práctica */
+.vv-printro { margin: 4px 0 8px; } .vv-prcirc { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--acc-tint, #fde8ea); color: var(--acc-t, #c40018); }
+.vv-prcirc .ic { width: 14px; height: 14px; }
+.vv-prog { height: 6px; border-radius: 6px; background: rgba(80, 108, 136, .15); overflow: hidden; margin: 12px 0 8px; } .vv-prog i { display: block; height: 100%; background: #34c759; border-radius: 6px; transition: width .3s; }
+.vv-pasos { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 6px; }
+.vv-pasos > li { padding: 8px 10px; border-radius: 12px; background: var(--card2, #f7f7fa); }
+.vv-pasos > li.act { background: var(--card, #fff); box-shadow: var(--sh1); outline: 2px solid var(--acc-ring, rgba(222, 7, 20, .28)); }
+.vv-pasos > li.pend { opacity: .6; } .vv-pasos > li.ok .vv-pt { color: var(--verde, #248a3d); }
+.vv-pt { display: flex; gap: 8px; align-items: center; } .vv-pt .ic { width: 18px; height: 18px; flex: none; }
+.vv-pnum { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: .72rem; font-weight: 800; background: #506C88; color: #fff; flex: none; }
+.vv-pasos > li.act .vv-pnum { background: var(--acc, #DE0714); }
+.vv-pasos p { margin: 6px 0 0 28px; font-size: .9rem; } .vv-faltan { margin: 6px 0 0 28px; padding-left: 16px; font-size: .82rem; color: #3d556d; }
+.vv-acc { display: flex; gap: 6px; align-items: center; } .vv-acc .ic { width: 16px; height: 16px; color: var(--acc, #DE0714); }
+.vv-okline { display: flex; gap: 6px; align-items: center; color: var(--verde, #248a3d); font-weight: 700; } .vv-okline .ic { width: 16px; height: 16px; }
+.vv-navfin { margin-top: 10px; } .vv-navfin .ic, .vv-prtab .vv-btn .ic { width: 15px; height: 15px; vertical-align: -3px; }
+.vv-apar { display: grid; gap: 8px; } .vv-apar div { padding: 8px 10px; border-radius: 12px; background: var(--card2, #f7f7fa); } .vv-apar p { margin: 4px 0 0; font-size: .86rem; }
+.vv-tcirc td, .vv-tcab td { font-size: .82rem; vertical-align: top; } .vv-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.vv-plano svg { width: 100%; height: auto; }
+.vv-tools .vv-tsep { height: 4px; } .vv-tools button .ic { width: 17px; height: 17px; } .vv-tools button[aria-pressed="true"] { background: var(--acc, #DE0714); color: #fff; border-color: transparent; }
+@media (max-width: 560px) { .vv-prs-h { flex-direction: column; } .vv-prs-k { align-self: stretch; display: flex; align-items: baseline; gap: 8px; justify-content: center; } .vv-prcards { grid-template-columns: 1fr; } }
+.vv-prc { position: relative; } .vv-prgo { color: inherit; text-decoration: none; } .vv-prgo::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.vv-prc:has(.vv-prgo):hover { transform: translateY(-2px); box-shadow: var(--sh2, var(--sh1)); } .vv-prc:has(.vv-prgo) { cursor: pointer; }
+.vv-prgo:focus-visible { outline: none; } .vv-prc:has(.vv-prgo:focus-visible) { outline: 2px solid var(--acc, #DE0714); outline-offset: 2px; }
+.vv-prc .vv-cand, .vv-prc .vv-prl a { position: relative; z-index: 2; }

@@ -10,7 +10,7 @@ import { BIBLIOTECA, asignatura } from '../lms/biblioteca.js';
 import { planMigracion, sinDuplicadas } from '../lms/entrega.js';
 import { confirmar } from './dialogo.js';
 import { PRACTICES } from '../circ/practices.js';
-import { leerGuiadas, escribirGuiadas, sinTokens, leerEvaluaciones, escribirEvaluaciones } from '../circ/guiadas.js';
+import { leerGuiadas, escribirGuiadas, sinTokens, leerEvaluaciones, escribirEvaluaciones, leerViv, escribirViv } from '../circ/guiadas.js';
 import { EVALS, idAutonoma } from '../circ/evaluaciones.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
@@ -257,6 +257,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
         const g = st.grupos.get(st.editando);
         v.apartados = escribirGuiadas(v.apartados, v.asignaturas.includes('eee') && leerGuiadas(g.apartados) ? [...leerGuiadas(g.apartados)] : null);
         v.apartados = escribirEvaluaciones(v.apartados, v.asignaturas.includes('eee') ? [...leerEvaluaciones(g.apartados)] : []);
+        v.apartados = escribirViv(v.apartados, v.asignaturas.includes('eee') && leerViv(g.apartados) ? [...leerViv(g.apartados)] : null);
         b.update(doc(db, 'grupos', g.id), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso, alumnos: v.alumnos });
         b.update(doc(db, 'codigos', g.codigo), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso });
         await b.commit(); st.editando = null; pintarTab(); return;

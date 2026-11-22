@@ -7,6 +7,7 @@ import { asignatura } from './lms/biblioteca.js';
 import { programaHTML } from './lms/vistas-biblio.js';
 import { actividadesDe, enlaceActividad } from './act/registro.js';
 import { ic } from './ui/iconos.js';
+import { sinTokens } from './circ/guiadas.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const portal = () => window.PORTAL || null;
@@ -81,7 +82,7 @@ function panelEstatico(id, tab) {
   return '';
 }
 function laboratorioHTML(id) {
-  const apartadoOk = (k) => { const s = window.PORTAL_SESION; return !s || !Array.isArray(s.apartados) || !s.apartados.length || s.apartados.includes(k); };
+  const apartadoOk = (k) => { const s = window.PORTAL_SESION; const L = sinTokens(s?.apartados); return !s || !Array.isArray(s.apartados) || !L.length || L.includes(k); };
   const L = laboratoriosDe(id).filter((x) => apartadoOk(x.parte || x.id));
   if (!L.length) return `<div class="as-vacio"><div class="as-vacio-ic" aria-hidden="true">🔬</div><h2>Próximamente</h2><p>Todavía no hay laboratorios 3D de ${esc(asignatura(id).corto)}. Irán apareciendo aquí: cada laboratorio nuevo se añade a la lista y sale solo en esta pestaña.</p></div>`;
   return `<p class="muted as-intro">Laboratorios para montar, programar, simular y comprobar. Las prácticas guiadas se entregan desde el propio laboratorio y la nota llega al cuaderno.</p>

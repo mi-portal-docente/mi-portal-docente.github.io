@@ -874,3 +874,18 @@ tablero de la SA1, modo libre, juego, averías, materiales).
   - Prueba nueva: viv_tubos_test.mjs (76 cables de los montajes de referencia: ningún punto fuera de la pared del tubo).
   - Capturas: fuente/tools/capturas_viv.mjs → /workspace/capturas-vivienda/antes_* y d5_* (escritorio y 390×844).
   - Pruebas: viv_test 94/94, viv_modelo_test OK, viv_tubos_test OK.
+- Bloque B — HECHO (caché v5-20261122b): prácticas del tablero una a una, como en Circuitos.
+  - src/viv/practicas.js (nuevo, puro): circuitos C1–C5 de la ITC-BT-25 (PIA, sección y tubo), aparamenta del CGMP y 7 prácticas
+    vp1 Cuadro general (IGA, ID 30 mA, PIAs; disparo con T, sobrecarga y corto) · vp2 Punto de luz con interruptor · vp3 Conmutada ·
+    vp4 Schuko 16 A con tierra (con fuga) · vp5 Caja de registro con empalmes · vp6 Circuito completo · vp7 Cruzamiento.
+    Cada una reutiliza el montaje y la corrección de su proyecto; los pasos se ponen en verde en orden según el montaje real.
+  - src/viv/practilab.js (nuevo): portada con tarjetas, progreso «n de 7 guiadas», Guiada (#eee/vivienda/vpN) y Autónoma
+    (#eee/vivienda/vpN-auto; el alumno la abre al terminar la guiada), panel Guía/Esquema/REBT, Comprobar, Empezar de nuevo.
+    Entrega única «v6» (tipo vivienda) con el estado de todas las prácticas: no hace falta cambiar las reglas de Firestore.
+  - Candados del profesor: token «vivienda:vp1,…» en los apartados del grupo (sin token, todas abiertas), igual que «guiadas:».
+    panel.js lo conserva al editar el grupo. Arreglo: los tokens de candado ya no cuentan como apartados (main.js/asig.js),
+    así un grupo sin apartados elegidos no pierde el laboratorio al cerrar una práctica.
+  - Se mantienen el ejercicio guiado del tablero de la SA1, los 8 proyectos, el modo libre, averías y materiales.
+  - Pruebas nuevas: viv_practicas_test.mjs (11/11) y viv_practicas_e2e.mjs (todo OK, con candados de alumno).
+  - Pruebas: viv_test 94/94, viv_modelo_test 16/16, viv_tubos_test OK, guiadas_test OK, circ_test 77/77, barra_test 90/90.
+  - Capturas: /workspace/capturas-vivienda/d6_* (portada, vp1, vp2, móvil; scrollWidth 390).
