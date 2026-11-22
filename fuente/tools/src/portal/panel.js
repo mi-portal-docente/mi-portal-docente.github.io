@@ -10,7 +10,8 @@ import { BIBLIOTECA, asignatura } from '../lms/biblioteca.js';
 import { planMigracion, sinDuplicadas } from '../lms/entrega.js';
 import { confirmar } from './dialogo.js';
 import { PRACTICES } from '../circ/practices.js';
-import { leerGuiadas, escribirGuiadas, sinTokens, leerEvaluaciones, escribirEvaluaciones, leerViv, escribirViv } from '../circ/guiadas.js';
+import { leerGuiadas, escribirGuiadas, sinTokens, leerEvaluaciones, escribirEvaluaciones, leerViv, escribirViv, leerVivEv, escribirVivEv } from '../circ/guiadas.js';
+import { VIV_PR, VIV_EV, VIV_REGISTRO, progresoRegistro } from '../viv/indice.js';
 import { EVALS, idAutonoma } from '../circ/evaluaciones.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
@@ -29,7 +30,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   const st = { grupos: new Map(), sesiones: [], entregas: [], pines: new Set(), accesos: new Map(), bloqueos: new Set(), uGrupo: '', uTodos: false, listo: { g: false, s: false, e: false }, sub: 'grupos', el: null, unsubs: [], tick: null, editando: null, abierta: null, verTodos: false, dstHecho: false, f: { grupo: '', practica: '', estado: '' } };
   const cat = () => window.PORTAL_CATALOGO || { practicas: [], proyectos: [], subjects: [], apartados: {} };
   const nombreGrupo = (id) => st.grupos.get(id)?.nombre || '(grupo borrado)';
-  const tituloPractica = (id, fallback) => { if (id === 'v1') return 'Vivienda · Tablero eléctrico de la SA1'; if (id === 'v2') return 'Vivienda · Modo libre'; const c = cat(); const p = c.practicas.find(x => x.id === id); if (p) return `Circuitos ${p.n} · ${p.titulo}`; const q = c.proyectos.find(x => x.id === id); if (q) return `ESP32 ${q.n} · ${q.titulo}`; return fallback || id; };
+  const tituloPractica = (id, fallback) => { if (id === 'v1') return 'Vivienda · Tablero eléctrico de la SA1'; if (id === 'v2') return 'Vivienda · Modo libre'; if (id === VIV_REGISTRO) return 'Vivienda · Registro de las prácticas del tablero'; const ve = VIV_EV.find(x => x.entrega === id); if (ve) return `Evaluación de vivienda · Nivel ${ve.nivel}: ${ve.title}`; const c = cat(); const p = c.practicas.find(x => x.id === id); if (p) return `Circuitos ${p.n} · ${p.titulo}`; const q = c.proyectos.find(x => x.id === id); if (q) return `ESP32 ${q.n} · ${q.titulo}`; return fallback || id; };
   const $ = (s) => st.el && st.el.querySelector(s);
   const ap = crearAulaPanel({ db, aula, ps: st, nombreGrupo, tituloPractica });
   const TABS = ['cursos', 'grupos', 'notas', 'analitica', 'entregas', 'conectados', 'ajustes'];
@@ -184,9 +185,9 @@ export function crearPanel({ db, PORTAL, email, aula }) {
           <button class="btn" data-pn="reiniciar">🔄 Reiniciar código</button>
           <button class="btn" data-pn="activar">${g.activo ? '⏸ Cerrar acceso' : '▶ Abrir acceso'}</button>
           <button class="btn" data-pn="editar">✏️ Editar</button>
-          ${(g.asignaturas || []).includes('eee') ? `<button class="btn" data-pn="guiadas" aria-expanded="${st.guiadasDe === g.id}">${lucide('lock')} Prácticas guiadas</button><button class="btn" data-pn="progreso" aria-expanded="${st.progresoDe === g.id}">${lucide('chart-column')} Progreso en Circuitos</button>` : ''}
+          ${(g.asignaturas || []).includes('eee') ? `<button class="btn" data-pn="guiadas" aria-expanded="${st.guiadasDe === g.id}">${lucide('lock')} Prácticas guiadas</button><button class="btn" data-pn="progreso" aria-expanded="${st.progresoDe === g.id}">${lucide('chart-column')} Progreso en Circuitos</button><button class="btn" data-pn="progresoViv" aria-expanded="${st.progresoVivDe === g.id}">${lucide('house')} Progreso en Vivienda</button>` : ''}
           <button class="btn pn-peligro" data-pn="borrar">🗑 Borrar</button>
-        </div>${st.guiadasDe === g.id ? guiadasHTML(g) : ''}${st.progresoDe === g.id ? progresoHTML(g) : ''}</article>`;
+        </div>${st.guiadasDe === g.id ? guiadasHTML(g) : ''}${st.progresoDe === g.id ? progresoHTML(g) : ''}${st.progresoVivDe === g.id ? progresoVivHTML(g) : ''}</article>`;
     }).join('');
   }
   // Progreso de cada alumno (por nº de lista) en las prácticas de Circuitos: «Guiada completada» (entrega de la
@@ -204,6 +205,26 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       <p class="pn-small"><i class="pn-pg-k g on"></i> Guiada completada (la entregó con «Comprobar circuito» en verde o hizo la autónoma) · <i class="pn-pg-k a on"></i> Autónoma completada (la montó sola y salió bien). Pasa el ratón por una celda para ver la práctica.</p>
       <div class="pn-pg-wrap"><table class="pn-pg"><thead><tr><th>Nº</th>${PRACTICES.map(p => `<th title="${esc(p.title)}">${p.n}</th>`).join('')}<th title="Guiadas · autónomas">G · A</th></tr></thead><tbody>${filas || `<tr><td colspan="${PRACTICES.length + 2}">Sin alumnos.</td></tr>`}</tbody></table></div></section>`;
   }
+  // Progreso en Vivienda: lo mismo que «Progreso en Circuitos» con el registro de cada alumno (entrega v6, que se
+  // envía sola al completar una guiada o una autónoma) y la nota de cada nivel de la evaluación (v7, v8, v9).
+  function progresoVivHTML(g) {
+    const R = new Map(), N = new Map();
+    for (const e of st.entregas) if (e.grupo === g.id) {
+      if (e.practica === VIV_REGISTRO) R.set(e.numero, progresoRegistro(e));
+      const ve = VIV_EV.find(x => x.entrega === e.practica); if (ve) { if (!N.has(e.numero)) N.set(e.numero, {}); N.get(e.numero)[ve.id] = e.nota != null ? e.nota : e.datos?.comprobacion?.nota; }
+    }
+    const n = Math.max(g.alumnos || 0, ...R.keys(), ...N.keys());
+    const f = (x) => (x == null ? '—' : String(x).replace('.', ','));
+    const filas = Array.from({ length: n }, (_, i) => i + 1).map(num => {
+      const m = R.get(num) || {}; let tg = 0, ta = 0;
+      const celdas = VIV_PR.map(p => { const a = !!m[p.id]?.autonoma, gu = a || !!m[p.id]?.guiada; tg += gu; ta += a;
+        return `<td class="pn-pg-c" title="Nº ${pad(num)} · Práctica ${p.n}: ${esc(p.title)} — guiada ${gu ? 'completada' : 'pendiente'}, autónoma ${a ? 'completada' : 'pendiente'}"><i class="g ${gu ? 'on' : ''}"></i><i class="a ${a ? 'on' : ''}"></i></td>`; }).join('');
+      const notas = VIV_EV.map(e => `<td class="c pn-pg-n" title="Nº ${pad(num)} · Nivel ${e.nivel}: ${esc(e.title)}">${f(N.get(num)?.[e.id])}</td>`).join('');
+      return `<tr><th>${pad(num)}</th>${celdas}<td class="pn-pg-t">${tg} · ${ta}</td>${notas}</tr>`; }).join('');
+    return `<section class="pn-progreso pn-progviv" aria-label="Progreso en Vivienda de ${esc(g.nombre)}">
+      <p class="pn-small"><i class="pn-pg-k g on"></i> Guiada completada · <i class="pn-pg-k a on"></i> Autónoma completada (se guardan solas en el registro del alumno al pulsar «Comprobar» con todo bien). N1–N3: nota de cada nivel de la evaluación de vivienda (la automática o la tuya si la cambiaste en «Entregas»).</p>
+      <div class="pn-pg-wrap"><table class="pn-pg"><thead><tr><th>Nº</th>${VIV_PR.map(p => `<th title="${esc(p.title)}">${p.n}</th>`).join('')}<th title="Guiadas · autónomas">G · A</th>${VIV_EV.map(e => `<th title="${esc(e.title)}">N${e.nivel}</th>`).join('')}</tr></thead><tbody>${filas || `<tr><td colspan="${VIV_PR.length + 5}">Sin alumnos.</td></tr>`}</tbody></table></div></section>`;
+  }
   // Prácticas guiadas de Circuitos que el profesor desbloquea una a una para este grupo (se guarda en «apartados»).
   function guiadasHTML(g) {
     const sel = leerGuiadas(g.apartados); const ctrl = !!sel;
@@ -214,10 +235,16 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       <h4>${lucide('clipboard-check')} Evaluación de circuitos</h4>
       <p class="pn-small">Cada nivel es una prueba sin pasos ni pistas. Cerrados hasta que los abras; al enviar, el alumno ve su nota automática y te llega como entrega (en «Entregas» puedes revisarla y cambiar la nota).</p>
       <div class="pn-gl">${EVALS.map(e => `<label class="pn-chk"><input type="checkbox" data-gev="${esc(e.id)}" ${leerEvaluaciones(g.apartados).has(e.id) ? 'checked' : ''}> Nivel ${e.nivel} · ${esc(e.title)}</label>`).join('')}</div>
+      <h4>${lucide('house')} Prácticas de vivienda (tablero 3D)</h4>
+      ${(() => { const sv = leerViv(g.apartados); const cv = !!sv; return `<label class="pn-chk"><input type="checkbox" data-gviv="modo" ${cv ? 'checked' : ''}> Las desbloqueo yo una a una</label>
+      <div class="pn-gl ${cv ? '' : 'off'}">${VIV_PR.map(p => `<label class="pn-chk"><input type="checkbox" data-gviv="${esc(p.id)}" ${!cv || sv.has(p.id) ? 'checked' : ''} ${cv ? '' : 'disabled'}> ${p.n}. ${esc(p.title)}</label>`).join('')}</div>`; })()}
+      <h4>${lucide('clipboard-check')} Evaluación de vivienda</h4>
+      <p class="pn-small">Como la de circuitos: cerrados hasta que los abras. También se abren y cierran con el candado de cada tarjeta en el laboratorio.</p>
+      <div class="pn-gl">${VIV_EV.map(e => `<label class="pn-chk"><input type="checkbox" data-gvev="${esc(e.id)}" ${leerVivEv(g.apartados).has(e.id) ? 'checked' : ''}> Nivel ${e.nivel} · ${esc(e.title)}</label>`).join('')}</div>
       <span class="pn-msg" id="pnGdMsg"></span></section>`;
   }
   async function guardarGuiadas(g, ids, ev) {
-    const apartados = ev ? escribirEvaluaciones(g.apartados, ids) : escribirGuiadas(g.apartados, ids);
+    const apartados = ev === 'viv' ? escribirViv(g.apartados, ids) : ev === 'vivev' ? escribirVivEv(g.apartados, ids) : ev ? escribirEvaluaciones(g.apartados, ids) : escribirGuiadas(g.apartados, ids);
     const msg = () => document.getElementById('pnGdMsg');
     try {
       const b = writeBatch(db);
@@ -258,6 +285,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
         v.apartados = escribirGuiadas(v.apartados, v.asignaturas.includes('eee') && leerGuiadas(g.apartados) ? [...leerGuiadas(g.apartados)] : null);
         v.apartados = escribirEvaluaciones(v.apartados, v.asignaturas.includes('eee') ? [...leerEvaluaciones(g.apartados)] : []);
         v.apartados = escribirViv(v.apartados, v.asignaturas.includes('eee') && leerViv(g.apartados) ? [...leerViv(g.apartados)] : null);
+        v.apartados = escribirVivEv(v.apartados, v.asignaturas.includes('eee') ? [...leerVivEv(g.apartados)] : []);
         b.update(doc(db, 'grupos', g.id), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso, alumnos: v.alumnos });
         b.update(doc(db, 'codigos', g.codigo), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso });
         await b.commit(); st.editando = null; pintarTab(); return;
@@ -272,6 +300,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   async function accionGrupo(acc, g) {
     try {
       if (acc === 'guiadas') { st.guiadasDe = st.guiadasDe === g.id ? null : g.id; pintarTab(); return; }
+      if (acc === 'progresoViv') { st.progresoVivDe = st.progresoVivDe === g.id ? null : g.id; pintarTab(); return; }
       if (acc === 'progreso') { st.progresoDe = st.progresoDe === g.id ? null : g.id; pintarTab(); return; }
       if (acc === 'gd-sig') { const sel = leerGuiadas(g.apartados) || new Set(); const sig = PRACTICES.find(p => !sel.has(p.id)); if (sig) await guardarGuiadas(g, [...sel, sig.id]); return; }
       if (acc === 'editar') { st.editando = g.id; pintarTab(); $('#pnBody').scrollIntoView({ block: 'start' }); return; }
@@ -510,6 +539,17 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       const g = st.grupos.get(t.closest('[data-grupo]')?.dataset.grupo || ''); if (!g) return;
       const sel = leerEvaluaciones(g.apartados); if (t.checked) sel.add(t.dataset.gev); else sel.delete(t.dataset.gev);
       return guardarGuiadas(g, EVALS.map(e => e.id).filter(id => sel.has(id)), true);
+    }
+    if (t.dataset.gviv) {
+      const g = st.grupos.get(t.closest('[data-grupo]')?.dataset.grupo || ''); if (!g) return;
+      if (t.dataset.gviv === 'modo') return guardarGuiadas(g, t.checked ? [] : null, 'viv');
+      const sel = new Set(leerViv(g.apartados) || []); if (t.checked) sel.add(t.dataset.gviv); else sel.delete(t.dataset.gviv);
+      return guardarGuiadas(g, VIV_PR.map(p => p.id).filter(id => sel.has(id)), 'viv');
+    }
+    if (t.dataset.gvev) {
+      const g = st.grupos.get(t.closest('[data-grupo]')?.dataset.grupo || ''); if (!g) return;
+      const sel = leerVivEv(g.apartados); if (t.checked) sel.add(t.dataset.gvev); else sel.delete(t.dataset.gvev);
+      return guardarGuiadas(g, VIV_EV.map(e => e.id).filter(id => sel.has(id)), 'vivev');
     }
     if (t.id === 'pnVerTodos') { st.verTodos = t.checked; pintarDatos(); }
     if (t.dataset.pnU === 'grupo') { st.uGrupo = t.value; $('#pnUsu').innerHTML = usuariosHTML(); }

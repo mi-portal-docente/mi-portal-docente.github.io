@@ -23,6 +23,7 @@ import { CasaVista } from './casa3d.js';
 import { casaVacia, materialesCasa, sanearCasa, solucionCasa } from './casa.js';
 import { instalarProyectos, parseProy, PRACTICA_PROY } from './proylab.js';
 import { instalarPracticas } from './practilab.js';
+import { instalarEvalViv } from './evallab.js';
 import { cuadro3D as cuadroDet } from './modelos3d.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -63,6 +64,8 @@ export class ViviendaLab {
     host.innerHTML = this.shellHTML(); this.$ = (s) => host.querySelector(s);
     this.visor = new Visor(this.$('#vvView'));
     host.addEventListener('click', (e) => { const b = e.target.closest('[data-prlock]'); if (!b) return; e.preventDefault(); e.stopPropagation(); this.alternarCandadoPr(b.dataset.prlock, b); }, true);
+    host.addEventListener('click', (e) => { const b = e.target.closest('#vvHome [data-pr="entregar"]'); if (!b) return; e.preventDefault(); this.entregarPr(); });
+    host.addEventListener('click', (e) => { const b = e.target.closest('[data-evlock]'); if (!b) return; e.preventDefault(); e.stopPropagation(); this.alternarCandadoEv(b.dataset.evlock, b); }, true);
     host.addEventListener('change', (e) => { const q = e.target.closest('[data-prq]'); if (q && this.respPr) this.respPr(+q.dataset.prq, +q.value); });
     host.addEventListener('change', (e) => { const sg = e.target.closest('[data-vvgrupo]'); if (sg) { store.set('pref:grupoCand', sg.value); if (this.kind === 'home') this.$('#vvHome').innerHTML = this.homeHTML(); } });
     const refrescar = () => { if (this.kind === 'home' && !this._candando) this.$('#vvHome').innerHTML = this.homeHTML(); };
@@ -103,9 +106,9 @@ export class ViviendaLab {
   // ------------------------------------------------------------------ pantallas
   show(v = 'home') {
     const root = this.$('.vv'); this.visor?.cerrar(); this._pick = null; this._medidas = null;
-    const rp = this.rutaPractica(v); if (!rp) { this.pr = null; this.prAuto = false; }
+    const rp = this.rutaPractica(v) || this.rutaEval(v); if (!rp) { this.pr = null; this.prAuto = false; } if (!rp?.ev) this.prEval = null;
     varianteMarcas(!!rp); // marcado real solo en las prácticas nuevas; la SA1 y los proyectos, con el suyo
-    if (rp) { root.classList.remove('is-home'); root.classList.add('is-ed'); this.abrirPractica(rp.Pr, rp.auto); return; }
+    if (rp) { root.classList.remove('is-home'); root.classList.add('is-ed'); if (rp.ev) this.abrirEval(rp.ev, rp.k); else this.abrirPractica(rp.Pr, rp.auto); return; }
     if (v === 'evaluacion') { this.homeTab = 'eval'; v = 'home'; } else if (v === 'home') this.homeTab = 'guiadas'; // pestañas de la portada, como en Circuitos
     const pp = parseProy(v); if (!pp) { this.proy = null; root.classList.remove('es-proy'); }
     if (v === 'home' || v === 'creditos') { this.modo = null; this.kind = v; root.classList.add('is-home'); root.classList.remove('is-ed'); this.pause(); this.$('#vvHome').innerHTML = v === 'creditos' ? this.creditosHTML() : this.homeHTML(); this.$('#vvTitulo').textContent = ''; this.crumbs(); this.stepbar(); this.strip(); this.$('#vvHome').scrollTop = 0; return; }
@@ -130,7 +133,7 @@ export class ViviendaLab {
     this.cambio(false); this.vista(); this.resume();
   }
   crumbs() {
-    const t = this.kind === 'practica' && this.pr ? `Práctica ${this.pr.n} · ${this.pr.title}${this.prAuto ? ' · autónoma' : ''}` : this.proy && (this.kind === 'proyecto' || this.kind === 'proymontar') ? `Proyecto ${this.proy.n} · ${this.proy.title}${this.kind === 'proymontar' ? ' · móntalo tú' : ''}` : this.kind === 'creditos' ? TITULO.creditos : this.modo ? (this.kind === 'averia' ? 'Avería: ' + this.averia.n : TITULO[this.kind] || '') : '';
+    const t = this.kind === 'practica' && this.prEval ? `Evaluación · Nivel ${this.prEval.ev.nivel} · ${this.prEval.ev.title}` : this.kind === 'practica' && this.pr ? `Práctica ${this.pr.n} · ${this.pr.title}${this.prAuto ? ' · autónoma' : ''}` : this.proy && (this.kind === 'proyecto' || this.kind === 'proymontar') ? `Proyecto ${this.proy.n} · ${this.proy.title}${this.kind === 'proymontar' ? ' · móntalo tú' : ''}` : this.kind === 'creditos' ? TITULO.creditos : this.modo ? (this.kind === 'averia' ? 'Avería: ' + this.averia.n : TITULO[this.kind] || '') : '';
     this.$('#vvCrumbs').innerHTML = `<a href="#inicio">Inicio</a> › <a href="#asig/eee/laboratorio">Equipos eléctricos y electrónicos</a> › ${t ? `<a href="#eee/vivienda">Instalación de vivienda</a> › <span>${esc(t)}</span>` : '<span>Instalación de vivienda</span>'}`;
     this.host.querySelectorAll('[data-solo-prof]').forEach((b) => { b.hidden = !portal()?.esProfesor; });
   }
@@ -942,6 +945,7 @@ export class ViviendaLab {
       if (!portal()?.esProfesor) return;
       if (this.vistaActiva === 'casa') { this.casa.onClick({ closest: (s) => (s === '[data-v]' ? { dataset: { v: 'casaSolucion' } } : null) }); return; }
       if (this.kind === 'proymontar') { if ((this.opts.confirm || confirm)('¿Cargar la solución de este proyecto? (se puede deshacer)')) this.solucionProy(); return; }
+      if (this.kind === 'practica' && this.prEval && window.PORTAL?.rol === 'alumno') { this.toast('En la evaluación no hay solución.'); return; }
       if (this.kind === 'practica') { if ((this.opts.confirm || confirm)('¿Cargar la solución de esta práctica? (se puede deshacer)')) this.solucionPr(); return; }
       if ((this.opts.confirm || confirm)('¿Cargar la solución del tablero de la SA1? (se puede deshacer)')) { this.guardarUndo(); this.m = solucionTablero(); this.red = false; this._dimKey = null; this.cambio(); } return; }
     if (v === 'exportar') { const model = this.vistaActiva === 'casa' ? this.casa.m : this.m; const url = URL.createObjectURL(new Blob([JSON.stringify({ app: 'laboratorio-vivienda', version: 2, model }, null, 1)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = this.vistaActiva === 'casa' ? 'vivienda-real.json' : 'instalacion-vivienda.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); return; }
@@ -1003,3 +1007,4 @@ export class ViviendaLab {
 }
 instalarProyectos(ViviendaLab);
 instalarPracticas(ViviendaLab);
+instalarEvalViv(ViviendaLab);

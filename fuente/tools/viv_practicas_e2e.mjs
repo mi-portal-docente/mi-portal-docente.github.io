@@ -59,6 +59,22 @@ const mPr = await marcas('vp2', 'interruptor'); ok(mPr && mPr.lb.includes('L') &
 const mPy = await marcas('p1-montar', 'interruptor'); ok(mPy && mPy.lb.includes('L') && mPy.lb.includes('↓') && !mPy.esquema, 'proyecto guiado 1: interruptor con sus marcas de siempre (L y ↓) ' + JSON.stringify(mPy));
 const mCz = await marcas('vp7', 'cruzamiento'); ok(mCz && ['E1', 'E2', 'S1', 'S2'].every((x) => mCz.lb.includes(x)), 'práctica 7: cruzamiento E1/E2/S1/S2 ' + JSON.stringify(mCz));
 const mCy = await marcas('p5-montar', 'cruzamiento'); ok(mCy && ['1', '2', '3', '4'].every((x) => mCy.lb.includes(x)), 'proyecto guiado 5: cruzamiento 1–4 ' + JSON.stringify(mCy));
+// Evaluación de vivienda por niveles (como «Evaluación de circuitos»)
+await go('#eee/vivienda/evaluacion', 2000);
+ok(await pg.locator('.cx-htabs a.on[href="#eee/vivienda/evaluacion"]').count() === 1 && await pg.locator('#vvEvaluacion .cx-evcard').count() === 3, 'pestaña «Evaluación de vivienda» con 3 niveles');
+ok(await pg.locator('#vvEvaluacion a.cx-evcard[href="#eee/vivienda/ve1"]').count() === 1, 'el profesor puede abrir los niveles');
+await go('#eee/vivienda/ve1', 3000);
+ok(await pg.evaluate(() => window.__viv.prEval?.ev.id === 've1' && window.__viv.tab === 'examen'), 'el nivel 1 se abre en la pestaña «Prueba»');
+ok(await pg.locator('.vv-exam .vv-evk a').count() === 2 && await pg.locator('.vv-pasos').count() === 0 && await pg.locator('[data-pr="hazlo"]').count() === 0, 'la prueba tiene sus montajes y no tiene pasos ni «Hazlo por mí»');
+ok(await pg.evaluate(() => window.__viv.m.cables.length === 0), 'el montaje del examen empieza sin cables');
+await pg.evaluate(() => window.__viv.solucionPr()); await pg.waitForTimeout(400);
+await go('#eee/vivienda/ve1-1', 2500); await pg.evaluate(() => window.__viv.solucionPr()); await pg.waitForTimeout(400);
+await pg.evaluate(() => { window.__viv.opts.confirm = () => true; }); await pg.click('[data-pr="evenviar"]'); await pg.waitForTimeout(800);
+ok(await pg.locator('.cx-evres.ok .cx-evnota b').textContent().then((t) => t.trim() === '10'), 'al enviar se corrigen los dos montajes: nota automática 10');
+await go('#eee/vivienda/ve3', 3000);
+ok(await pg.evaluate(() => window.__viv.m.cables.length > 5), 'nivel 3: la avería empieza con la instalación montada (con fallos)');
+await go('#eee/vivienda/evaluacion', 1500);
+ok(await pg.locator('#vvEvaluacion a.cx-evcard[href="#eee/vivienda/ve1"] .cx-badge.ok').count() === 1, 'la tarjeta del nivel 1 enseña la nota enviada');
 // candados: el alumno con token «vivienda:vp1» solo ve abierta la 1
 const rol = await pg.evaluate(() => { if (!window.PORTAL) window.PORTAL = {}; if (!window.PORTAL.rol) { try { window.PORTAL.rol = 'alumno'; } catch (e) { } } return window.PORTAL.rol; });
 if (rol === 'alumno') {
@@ -66,6 +82,17 @@ if (rol === 'alumno') {
   await go('#eee/vivienda');
   const nl = await pg.locator('#vvPracticas .vv-prc.locked').count(); ok(nl === 6, 'con el candado solo queda abierta la práctica 1 (' + nl + ' cerradas)');
   await go('#eee/vivienda/vp3', 2500); ok(!/vp3/.test(await pg.evaluate(() => location.hash)), 'una práctica cerrada no se abre por enlace');
+  await go('#eee/vivienda/evaluacion'); ok(await pg.locator('#vvEvaluacion .cx-evcard.locked').count() === 3, 'alumno: los niveles de evaluación empiezan cerrados');
+  await go('#eee/vivienda/ve2', 2500); ok(!/ve2/.test(await pg.evaluate(() => location.hash)), 'un nivel cerrado no se abre por enlace');
+  await pg.evaluate(() => { window.__ent = []; window.PORTAL.entregar = async (o) => { window.__ent.push(o); }; window.PORTAL_SESION.apartados = ['vivienda:vp1', 'vivev:ve2']; window.dispatchEvent(new Event('portal-apartados')); });
+  await go('#eee/vivienda/evaluacion'); ok(await pg.locator('#vvEvaluacion .cx-evcard.locked').count() === 2, 'el profesor abre el nivel 2 y solo ese');
+  await go('#eee/vivienda/ve2', 3000); await pg.evaluate(() => { window.__viv.opts.confirm = () => true; }); await pg.click('[data-pr="evenviar"]'); await pg.waitForTimeout(800);
+  const en = await pg.evaluate(() => window.__ent.find((o) => o.practica === 'v8'));
+  ok(en && en.datos.comprobacion.nota === 0 && en.datos.comprobacion.items.length === 2 && /Evaluación de vivienda · Nivel 2/.test(en.titulo), 'el envío del alumno queda como entrega v8 con su nota automática ' + JSON.stringify(en?.datos?.comprobacion?.nota));
+  ok(await pg.locator('[data-pr="evenviar"]').count() === 0, 'después de enviar ya no se puede volver a enviar');
+  await go('#eee/vivienda'); const reg = pg.locator('#vvHome [data-pr="entregar"]');
+  if (await reg.count()) { await reg.click(); await pg.waitForTimeout(500); }
+  ok(await pg.evaluate(() => window.__ent.some((o) => o.practica === 'v6' && /Registro/.test(o.titulo))), 'registro: el progreso de las prácticas se guarda como entrega v6 para el profesor');
 } else console.log('(rol ' + rol + ': prueba de candados de alumno omitida)');
 ok(!errs.length, 'sin errores de página ' + errs.join(' | '));
 await b.close(); console.log(fallos ? `FALLOS ${fallos}` : 'TODO OK'); process.exit(fallos ? 1 : 0);

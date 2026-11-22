@@ -1,6 +1,6 @@
 // «Evaluación de vivienda» por niveles, como «Evaluación de circuitos» (src/circ/evaluaciones.js). Módulo puro.
 // Cada nivel tiene varios montajes de examen del tablero, sin pasos ni pistas. Se corrige cada montaje como su práctica
-// (funciona en todas las posiciones y cumple el REBT) y la nota es la media de los requisitos cumplidos (0–10).
+// (funciona en todas las posiciones y cumple el REBT) y la nota es la media de los montajes (cada uno, 0 si no funciona y 10 menos 2,5 por requisito del REBT incumplido).
 // Cada nivel se entrega en su propio documento (v7, v8, v9: ids que las reglas de Firestore ya admiten).
 import { practica, modeloInicial, modeloSolucion, comprobarPractica } from './practicas.js';
 import { sanear } from './modelo.js';
@@ -30,7 +30,11 @@ export function modeloExamen(mt) {
 export function corregirMontaje(mt, m, opts = {}) {
   const Pr = practica(mt.de); const R = comprobarPractica(Pr, m || modeloExamen(mt), opts);
   const n = R.items.length, bien = R.items.filter((x) => x.ok).length;
-  return { ok: R.ok, items: R.items.map((x) => ({ t: x.t, ok: !!x.ok })), bien, n, score: n ? bien / n : 0 };
+  // Nota del montaje: si no funciona, 0 (un tablero sin cables «cumple» muchas normas sin hacer nada); si funciona,
+  // 10 menos 2,5 por cada requisito del REBT que falla (5 en la avería, para que no puntúe dejarla como estaba).
+  const funciona = !!R.items[0]?.ok && !R.items.some((x) => !x.ok && /^No funciona|sin fase|no le llegan/i.test(x.t));
+  const fallos = n - bien; const score = R.ok ? 1 : funciona ? Math.max(0, 1 - fallos * (mt.averia ? 0.5 : 0.25)) : 0;
+  return { ok: R.ok, funciona, items: R.items.map((x) => ({ t: x.t, ok: !!x.ok })), bien, n, score };
 }
 export function corregirNivelViv(ev, modelos, opts = {}) {
   const montajes = ev.montajes.map((mt, k) => ({ titulo: practica(mt.de).title, ...corregirMontaje(mt, modelos?.[k], opts) }));

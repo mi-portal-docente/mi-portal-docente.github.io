@@ -1007,3 +1007,12 @@ tablero de la SA1, modo libre, juego, averías, materiales).
 - Módulo puro de evaluación (src/viv/evaluacion.js: niveles ve1–ve3 → entregas v7–v9) y candados 'vivev:' en circ/guiadas.js (cerrados por defecto), con viv_eval_test (4/4). Sin cambio de reglas.
 - Pruebas: viv_modelo 16/16, viv_practicas 13/13, viv_eval 4/4, viv_practicas_e2e TODO OK (con comprobaciones nuevas de la guía), viv_emoji_e2e OK, viv_test 94/94.
 - Falta: interfaz de la evaluación (H3), «Progreso en Vivienda» en el panel, almacenamiento por usuario, capturas h_*.
+
+### H3 — Evaluación de vivienda, candados y «Progreso en Vivienda» (caché v5-20261122i)
+- Pestaña «Evaluación de vivienda»: 3 niveles en tarjetas cx-evcard (N1 Puntos de luz, N2 Schuko y caja de registro, N3 Cuadro y avería) con candado del profesor (token 'vivev:', cerrados por defecto, igual que Circuitos) y nota en la tarjeta.
+- Prueba (src/viv/evallab.js): pestaña «Prueba» con los montajes del nivel, enunciado y plano de piezas, sin pasos, sin «Hazlo por mí» y sin solución para el alumno; un solo envío que corrige todo. Entrega v7/v8/v9 con comprobacion.nota (las reglas actuales ya lo admiten).
+- Nota de cada montaje: 0 si no funciona; si funciona, 10 − 2,5 por requisito del REBT incumplido (−5 en la avería). Entregar sin hacer nada = 0.
+- Panel → Grupos: botón «Progreso en Vivienda» (guiada/autónoma de las 7 prácticas por nº de lista a partir del registro v6, más N1–N3); en «Prácticas guiadas», casillas para las prácticas y los niveles de vivienda; editar un grupo conserva los candados de vivienda; títulos de v6–v9 en Entregas.
+- Arreglo: el botón «Enviar ahora» del registro en la portada no hacía nada.
+- Pruebas: viv_eval 5/5, viv_practicas_e2e TODO OK (con evaluación, candados de nivel, entrega v8 y registro v6), viv_emoji OK, viv_test 94/94.
+- Falta: almacenamiento por usuario en el mismo navegador, captura de la tabla del profesor (necesita Firebase), circ_test completo.

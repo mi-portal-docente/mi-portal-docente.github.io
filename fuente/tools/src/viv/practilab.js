@@ -6,6 +6,7 @@ import { sanear, varianteMarcas } from './modelo.js';
 import { planoSVG, tablaCables } from './proyectos.js';
 import { ic } from '../ui/iconos.js';
 import { guiaDe } from './practicas-guia.js';
+import { modeloExamen } from './evaluacion.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const portal = () => (typeof window !== 'undefined' ? window.PORTAL : null);
@@ -92,7 +93,7 @@ const M = {
     if (auto && alumno() && !guiadaHechaPr(Pr.id)) { setTimeout(() => this.toast('Primero termina la guiada (todos los pasos en verde y «Comprobar» bien). Después podrás hacerla tú solo.', 4500), 200); location.hash = '#eee/vivienda/' + Pr.id; return; }
     const modo = Pr.id + (auto ? '-auto' : ''); const mismo = this.kind === 'practica' && this.modo === modo;
     varianteMarcas(true);
-    this.pr = Pr; this.prAuto = auto; this.kind = 'practica'; this.modo = modo; this.proy = null; this.rev = null; this.ro = false;
+    this.pr = Pr; this.prAuto = auto; this.prEval = null; this.kind = 'practica'; this.modo = modo; this.proy = null; this.rev = null; this.ro = false;
     const root = this.$('.vv'); root.dataset.modo = 'practica'; ['es-casa', 'es-taller', 'es-montaje', 'es-proy'].forEach((c) => root.classList.remove(c));
     this.$('#vvTitulo').innerHTML = `<span class="vv-pn">${Pr.n}</span><span>${esc(Pr.title)}${auto ? ' · autónoma' : ''}</span>`;
     this.crumbs(); this.initScene(); this.vistaActiva = 'tablero'; this.activarControles(); this.stepbar(); this.strip();
@@ -117,9 +118,9 @@ const M = {
   // ------------------------------------------------------------ panel lateral
   practicaLado() {
     const S = this.$('#vvSide'); const Pr = this.pr; const auto = this.prAuto;
-    const T = [[auto ? 'enunciado' : 'guia', auto ? 'Enunciado' : 'Guía'], ['esquema', 'Esquema'], ['norma', 'REBT']];
+    const T = this.prEval ? [['examen', 'Prueba'], ['norma', 'REBT']] : [[auto ? 'enunciado' : 'guia', auto ? 'Enunciado' : 'Guía'], ['esquema', 'Esquema'], ['norma', 'REBT']];
     if (!T.some(([k]) => k === this.tab)) this.tab = T[0][0];
-    const cuerpo = this.tab === 'esquema' ? this.esquemaPrHTML(Pr) : this.tab === 'norma' ? this.normaPrHTML(Pr) : auto ? this.enunciadoPrHTML(Pr) : this.guiaPrHTML(Pr);
+    const cuerpo = this.tab === 'examen' && this.prEval ? this.examenPrHTML() : this.tab === 'esquema' ? this.esquemaPrHTML(Pr) : this.tab === 'norma' ? this.normaPrHTML(Pr) : auto ? this.enunciadoPrHTML(Pr) : this.guiaPrHTML(Pr);
     S.innerHTML = `${this.inspectorHTML()}${this.simHTML()}<nav class="vv-tabs">${T.map(([k, n]) => `<button data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${n}</button>`).join('')}</nav><div class="vv-tab vv-prtab">${cuerpo}</div>`;
   },
   // Guía con la misma estructura que la de Circuitos 3D (guideHTML): cabecera, progreso, desplegables de objetivo y
@@ -205,7 +206,7 @@ const M = {
       <p class="vv-small">Los cables van siempre dentro del tubo y los empalmes, dentro de las cajas de registro (ITC-BT-21).</p>`;
   },
   comprobarPr() {
-    const Pr = this.pr; const R = comprobarPractica(Pr, this.m, { realista: this.realista }); this.prchk = R;
+    if (this.prEval) return null; const Pr = this.pr; const R = comprobarPractica(Pr, this.m, { realista: this.realista }); this.prchk = R;
     const malos = new Set(), tubos = new Set(); for (const i of R.items) if (!i.ok) { (i.cables || []).forEach((c) => malos.add(c)); (i.tubos || []).forEach((t) => tubos.add(t)); }
     this.chk = { ok: R.ok, items: R.items, cables: malos, tubos };
     if (R.ok) { guarda((this.prAuto ? 'pr:auto:' : 'pr:done:') + Pr.id, true); guarda('pr:ok:' + this.modo, this.m); if (alumno()) setTimeout(() => this.entregarPr(true), 50); this.toast(this.prAuto ? 'Autónoma completada.' : 'Guiada completada. Ahora puedes hacerla tú solo.', 3500); }
@@ -251,8 +252,9 @@ const M = {
   solucionPr() { if (this.kind !== 'practica') return false; this.guardarUndo(); this.m = modeloSolucion(this.pr); this.red = false; this.prchk = null; this._dimKey = null; this.cambio(); return true; },
   onClickPractica(t) {
     const b = t.closest('[data-pr]'); if (!b) return false; const v = b.dataset.pr;
+    if (this.prEval) { if (this.onClickEval(v)) return true; if (v === 'hazlo' || v === 'comprobar' || v === 'entregar' || this.ro) return true; }
     if (v === 'comprobar') this.comprobarPr();
-    else if (v === 'reiniciar') { if ((this.opts.confirm || confirm)('¿Empezar esta práctica desde el principio?')) { this.guardarUndo(); this.m = modeloInicial(this.pr); this.prAcc = {}; guarda('pr:acc:' + this.modo, {}); this.prchk = null; this.red = false; this.cambio(); } }
+    else if (v === 'reiniciar') { if ((this.opts.confirm || confirm)('¿Empezar esta práctica desde el principio?')) { this.guardarUndo(); this.m = this.prEval ? modeloExamen(this.prEval.ev.montajes[this.prEval.k]) : modeloInicial(this.pr); this.prAcc = {}; guarda('pr:acc:' + this.modo, {}); this.prchk = null; this.red = false; this.cambio(); } }
     else if (v === 'entregar') this.entregarPr();
     else if (v === 'hazlo') this.hazloPr();
     else if (v === 'respuestas' || v === 'versol') { const G = guiaDe(this.pr.id) || {}; const st = this.prQ; if (!st) return true;
