@@ -39,6 +39,33 @@ export function simboloTex(tipo, color = '#9aa1a6') {
   else if (tipo === 'tierra') { g.beginPath(); g.moveTo(64, 14); g.lineTo(64, 60); g.moveTo(28, 60); g.lineTo(100, 60); g.moveTo(40, 80); g.lineTo(88, 80); g.moveTo(52, 100); g.lineTo(76, 100); g.stroke(); }
   const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; tc.set(k, tx); return tx;
 }
+// Esquema serigrafiado por detrás del mecanismo (como en Schneider New Unica / Elda): símbolo, bornes y datos
+export function esquemaTex(tipo) {
+  const k = 'esq|' + tipo; if (tc.has(k)) return tc.get(k);
+  const W = 320, H = 150; const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#ecebe6'; g.fillRect(0, 0, W, H); g.strokeStyle = '#3c4248'; g.fillStyle = '#3c4248'; g.lineWidth = 5; g.lineCap = 'round'; g.lineJoin = 'round';
+  const T = (t, x, y, s = 26, col = '#3c4248') => { g.fillStyle = col; g.font = `bold ${s}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, x, y); g.fillStyle = '#3c4248'; };
+  const P = (x, y) => { g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.fill(); };
+  const L = (pts) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); };
+  const pie = tipo === 'enchufe' || tipo === 'enchufe2' ? '16 A 250 V~  2P+T' : tipo === 'pulsador' ? '10 A 250 V~' : tipo === 'bombilla' ? 'E27  máx. 60 W  250 V~' : '10 AX 250 V~';
+  if (tipo === 'interruptor' || tipo === 'pulsador') {
+    T('L', 40, 52, 30, '#c81e1e'); T('1', 280, 52, 30); L([[60, 70], [120, 70]]); P(120, 70); L([[200, 70], [260, 70]]); P(200, 70);
+    if (tipo === 'pulsador') { L([[118, 52], [202, 52]]); L([[160, 52], [160, 30]]); L([[146, 30], [174, 30]]); } else L([[122, 68], [196, 40]]);
+  } else if (tipo === 'conmutador') {
+    T('L', 40, 70, 30, '#c81e1e'); T('1', 282, 34, 28); T('2', 282, 104, 28); L([[60, 70], [120, 70]]); P(120, 70);
+    L([[200, 40], [262, 40]]); L([[200, 100], [262, 100]]); P(200, 40); P(200, 100); L([[122, 70], [196, 46]]);
+  } else if (tipo === 'cruzamiento') {
+    T('E1', 36, 36, 24, '#c81e1e'); T('E2', 36, 104, 24, '#c81e1e'); T('S1', 284, 36, 24); T('S2', 284, 104, 24);
+    L([[62, 36], [120, 36]]); L([[62, 104], [120, 104]]); L([[200, 36], [258, 36]]); L([[200, 104], [258, 104]]); [[120, 36], [120, 104], [200, 36], [200, 104]].forEach(([x, y]) => P(x, y));
+    L([[124, 36], [196, 36]]); L([[124, 104], [196, 104]]); g.setLineDash([9, 8]); L([[124, 40], [196, 100]]); L([[124, 100], [196, 40]]); g.setLineDash([]);
+  } else if (tipo === 'enchufe' || tipo === 'enchufe2') {
+    T('L', 70, 50, 30, '#7a4a22'); T('N', 250, 50, 30, '#1f5fd6'); g.strokeStyle = '#2f9e44'; L([[160, 30], [160, 64]]); L([[136, 64], [184, 64]]); L([[144, 76], [176, 76]]); L([[152, 88], [168, 88]]); g.strokeStyle = '#3c4248';
+    g.beginPath(); g.arc(160, 60, 52, Math.PI * 0.15, Math.PI * 0.85); g.stroke();
+  } else if (tipo === 'bombilla') { T('L', 60, 50, 30, '#7a4a22'); T('N', 260, 50, 30, '#1f5fd6'); g.beginPath(); g.arc(160, 56, 26, 0, Math.PI * 2); g.stroke(); L([[142, 38], [178, 74]]); L([[178, 38], [142, 74]]); T('L = contacto central · N = rosca', 160, 102, 17); }
+  else { T(tipo, 160, 60, 24); }
+  T(pie, 160, 132, 20, '#596067');
+  const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; tc.set(k, tx); return tx;
+}
 function simbolo(tipo, w, x, y, z, par, color) { const m = new THREE.Mesh(geo(`p${w}|${w}`, () => new THREE.PlaneGeometry(w, w)), (() => { const kk = 'simM|' + tipo + color; if (!mc.has(kk)) { const mm = new THREE.MeshBasicMaterial({ map: simboloTex(tipo, color), transparent: true, depthWrite: false }); mm.userData.compartido = true; mc.set(kk, mm); } return mc.get(kk); })()); m.position.set(x, y, z); par?.add(m); return m; }
 export function texto(t, { color = '#1d2329', bg = null, w = 128, h = 64, font = 'bold 40px system-ui, sans-serif' } = {}) {
   const k = [t, color, bg, w, h, font].join('|'); if (tc.has(k)) return tc.get(k);
@@ -143,9 +170,17 @@ export function mecanismo3D(tipo, o = {}) {
         for (const s of [-0.26, 0.26]) cil(0.15, 0.05, HUECO(), bx + s, by - 0.3, 0.92, mc2, 12);
         caja(0.55, 0.14, 0.05, HUECO(), bx, by - 0.62, 0.93, mc2);
       }
-      rotulo(mk, 0.9, 0.6, bx, by - 1.05, 0.94, mc2, { atras: true, color: col, w: 96, h: 64, font: 'bold 52px system-ui, sans-serif' });
+      // pulsador de liberación de la conexión rápida: rojo en el borne de la fase (L), como en New Unica; en el cruzamiento, un color por par
+      if (!esEnch) caja(0.55, 0.14, 0.06, mat(mk === 'L' || /^E/.test(mk) ? 0xc81e1e : /^S/.test(mk) ? 0x2b2b2b : 0x9aa0a6, { roughness: 0.5 }), bx, by - 0.62, 0.9, mc2);
+      const ly = by >= 0 ? Math.min(1.85, by + 0.85) : Math.max(-1.95, by - 0.85);
+      if (t === 'PE') simbolo('tierra', 0.7, bx, ly, 0.93, mc2, '#2f9e44');
+      else rotulo(mk, 0.9, 0.6, bx, ly, 0.94, mc2, { atras: true, color: mk === 'L' && !esEnch ? '#c81e1e' : col, w: 96, h: 64, font: 'bold 52px system-ui, sans-serif' });
       G.userData.bornes[t] = { grupo: 'mecanismo', pos: new THREE.Vector3(bx, by - 0.35, 0.9) };
     }
+    for (let i = 0; i < (doble ? 2 : 1); i++) { if (tipo === 'minutero') break; const cx = -dx / 2 + i * dx; // esquema serigrafiado en la trasera
+      const ey = esEnch ? -0.3 : tipo === 'interruptor' || tipo === 'pulsador' ? -0.9 : 0; const eh = esEnch ? 0.95 : tipo === 'interruptor' || tipo === 'pulsador' ? 1.15 : 0.9;
+      const es = new THREE.Mesh(geo(`p3.3|${eh}`, () => new THREE.PlaneGeometry(3.3, eh)), (() => { const kk = 'esqM|' + tipo; if (!mc.has(kk)) { const mm = new THREE.MeshBasicMaterial({ map: esquemaTex(tipo), side: THREE.FrontSide }); mm.userData.compartido = true; mc.set(kk, mm); } return mc.get(kk); })());
+      es.position.set(cx, ey, 0.86); es.rotation.y = Math.PI; es.name = 'esquema'; mc2.add(es); }
     if (esEnch) for (let i = 0; i < (doble ? 2 : 1); i++) { const cx = -dx / 2 + i * dx; // garras de tierra arriba y abajo y tornillo central (foto 5)
       for (const sy of [-1, 1]) { caja(0.9, 0.18, 2.3, MATS.acero(), cx, sy * 1.95, 1.0, mc2); caja(0.9, 0.5, 0.18, MATS.acero(), cx, sy * 1.75, 3.15, mc2); }
       caja(0.25, 3.6, 0.12, MATS.acero(), cx, 0, 0.88, mc2); tornillo(cx, 0.15, 0.98, mc2, 0.26, 'pz', true); }
@@ -252,9 +287,9 @@ export function ficha3D(tipo) {
       caja(pv - 0.22, 0.12, 0.42, MATS.acero(), x, -0.55, 0.22, G); // pinza (resorte)
       cil(0.15, 0.06, MAT.hueco(), x, -0.93, 0.3, G, 10).rotation.x = 0; // boca del cable
       caja(0.1, 0.22, 0.03, MAT.hueco(), x, -0.78, 0.86, G); } // ranura de prueba (delante de la palanca)
-  } else if (f.kind === 'insercion') { // tipo 2273: carcasa transparente con tapa de color y entradas redondas
+  } else if (f.kind === 'insercion') { // tipo 2273 (tapa: 2 vías blanca, 3 naranja, 4 roja, 5 amarilla, 8 gris; wago.com/es) y entradas redondas
     const cu = bloqueRedondo(w, 1.3, 0.75, 0.1, pbr(0xe6eef2, { roughness: 0.08, transparent: true, opacity: 0.45, depthWrite: false, clearcoat: 1 }), G, 0.03); cu.position.z = 0.375;
-    const tp = bloqueRedondo(w + 0.02, 0.5, 0.78, 0.1, pbr(n >= 5 ? 0xf2c200 : n === 3 ? 0xff7a12 : 0xcfd3d6, { roughness: 0.4 }), G, 0.03); tp.position.set(0, 0.42, 0.39);
+    const tp = bloqueRedondo(w + 0.02, 0.5, 0.78, 0.1, pbr(n >= 8 ? 0x5a5e62 : n >= 5 ? 0xf2c200 : n === 4 ? 0xd0282e : n === 3 ? 0xff7a12 : 0xf4f4f2, { roughness: 0.4 }), G, 0.03); tp.position.set(0, 0.42, 0.39);
     caja(w - 0.12, 0.7, 0.1, MAT.cobre(), 0, -0.15, 0.1, G);
     for (let i = 0; i < n; i++) { const x = -w / 2 + pv * (i + 0.5); cil(0.13, 0.05, MAT.hueco(), x, -0.62, 0.3, G, 10); caja(pv - 0.12, 0.08, 0.36, MATS.acero(), x, -0.38, 0.2, G); }
   } else { // regleta (clema) de polietileno: casquillo de latón pasante y dos tornillos, uno por lado

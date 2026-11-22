@@ -923,3 +923,29 @@ tablero de la SA1, modo libre, juego, averías, materiales).
     - Schuko 16 A con contactos de tierra laterales: ya estaba en el modelo (bloque A). Nada que corregir en medidas.
   - Pruebas: viv_practicas_test 13/13, viv_modelo_test 16/16, viv_tubos_test OK, viv_practicas_e2e OK, viv_emoji_e2e OK, viv_test 94/94, circ_test 77/77.
   - Capturas: /workspace/capturas-vivienda/e_cuadro.png, e_plano.png, e_rebt_movil.png (y e_cuadro_movil.png).
+- Bloque F — HECHO (caché v5-20261122e): mecanismos, fichas y cables revisados con piezas reales (Schneider New Unica/Elda, WAGO).
+  - Regla: los ids internos de los bornes NO cambian (1, 2, C, 1–4, L/N/PE), así que los montajes guardados y la guía de la SA1
+    siguen valiendo; solo cambia lo que se ve (marcado, nombre del borne, esquema trasero) y los textos que lo nombran.
+  - Visor «Ver en 3D»: cada mecanismo lleva por detrás su esquema serigrafiado (símbolo IEC, bornes, L en rojo, valores
+    nominales), la tecla de desenclavar del borne de fase en rojo (como New Unica) y la tierra con su símbolo.
+  - Comprobación: un cable flexible (H07V-K, el del laboratorio) en un conector de inserción tipo WAGO 2273 ahora es FALLO en modo
+    realista (sim.js, «flexible»): el 2273 solo admite rígido. Ninguna solución ni la SA1 usan esas fichas.
+
+  | Elemento | Referencia real | Lo que había | Lo que he cambiado | Fuente |
+  |---|---|---|---|---|
+  | Interruptor simple | Schneider New Unica NU310118 / Elda, 10 AX 250 V~; dos bornes arriba marcados L y 1; esquema detrás | Bornes «C» y «↓» | Marcado L / 1, borne L rojo, esquema trasero «L —/ 1 · 10 AX 250 V~», textos y preguntas con L y 1 | rolearmais.pt/uploads/product_documents/RM_LSB03605EN.pdf (catálogo New Unica: esquema en la parte trasera, L y 1) |
+  | Conmutador | New Unica NU310318, 10 AX; común L + viajeros 1 y 2 | Marcado L, 1, 2 (ya correcto) | Borne L rojo y esquema trasero del conmutador | mismo catálogo New Unica |
+  | Cruzamiento | New Unica NU310518, 10 AX 250 V~, 22,5×45 mm; dos circuitos de distinto color | Bornes 1–4 | Marcado E1/E2 (entradas, tecla roja) y S1/S2 (salidas, tecla negra); esquema recto + cruzado detrás | latiendadeelectricidad.com, ficha NU310518 |
+  | Pulsador | New Unica NU310618, 10 A 250 V~ NA, bornes sin tornillo 0–2,5 mm² | Bornes «C» y «↓» | Marcado L / 1, esquema de pulsador NA, «10 A 250 V~» | latiendadeelectricidad.com, ficha NU310618 |
+  | Base schuko | New Unica 2P+T 16 A 250 V~ (tierra lateral) | L/N/PE, tierra lateral | Símbolo de tierra en el borne PE, esquema L/N/tierra detrás, «16 A 250 V~ 2P+T»; L/N sin polaridad obligatoria (dicho en el texto) | catálogo New Unica; ITC-BT-19 colores |
+  | Minutero | Automático de escalera de 4 bornes L, N, 3, lámpara | L, N, 3, ↓ | Sin cambios (el borne de lámpara se marca con símbolo) | — |
+  | Cajas de empalme | Caja estanca de registro 80/100 mm con conos y tapa de 4 tornillos (tipo Plexo) | Igual | Sin cambios | bloque E (EN 60670-22) |
+  | Fichas de palanca | WAGO 221: 0,14–4 mm² rígido y flexible, 32 A 450 V, pelado 11 mm | Igual | Sin cambios | wago.com/es (221-412/413/415) |
+  | Fichas de inserción | WAGO 2273: SOLO rígido 0,5–2,5 mm², 24 A 450 V, pelado 11 mm; tapa 2 blanca, 3 naranja, 4 roja, 5 amarilla, 8 gris | Admitían el H07V-K flexible; tapa de 2 gris | Fallo realista con cable flexible; texto de la referencia; colores de tapa reales | wago.com/es/…/p/2273-203; sparx-elec.fr/wago-221-vs-2273 |
+  | Regleta | Clema de polietileno de tornillo | Igual | Sin cambios | — |
+  | Cables | H07V-K 450/750 V (UNE-EN 50525-2-31); 1,5 (C1), 2,5 (C2, C5), 4 (C4), 6 (C3) mm²; marrón/negro/gris fase, azul neutro, verde-amarillo tierra | Serigrafía «H07V-K 1x… mm² 450/750 V Eca» | Sin cambios (correcto; ES07Z1-K solo es obligatorio en pública concurrencia, ITC-BT-28) | ITC-BT-19, ITC-BT-25 tabla 1 |
+  | Portalámparas E27 | Contacto central = fase (retorno), rosca = neutro | Igual | Sin cambios | UNE-EN 60238 |
+
+  - Pruebas y capturas: ver más abajo. Capturas f_<mecanismo>_delante.png y _detras.png en /workspace/capturas-vivienda/ (capturas_mec.mjs).
+  - Pendiente: las refs NU310118 y NU310318 no las he contrastado con una ficha (sí NU310518 y NU310618); en el enchufe el esquema
+    trasero queda cerca del borne de tierra; caja de empalme sin referencia Schneider concreta.

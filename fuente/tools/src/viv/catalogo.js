@@ -51,9 +51,9 @@ export const FICHAS = {
   w412: { n: 'Conector de palanca 2 vías', corto: 'Palanca 2', vias: 2, smin: 0.2, smax: 4, A: 32, kind: 'palanca', pel: 11, ancho: 1.31, precio: 0.45, ref: 'tipo WAGO 221-412' },
   w413: { n: 'Conector de palanca 3 vías', corto: 'Palanca 3', vias: 3, smin: 0.2, smax: 4, A: 32, kind: 'palanca', pel: 11, ancho: 1.87, precio: 0.55, ref: 'tipo WAGO 221-413' },
   w415: { n: 'Conector de palanca 5 vías', corto: 'Palanca 5', vias: 5, smin: 0.2, smax: 4, A: 32, kind: 'palanca', pel: 11, ancho: 2.99, precio: 0.8, ref: 'tipo WAGO 221-415' },
-  i2: { n: 'Conector de inserción 2 vías', corto: 'Inserción 2', vias: 2, smin: 0.5, smax: 2.5, A: 24, kind: 'insercion', pel: 11, ancho: 0.9, precio: 0.2, ref: 'tipo WAGO 2273-202 (solo cable rígido)' },
-  i3: { n: 'Conector de inserción 3 vías', corto: 'Inserción 3', vias: 3, smin: 0.5, smax: 2.5, A: 24, kind: 'insercion', pel: 11, ancho: 1.3, precio: 0.25, ref: 'tipo WAGO 2273-203 (solo cable rígido)' },
-  i5: { n: 'Conector de inserción 5 vías', corto: 'Inserción 5', vias: 5, smin: 0.5, smax: 2.5, A: 24, kind: 'insercion', pel: 11, ancho: 2.0, precio: 0.35, ref: 'tipo WAGO 2273-205 (solo cable rígido)' },
+  i2: { n: 'Conector de inserción 2 vías', corto: 'Inserción 2', vias: 2, smin: 0.5, smax: 2.5, A: 24, kind: 'insercion', pel: 11, ancho: 0.9, precio: 0.2, ref: 'tipo WAGO 2273-202: SOLO cable rígido (no vale para el H07V-K flexible)' },
+  i3: { n: 'Conector de inserción 3 vías', corto: 'Inserción 3', vias: 3, smin: 0.5, smax: 2.5, A: 24, kind: 'insercion', pel: 11, ancho: 1.3, precio: 0.25, ref: 'tipo WAGO 2273-203: SOLO cable rígido (no vale para el H07V-K flexible)' },
+  i5: { n: 'Conector de inserción 5 vías', corto: 'Inserción 5', vias: 5, smin: 0.5, smax: 2.5, A: 24, kind: 'insercion', pel: 11, ancho: 2.0, precio: 0.35, ref: 'tipo WAGO 2273-205: SOLO cable rígido (no vale para el H07V-K flexible)' },
   r4: { n: 'Regleta de tornillo 4 mm² (1 polo)', corto: 'Regleta 4', vias: 2, smin: 0.5, smax: 4, A: 24, kind: 'regleta', pel: 8, ancho: 1.0, precio: 0.12, ref: 'clema de 12 polos cortada: 1 cable por lado' },
   r10: { n: 'Regleta de tornillo 10 mm² (1 polo)', corto: 'Regleta 10', vias: 2, smin: 1.5, smax: 10, A: 41, kind: 'regleta', pel: 10, ancho: 1.4, precio: 0.2, ref: 'clema de 10 mm²: para 4 y 6 mm²' },
 };
@@ -84,8 +84,8 @@ export const PUNTAS = {
 export const MECANISMO = { marco: 8.1, modulo: 4.5, fondo: 4.2, cajaSup: 8.4, cajaSupFondo: 4.2, entreEjes: 6.0 };
 // Marcas de los bornes por detrás (como en los mecanismos reales)
 export const MARCAS = {
-  interruptor: { 1: 'L', 2: '↓' }, conmutador: { C: 'L', 1: '1', 2: '2' }, cruzamiento: { 1: '1', 2: '2', 3: '3', 4: '4' },
-  pulsador: { 1: 'L', 2: '↓' }, enchufe: { L: 'L', N: 'N', PE: '⏚' }, enchufe2: { L: 'L', N: 'N', PE: '⏚' }, minutero: { L: 'L', N: 'N', 3: '3', 4: '↓' }, bombilla: { L: 'L', N: 'N' },
+  interruptor: { 1: 'L', 2: '1' }, conmutador: { C: 'L', 1: '1', 2: '2' }, cruzamiento: { 1: 'E1', 2: 'E2', 3: 'S1', 4: 'S2' },
+  pulsador: { 1: 'L', 2: '1' }, enchufe: { L: 'L', N: 'N', PE: '⏚' }, enchufe2: { L: 'L', N: 'N', PE: '⏚' }, minutero: { L: 'L', N: 'N', 3: '3', 4: '↓' }, bombilla: { L: 'L', N: 'N' },
 };
 
 // ---------------------------------------------------------------- herramientas (modo Taller y modos de montaje)
@@ -151,10 +151,10 @@ export const herramienta = (id) => HERRAMIENTAS.find((h) => h.id === id);
 // ---------------------------------------------------------------- referencias de producto (solo texto)
 export const REFERENCIAS = {
   enchufe: 'Base Schuko 2P+T 16 A 250 V (tipo Schneider New Unica NU3057xx, Simon 270 o Legrand Niloé): mecanismo de 45 × 45 mm y 42 mm de fondo, en caja universal (60 mm entre ejes, 40 mm de fondo mínimo); bornes para cables de hasta 2,5 mm²; tierra por patillas laterales.',
-  interruptor: 'Interruptor 10 AX 250 V (tipo Schneider New Unica, Simon 270): dos bornes, entrada L (fase) y salida marcada con una flecha ↓ (retorno a la lámpara). Bornes de tornillo con agujeros de conexión rápida.',
-  conmutador: 'Conmutador 10 AX (tipo Schneider New Unica, Simon 270): borne común L (o flecha) y dos viajeros 1 y 2. Sirve como interruptor usando L y 1.',
-  cruzamiento: 'Cruzamiento 10 AX: cuatro bornes. Va entre dos conmutadores para encender desde tres o más sitios.',
-  pulsador: 'Pulsador 10 A: solo cierra mientras lo pulsas (timbre, automático de escalera).',
+  interruptor: 'Interruptor 10 AX 250 V~ (tipo Schneider New Unica NU310118 o Elda): dos bornes en el mismo lado, L (fase, borne rojo) y 1 (salida a la lámpara). No tiene polaridad eléctrica, pero la fase entra siempre por L.',
+  conmutador: 'Conmutador 10 AX 250 V~ (tipo Schneider New Unica NU310318): borne común L (rojo) y dos viajeros 1 y 2. Usando solo L y 1 hace de interruptor simple.',
+  cruzamiento: 'Cruzamiento 10 AX 250 V~ (tipo Schneider New Unica NU310518): cuatro bornes en dos pares de distinto color, E1-E2 (viajeros que llegan de un conmutador) y S1-S2 (viajeros hacia el otro). Une E1-S1 y E2-S2, o cruzado E1-S2 y E2-S1. Va entre dos conmutadores.',
+  pulsador: 'Pulsador 10 A 250 V~ NA (tipo Schneider New Unica NU310618): bornes L y 1; solo cierra mientras lo pulsas (timbre, automático de escalera).',
   bombilla: 'Portalámparas E27 de superficie con bornes de tornillo L y N. Bombilla LED o incandescente de 60 W.',
   mt: 'Magnetotérmico 1P+N (tipo Schneider DPN Resi9 o Acti9 iC60N): 18 mm de ancho (1 módulo), 81 mm de alto; curva C, poder de corte 6 kA; bornes de tornillo PZ2, pelado 14 mm.',
   id: 'Interruptor diferencial 2P 30 mA clase AC o A (tipo Schneider Resi9 o Acti9 iID): 36 mm (2 módulos), 25 o 40 A. Botón T de prueba: púlsalo una vez al mes.',

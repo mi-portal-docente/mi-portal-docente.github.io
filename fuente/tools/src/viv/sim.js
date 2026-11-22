@@ -21,7 +21,7 @@ class UF { constructor() { this.p = new Map(); } f(x) { if (!this.p.has(x)) this
 export const CONDUCE = new Set(['ok', 'largo', 'flojo', 'pasado']);
 export const TXT_PUNTA = {
   ok: 'bien', sinPelar: 'sin pelar', corto: 'pelado corto: el aislante queda dentro del borne (no hace contacto)', largo: 'pelado largo: cobre a la vista fuera del borne',
-  flojo: 'borne sin apretar (flojo)', pasado: 'apretado con el taladro: par excesivo, cable dañado', sinFicha: 'sin ficha de empalme', llena: 'la ficha ya está llena: este cable no entra',
+  flojo: 'borne sin apretar (flojo)', pasado: 'apretado con el taladro: par excesivo, cable dañado', sinFicha: 'sin ficha de empalme', flexible: 'cable flexible (H07V-K) en un conector de inserción tipo WAGO 2273, que solo admite cable rígido: usa uno de palanca (tipo 221)', llena: 'la ficha ya está llena: este cable no entra',
   seccion: 'sección fuera del rango de la ficha',
 };
 export function puntas(m) {
@@ -33,7 +33,7 @@ export function puntas(m) {
       let s = 'ok';
       if (p?.type === 'caja') {
         const f = FICHAS[p.fichas?.[ref.t]]; const key = k(ref.p, ref.t); const n = (cuenta.get(key) || 0) + 1; cuenta.set(key, n);
-        if (!f) s = 'sinFicha'; else if (n > f.vias) s = 'llena'; else if (c.sec < f.smin || c.sec > f.smax) s = 'seccion';
+        if (!f) s = 'sinFicha'; else if (n > f.vias) s = 'llena'; else if (c.sec < f.smin || c.sec > f.smax) s = 'seccion'; else if (f.kind === 'insercion') s = 'flexible'; // el H07V-K es flexible: el WAGO 2273 solo admite rígido
       }
       if (s === 'ok') {
         const B = BORNES[kind] || BORNES.mecanismo;
@@ -287,7 +287,7 @@ export function comprobar(m, opts = {}) {
   }
   if (realista && m.cables.length) {
     const P = puntas(m); const mal = (set) => m.cables.flatMap((c) => ['a', 'b'].filter((l) => set.includes(P.get(c.id)[l])).map((l) => ({ c, l, s: P.get(c.id)[l] })));
-    const pel = mal(['sinPelar', 'corto', 'largo']); const apr = mal(['flojo', 'pasado']); const fic = mal(['sinFicha', 'llena', 'seccion']);
+    const pel = mal(['sinPelar', 'corto', 'largo']); const apr = mal(['flojo', 'pasado']); const fic = mal(['sinFicha', 'llena', 'seccion', 'flexible']);
     add(!pel.length, pel.length ? `Pelado: ${pel.length} punta${pel.length > 1 ? 's' : ''} mal pelada${pel.length > 1 ? 's' : ''} (${lista(pel.map((x) => `${nombreBorne(m, x.c[x.l])}: ${TXT_PUNTA[x.s]}`), 2)})` : 'Puntas peladas a la medida de cada borne', 'pelado', { cables: pel.map((x) => x.c.id) });
     add(!apr.length, apr.length ? `Apriete: ${lista(apr.map((x) => `${nombreBorne(m, x.c[x.l])}: ${TXT_PUNTA[x.s]}`), 2)}` : 'Bornes de tornillo apretados con la punta correcta', 'apriete', { cables: apr.map((x) => x.c.id) });
     add(!fic.length, fic.length ? `Fichas de empalme: ${lista(fic.map((x) => `${nombreBorne(m, x.c[x.l])}: ${TXT_PUNTA[x.s]}`), 2)}` : 'Empalmes con fichas del número de vías y la sección correctos', 'fichas', { cables: fic.map((x) => x.c.id) });

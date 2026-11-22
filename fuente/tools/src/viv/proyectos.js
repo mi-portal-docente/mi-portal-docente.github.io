@@ -60,7 +60,7 @@ export const PROYECTOS = [
   {
     n: 1, id: 'luz', icon: '💡', title: 'Punto de luz simple', level: 'Iniciación', duration: '2 sesiones (2 h)', short: 'Una lámpara mandada por un interruptor, con caja de empalme y fichas WAGO.',
     intro: 'El circuito más básico de una vivienda: el interruptor corta la FASE de la lámpara. La fase y el neutro llegan del C1 (10 A, 1,5 mm²) a la caja de empalme; desde allí la fase va al interruptor y vuelve como «retorno» al portalámparas.',
-    objectives: ['Identificar los bornes del interruptor: L (entrada de la fase) y ↓ (salida hacia la lámpara).', 'Conectar el portalámparas: fase al contacto central (L) y neutro a la rosca (N).', 'Empalmar en la caja con conectores de palanca del número de vías justo.', 'Comprobar con el polímetro y el buscapolos.'],
+    objectives: ['Identificar los bornes del interruptor: L (entrada de la fase) y 1 (salida hacia la lámpara), con el esquema que trae serigrafiado por detrás.', 'Conectar el portalámparas: fase al contacto central (L) y neutro a la rosca (N).', 'Empalmar en la caja con conectores de palanca del número de vías justo.', 'Comprobar con el polímetro y el buscapolos.'],
     caution: 'El interruptor SIEMPRE corta la fase: si cortara el neutro, la lámpara apagada seguiría con tensión.', circuito: 'C1 · alumbrado · PIA 10 A · cable 1,5 mm²',
     material: [['interruptor', 1], ['portalamparas', 1], ['caja', 1], ['wago2', 3], ['tubo16', 3], ['h07v15', 3, 'marrón, azul y negro'], ['pia10', 1, 'ya montado en el cuadro'], ['id', 1, 'ya montado en el cuadro']],
     herramientas: ['epi', 'taladro', 'nivel', 'flexometro', 'cortatubos', 'guia', 'pelacables', 'destornillador', 'multimetro', 'buscapolos'],
@@ -76,9 +76,9 @@ export const PROYECTOS = [
       T('Fase y neutro del C1 a la caja de empalme', 'alicate', { opts: ['alicate', 'destornillador:PZ2', 'cutter'], por: 'Los conectores de palanca no llevan tornillo: se abre la palanca, se mete el cable hasta el fondo y se cierra. El alicate sirve para enderezar las puntas.',
         take: ['2 conectores de palanca de 2 vías (tipo WAGO 221-412)'], do: ['Fase (<b>marrón</b>) del borne 2 del C1 (abajo) a la ficha 1 de CE1.', 'Neutro (<b>azul</b>) del borne N del C1 a la ficha 2.', 'Abre la palanca naranja, mete el cable pelado 11 mm hasta el tope y ciérrala.'],
         cables: ['f', 'n'], check: 'Tira suavemente de cada cable: no sale de la ficha.', foco: 'CE1', visor: 'CE1' }),
-      T('Cablea el interruptor: L = entrada, ↓ = salida', 'destornillador:PZ1', { opts: ['destornillador:PZ1', 'destornillador:PZ2', 'destornillador:T20'], por: 'Los bornes de los mecanismos llevan tornillo mixto plano/Pozidriv PZ1 (0,8 N·m).',
-        take: ['Interruptor (por detrás: bornes L y ↓)', '1 conector de 2 vías'], do: ['De la ficha de la fase, un cable <b>marrón</b> al borne marcado <b>L</b>.', 'Del borne marcado <b>↓</b> sale el <b>retorno</b> (negro) a la ficha 3 de la caja.', 'Aprieta con el destornillador PZ1: el cable no debe girar.'],
-        cables: ['fi', 'r1'], check: 'Mirando el interruptor por detrás: marrón en L y negro en ↓.', foco: 'I1', visor: 'I1' }),
+      T('Cablea el interruptor: L = entrada, 1 = salida', 'destornillador:PZ1', { opts: ['destornillador:PZ1', 'destornillador:PZ2', 'destornillador:T20'], por: 'Los bornes de los mecanismos llevan tornillo mixto plano/Pozidriv PZ1 (0,8 N·m).',
+        take: ['Interruptor (por detrás: bornes L y 1 y su esquema)', '1 conector de 2 vías'], do: ['De la ficha de la fase, un cable <b>marrón</b> al borne marcado <b>L</b>.', 'Del borne marcado <b>1</b> sale el <b>retorno</b> (negro) a la ficha 3 de la caja.', 'Aprieta con el destornillador PZ1: el cable no debe girar.'],
+        cables: ['fi', 'r1'], check: 'Mirando el interruptor por detrás: marrón en L y negro en 1.', foco: 'I1', visor: 'I1' }),
       PORTA(['r2', 'n2'], 'negro', 'de la ficha 3'),
       MIDE(['multimetro', 'buscapolos', 'destornillador:PZ1'], ['Interruptor apagado: entre la fase y el neutro del C1 → <b>OL</b> (circuito abierto, no hay cortocircuito).', 'Interruptor encendido: unos <b>70 Ω</b> (el filamento frío de la bombilla).'], 'Las medidas coinciden con la pestaña «Prueba».'),
       TENSION('buscapolos', ['buscapolos', 'alicate', 'pelacables'], ['Acciona el interruptor: la lámpara se enciende y se apaga.', 'Con la lámpara apagada, el buscapolos en el borne L del portalámparas <b>no se enciende</b>.'], 'Funciona y la lámpara apagada no tiene fase.'),
@@ -89,7 +89,7 @@ export const PROYECTOS = [
       { q: '¿Qué conductor corta el interruptor?', op: ['El neutro', 'La fase', 'La tierra'], ok: 1, exp: 'Siempre la fase: si cortara el neutro, la lámpara apagada seguiría con tensión.' },
       { q: '¿A qué borne del portalámparas va el neutro?', op: ['Al contacto central (L)', 'A la rosca (N)', 'Da igual'], ok: 1, exp: 'Neutro a la rosca; la fase (retorno) al contacto central, que no se toca al cambiar la bombilla.' },
       { q: '¿Qué sección y qué PIA lleva el circuito de alumbrado C1?', op: ['1,5 mm² y 10 A', '2,5 mm² y 16 A', '1,5 mm² y 16 A'], ok: 0, exp: 'ITC-BT-25: C1, 1,5 mm² protegido con 10 A.' },
-      { q: 'En el interruptor, el borne marcado ↓ es…', op: ['La entrada de la fase', 'La salida hacia la lámpara (retorno)', 'El neutro'], ok: 1, exp: 'L = entrada; ↓ = salida hacia el receptor.' },
+      { q: 'En el interruptor, el borne marcado 1 es…', op: ['La entrada de la fase', 'La salida hacia la lámpara (retorno)', 'El neutro'], ok: 1, exp: 'L = entrada; 1 = salida hacia el receptor.' },
     ],
   },
   {
@@ -142,7 +142,7 @@ export const PROYECTOS = [
       FIJAR(['CE1', 'I1', 'B1', 'E1'], ['Caja de empalme 100 × 100', 'Interruptor', 'Portalámparas', 'Base Schuko'], ['Coloca CE1, el interruptor, el portalámparas y la base Schuko como en el plano.']),
       TUBO(4), GUIA(['C1: 1,5 mm² marrón, azul y negro', 'C2: 2,5 mm² marrón, azul y amarillo-verde']),
       T('C1: fase y neutro a la caja y cableado del interruptor', 'destornillador:PZ1', { opts: ['destornillador:PZ1', 'destornillador:PZ2', 'tijeras'], por: 'Bornes de mecanismo: PZ1.', take: ['3 conectores de palanca de 2 vías', 'Interruptor'],
-        do: ['Del C1: marrón a la ficha 1 y azul a la ficha 2 de CE1.', 'Marrón de la ficha 1 al borne <b>L</b> del interruptor; negro del borne <b>↓</b> a la ficha 3.'], cables: ['f', 'n', 'fi', 'r1'], check: 'El interruptor corta la fase del C1.', foco: 'I1', visor: 'I1' }),
+        do: ['Del C1: marrón a la ficha 1 y azul a la ficha 2 de CE1.', 'Marrón de la ficha 1 al borne <b>L</b> del interruptor; negro del borne <b>1</b> a la ficha 3.'], cables: ['f', 'n', 'fi', 'r1'], check: 'El interruptor corta la fase del C1.', foco: 'I1', visor: 'I1' }),
       PORTA(['r2', 'n2'], 'negro', 'de la ficha 3'),
       T('C2: la base de enchufe con tierra', 'destornillador:PZ1', { opts: ['destornillador:PZ1', 'destornillador:T20', 'cortatubos'], por: 'Bornes de la base: PZ1.', take: ['Base Schuko', 'Cables 2,5 mm²'],
         do: ['Del C2: marrón al borne <b>L</b> y azul al <b>N</b>.', 'Amarillo-verde de la barra ⏚ del cuadro al borne central ⏚.'], cables: ['ef', 'en', 'epe'], check: 'Base con L, N y tierra de 2,5 mm².', foco: 'E1', visor: 'E1' }),
@@ -239,7 +239,7 @@ export const PROYECTOS = [
       TUBO(5), GUIA(['1,5 mm²: marrón (fase), azul (neutro), negro (orden de los pulsadores) y gris (salida a la lámpara)']),
       T('Alimenta el minutero: L y N', 'destornillador:PZ1', { opts: ['destornillador:PZ1', 'destornillador:PH2', 'alicate'], por: 'Bornes de mecanismo: PZ1.', take: ['Minutero (bornes L, N, 3 y ↓)', 'Conector de 5 vías (fase) y de 3 vías (neutro)'],
         do: ['Fase del C1 a la ficha de <b>5 vías</b>; neutro a una de <b>3 vías</b>.', 'Marrón de la ficha de fase al borne <b>L</b> del minutero y azul al <b>N</b>.'], cables: ['f', 'n', 'm1', 'm2'], check: 'El minutero tiene fase en L y neutro en N.', foco: 'MN', visor: 'MN' }),
-      T('Pulsadores en paralelo hacia el borne 3', 'destornillador:PZ1', { opts: ['destornillador:PZ1', 'cutter', 'buscapolos'], por: 'Bornes de mecanismo: PZ1.', take: ['2 pulsadores (bornes L y ↓)', 'Conector de 3 vías'],
+      T('Pulsadores en paralelo hacia el borne 3', 'destornillador:PZ1', { opts: ['destornillador:PZ1', 'cutter', 'buscapolos'], por: 'Bornes de mecanismo: PZ1.', take: ['2 pulsadores (bornes L y 1)', 'Conector de 3 vías'],
         do: ['De la ficha de fase, un marrón al borne <b>L</b> de cada pulsador.', 'Del borne <b>↓</b> de cada pulsador, un negro a la misma ficha de 3 vías.', 'De esa ficha, un negro al borne <b>3</b> del minutero.'], cables: ['p1', 'p2', 'o1', 'o2', 'm3'], check: 'Cualquier pulsador lleva la fase al borne 3.', foco: 'PU1', visor: 'PU1' }),
       PORTA(['m4', 'r2', 'n2'], 'gris', 'desde el borne ↓ del minutero, por la ficha 4,'),
       MIDE(['multimetro', 'buscapolos', 'nivel'], ['L–N del C1 sin pulsar: el polímetro ve la bobina del minutero (decenas de kΩ), no un corto.', 'Pulsando: la resistencia no baja a 0 (el pulsador no hace corto).'], 'Sin cortocircuitos al pulsar.'),
@@ -317,10 +317,10 @@ export const proyecto = (x) => PROYECTOS.find((p) => p.id === x || String(p.n) =
 // ---------------------------------------------------------------- material (render propio + foto real con licencia libre, ver créditos)
 const F = (f) => `img/viv/fotos/${f}.jpg`;
 export const MATERIAL = {
-  interruptor: { n: 'Interruptor 10 AX', img: 'interruptor', foto: F('interruptor'), bornes: 'L (entrada de fase) · ↓ (salida al receptor)', ref: 'Tipo Simon 270, Schneider New Unica, Niessen Zenit' },
+  interruptor: { n: 'Interruptor 10 AX', img: 'interruptor', foto: F('interruptor'), bornes: 'L (entrada de fase) · 1 (salida al receptor)', ref: 'Tipo Simon 270, Schneider New Unica, Niessen Zenit' },
   conmutador: { n: 'Conmutador 10 AX', img: 'conmutador', foto: F('interruptor_inst'), bornes: 'L = común · 1 y 2 = viajeros', ref: 'Tipo Simon 270, Schneider New Unica' },
   cruzamiento: { n: 'Cruzamiento 10 AX', img: 'cruzamiento', foto: F('cruz_esquema'), bornes: '1-2 entrada · 3-4 salida (dos pares)', ref: 'Tipo Simon 270, Niessen Zenit' },
-  pulsador: { n: 'Pulsador 10 A (NA)', img: 'pulsador', foto: F('interruptor'), bornes: 'L · ↓ (cierra solo mientras se pulsa)', ref: 'Tipo Simon 270, Legrand Niloé' },
+  pulsador: { n: 'Pulsador 10 A (NA)', img: 'pulsador', foto: F('interruptor'), bornes: 'L · 1 (cierra solo mientras se pulsa)', ref: 'Tipo Simon 270, Legrand Niloé' },
   minutero: { n: 'Minutero (automático de escalera)', img: 'minutero', foto: F('minutero'), bornes: 'L · N · 3 (pulsadores) · ↓ (lámpara)', ref: 'Tipo Hager EMN001, Schneider MIN' },
   enchufe: { n: 'Base Schuko 2P+T 16 A', img: 'enchufe', foto: F('schuko_frente'), bornes: 'L y N de latón · ⏚ central unido a las garras laterales', ref: 'Tipo Schneider New Unica, Simon 270, Legrand Niloé' },
   portalamparas: { n: 'Portalámparas E27 + bombilla', img: 'portalamparas', foto: F('portalamparas'), bornes: 'L = contacto central · N = rosca', ref: 'Portalámparas de baquelita o termoplástico, bornes de tornillo' },
@@ -462,7 +462,7 @@ export function planoSVG(m, { sel = null, k = 9 } = {}) {
     if (col.raya) s += `<polyline points="${pts}" fill="none" stroke="${col.raya}" stroke-width="${c.sec >= 2.5 ? 5 : 3.6}" stroke-dasharray="6 6"/>`; });
   const usados = new Set(m.cables.flatMap((c) => [kk(c.a), kk(c.b)]));
   for (const p of m.parts) for (const b of bornes(p)) { const key = `${p.id}:${b.t}`; if (!usados.has(key) && p.type !== 'caja') continue; const q = posBorne(m, { p: p.id, t: b.t }); if (!q) continue;
-    const lab = p.type === 'caja' ? b.t.slice(1) : ({ 2: '↓', C: 'L', Le: '1', Ne: 'N', PE: '⏚' })[b.t] && !['conmutador', 'cruzamiento', 'minutero'].includes(p.type) ? ({ 2: '↓', C: 'L', Le: '1', Ne: 'N', PE: '⏚' })[b.t] : b.t === 'C' ? 'L' : b.t === '4' && p.type === 'minutero' ? '↓' : b.t === 'PE' ? '⏚' : b.t;
+    const lab = p.type === 'caja' ? b.t.slice(1) : (MARCAS[p.type]?.[b.t] ?? ({ C: 'L', Le: '1', Ne: 'N', PE: '⏚' })[b.t] ?? b.t); // la marca real del borne (como por detrás del mecanismo)
     s += `<circle cx="${X(q.x)}" cy="${Y(q.y)}" r="6" fill="${p.type === 'caja' ? (p.fichas?.[b.t] ? '#f39200' : '#bbb') : '#c9a227'}" stroke="#333"/><text x="${X(q.x)}" y="${Y(q.y) - 9}" text-anchor="middle" font-size="12" font-weight="800" fill="#111" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(lab)}</text>`; }
   return s + '</svg>';
 }
