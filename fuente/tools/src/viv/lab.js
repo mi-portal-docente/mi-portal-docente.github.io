@@ -63,6 +63,7 @@ export class ViviendaLab {
     host.innerHTML = this.shellHTML(); this.$ = (s) => host.querySelector(s);
     this.visor = new Visor(this.$('#vvView'));
     host.addEventListener('click', (e) => { const b = e.target.closest('[data-prlock]'); if (!b) return; e.preventDefault(); e.stopPropagation(); this.alternarCandadoPr(b.dataset.prlock, b); }, true);
+    host.addEventListener('change', (e) => { const q = e.target.closest('[data-prq]'); if (q && this.respPr) this.respPr(+q.dataset.prq, +q.value); });
     host.addEventListener('change', (e) => { const sg = e.target.closest('[data-vvgrupo]'); if (sg) { store.set('pref:grupoCand', sg.value); if (this.kind === 'home') this.$('#vvHome').innerHTML = this.homeHTML(); } });
     const refrescar = () => { if (this.kind === 'home' && !this._candando) this.$('#vvHome').innerHTML = this.homeHTML(); };
     window.addEventListener('portal-apartados', refrescar); window.addEventListener('portal-aula', refrescar);
@@ -105,6 +106,7 @@ export class ViviendaLab {
     const rp = this.rutaPractica(v); if (!rp) { this.pr = null; this.prAuto = false; }
     varianteMarcas(!!rp); // marcado real solo en las prácticas nuevas; la SA1 y los proyectos, con el suyo
     if (rp) { root.classList.remove('is-home'); root.classList.add('is-ed'); this.abrirPractica(rp.Pr, rp.auto); return; }
+    if (v === 'evaluacion') { this.homeTab = 'eval'; v = 'home'; } else if (v === 'home') this.homeTab = 'guiadas'; // pestañas de la portada, como en Circuitos
     const pp = parseProy(v); if (!pp) { this.proy = null; root.classList.remove('es-proy'); }
     if (v === 'home' || v === 'creditos') { this.modo = null; this.kind = v; root.classList.add('is-home'); root.classList.remove('is-ed'); this.pause(); this.$('#vvHome').innerHTML = v === 'creditos' ? this.creditosHTML() : this.homeHTML(); this.$('#vvTitulo').textContent = ''; this.crumbs(); this.stepbar(); this.strip(); this.$('#vvHome').scrollTop = 0; return; }
     root.classList.remove('is-home'); root.classList.add('is-ed');

@@ -1,10 +1,11 @@
 // Prácticas del tablero una a una (lista como la de Circuitos, guiada y autónoma, candados del profesor) sobre ViviendaLab.
 // Se instala con instalarPracticas(ViviendaLab). Los datos y la corrección están en practicas.js.
-import { PRACTICAS, practica, modeloInicial, modeloSolucion, estadoPasos, comprobarPractica, textoCable, APARATOS, CIRCUITOS_VIV, ACCIONES, proyDe, conReserva } from './practicas.js';
+import { PRACTICAS, practica, modeloInicial, modeloSolucion, estadoPasos, cableHecho, comprobarPractica, textoCable, APARATOS, CIRCUITOS_VIV, ACCIONES, proyDe, conReserva } from './practicas.js';
 import { vivAbierta, alternarViv } from '../circ/guiadas.js';
 import { sanear, varianteMarcas } from './modelo.js';
 import { planoSVG, tablaCables } from './proyectos.js';
 import { ic } from '../ui/iconos.js';
+import { guiaDe } from './practicas-guia.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const portal = () => (typeof window !== 'undefined' ? window.PORTAL : null);
@@ -18,7 +19,11 @@ export const abiertaPr = (id) => !alumno() || vivAbierta(window.PORTAL_SESION?.a
 function deEntrega() { try { const e = portal()?.estadoEntrega?.(ENTREGA_PR); const j = e?.datos?.montaje ? JSON.parse(e.datos.montaje) : null; return j?.practicas || {}; } catch (e) { return {}; } }
 export const guiadaHechaPr = (id) => !!lee('pr:done:' + id) || !!deEntrega()[id]?.guiada;
 export const autoHechaPr = (id) => !!lee('pr:auto:' + id) || !!deEntrega()[id]?.autonoma;
+// ¿Hay algo completado que todavía no está en el registro enviado?
+const pendientePr = () => PRACTICAS.some((p) => (guiadaHechaPr(p.id) && !deEntrega()[p.id]?.guiada) || (autoHechaPr(p.id) && !deEntrega()[p.id]?.autonoma));
 const profGrupos = () => (portal()?.rol === 'profesor' && portal()?.circ?.grupos?.()) || [];
+// Temas de la portada (como los de Circuitos): las 7 prácticas en orden
+const TEMAS_PR = [{ tema: 1, title: 'El cuadro de la vivienda', ids: ['vp1'] }, { tema: 2, title: 'Puntos de luz', ids: ['vp2', 'vp3', 'vp7'] }, { tema: 3, title: 'Tomas de corriente y cajas de registro', ids: ['vp4', 'vp5'] }, { tema: 4, title: 'La instalación completa', ids: ['vp6'] }];
 const ICONO_ACC = { red: 'zap', test: 'shield-check', sobrecarga: 'thermometer', corto: 'flame', fuga: 'shield-check' };
 
 // Pruebas de disparo del cuadro (qué hace saltar a cada aparato)
@@ -43,29 +48,34 @@ const M = {
   candadoPrHTML(Pr) {
     const C = this.grupoCandPr(); if (!C) return ''; const ab = vivAbierta(C.g.apartados, Pr.id);
     const t = `Práctica ${Pr.n} · ${ab ? 'abierta' : 'cerrada'} para ${C.g.nombre}. Pulsa para ${ab ? 'cerrarla' : 'abrirla'}.`;
-    return `<button type="button" class="vv-cand ${ab ? 'ab' : 'ce'}" data-prlock="${esc(Pr.id)}" aria-pressed="${!ab}" aria-label="${esc(t)}" title="${esc(t)}">${ic(ab ? 'lock-open' : 'lock')}</button>`;
+    return `<button type="button" class="cx-cand ${ab ? 'ab' : 'ce'}" data-prlock="${esc(Pr.id)}" aria-pressed="${!ab}" aria-label="${esc(t)}" title="${esc(t)}">${ic(ab ? 'lock-open' : 'lock')}</button>`;
   },
+  // Portada como la de Circuitos 3D: pestañas, barra de candados del grupo y tarjetas por temas (cx-card)
+  grupoBarPrHTML() {
+    const C = this.grupoCandPr(); if (!C) return '';
+    return `<div class="cx-gbar">${ic('users')}<label>Candados para el grupo <select data-vvgrupo aria-label="Grupo al que afectan los candados">${C.G.map((g) => `<option value="${esc(g.id)}" ${g.id === C.g.id ? 'selected' : ''}>${esc(g.nombre)}</option>`).join('')}</select></label>
+      <span class="cx-small">Pulsa el candado de cada tarjeta para abrirla o cerrarla a <b>${esc(C.g.nombre)}</b>. Es lo mismo que Panel → Grupos → «Prácticas guiadas».</span></div>`;
+  },
+  tabsPrHTML() {
+    const ev = this.homeTab === 'eval';
+    return `<nav class="cx-htabs" role="tablist" aria-label="Secciones del laboratorio"><a role="tab" href="#eee/vivienda" aria-selected="${!ev}" class="${!ev ? 'on' : ''}">${ic('book-open')} Prácticas guiadas</a><a role="tab" href="#eee/vivienda/evaluacion" aria-selected="${ev}" class="${ev ? 'on' : ''}">${ic('clipboard-check')} Evaluación de vivienda</a></nav>`;
+  },
+  primeraPr() { return PRACTICAS.find((p) => abiertaPr(p.id) && !guiadaHechaPr(p.id)) || PRACTICAS.find((p) => abiertaPr(p.id)) || null; },
   homePracticasHTML() {
     const C = this.grupoCandPr(); const bloq = PRACTICAS.some((p) => !abiertaPr(p.id));
-    const primera = PRACTICAS.find((p) => abiertaPr(p.id) && !guiadaHechaPr(p.id)) || PRACTICAS.find((p) => abiertaPr(p.id));
     const card = (Pr) => {
       const ab = abiertaPr(Pr.id); const g = guiadaHechaPr(Pr.id), a = autoHechaPr(Pr.id); const pc = C && !vivAbierta(C.g.apartados, Pr.id);
-      const empezada = !g && lee('pr:m:' + Pr.id)?.cables?.length;
-      return `<div class="vv-prc ${g ? 'done' : ''} ${ab ? '' : 'locked'} ${pc ? 'cerrada' : ''}" ${ab ? '' : 'aria-disabled="true"'}>
-        <div class="vv-prh"><span class="vv-prn">${Pr.n}</span><span class="vv-pri">${ic(Pr.icon)}</span>${!ab ? `<span class="vv-badge">${ic('lock')} Bloqueada</span>` : pc ? `<span class="vv-badge" title="Cerrada para ${esc(C.g.nombre)}">Cerrada</span>` : empezada ? '<span class="vv-badge">En curso</span>' : ''}${this.candadoPrHTML(Pr)}</div>
-        <h3>${ab ? `<a class="vv-prgo" href="#eee/vivienda/${Pr.id}">${esc(Pr.title)}</a>` : esc(Pr.title)}</h3><p>${esc(Pr.sub)}</p>
-        <div class="vv-prm"><span>${esc(Pr.level)}</span><span>${esc(Pr.duration)}</span><span>${esc(Pr.norma)}</span></div>
-        ${ab && g ? `<div class="vv-prl"><span class="vv-badge ok">${ic('check')} Guiada</span>${a ? `<span class="vv-badge ok">${ic('check')} Autónoma</span>` : `<a class="vv-badge" href="#eee/vivienda/${Pr.id}-auto">Hacer la autónoma</a>`}</div>` : ''}</div>`;
+      const empezada = !g && lee('pr:m:' + Pr.id)?.cables?.length; const tag = ab ? 'a' : 'div';
+      return `<${tag} class="cx-card vv-prc ${g ? 'done' : ''} ${ab ? '' : 'locked'} ${pc ? 'cerrada' : ''}" ${ab ? `href="#eee/vivienda/${Pr.id}"` : 'aria-disabled="true"'}>
+        <div class="cx-card-h"><span class="cx-num">${Pr.n}</span><span class="cx-ic">${ic(Pr.icon)}</span>${!ab ? `<span class="cx-badge">${ic('lock')} Bloqueada</span>` : pc ? `<span class="cx-badge" title="Cerrada para ${esc(C.g.nombre)}">Cerrada</span>` : empezada ? '<span class="cx-badge">En curso</span>' : ''}${this.candadoPrHTML(Pr)}</div>
+        <h3>${esc(Pr.title)}</h3><div class="cx-sub">${esc(Pr.sub)}</div>
+        <div class="cx-meta"><span>${esc(Pr.level)}</span><span>${ic('clock')} ${esc(Pr.duration)}</span><span>${esc(Pr.norma)}</span></div>${ab && g ? `<div class="cx-lvl"><span class="cx-badge ok">${ic('check')} Guiada completada</span>${a ? `<span class="cx-badge ok">${ic('check')} Autónoma completada</span>` : '<span class="cx-badge">Autónoma pendiente</span>'}</div>` : ''}</${tag}>`;
     };
-    const hechas = PRACTICAS.filter((p) => guiadaHechaPr(p.id)).length;
-    return `<section class="vv-prs" id="vvPracticas"><div class="vv-prs-h"><div><h2>Prácticas del tablero <small>una a una</small></h2>
-      <p class="vv-prs-lead">Cada práctica se hace en el tablero 3D. Primero la <b>guiada</b>: el simulador comprueba cada paso. Después la <b>autónoma</b>: el mismo montaje tú solo. Todo según el REBT (ITC-BT-25, electrificación básica).</p></div>
-      <div class="vv-prs-k"><b>${hechas}</b><span>de ${PRACTICAS.length} guiadas</span></div></div>
-      ${primera ? `<a class="vv-btn primary vv-prs-go" href="#eee/vivienda/${primera.id}">${ic('play')} ${guiadaHechaPr(primera.id) ? 'Repasar' : 'Empezar'} la práctica ${primera.n}</a>` : ''}
-      ${C ? `<div class="vv-gbar">${ic('users')}<label>Candados para el grupo <select data-vvgrupo aria-label="Grupo al que afectan los candados">${C.G.map((g) => `<option value="${esc(g.id)}" ${g.id === C.g.id ? 'selected' : ''}>${esc(g.nombre)}</option>`).join('')}</select></label><span class="vv-small">Pulsa el candado de cada tarjeta para abrirla o cerrarla a <b>${esc(C.g.nombre)}</b>.</span></div>` : ''}
-      ${bloq ? `<p class="vv-bloq">${ic('lock')} Tu profesor va abriendo las prácticas una a una. Las que tienen candado se abrirán más adelante.</p>` : ''}
-      <div class="vv-prcards">${PRACTICAS.map(card).join('')}</div>
-      ${alumno() ? this.entregaPrHTML() : ''}</section>`;
+    return `<section class="vv-prs" id="vvPracticas"><h2>Prácticas guiadas <small>de dificultad creciente</small></h2>
+      <p class="cx-ev-intro">Cada práctica se monta en el tablero 3D. Primero la <b>guiada</b>: la teoría del REBT, el esquema, el material y los pasos, que el simulador comprueba uno a uno. Cuando la completas se abre la <b>autónoma</b>: el mismo montaje tú solo, sin pasos ni pistas.${alumno() ? ' Tu progreso queda registrado para tu profesor.' : ''}</p>
+      ${bloq ? `<p class="cx-bloq-aviso">${ic('lock')} Tu profesor va desbloqueando las prácticas una a una. Las que tienen candado se abrirán más adelante.</p>` : ''}
+      ${TEMAS_PR.map((T) => `<h3 class="cx-tema"><span>Tema ${T.tema}</span> ${esc(T.title)}</h3><div class="cx-cards vv-prcards">${PRACTICAS.filter((p) => T.ids.includes(p.id)).map(card).join('')}</div>`).join('')}
+      ${alumno() ? this.registroPrHTML() : ''}</section>`;
   },
   async alternarCandadoPr(id, btn) {
     const C = this.grupoCandPr(); const P = portal(); if (!C || !P?.circ || this._candando) return;
@@ -112,22 +122,60 @@ const M = {
     const cuerpo = this.tab === 'esquema' ? this.esquemaPrHTML(Pr) : this.tab === 'norma' ? this.normaPrHTML(Pr) : auto ? this.enunciadoPrHTML(Pr) : this.guiaPrHTML(Pr);
     S.innerHTML = `${this.inspectorHTML()}${this.simHTML()}<nav class="vv-tabs">${T.map(([k, n]) => `<button data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${n}</button>`).join('')}</nav><div class="vv-tab vv-prtab">${cuerpo}</div>`;
   },
+  // Guía con la misma estructura que la de Circuitos 3D (guideHTML): cabecera, progreso, desplegables de objetivo y
+  // teoría, esquema, material y normativa; pasos en orden con su «por qué»; comprobar; autónoma; preguntas; reto.
+  cabeceraPrHTML(Pr, extra = '') {
+    return `<div class="cx-gh"><span class="cx-num">${Pr.n}</span><div><h3>${esc(Pr.title)}${extra}</h3><div class="cx-small">${esc(Pr.sub)} · ${esc(Pr.level)} · ${esc(Pr.duration)}</div></div></div>`;
+  },
+  materialPrHTML(G) { return `<table class="cx-tbl">${(G?.material || []).map(([m, n]) => `<tr><td>${esc(m)}</td><td class="c">${esc(String(n))}</td></tr>`).join('')}</table>`; },
   guiaPrHTML(Pr) {
-    const E = estadoPasos(Pr, this.m, this.prAcc); const k = E.findIndex((x) => !x.ok); const todos = k < 0;
-    let h = `<p class="vv-printro">${esc(Pr.intro)}</p><div class="vv-prcirc">${ic('zap')} ${esc(Pr.circuito)}</div>
-      <div class="vv-prog" role="progressbar" aria-valuemin="0" aria-valuemax="${E.length}" aria-valuenow="${E.filter((x) => x.ok).length}"><i style="width:${(100 * E.filter((x) => x.ok).length) / E.length}%"></i></div>
-      <ol class="vv-pasos">`;
-    Pr.pasos.forEach((s, i) => { const e = E[i]; const act = i === k;
-      h += `<li class="${e.ok ? 'ok' : act ? 'act' : 'pend'}"><div class="vv-pt">${e.ok ? ic('circle-check') : `<span class="vv-pnum">${i + 1}</span>`}<b>${esc(s.t)}</b></div>`;
-      if (act) { h += `<p>${esc(s.txt)}</p>`; if (e.faltan.length) h += `<ul class="vv-faltan">${e.faltan.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`; if (s.accion) h += `<p class="vv-acc">${ic(ICONO_ACC[s.accion] || 'zap')} Se comprueba solo: <b>${esc(ACCIONES[s.accion])}</b>.</p>`; }
+    const G = guiaDe(Pr.id) || {}; const E = estadoPasos(Pr, this.m, this.prAcc); const k = E.findIndex((x) => !x.ok); const todos = k < 0;
+    const hechos = E.filter((x) => x.ok).length, total = E.length; const ini = hechos === 0;
+    let h = `<div class="cx-panel vv-cxguia">${this.cabeceraPrHTML(Pr)}
+      <div class="cx-prog vv-prog" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${hechos}"><div style="width:${Math.round((100 * hechos) / total)}%"></div><span>${hechos} / ${total} pasos</span></div>
+      <details ${ini ? 'open' : ''} class="vv-gd-teo"><summary>${ic('target')} Objetivo y teoría</summary><p>${esc(G.objetivo || Pr.intro)}</p>${G.teoria ? `<p class="cx-theory">${G.teoria}</p>` : ''}<div class="vv-prcirc">${ic('zap')} ${esc(Pr.circuito)}</div></details>
+      <details class="vv-gd-esq"><summary>${ic('drafting-compass')} Esquema de montaje</summary><div class="vv-plano">${planoSVG(modeloSolucion(Pr))}</div><p class="cx-small">Fase: marrón, negro o gris · neutro: azul · tierra: amarillo-verde. La lista de cables está en la pestaña «Esquema».</p></details>
+      <details class="vv-gd-mat"><summary>${ic('toolbox')} Material</summary>${this.materialPrHTML(G)}</details>
+      <details class="vv-gd-rebt"><summary>${ic('book-open-check')} Normativa (REBT)</summary><p><b>${esc(Pr.norma)}</b>. ${esc(Pr.intro)}</p><p class="cx-small">Reglamento Electrotécnico para Baja Tensión (RD 842/2002) y sus ITC. Más detalle en la pestaña «REBT».</p></details>
+      <h4>Pasos</h4><ol class="cx-steps vv-pasos">`;
+    Pr.pasos.forEach((s, i) => { const e = E[i]; const act = i === k; const cls = e.ok ? 'done ok' : act ? 'cur act' : 'todo pend';
+      h += `<li class="${cls}"><div class="cx-sh"><span class="cx-sn">${e.ok ? ic('check') : i + 1}</span><b>${esc(s.t)}</b></div>`;
+      if (act) {
+        h += `<div class="cx-sb"><p>${esc(s.txt)}</p>${G.por?.[i] ? `<p class="vv-porque"><b>Por qué:</b> ${esc(G.por[i])}</p>` : ''}`;
+        if (e.faltan.length) h += `<div class="cx-where">${ic('map-pin')} Te falta:<ul class="vv-faltan">${e.faltan.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+        if (s.accion) h += `<p class="vv-acc">${ic(ICONO_ACC[s.accion] || 'zap')} Se comprueba solo: <b>${esc(ACCIONES[s.accion])}</b>.</p>`;
+        if (s.cables || s.fichas) h += `<div class="cx-ibtns"><button class="cx-btn small" data-pr="hazlo" title="Lo hace el simulador por ti">${ic('sparkles')} Hazlo por mí</button></div>`;
+        h += '</div>';
+      }
       h += '</li>'; });
     h += '</ol>';
+    if (todos) h += `<div class="cx-ok">${ic('party-popper')} ¡Has completado todos los pasos! Ahora pulsa <b>Comprobar la práctica</b>.</div>`;
     h += this.resultadoPrHTML(Pr, todos);
-    return h;
+    const gh = guiadaHechaPr(Pr.id), ah = autoHechaPr(Pr.id);
+    h += `<div class="cx-auto ${gh ? '' : 'off'}"><h4>${ic('target')} Práctica autónoma</h4>
+      <div class="cx-lvl">${gh ? `<span class="cx-badge ok">${ic('check')} Guiada completada</span>` : '<span class="cx-badge">Guiada sin completar</span>'}${ah ? `<span class="cx-badge ok">${ic('check')} Autónoma completada</span>` : '<span class="cx-badge">Autónoma pendiente</span>'}</div>
+      <p class="cx-small">${gh ? `Ahora hazla <b>tú solo</b>: el mismo montaje, sin pasos ni pistas. Al comprobarla, si está bien, queda marcada como completada${alumno() ? ' y tu profesor lo ve' : ''}.` : 'Se abre cuando completes la guiada: todos los pasos y «Comprobar» en verde.'}</p>
+      ${gh || !alumno() ? `<div class="cx-ibtns"><a class="cx-sim vv-btn primary" href="#eee/vivienda/${Pr.id}-auto">${ic('target')} ${ah ? 'Repetir la autónoma' : 'Hacer la práctica autónoma'}</a></div>` : ''}</div>`;
+    h += this.preguntasPrHTML(Pr, G);
+    if (G.reto) h += `<h4>Reto</h4><p>${esc(G.reto)}</p>`;
+    if (alumno()) h += `<h4>Registro</h4>${this.registroPrHTML()}`;
+    return h + '</div>';
+  },
+  preguntasPrHTML(Pr, G) {
+    const Q = G.preguntas || []; if (!Q.length) return ''; const st = this.prQ?.id === Pr.id ? this.prQ : (this.prQ = { id: Pr.id, a: lee('pr:q:' + Pr.id) || {}, res: null, ver: false });
+    return `<h4>Preguntas</h4><div class="cx-qs">${Q.map((q, i) => { const r = st.res?.[i];
+      const fb = r == null && !st.ver ? '' : `<div class="cx-fb ${r ? 'ok' : r === false ? 'ko' : ''}">${r === true ? 'Correcto. ' : r === false ? 'Revísalo. ' : ''}${r || st.ver ? esc(q.exp) : ''}</div>`;
+      return `<div class="cx-q"><div class="cx-qq">${i + 1}. ${esc(q.q)}</div>${q.op.map((o, k) => `<label><input type="radio" name="vvq${i}" data-prq="${i}" value="${k}" ${st.a[i] === k ? 'checked' : ''}> ${esc(o)}</label>`).join('')}${fb}</div>`; }).join('')}</div>
+      <div class="cx-ibtns"><button class="cx-btn" data-pr="respuestas">Comprobar respuestas</button><button class="cx-btn" data-pr="versol">Ver soluciones</button></div>`;
   },
   enunciadoPrHTML(Pr) {
-    return `<p class="vv-printro"><b>Práctica autónoma.</b> El mismo montaje de la guiada, ahora sin pasos ni pistas. Cablea con los colores y secciones del REBT y pulsa <b>Comprobar</b>.</p>
-      <p>${esc(Pr.intro)}</p><div class="vv-prcirc">${ic('zap')} ${esc(Pr.circuito)}</div>${this.resultadoPrHTML(Pr, true)}`;
+    const G = guiaDe(Pr.id) || {};
+    return `<div class="cx-panel vv-cxguia">${this.cabeceraPrHTML(Pr, ' · autónoma')}
+      <p class="vv-printro"><b>Práctica autónoma.</b> ${esc(G.objetivo || Pr.intro)} Esta vez lo haces <b>tú solo</b>: sin pasos ni pistas, con el plano de piezas y el material. Cablea con los colores y secciones del REBT y pulsa <b>Comprobar mi montaje</b>.</p>
+      <div class="vv-prcirc">${ic('zap')} ${esc(Pr.circuito)}</div>
+      <details open><summary>${ic('drafting-compass')} Plano de piezas</summary><div class="vv-plano">${planoSVG(modeloInicial(Pr))}</div></details>
+      <details><summary>${ic('toolbox')} Material</summary>${this.materialPrHTML(G)}</details>
+      ${this.resultadoPrHTML(Pr, true)}${alumno() ? `<h4>Registro</h4>${this.registroPrHTML()}` : ''}</div>`;
   },
   resultadoPrHTML(Pr, listo) {
     const R = this.prchk; const auto = this.prAuto; const hecha = auto ? autoHechaPr(Pr.id) : guiadaHechaPr(Pr.id);
@@ -138,7 +186,6 @@ const M = {
     if (hecha) h += `<p class="vv-okline">${ic('check')} ${auto ? 'Autónoma completada.' : 'Guiada completada.'}</p>`;
     const i = PRACTICAS.indexOf(Pr); const sig = PRACTICAS[i + 1];
     h += `<div class="vv-fila vv-navfin"><a class="vv-btn small" href="#eee/vivienda">${ic('arrow-left')} Volver a las prácticas</a>${!auto && hecha ? `<a class="vv-btn primary" href="#eee/vivienda/${Pr.id}-auto">${ic('arrow-right')} Hacerla tú solo</a>` : ''}${(auto || !hecha) && sig && abiertaPr(sig.id) && hecha ? `<a class="vv-btn primary" href="#eee/vivienda/${sig.id}">${ic('arrow-right')} Siguiente práctica</a>` : ''}</div>`;
-    if (alumno() && hecha) h += this.entregaPrHTML();
     return h;
   },
   esquemaPrHTML(Pr) {
@@ -161,28 +208,45 @@ const M = {
     const Pr = this.pr; const R = comprobarPractica(Pr, this.m, { realista: this.realista }); this.prchk = R;
     const malos = new Set(), tubos = new Set(); for (const i of R.items) if (!i.ok) { (i.cables || []).forEach((c) => malos.add(c)); (i.tubos || []).forEach((t) => tubos.add(t)); }
     this.chk = { ok: R.ok, items: R.items, cables: malos, tubos };
-    if (R.ok) { guarda((this.prAuto ? 'pr:auto:' : 'pr:done:') + Pr.id, true); guarda('pr:ok:' + this.modo, this.m); this.toast(this.prAuto ? 'Autónoma completada.' : 'Guiada completada. Ahora puedes hacerla tú solo.', 3500); }
+    if (R.ok) { guarda((this.prAuto ? 'pr:auto:' : 'pr:done:') + Pr.id, true); guarda('pr:ok:' + this.modo, this.m); if (alumno()) setTimeout(() => this.entregarPr(true), 50); this.toast(this.prAuto ? 'Autónoma completada.' : 'Guiada completada. Ahora puedes hacerla tú solo.', 3500); }
     this.construir(); this.lado(); return R;
   },
-  // ------------------------------------------------------------ entrega (todas las prácticas en una, «v6»)
-  entregaPrHTML() {
-    const Pt = portal(); if (!Pt) return ''; const e = Pt.estadoEntrega?.(ENTREGA_PR); const n = PRACTICAS.filter((p) => guiadaHechaPr(p.id)).length;
-    if (this._entregandoPr) return '<div class="vv-ent"><button class="vv-btn" disabled>Enviando…</button></div>';
-    return `<div class="vv-ent"><h4>Entrega · Prácticas del tablero</h4><p class="vv-small">Se envían tus prácticas (${n} de ${PRACTICAS.length} guiadas) con su comprobación, solo con tu grupo y tu número de lista.</p>
-      ${e ? `<div>${ic('send')} <b>Entregado</b>${e.nota != null ? ` · Nota: <b>${String(e.nota).replace('.', ',')}</b>` : ' · pendiente de corregir'}</div>` : ''}
-      ${!e || e.nota == null ? `<button class="vv-btn primary" data-pr="entregar">${ic('send')} ${e ? 'Volver a entregar' : 'Entregar al profesor'}</button>` : ''}</div>`;
+  // ------------------------------------------------------------ registro (como Circuitos: se envía solo al completar)
+  // Todas las prácticas van en una entrega, «v6» (la de siempre: así no se pierde nada y no cambian las reglas).
+  // Se vuelve a enviar sola cada vez que el alumno completa una guiada o una autónoma.
+  registroPrHTML() {
+    const Pt = portal(); if (!Pt) return ''; const e = Pt.estadoEntrega?.(ENTREGA_PR);
+    const g = PRACTICAS.filter((p) => guiadaHechaPr(p.id)).length, a = PRACTICAS.filter((p) => autoHechaPr(p.id)).length;
+    const f = (t) => t ? new Date(t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    const pend = pendientePr();
+    return `<div class="vv-ent vv-reg" id="vvRegistro"><h4>${ic('chart-column')} Tu registro</h4>
+      <div class="cx-lvl"><span class="cx-badge ${g ? 'ok' : ''}">${g} de ${PRACTICAS.length} guiadas</span><span class="cx-badge ${a ? 'ok' : ''}">${a} de ${PRACTICAS.length} autónomas</span></div>
+      <p class="vv-small">${this._entregandoPr ? 'Enviando…' : e ? `${ic('send')} Guardado para tu profesor · ${esc(f(e.fecha))}${e.nota != null ? ` · Nota: <b>${String(e.nota).replace('.', ',')}</b>` : ''}` : 'Cuando completes una práctica, se guarda sola para tu profesor (con tu grupo y tu número de lista).'}</p>
+      ${pend && !this._entregandoPr && (!e || e.nota == null) ? `<button class="vv-btn primary" data-pr="entregar">${ic('send')} Enviar ahora</button>` : ''}</div>`;
   },
-  entregarPr() {
-    const Pt = portal(); if (!Pt || this._entregandoPr) return; const practicas = {};
+  entregaPrHTML() { return this.registroPrHTML(); },
+  entregarPr(auto) {
+    const Pt = portal(); if (!Pt?.entregar || this._entregandoPr) return; const e0 = Pt.estadoEntrega?.(ENTREGA_PR); if ((e0 && e0.nota != null) || (auto && !pendientePr())) return;
+    const practicas = {};
     for (const Pr of PRACTICAS) { const g = guiadaHechaPr(Pr.id), a = autoHechaPr(Pr.id); if (!g && !a) continue; practicas[Pr.id] = { guiada: g, autonoma: a, model: lee('pr:ok:' + Pr.id + '-auto') || lee('pr:ok:' + Pr.id) || null }; }
     let json = JSON.stringify({ app: 'laboratorio-vivienda', version: 4, practica: ENTREGA_PR, practicas });
     if (json.length > 199000) { for (const k of Object.keys(practicas)) practicas[k].model = null; json = JSON.stringify({ app: 'laboratorio-vivienda', version: 4, practica: ENTREGA_PR, practicas }); }
-    const items = PRACTICAS.map((Pr) => ({ t: `Práctica ${Pr.n} · ${Pr.title}: ${practicas[Pr.id] ? `guiada ${practicas[Pr.id].guiada ? 'hecha' : 'pendiente'}, autónoma ${practicas[Pr.id].autonoma ? 'hecha' : 'pendiente'}` : 'sin hacer'}`, ok: !!practicas[Pr.id]?.guiada }));
+    const items = PRACTICAS.map((Pr) => ({ t: `Práctica ${Pr.n} · ${Pr.title}: guiada ${practicas[Pr.id]?.guiada ? 'completada' : 'pendiente'}, autónoma ${practicas[Pr.id]?.autonoma ? 'completada' : 'pendiente'}`, ok: !!practicas[Pr.id]?.guiada }));
     const datos = { montaje: json, comprobacion: { ok: items.every((i) => i.ok), items }, aciertos: `${items.filter((i) => i.ok).length}/${items.length}` };
-    this._entregandoPr = true; this.lado();
-    Pt.entregar({ practica: ENTREGA_PR, tipo: 'vivienda', titulo: 'Vivienda · Prácticas del tablero', datos })
-      .then(() => this.toast('Entregado al profesor.'), (e) => this.toast('No se ha podido entregar: ' + esc(e?.mensaje || 'revisa la conexión.'), 5000))
-      .finally(() => { this._entregandoPr = false; if (this.kind === 'home') this.$('#vvHome').innerHTML = this.homeHTML(); else this.lado(); });
+    this._entregandoPr = true; this.refrescarPr();
+    Pt.entregar({ practica: ENTREGA_PR, tipo: 'vivienda', titulo: 'Vivienda · Registro de las prácticas del tablero', datos })
+      .then(() => this.toast(auto ? 'Guardado en tu registro: tu profesor ya lo ve.' : 'Registro enviado al profesor.', 3000), (er) => this.toast('No se ha podido guardar en tu registro: ' + esc(er?.mensaje || 'revisa la conexión.'), 5000))
+      .finally(() => { this._entregandoPr = false; this.refrescarPr(); });
+  },
+  refrescarPr() { if (this.kind === 'home') this.$('#vvHome').innerHTML = this.homeHTML(); else if (this.kind === 'practica') this.lado(); },
+  // «Hazlo por mí» (como en Circuitos): pone los cables o los conectores del paso actual, sacados de la solución
+  respPr(i, v) { const st = this.prQ; if (!st) return; st.a[i] = v; if (st.res) st.res[i] = null; guarda('pr:q:' + st.id, st.a); },
+  hazloPr() {
+    const Pr = this.pr; const E = estadoPasos(Pr, this.m, this.prAcc); const k = E.findIndex((x) => !x.ok); const s = Pr.pasos[k]; if (!s) return;
+    const sol = modeloSolucion(Pr); this.guardarUndo();
+    if (s.fichas) { const a = this.m.parts.find((p) => p.id === s.fichas), b = sol.parts.find((p) => p.id === s.fichas); if (a && b) a.fichas = JSON.parse(JSON.stringify(b.fichas || {})); }
+    for (const id of s.cables || []) { const c = sol.cables.find((x) => x.id === id); if (!c || cableHecho(this.m, c)) continue; const n = JSON.parse(JSON.stringify(c)); if (this.m.cables.some((x) => x.id === n.id)) n.id = n.id + '_' + Date.now().toString(36); this.m.cables.push(n); }
+    this.m = sanear(this.m); this._dimKey = null; this.cambio();
   },
   solucionPr() { if (this.kind !== 'practica') return false; this.guardarUndo(); this.m = modeloSolucion(this.pr); this.red = false; this.prchk = null; this._dimKey = null; this.cambio(); return true; },
   onClickPractica(t) {
@@ -190,6 +254,9 @@ const M = {
     if (v === 'comprobar') this.comprobarPr();
     else if (v === 'reiniciar') { if ((this.opts.confirm || confirm)('¿Empezar esta práctica desde el principio?')) { this.guardarUndo(); this.m = modeloInicial(this.pr); this.prAcc = {}; guarda('pr:acc:' + this.modo, {}); this.prchk = null; this.red = false; this.cambio(); } }
     else if (v === 'entregar') this.entregarPr();
+    else if (v === 'hazlo') this.hazloPr();
+    else if (v === 'respuestas' || v === 'versol') { const G = guiaDe(this.pr.id) || {}; const st = this.prQ; if (!st) return true;
+      if (v === 'versol') st.ver = true; else st.res = (G.preguntas || []).map((q, i) => (st.a[i] == null ? null : st.a[i] === q.ok)); this.lado(); }
     return true;
   },
 };

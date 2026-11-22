@@ -993,3 +993,10 @@ tablero de la SA1, modo libre, juego, averías, materiales).
     y pasos con su «por qué»; autónoma tras la guiada; candados con el token «vivienda:» ya existente y «vivev:» para los niveles;
     registro por usuario + entrega automática del registro «v6» (ya existente, compatible) al completar; «Progreso en Vivienda»
     en el panel leyendo «v6»; «Evaluación de vivienda» con 3 niveles entregados como v7, v8 y v9.
+  - H1 — HECHO (caché v5-20261122g): portada de vivienda con la estructura de Circuitos: hero con «Empezar por la práctica N» y
+    «Modo libre», pestañas «Prácticas guiadas | Evaluación de vivienda», barra «Candados para el grupo», tarjetas cx-card por
+    temas (nº, icono Lucide, insignia, candado, meta) con insignias «Guiada completada · Autónoma completada/pendiente»; debajo
+    «Por tu cuenta» con los proyectos antiguos, la SA1, el modo libre, el taller, la casa y las averías (sin tocar). Registro: la
+    entrega «v6» se envía SOLA al completar una guiada o una autónoma (como Circuitos), con «Tu registro» y «Enviar ahora».
+    Pruebas: viv_practicas_e2e (con pestañas, temas e insignias), viv_emoji_e2e, viv_test 94/94.
+    (La guía nueva y la evaluación aún no están construidas en este commit; el código de la guía está en src, sin publicar.)

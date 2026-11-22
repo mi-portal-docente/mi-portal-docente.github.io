@@ -267,3 +267,24 @@ a.vv-prc:hover { transform: translateY(-2px); box-shadow: var(--sh2, var(--sh1))
 .vv-cqt { position: absolute; top: 4px; right: 5px; width: 15px; height: 15px; border-radius: 50%; background: #f2c230; font-size: .62rem; font-weight: 800; display: grid; place-items: center; }
 @media (max-width: 560px) { .vv-cqm { font-size: .86rem; } .vv-cqm b { font-size: .92rem; } .vv-cqm small { font-size: .78rem; } .vv-apar p, .vv-tcirc td { font-size: .9rem; } }
 @media (max-width: 560px) { .vv-cq + .vv-small { font-size: .88rem; } }
+/* Bloque H: portada de vivienda con los mismos componentes que Circuitos 3D (cx-card, cx-htabs, cx-gbar…), con los colores del portal */
+.vv-cxh { --tq: #506C88; --amb: #DE0714; --pri: #506C88; }
+.vv-cxh .cx-hero { display: block; margin-bottom: 16px; }
+.vv-cxh .cx-hbtns { margin-top: 14px; }
+.vv-cxh .cx-card { color: inherit; }
+.vv-cxh .cx-ic .ic { width: 24px; height: 24px; color: var(--pri); }
+.vv-cxh .cx-meta .ic { width: 13px; height: 13px; vertical-align: -2px; }
+.vv-cxh .cx-lvl { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; } .vv-cxh .cx-lvl .cx-badge { margin-left: 0; }
+.vv-cxh .cx-num { background: #506C88; }
+.vv-sec2 { margin: 34px 0 10px; font-size: 1.35rem; } .vv-sec2 small { font-size: .7em; font-weight: 500; color: var(--mut, #51626F); }
+.vv-reg { margin-top: 18px; }
+/* guía de vivienda con los componentes de la de Circuitos */
+.vv-cxguia.cx-panel { flex: none; overflow: visible; padding: 0; --tq: #506C88; --amb: #DE0714; --pri: #506C88; }
+.vv-cxguia .cx-num { background: #506C88; color: #fff; }
+.vv-cxguia summary .ic { width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; }
+.vv-cxguia .vv-plano svg { width: 100%; height: auto; }
+.vv-cxguia .cx-sn .ic { width: 15px; height: 15px; }
+.vv-porque { background: var(--azul-tint, #eaf2ff); border-radius: 10px; padding: 7px 10px; font-size: 13.5px; }
+.vv-cxguia .cx-where ul { margin: 4px 0 0 18px; padding: 0; }
+.vv-cxguia .cx-auto .cx-lvl { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; } .vv-cxguia .cx-auto .cx-badge { margin-left: 0; }
+.vv-cxguia .cx-ok { margin: 10px 0; padding: 9px 12px; border-radius: 12px; background: var(--verde-tint, #e8f8ee); }

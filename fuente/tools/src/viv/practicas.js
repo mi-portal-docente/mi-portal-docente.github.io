@@ -43,7 +43,7 @@ export const PRACTICAS = [
     intro: 'El interruptor corta siempre la FASE. La fase y el neutro llegan del C1 a la caja de registro; la fase va al interruptor y vuelve como retorno a la lámpara.',
     pasos: [
       P('Fase y neutro del C1 a la caja', 'Marrón y azul de 1,5 mm² desde la salida del C1 hasta los conectores 1 y 2 de la caja.', { cables: ['f', 'n'] }),
-      P('Cablea el interruptor', 'Fase del conector 1 al borne L del interruptor; del otro borne sale el retorno (negro) al conector 3.', { cables: ['fi', 'r1'] }),
+      P('Cablea el interruptor', 'Fase del conector 1 al borne L del interruptor; del borne 1 sale el retorno (negro) al conector 3.', { cables: ['fi', 'r1'] }),
       P('Cablea el portalámparas', 'Retorno negro al contacto central (L) y neutro azul a la rosca (N).', { cables: ['r2', 'n2'] }),
       P('Da tensión y pruébalo', 'Pon los marcos, enchufa la manguera y acciona el interruptor: la lámpara enciende y apaga.', { accion: 'red' }),
     ] },
@@ -86,10 +86,10 @@ export const PRACTICAS = [
     ] },
   { id: 'vp7', n: 7, proy: 'cruzamiento', icon: 'shuffle', title: 'Cruzamiento: una luz desde tres sitios', sub: 'Conmutador, cruzamiento y conmutador mandan la misma lámpara.',
     level: 'Medio', duration: '2 h', norma: 'ITC-BT-25 (C1)', circuito: 'C1 · PIA 10 A · 1,5 mm²',
-    intro: 'El cruzamiento va entre los dos conmutadores: los viajeros del primero entran por 1 y 2, y salen por 3 y 4 hacia el segundo.',
+    intro: 'El cruzamiento va entre los dos conmutadores: los viajeros del primero entran por E1 y E2, y salen por S1 y S2 hacia el segundo.',
     pasos: [
       P('Fase al común del conmutador 1', 'Fase y neutro a la caja; marrón de la fase al común del conmutador 1.', { cables: ['f', 'n', 'c1'] }),
-      P('Viajeros por el cruzamiento', 'Viajeros del conmutador 1 a las entradas 1 y 2 del cruzamiento; de las salidas 3 y 4 al conmutador 2.', { cables: ['v1', 'v2', 'v3', 'v4'] }),
+      P('Viajeros por el cruzamiento', 'Viajeros del conmutador 1 a las entradas E1 y E2 del cruzamiento; de las salidas S1 y S2, al conmutador 2.', { cables: ['v1', 'v2', 'v3', 'v4'] }),
       P('Retorno y neutro a la lámpara', 'Del común del conmutador 2 al centro del portalámparas; neutro a la rosca.', { cables: ['r1', 'r2', 'n2'] }),
       P('Prueba desde los tres sitios', 'Da tensión y acciona cada mecanismo.', { accion: 'red' }),
     ] },

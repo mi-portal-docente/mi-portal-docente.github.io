@@ -1,6 +1,7 @@
 // Proyectos de «Instalación de vivienda» con el formato de las lecciones del ESP32: lección paso a paso sobre el 3D
 // (barra de pasos, pestañas PASO A PASO · FICHA · MATERIAL · ESQUEMA · PRUEBA · RETO) y montaje interactivo propio.
 // Se instala sobre ViviendaLab (lab.js) con instalarProyectos(ViviendaLab).
+import { ic } from '../ui/iconos.js';
 import { PROYECTOS, proyecto, pasosDe, modeloPaso, modeloMontar, solucion, comprobarProyecto, medirPrueba, planoSVG, tablaCables, MATERIAL, FOTOS_HERRAMIENTA, aplicar } from './proyectos.js';
 import { HERRAMIENTAS, PUNTAS, herramienta } from './catalogo.js';
 import { FOTOS } from './creditos.js';
@@ -38,10 +39,14 @@ const M = {
     const pr = progreso(); const est = (k) => { const e = portal()?.estadoEntrega?.(k); return e ? `<span class="vv-chip ${e.nota != null ? 'ok' : ''}">${e.nota != null ? 'Nota ' + String(e.nota).replace('.', ',') : '📤 Entregado'}</span>` : ''; };
     const card = (P) => { const g = pr[P.n] || {}; return `<a class="card vv-pc" href="#eee/vivienda/p${P.n}"><img src="${FOTO_PROY[P.n] || `img/viv/proy/p${P.n}.jpg`}" alt="" loading="lazy" decoding="async"><div class="vv-pcb"><div class="vv-pch"><span class="num">${P.n}</span><b>${esc(P.title)}</b>${g.ok ? '<span class="vv-chip ok">✔ Montado</span>' : ''}</div>
       <div class="muted small">${esc(P.level)} · ${esc(P.duration)} · ${esc(P.circuito)}</div><div class="small">${esc(P.short)}</div></div></a>`; };
-    return `<div class="vv-hw vv-hw3"><div class="vv-hero3"><h2>Instalación eléctrica de una vivienda · tablero 3D</h2>
+    const primera = this.primeraPr?.();
+    return `<div class="vv-hw vv-hw3 vv-cxh"><section class="cx-hero vv-hero3"><div><h2>Instalación eléctrica de una vivienda · tablero 3D</h2>
       <p class="lead">Monta en un tablero 3D, como en el taller, el cuadro con el IGA, el diferencial y los PIAs, los puntos de luz y los enchufes. Cada práctica se comprueba sola y sigue el <b>REBT</b> (ITC-BT-25, electrificación básica): colores, secciones y protecciones de una vivienda en España.</p>
-      <div class="vv-norma"><span><b>Fase</b> marrón · negro · gris</span><span><b>Neutro</b> azul</span><span><b>Tierra</b> amarillo-verde</span><span><b>Alumbrado</b> 1,5 mm² · PIA 10 A</span><span><b>Enchufes</b> 2,5 mm² · PIA 16 A</span></div></div>
-      ${this.homePracticasHTML ? this.homePracticasHTML() : ''}
+      <div class="vv-norma"><span><b>Fase</b> marrón · negro · gris</span><span><b>Neutro</b> azul</span><span><b>Tierra</b> amarillo-verde</span><span><b>Alumbrado</b> 1,5 mm² · PIA 10 A</span><span><b>Enchufes</b> 2,5 mm² · PIA 16 A</span></div>
+      <div class="cx-hbtns">${primera ? `<a class="vv-btn primary big vv-prs-go" href="#eee/vivienda/${primera.id}">${ic('play')} Empezar por la práctica ${primera.n}</a>` : ''}<a class="vv-btn big" href="#eee/vivienda/libre">Modo libre</a></div></div></section>
+      ${this.tabsPrHTML ? this.tabsPrHTML() : ''}${this.grupoBarPrHTML ? this.grupoBarPrHTML() : ''}
+      ${this.homeTab === 'eval' && this.evalPrHTML ? this.evalPrHTML() + '</div>' : `${this.homePracticasHTML ? this.homePracticasHTML() : ''}
+      <h2 class="vv-sec2">Por tu cuenta <small>proyectos paso a paso, la SA1, modo libre y averías</small></h2>
       <h3 class="vv-sec">Proyectos guiados <small>lecciones paso a paso con herramientas</small> ${est(PRACTICA_PROY)}</h3><div class="cards vv-pcards">${PROYECTOS.map(card).join('')}</div>
       <h3 class="vv-sec">Otras prácticas</h3><p class="muted small">Modos abiertos y prácticas anteriores (se conservan tus montajes y entregas).</p>
       <div class="cards vv-ocards">
@@ -53,7 +58,7 @@ const M = {
         <a class="card" href="#eee/vivienda/creditos"><span class="num">©</span><div><b>Créditos de las imágenes</b><div class="small">Autores y licencias de las fotos reales.</div></div></a>
       </div>
       <h4 class="vv-sec">🔧 Averías para practicar</h4><div class="vv-avl">${(this._averias || []).map((a) => `<a href="#eee/vivienda/averia-${a.id}">${esc(a.n)}</a>`).join('')}</div>
-      <p class="muted small">Simulación didáctica: la red de 230 V se resuelve como un circuito de resistencias. Normas del REBT: ITC-BT-19 (colores), ITC-BT-21 (tubos), ITC-BT-25 (circuitos de la vivienda). Las piezas en 3D son genéricas, con las medidas y el marcado de productos reales y sin logotipos.</p></div>`;
+      <p class="muted small">Simulación didáctica: la red de 230 V se resuelve como un circuito de resistencias. Normas del REBT: ITC-BT-19 (colores), ITC-BT-21 (tubos), ITC-BT-25 (circuitos de la vivienda). Las piezas en 3D son genéricas, con las medidas y el marcado de productos reales y sin logotipos.</p></div>`}`;
   },
   creditosHTML() {
     const filas = Object.entries(FOTOS).map(([k, f]) => `<tr><td><img src="${esc(f.f)}" alt="" loading="lazy"></td><td><b>${esc(f.t)}</b><div class="small">Autor: ${esc(f.a)}</div></td><td><a href="${esc(f.lu)}" target="_blank" rel="noopener">${esc(f.l)}</a></td><td><a href="${esc(f.u)}" target="_blank" rel="noopener">Wikimedia Commons</a></td></tr>`).join('');
