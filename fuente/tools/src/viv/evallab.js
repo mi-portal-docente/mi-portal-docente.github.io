@@ -7,12 +7,12 @@ import { sanear, varianteMarcas } from './modelo.js';
 import { conReserva } from './practicas.js';
 import { planoSVG } from './proyectos.js';
 import { ic } from '../ui/iconos.js';
+import { leeViv, guardaViv } from './almacen.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const portal = () => (typeof window !== 'undefined' ? window.PORTAL : null);
-const LS = 'viv:v1:';
-const lee = (k) => { try { return JSON.parse(localStorage.getItem(LS + k)); } catch (e) { return null; } };
-const guarda = (k, v) => { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) { } };
+const lee = leeViv;
+const guarda = guardaViv;
 const alumno = () => portal()?.rol === 'alumno';
 const fNota = (n) => (n == null ? '—' : String(n).replace('.', ','));
 export const abiertaEv = (id) => !alumno() || vivEvAbierta(window.PORTAL_SESION?.apartados, id);

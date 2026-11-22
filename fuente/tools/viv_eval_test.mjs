@@ -30,3 +30,15 @@ test('el índice ligero del panel coincide con las prácticas y los niveles', ()
   assert.deepEqual(progresoRegistro({ datos: { montaje: JSON.stringify({ practicas: { vp2: { guiada: true, autonoma: false } } }) } }), { vp2: { guiada: true, autonoma: false } });
   assert.deepEqual(progresoRegistro({ datos: { montaje: 'no-json' } }), {});
 });
+import { lsKeyViv, migrarViv } from './src/viv/almacen.js';
+test('avance por usuario en el mismo navegador y migración sin perder nada', () => {
+  const mapa = new Map(); const ls = { get length() { return mapa.size; }, key: (i) => [...mapa.keys()][i], getItem: (k) => (mapa.has(k) ? mapa.get(k) : null), setItem: (k, v) => mapa.set(k, String(v)), removeItem: (k) => mapa.delete(k) };
+  assert.equal(lsKeyViv('pr:done:vp2', null), 'viv:v1:pr:done:vp2');
+  assert.equal(lsKeyViv('pr:done:vp2', 'g1_07'), 'viv:v1:u:g1_07:pr:done:vp2');
+  assert.equal(lsKeyViv('sa1', 'g1_07'), 'viv:v1:sa1', 'la SA1 y los proyectos no cambian de sitio');
+  ls.setItem('viv:v1:pr:done:vp2', 'true'); ls.setItem('viv:v1:evres:ve1', '{"nota":10}'); ls.setItem('viv:v1:sa1', '{}');
+  assert.equal(migrarViv('g1_07', ls), 2);
+  assert.equal(ls.getItem('viv:v1:u:g1_07:pr:done:vp2'), 'true'); assert.equal(ls.getItem('viv:v1:u:g1_07:evres:ve1'), '{"nota":10}');
+  assert.equal(ls.getItem('viv:v1:pr:done:vp2'), null); assert.equal(ls.getItem('viv:v1:sa1'), '{}');
+  assert.equal(migrarViv('g1_08', ls), 0, 'el segundo usuario del navegador empieza de cero');
+});

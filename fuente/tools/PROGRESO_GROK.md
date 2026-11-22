@@ -1016,3 +1016,9 @@ tablero de la SA1, modo libre, juego, averías, materiales).
 - Arreglo: el botón «Enviar ahora» del registro en la portada no hacía nada.
 - Pruebas: viv_eval 5/5, viv_practicas_e2e TODO OK (con evaluación, candados de nivel, entrega v8 y registro v6), viv_emoji OK, viv_test 94/94.
 - Falta: almacenamiento por usuario en el mismo navegador, captura de la tabla del profesor (necesita Firebase), circ_test completo.
+
+### H4 — Avance de vivienda por usuario (caché v5-20261122j)
+- src/viv/almacen.js, como circ/almacen.js: «pr:…» (montajes, guiadas, autónomas, respuestas) y «evres:…» (pruebas enviadas) se guardan por identidad (PORTAL.ambito()) en el navegador. SA1, proyectos, modo libre y preferencias no cambian de sitio.
+- Migración compatible: los datos sin ámbito se los queda, una vez, el primero que abre el laboratorio en ese navegador. Lo enviado al profesor (v6–v9) está en Firestore y no se toca.
+- Pruebas: viv_eval 6/6 (con la migración), viv_practicas_e2e, viv_emoji, viv_test 94/94, circ_test 77/77.
+- Bloque H terminado salvo: captura de la tabla «Progreso en Vivienda» (necesita sesión de profesor con Firebase) y una prueba e2e del panel con el emulador.

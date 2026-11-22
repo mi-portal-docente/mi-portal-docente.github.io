@@ -24,12 +24,13 @@ import { casaVacia, materialesCasa, sanearCasa, solucionCasa } from './casa.js';
 import { instalarProyectos, parseProy, PRACTICA_PROY } from './proylab.js';
 import { instalarPracticas } from './practilab.js';
 import { instalarEvalViv } from './evallab.js';
+import { leeViv, guardaViv } from './almacen.js';
 import { cuadro3D as cuadroDet } from './modelos3d.js';
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const portal = () => (typeof window !== 'undefined' ? window.PORTAL : null);
 const LS = 'viv:v1:';
-const store = { get(k) { try { return JSON.parse(localStorage.getItem(LS + k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) { } } };
+const store = { get: leeViv, set: guardaViv }; // pr: y evres: van por usuario (almacen.js); lo demás, igual que antes
 const eur = (n) => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',') + ' €';
 const num = (n) => String(n).replace('.', ',');
 const fin = (n, d = 0) => (Number.isFinite(+n) ? +n : d);
