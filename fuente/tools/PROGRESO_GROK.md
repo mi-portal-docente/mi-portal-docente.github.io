@@ -1000,3 +1000,10 @@ tablero de la SA1, modo libre, juego, averías, materiales).
     entrega «v6» se envía SOLA al completar una guiada o una autónoma (como Circuitos), con «Tu registro» y «Enviar ahora».
     Pruebas: viv_practicas_e2e (con pestañas, temas e insignias), viv_emoji_e2e, viv_test 94/94.
     (La guía nueva y la evaluación aún no están construidas en este commit; el código de la guía está en src, sin publicar.)
+
+### H2 — Guía de cada práctica como la de Circuitos (caché v5-20261122h)
+- Guía en panel cx-panel: cabecera, barra «n / total pasos», desplegables «Objetivo y teoría» (REBT), «Esquema de montaje», «Material», «Normativa»; pasos en orden con su «Por qué» y «Te falta»; «Hazlo por mí»; comprobar; caja de la autónoma; 2 preguntas con explicación; reto; registro.
+- Autónoma: enunciado, plano de piezas, material, comprobar y registro (sin pasos ni pistas).
+- Módulo puro de evaluación (src/viv/evaluacion.js: niveles ve1–ve3 → entregas v7–v9) y candados 'vivev:' en circ/guiadas.js (cerrados por defecto), con viv_eval_test (4/4). Sin cambio de reglas.
+- Pruebas: viv_modelo 16/16, viv_practicas 13/13, viv_eval 4/4, viv_practicas_e2e TODO OK (con comprobaciones nuevas de la guía), viv_emoji_e2e OK, viv_test 94/94.
+- Falta: interfaz de la evaluación (H3), «Progreso en Vivienda» en el panel, almacenamiento por usuario, capturas h_*.

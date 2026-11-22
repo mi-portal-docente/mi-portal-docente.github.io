@@ -15,7 +15,7 @@ export function escribirGuiadas(apartados, ids) {
   return [...resto, PREFIJO + [...new Set(ids)].join(',')];
 }
 export const guiadaAbierta = (apartados, id) => { const s = leerGuiadas(apartados); return !s || s.has(id); };
-export const sinTokens = (apartados) => (Array.isArray(apartados) ? apartados : []).filter((x) => !esToken(x) && !esTokenEv(x) && !(typeof x === 'string' && x.startsWith('vivienda:')));
+export const sinTokens = (apartados) => (Array.isArray(apartados) ? apartados : []).filter((x) => !esToken(x) && !esTokenEv(x) && !(typeof x === 'string' && (x.startsWith('vivienda:') || x.startsWith('vivev:'))));
 // «Evaluación de circuitos»: los niveles (n1, n2…) van en otro token, «evaluacion:n1,n2». A diferencia de
 // las prácticas guiadas, sin token están TODOS cerrados para los alumnos: el profesor abre cada nivel.
 export const PREFIJO_EV = 'evaluacion:';
@@ -59,3 +59,17 @@ export function alternarViv(apartados, id, abrir, ids) {
   const s = s0 ? new Set(s0) : new Set(ids); if (abrir) s.add(id); else s.delete(id);
   return escribirViv(apartados, ids.filter((x) => s.has(x)));
 }
+// «Evaluación de vivienda»: niveles ve1, ve2… en el token «vivev:ve1,ve2». Como en «Evaluación de circuitos», sin token
+// están TODOS cerrados para los alumnos: el profesor abre cada nivel cuando toca el examen.
+export const PREFIJO_VIVEV = 'vivev:';
+export const esTokenVivEv = (x) => typeof x === 'string' && x.startsWith(PREFIJO_VIVEV);
+export function leerVivEv(apartados) {
+  const t = (Array.isArray(apartados) ? apartados : []).find(esTokenVivEv);
+  return new Set(t == null ? [] : t.slice(PREFIJO_VIVEV.length).split(',').map((x) => x.trim()).filter((x) => /^[a-z0-9_-]{1,20}$/i.test(x)));
+}
+export function escribirVivEv(apartados, ids) {
+  const resto = (Array.isArray(apartados) ? apartados : []).filter((x) => !esTokenVivEv(x));
+  const L = [...new Set(ids || [])]; return L.length ? [...resto, PREFIJO_VIVEV + L.join(',')] : resto;
+}
+export const vivEvAbierta = (apartados, id) => leerVivEv(apartados).has(id);
+export function alternarVivEv(apartados, id, abrir, ids) { const s = leerVivEv(apartados); if (abrir) s.add(id); else s.delete(id); return escribirVivEv(apartados, ids.filter((x) => s.has(x))); }

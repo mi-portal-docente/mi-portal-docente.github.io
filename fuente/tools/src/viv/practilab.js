@@ -132,9 +132,9 @@ const M = {
     const G = guiaDe(Pr.id) || {}; const E = estadoPasos(Pr, this.m, this.prAcc); const k = E.findIndex((x) => !x.ok); const todos = k < 0;
     const hechos = E.filter((x) => x.ok).length, total = E.length; const ini = hechos === 0;
     let h = `<div class="cx-panel vv-cxguia">${this.cabeceraPrHTML(Pr)}
-      <div class="cx-prog vv-prog" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${hechos}"><div style="width:${Math.round((100 * hechos) / total)}%"></div><span>${hechos} / ${total} pasos</span></div>
+      <div class="cx-prog" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${hechos}"><div style="width:${Math.round((100 * hechos) / total)}%"></div><span>${hechos} / ${total} pasos</span></div>
       <details ${ini ? 'open' : ''} class="vv-gd-teo"><summary>${ic('target')} Objetivo y teoría</summary><p>${esc(G.objetivo || Pr.intro)}</p>${G.teoria ? `<p class="cx-theory">${G.teoria}</p>` : ''}<div class="vv-prcirc">${ic('zap')} ${esc(Pr.circuito)}</div></details>
-      <details class="vv-gd-esq"><summary>${ic('drafting-compass')} Esquema de montaje</summary><div class="vv-plano">${planoSVG(modeloSolucion(Pr))}</div><p class="cx-small">Fase: marrón, negro o gris · neutro: azul · tierra: amarillo-verde. La lista de cables está en la pestaña «Esquema».</p></details>
+      <details ${ini ? "open" : ""} class="vv-gd-esq"><summary>${ic('drafting-compass')} Esquema de montaje</summary><div class="vv-plano">${planoSVG(modeloSolucion(Pr))}</div><p class="cx-small">Fase: marrón, negro o gris · neutro: azul · tierra: amarillo-verde. La lista de cables está en la pestaña «Esquema».</p></details>
       <details class="vv-gd-mat"><summary>${ic('toolbox')} Material</summary>${this.materialPrHTML(G)}</details>
       <details class="vv-gd-rebt"><summary>${ic('book-open-check')} Normativa (REBT)</summary><p><b>${esc(Pr.norma)}</b>. ${esc(Pr.intro)}</p><p class="cx-small">Reglamento Electrotécnico para Baja Tensión (RD 842/2002) y sus ITC. Más detalle en la pestaña «REBT».</p></details>
       <h4>Pasos</h4><ol class="cx-steps vv-pasos">`;

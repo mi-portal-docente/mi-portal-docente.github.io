@@ -22,6 +22,13 @@ ok(await pg.locator('#vvPracticas .cx-tema').count() >= 3 && await pg.locator('#
 await go('#eee/vivienda/vp2', 3500);
 const n0 = await pg.locator('.vv-pasos > li').count(); ok(n0 >= 3, `vp2 tiene ${n0} pasos`);
 ok(await pg.locator('.vv-pasos > li.ok').count() === 0, 'al empezar ningún paso está en verde');
+ok(await pg.evaluate(() => ['.vv-gd-teo', '.vv-gd-esq', '.vv-gd-mat', '.vv-gd-rebt'].every((q) => document.querySelector('.vv-cxguia ' + q)) && /ITC-BT/.test(document.querySelector('.vv-gd-teo .cx-theory')?.textContent || '')), 'guía como la de Circuitos: objetivo y teoría (REBT), esquema, material y normativa');
+ok(await pg.locator('.vv-cxguia .cx-prog span').textContent().then((t) => /^0 \/ \d+ pasos$/.test(t.trim())), 'barra de progreso «0 / n pasos»');
+ok(await pg.locator('.cx-steps li.cur .vv-porque').count() === 1, 'el paso actual explica el porqué');
+ok(await pg.locator('.cx-auto.off').count() === 1, 'la caja de la autónoma está cerrada hasta completar la guiada');
+ok(await pg.locator('.vv-cxguia .cx-q').count() >= 2, 'preguntas de la práctica');
+await pg.click('[data-pr="hazlo"]'); await pg.waitForTimeout(900);
+ok(await pg.locator('.vv-pasos > li.ok').count() === 1, '«Hazlo por mí» completa el paso actual');
 await pg.evaluate(() => window.__viv.solucionPr()); await pg.waitForTimeout(1200);
 await pg.click('#vvRed'); await pg.waitForTimeout(1200);
 await pg.evaluate(() => { const V = window.__viv; const i = V.m.parts.find((p) => p.type === 'interruptor'); i.on = !i.on; V.cambio(); }); await pg.waitForTimeout(1200);
