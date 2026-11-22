@@ -946,6 +946,7 @@ tablero de la SA1, modo libre, juego, averías, materiales).
   | Cables | H07V-K 450/750 V (UNE-EN 50525-2-31); 1,5 (C1), 2,5 (C2, C5), 4 (C4), 6 (C3) mm²; marrón/negro/gris fase, azul neutro, verde-amarillo tierra | Serigrafía «H07V-K 1x… mm² 450/750 V Eca» | Sin cambios (correcto; ES07Z1-K solo es obligatorio en pública concurrencia, ITC-BT-28) | ITC-BT-19, ITC-BT-25 tabla 1 |
   | Portalámparas E27 | Contacto central = fase (retorno), rosca = neutro | Igual | Sin cambios | UNE-EN 60238 |
 
-  - Pruebas y capturas: ver más abajo. Capturas f_<mecanismo>_delante.png y _detras.png en /workspace/capturas-vivienda/ (capturas_mec.mjs).
+  - Pruebas: viv_modelo_test 16/16, viv_practicas_test 13/13, viv_tubos_test OK (76 cables en su tubo), viv_practicas_e2e OK, viv_emoji_e2e OK, viv_test 94/94 (actualizada: interruptor marcado L y 1), circ_test 77/77. Commit 40363d6.
+  - Capturas f_<mecanismo>_delante.png y _detras.png en /workspace/capturas-vivienda/ (capturas_mec.mjs).
   - Pendiente: las refs NU310118 y NU310318 no las he contrastado con una ficha (sí NU310518 y NU310618); en el enchufe el esquema
     trasero queda cerca del borne de tierra; caja de empalme sin referencia Schneider concreta.
