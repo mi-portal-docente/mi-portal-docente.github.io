@@ -889,3 +889,11 @@ tablero de la SA1, modo libre, juego, averías, materiales).
   - Pruebas nuevas: viv_practicas_test.mjs (11/11) y viv_practicas_e2e.mjs (todo OK, con candados de alumno).
   - Pruebas: viv_test 94/94, viv_modelo_test 16/16, viv_tubos_test OK, guiadas_test OK, circ_test 77/77, barra_test 90/90.
   - Capturas: /workspace/capturas-vivienda/d6_* (portada, vp1, vp2, móvil; scrollWidth 390).
+- Bloque C — HECHO (caché v5-20261122c): cuadro más real y explicado.
+  - modelos3d.js: serigrafía de los aparatos en su ventana: IGA «C25 · [6000] · 230/400 V~», diferencial «ID 40 A · IΔn 30 mA ·
+    Tipo AC 230 V~» con el botón T amarillo, PIAs «C10 / C1 [6000] / 230 V~» (curva, calibre, circuito, poder de corte, tensión).
+  - lab.js: peine 1P+N real: barra aislada gris solo sobre las entradas de los PIAs, con un diente de cobre en cada borne.
+  - practilab.js, pestaña REBT: esquema 2D del cuadro de electrificación básica (IGA, ID y PIAs C1–C5 con su serigrafía y peine),
+    cómo se lee un PIA, y las pruebas de disparo (botón T, fuga a tierra, sobrecarga, cortocircuito) en 1–2 frases cada una.
+  - Pruebas: viv_test 94/94, viv_practicas_test 11/11, viv_practicas_e2e OK, viv_tubos_test OK. Capturas c3_cuadro*.png, c3_vp1_rebt.png.
+  - Pendiente: el tablero 3D de vp1 sigue con C1 y C2 montados (C3–C5 solo en el esquema 2D y la tabla).

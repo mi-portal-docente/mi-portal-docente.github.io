@@ -311,9 +311,10 @@ export function modulo3D(tipo, o = {}) {
   const lw = Math.min(1.25, W - 0.4); const lb = bloqueRedondo(lw, 1.2, 0.85, 0.18, pbr(colP, { roughness: 0.38, clearcoat: 0.3 }), lev, 0.05); lb.position.z = 0.43;
   for (let k = 0; k < 3; k++) caja(lw - 0.15, 0.07, 0.06, pbr(colP, { roughness: 0.6 }), 0, -0.3 + k * 0.3, 0.86, lev);
   rotulo('I-ON  O-OFF', W - 0.15, 0.4, 0, 1.95, 6.42, G, { color: '#c81e1e', w: 192, h: 40, font: 'bold 28px system-ui, sans-serif' });
-  const et = tipo === 'id' ? `ID ${o.In || 40} A\nIΔn 30 mA` : tipo === 'iga' ? `IGA\nC${o.In || 25}` : `${o.curva || 'C'}${o.In || 16}\n${o.circ || ''}`;
-  rotulo(et, W - 0.2, 0.9, 0, -1.72, 6.42, G, { bg: '#ffffff', w: 128, h: 72, font: 'bold 28px system-ui, sans-serif' });
-  caja(W - 0.12, 1.0, 0.05, pbr(0xeef4f8, { roughness: 0.05, transparent: true, opacity: 0.25, depthWrite: false }), 0, -1.72, 6.42, G); // ventana del rótulo
+  // serigrafía como en un aparato real: calibre y curva, circuito, poder de corte (6000 A en su recuadro) y tensión
+  const et = tipo === 'id' ? `ID ${o.In || 40} A\nIΔn 30 mA\nTipo AC 230 V~` : tipo === 'iga' ? `IGA C${o.In || 25}\n[6000]\n230/400 V~` : `${o.curva || 'C'}${o.In || 16}\n${o.circ || ''} [6000]\n230 V~`;
+  rotulo(et, W - 0.2, 0.95, 0, -1.8, 6.42, G, { bg: '#ffffff', w: mods === 2 ? 224 : 128, h: 108, font: mods === 2 ? 'bold 25px system-ui, sans-serif' : 'bold 22px system-ui, sans-serif' });
+  caja(W - 0.12, 1.05, 0.05, pbr(0xeef4f8, { roughness: 0.05, transparent: true, opacity: 0.25, depthWrite: false }), 0, -1.8, 6.42, G); // ventana del rótulo
   if (tipo === 'id') { cil(0.32, 0.35, MAT.amarillo(), W / 2 - 0.45, 0.9, 6.4, G, 14); rotulo('T', 0.5, 0.5, W / 2 - 0.45, 0.9, 6.77, G, { color: '#1d2329', w: 48, h: 48, font: 'bold 40px system-ui, sans-serif' }); }
   if (o.disparado) caja(0.5, 0.5, 0.1, mat(0xe02020, { emissive: 0xff0000, emissiveIntensity: 0.8 }), -W / 2 + 0.45, 1.9, 6.4, G);
   // pestaña de enganche al carril (abajo) con su ranura para el destornillador

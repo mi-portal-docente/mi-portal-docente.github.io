@@ -255,7 +255,12 @@ export class ViviendaLab {
       let o = null;
       if (p.type === 'cuadro') { o = cuadro3D(T.w, T.h); o.position.set(c.x, c.y, 0); lbl('Cuadro · carril DIN de 12 módulos', c.x, c.y - T.h / 2 - 2.2, 1, 'pie');
         const mods = m.parts.filter((q) => q.cuadro === p.id && TIPOS[q.type].modulo).map((q) => posParte(m, q)).filter(Boolean);
-        if (mods.length > 1) { const xs = mods.map((q) => q.x); const x0 = Math.min(...xs) - 0.9, x1 = Math.max(...xs) + 0.9; const pe = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.5, 0.35), M(0xc8743c, { metalness: 0.6, roughness: 0.35 })); pe.position.set((x0 + x1) / 2, c.y + 1 + 3.4, ZMOD + 0.5); G.add(pe); lbl('peine', x1 + 1.2, c.y + 4.4, ZMOD + 0.5, 'mini'); }
+        // peine de fase y neutro: une por arriba las entradas de los PIAs (barra aislada gris con un diente de cobre en cada borne)
+        const pias = m.parts.filter((q) => q.cuadro === p.id && TIPOS[q.type].modulo && esMT(q)).map((q) => posParte(m, q)).filter(Boolean);
+        if (pias.length > 1) { const xs = pias.map((q) => q.x); const x0 = Math.min(...xs) - 0.85, x1 = Math.max(...xs) + 0.85; const yb = c.y + 1 + 4.55;
+          const pe = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.55, 0.7), M(0x5d6166, { roughness: 0.55 })); pe.position.set((x0 + x1) / 2, yb, ZMOD + 0.2); G.add(pe);
+          for (const x of xs) for (const dx of [-0.45, 0.45]) { const d = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.9, 0.12), M(0xc8743c, { metalness: 0.7, roughness: 0.3 })); d.position.set(x + dx, yb - 0.55, ZMOD - 0.05); G.add(d); }
+          lbl('peine 1P+N', x1 + 1.6, yb + 0.2, ZMOD + 0.5, 'mini'); }
       } else if (T.modulo) {
         const on = !abierto.has(p.id); const disp = r?.disparos?.some((d) => d.p === p.id);
         o = modulo3D(esMT(p) ? 'mt' : p.type, { In: amperios(p), curva: curvaDe(p), circ: circuitoDe(p) || '', on, disparado: disp }); o.position.set(c.x, c.y, ZMOD - 4.4);

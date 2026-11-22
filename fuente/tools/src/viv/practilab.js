@@ -21,6 +21,29 @@ export const autoHechaPr = (id) => !!lee('pr:auto:' + id) || !!deEntrega()[id]?.
 const profGrupos = () => (portal()?.rol === 'profesor' && portal()?.circ?.grupos?.()) || [];
 const ICONO_ACC = { red: 'zap', test: 'shield-check', sobrecarga: 'thermometer', corto: 'flame', fuga: 'shield-check' };
 
+// Pruebas de disparo del cuadro (qué hace saltar a cada aparato)
+const DISPAROS = [
+  { i: 'shield-check', n: 'Botón T del diferencial', txt: 'Al pulsarlo se crea una pequeña fuga a propósito: el diferencial tiene que saltar. Se prueba una vez al mes.' },
+  { i: 'shield-check', n: 'Fuga a tierra', txt: 'Una fase que toca la carcasa metálica deriva corriente por la tierra: si pasa de 30 mA, salta el diferencial antes de que sea peligroso.' },
+  { i: 'thermometer', n: 'Sobrecarga', txt: 'Demasiados aparatos en un circuito (más corriente que su calibre): salta la parte térmica del PIA al cabo de un rato.' },
+  { i: 'flame', n: 'Cortocircuito', txt: 'Fase y neutro se tocan: la corriente se dispara y salta al instante la parte magnética del PIA (o el IGA).' },
+];
+// Cuadro tipo de la ITC-BT-25 en 2D: IGA, diferencial y PIAs C1…C5 con su serigrafía y el peine
+function cuadroSVG() {
+  const M = [{ t: 'IGA', l: ['C25', '6000'], w: 2, c: '#DE0714' }, { t: 'ID', l: ['40 A', '30 mA'], w: 2, c: '#2f6fd6', T: true },
+    ...CIRCUITOS_VIV.map((c) => ({ t: c.c, l: ['C' + c.pia, '6000'], w: 1, c: '#3a3f45' }))];
+  const u = 30; let x = 12; const parts = [];
+  for (const m of M) { const W = m.w * u - 4;
+    parts.push(`<g transform="translate(${x},28)"><rect width="${W}" height="96" rx="4" fill="#f4f4f1" stroke="#9aa3ab"/><rect x="${W / 2 - 8}" y="22" width="16" height="22" rx="3" fill="${m.c}"/>
+      ${m.T ? `<circle cx="${W - 9}" cy="18" r="5" fill="#f2c230" stroke="#8a6d00"/><text x="${W - 9}" y="21" font-size="7" text-anchor="middle" font-weight="700">T</text>` : ''}
+      <text x="${W / 2}" y="60" font-size="9" text-anchor="middle" font-weight="800">${m.t}</text><text x="${W / 2}" y="72" font-size="8" text-anchor="middle">${m.l[0]}</text><text x="${W / 2}" y="83" font-size="7" text-anchor="middle" fill="#506C88">${m.l[1]}</text></g>`);
+    x += m.w * u; }
+  const pe0 = 12 + 4 * u, pe1 = x - 4;
+  return `<div class="vv-plano"><svg viewBox="0 0 ${x + 12} 140" role="img" aria-label="Cuadro con IGA de 25 A, diferencial de 40 A y 30 mA y cinco PIAs: C1 10 A, C2 16 A, C3 25 A, C4 20 A y C5 16 A">
+    <rect x="4" y="6" width="${x}" height="128" rx="8" fill="#fff" stroke="#c9ced3"/><rect x="8" y="70" width="${x - 8}" height="8" fill="#b7bec5"/>
+    ${parts.join('')}<rect x="${pe0}" y="22" width="${pe1 - pe0}" height="5" rx="2" fill="#5d6166"/><text x="${pe1}" y="18" font-size="7" text-anchor="end" fill="#5d6166">peine</text></svg></div>`;
+}
+
 const M = {
   // ------------------------------------------------------------ lista (como la de Circuitos)
   grupoCandPr() { const G = profGrupos(); if (!G.length) return null; const id = lee('pref:grupoCand'); return { G, g: G.find((x) => x.id === id) || G[0] }; },
@@ -132,7 +155,10 @@ const M = {
   },
   normaPrHTML(Pr) {
     void Pr;
-    return `<h4>El cuadro (CGMP)</h4><div class="vv-apar">${APARATOS.map((a) => `<div><b>${esc(a.n)}</b><p>${esc(a.txt)}</p></div>`).join('')}</div>
+    return `<h4>El cuadro de una vivienda (electrificación básica)</h4>${cuadroSVG()}
+      <p class="vv-small">Así se lee un PIA: <b>C16</b> = curva C y 16 A de calibre; <b>6000</b> en su recuadro = corta hasta 6000 A de cortocircuito; <b>230 V~</b> = tensión. El <b>peine</b> lleva la fase y el neutro de la salida del diferencial a la entrada de todos los PIAs.</p>
+      <h4>Pruebas de disparo</h4><div class="vv-apar">${DISPAROS.map((d) => `<div><b>${ic(d.i)} ${esc(d.n)}</b><p>${esc(d.txt)}</p></div>`).join('')}</div>
+      <h4>El cuadro (CGMP)</h4><div class="vv-apar">${APARATOS.map((a) => `<div><b>${esc(a.n)}</b><p>${esc(a.txt)}</p></div>`).join('')}</div>
       <h4>Circuitos de una vivienda (ITC-BT-25)</h4><table class="tbl vv-tcirc"><tr><th>Circuito</th><th>PIA</th><th>Cable</th><th>Tubo</th></tr>${CIRCUITOS_VIV.map((c) => `<tr><td><b>${c.c}</b> ${esc(c.uso)}<div class="vv-small">${esc(c.txt)}</div></td><td>${c.pia} A</td><td>${String(c.sec).replace('.', ',')} mm²</td><td>Ø${c.tubo}</td></tr>`).join('')}</table>
       <h4>Colores (ITC-BT-19)</h4><div class="vv-norma"><span><b>Fase</b> marrón · negro · gris</span><span><b>Neutro</b> azul</span><span><b>Tierra</b> amarillo-verde</span></div>
       <p class="vv-small">Los cables van siempre dentro del tubo y los empalmes, dentro de las cajas de registro (ITC-BT-21).</p>`;
