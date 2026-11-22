@@ -229,6 +229,28 @@ export function recorridoCable(m, c) {
   return pts.filter((q, i) => Number.isFinite(q.x + q.y + q.z) && (i === 0 || Math.hypot(q.x - pts[i - 1].x, q.y - pts[i - 1].y, q.z - pts[i - 1].z) > 0.02));
 }
 
+// Cable entre dos aparatos del mismo cuadro: sale del borne hacia su canal (arriba o abajo del carril), va peinado
+// por el canal y entra en el otro borne. Si uno está arriba y otro abajo, sube por el canal lateral izquierdo.
+// Cada cable lleva su carril dentro del canal (sin cruzarse ni hacer bucles). null si no son dos aparatos del cuadro.
+export function recorridoInterno(m, c) {
+  const Pa = partePorId(m, c.a.p), Pb = partePorId(m, c.b.p);
+  if (!Pa || !Pb || !TIPOS[Pa.type]?.modulo || !TIPOS[Pb.type]?.modulo || Pa.cuadro !== Pb.cuadro) return null;
+  const ca = posParte(m, Pa), cb = posParte(m, Pb), a = posBorne(m, c.a), b = posBorne(m, c.b); if (!ca || !cb || !a || !b) return null;
+  const za = zBorne(m, c.a), zb = zBorne(m, c.b);
+  const mods = m.parts.filter((p) => p.cuadro === Pa.cuadro && TIPOS[p.type].modulo);
+  const xl = Math.min(...mods.map((p) => posParte(m, p).x - ((TIPOS[p.type].mods || 1) * MODULO) / 2)) - 1.0;
+  const internos = m.cables.filter((w) => { const A = partePorId(m, w.a.p), B = partePorId(m, w.b.p); return A && B && TIPOS[A.type]?.modulo && TIPOS[B.type]?.modulo && A.cuadro === Pa.cuadro; });
+  const k = Math.max(0, internos.findIndex((w) => w.id === c.id)); const d = (k % 5) * 0.32; // carril dentro del canal
+  const sa = a.y >= ca.y ? 1 : -1, sb = b.y >= cb.y ? 1 : -1; const zc = Math.min(za, zb) - 2.4; // fondo del canal
+  const gy = (s, y0) => y0 + s * (5.8 + d);
+  const sale = (q, s, z) => [{ x: q.x, y: q.y, z }, { x: q.x, y: q.y + s * 1.1, z: z - 0.6 }, { x: q.x, y: q.y + s * 2.0, z: zc + 0.6 }];
+  let mid;
+  if (sa === sb) { const y = gy(sa, sa > 0 ? Math.max(ca.y, cb.y) : Math.min(ca.y, cb.y)); mid = [{ x: a.x, y, z: zc }, { x: b.x, y, z: zc }]; }
+  else { const ya = gy(sa, ca.y), yb = gy(sb, cb.y), x = xl - d; mid = [{ x: a.x, y: ya, z: zc }, { x, y: ya, z: zc }, { x, y: yb, z: zc }, { x: b.x, y: yb, z: zc }]; }
+  const pts = [...sale(a, sa, za), ...mid, ...sale(b, sb, zb).reverse()];
+  return pts.filter((q, i) => Number.isFinite(q.x + q.y + q.z) && (i === 0 || Math.hypot(q.x - pts[i - 1].x, q.y - pts[i - 1].y, q.z - pts[i - 1].z) > 0.02));
+}
+
 // ---------------------------------------------------------------- puntas de los cables (pelado y apriete)
 export const extremo = (c, lado) => (lado === 'a' ? c.ea : c.eb) || { pel: 0, apr: false };
 export function prepararExtremos(m, c) { c.ea = { pel: idealPelado(m, c.a), apr: true }; c.eb = { pel: idealPelado(m, c.b), apr: true }; return c; }

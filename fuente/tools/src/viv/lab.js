@@ -8,7 +8,7 @@ import { M, canvasTex, glowTexture } from '../circ/models3d.js';
 import { TIPOS, PALETA, COLORES, SECCIONES, CARGAS, fmtSec, vacio, partePorId, posParte, bornes, posBorne, nombreBorne, grupo, slotLibre, siguienteNombre, nuevoId,
   rutaTubo, rutaCable, tuboEntre, sanear, solucionTablero, averia, AVERIAS, REFERENCIA, TUBOS_REF, materiales, presupuesto, clone, dims, TAMANOS_TABLERO, ZT, ZMOD,
   esMT, esEnchufe, esMecanismo, amperios, circuitoDe, curvaDe, medidas, zBorne, tipoBorne, idealPelado, tramoTubo, largoTubo, puntoEnRuta, grapasAuto, huecoGrapas, extremo, prepararExtremos, prepararTodo,
-  posicionesCaja, tamCaja, cablesDelTubo, metrosCable, lineaTubo, recorridoCable, radioCable } from './modelo.js';
+  posicionesCaja, tamCaja, cablesDelTubo, metrosCable, lineaTubo, recorridoCable, recorridoInterno, radioCable } from './modelo.js';
 import { simular, comprobar, comprobarTablero, puntas, TXT_PUNTA, CONDUCE, medir, buscapolos } from './sim.js';
 import { CIRCUITOS, CALIBRES, CALIBRES_IGA, CALIBRES_ID, CURVAS, CAJAS, FICHAS, BORNES, LARGOS_PELADO, PUNTAS, TUBOS, tuboMinimo, GRAPA_MAX, MARCAS, HERRAMIENTAS, REFERENCIAS, PROTEGE } from './catalogo.js';
 import { mecanismo3D, bombilla3D, cajaEmpalme3D, modulo3D, cuadro3D, herramienta3D, rotulo } from './modelos3d.js';
@@ -312,6 +312,7 @@ export class ViviendaLab {
       else {
         Pp = rc.pts.map((q, i) => new THREE.Vector3(q.x, q.y, i === 0 ? za : zb)); const a = Pp[0], b = Pp[Pp.length - 1];
         if (!rc.interno) Pp = [a, new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, 6), b]; // suelto, fuera de tubo: se marca en rojo
+        else if ((Pp = recorridoInterno(m, c)?.map((q) => new THREE.Vector3(q.x, q.y, q.z))) && Pp.length > 1) { /* peinado por el canal del cuadro */ }
         else Pp = [a, new THREE.Vector3(a.x, a.y + (a.y > b.y ? 1 : -1) * 0.2, a.z + 0.9), new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, Math.max(a.z, b.z) + 1.3), new THREE.Vector3(b.x, b.y, b.z + 0.9), b];
       }
       void off;

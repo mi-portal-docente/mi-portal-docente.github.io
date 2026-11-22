@@ -34,6 +34,11 @@ ok(dn.length === 1 && dn[0] === '#eee/vivienda/vp2', 'la tarjeta 2 sale como hec
 ok(await pg.locator('a[href="#eee/vivienda/vp2-auto"]').count() >= 1, 'se ofrece la autónoma de la práctica 2');
 await go('#eee/vivienda/vp2-auto', 3500);
 ok(await pg.evaluate(() => window.__viv.prAuto === true && window.__viv.kind === 'practica'), 'la autónoma se abre');
+ok(await pg.locator('.vv-pasos').count() === 0, 'la autónoma no tiene pasos que se marquen solos (montaje libre)');
+ok(await pg.evaluate(() => window.__viv.m.cables.length === 0), 'la autónoma empieza sin cables: el alumno lo monta todo');
+ok(await pg.locator('[data-pr="comprobar"]:not([disabled])').count() === 1, 'la autónoma se corrige al final con «Comprobar mi montaje»');
+await pg.click('[data-pr="comprobar"]'); await pg.waitForTimeout(1200);
+ok(await pg.locator('.vv-check.ko').count() === 1, 'sin montar, la comprobación final suspende');
 // candados: el alumno con token «vivienda:vp1» solo ve abierta la 1
 const rol = await pg.evaluate(() => { if (!window.PORTAL) window.PORTAL = {}; if (!window.PORTAL.rol) { try { window.PORTAL.rol = 'alumno'; } catch (e) { } } return window.PORTAL.rol; });
 if (rol === 'alumno') {

@@ -897,3 +897,29 @@ tablero de la SA1, modo libre, juego, averías, materiales).
     cómo se lee un PIA, y las pruebas de disparo (botón T, fuga a tierra, sobrecarga, cortocircuito) en 1–2 frases cada una.
   - Pruebas: viv_test 94/94, viv_practicas_test 11/11, viv_practicas_e2e OK, viv_tubos_test OK. Capturas c3_cuadro*.png, c3_vp1_rebt.png.
   - Pendiente: el tablero 3D de vp1 sigue con C1 y C2 montados (C3–C5 solo en el esquema 2D y la tabla).
+- Bloque E — HECHO (caché v5-20261122d): remates.
+  - Plano: `planoSVG` usaba `rutaTubo(...)?.pts`, pero rutaTubo devuelve un array, así que los tubos NUNCA se dibujaban en el
+    plano. Arreglado (proyectos.js) y con prueba (viv_practicas_test: un trazo por tubo). Captura e_plano.png (3 tubos en la práctica 2).
+  - Emoji: el portal ya los cambia al vuelo por iconos Lucide (instalarIconos) en el texto; prueba nueva viv_emoji_e2e.mjs recorre
+    portada, prácticas, proyectos, tablero y modo libre (texto, opciones, title, aria-label): 0 emoji a la vista. El rótulo 3D de la
+    manguera ya no lleva 🔌. (Los emoji siguen en el código fuente como clave del mapa de iconos; no se ven.)
+  - REBT en el móvil: el esquema del cuadro ya no es un SVG que se encoge: es HTML con texto de 13–15 px que se reparte en dos filas
+    (IGA + ID arriba; peine y C1…C5 abajo). Captura e_rebt_movil.png (390 px, sin desbordar).
+  - Práctica 1: el carril lleva también C3 25 A, C4 20 A y C5 16 A (serigrafía C25/C20/C16, [6000], 230 V~), sin cablear; el
+    peine 1P+N cubre los cinco PIAs. La práctica sigue pidiendo solo C1 y C2 (`conReserva`, también en montajes guardados).
+  - Cuadro: los cables entre aparatos (IGA→ID, ID→C1, puentes C1→C2) van peinados: bajan o suben a su canal, cada uno en su carril,
+    y si van de abajo a arriba suben por el canal lateral izquierdo (`recorridoInterno` en modelo.js). Sin bucles sueltos.
+  - Autónoma (t161u): montaje libre que empieza sin cables, sin pasos que se marquen solos, con «Comprobar mi montaje» al final
+    (comprobado en viv_practicas_e2e). La guiada de la SA1 sigue tal cual.
+  - Medidas revisadas con fichas de fabricante:
+    - Marco: Simon 82 1 elemento (ref. 82610-30) 89 × 87 mm (simonelectric.com, ficha técnica); el modelo usa 84 mm, dentro del
+      rango habitual de 80–89 mm. Bastidor 71 mm (estándar de caja universal).
+    - Caja universal de empotrar: 70 × 70 × 40/42 mm (fichas EN 60670-22 en ideco4.com y latiendadeelectricidad.com).
+    - Caja de registro 100 × 100 mm: ya era la medida del modelo (CE 100×100).
+    - Tubo corrugado: Ø16 (C1) y Ø20 (C2, C4, C5), Ø25 (C3), como la ITC-BT-25.
+    - PIA 1P+N: Schneider iDPN (A9N21644) 18 mm = 1 módulo, 81 mm de alto, curva C, 6000 A, pelado 13 mm, par 2 N·m (el
+      modelo: 1 módulo de 18 mm, 85 mm, pelado ideal 14 mm, par 2 N·m).
+    - Diferencial: Schneider iID 2P 40 A 30 mA (A9R21240) 36 mm = 2 módulos, 91 mm de alto, botón T (el modelo: 2 módulos, 36 mm).
+    - Schuko 16 A con contactos de tierra laterales: ya estaba en el modelo (bloque A). Nada que corregir en medidas.
+  - Pruebas: viv_practicas_test 13/13, viv_modelo_test 16/16, viv_tubos_test OK, viv_practicas_e2e OK, viv_emoji_e2e OK, viv_test 94/94, circ_test 77/77.
+  - Capturas: /workspace/capturas-vivienda/e_cuadro.png, e_plano.png, e_rebt_movil.png (y e_cuadro_movil.png).

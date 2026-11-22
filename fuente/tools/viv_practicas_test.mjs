@@ -46,3 +46,21 @@ test('candados de vivienda: sin token todo abierto; el token no toca guiadas ni 
   const b = alternarViv(a, 'vp3', true, ids); assert.equal(vivAbierta(b, 'vp3'), true);
   assert.deepEqual(escribirViv(b, null), base);
 });
+
+import { planoSVG } from './src/viv/proyectos.js';
+test('el plano dibuja un trazo por cada tubo', () => {
+  for (const id of ['luz', 'conmutada', 'cuadro', 'luz-enchufe']) {
+    const m = modeloSolucion(PRACTICAS.find((p) => p.proy === id)); assert.ok(m.tubos.length >= 1, id);
+    const n = (planoSVG(m).match(/stroke="#9aa1a8"/g) || []).length; assert.equal(n, m.tubos.length, id);
+  }
+});
+
+test('práctica 1: el cuadro lleva también los PIAs C3 25 A, C4 20 A y C5 16 A sin cablear', () => {
+  const Pr = practica('vp1');
+  for (const m of [modeloInicial(Pr), modeloSolucion(Pr)]) {
+    const P = Object.fromEntries(m.parts.filter((p) => /^C[1-5]$/.test(p.id)).map((p) => [p.id, p.In]));
+    assert.deepEqual(P, { C1: 10, C2: 16, C3: 25, C4: 20, C5: 16 });
+    assert.equal(new Set(m.parts.filter((p) => p.cuadro && p.slot != null).map((p) => p.slot)).size, m.parts.filter((p) => p.cuadro && p.slot != null).length);
+  }
+  assert.equal(comprobarPractica(Pr, modeloSolucion(Pr), { realista: true }).ok, true);
+});

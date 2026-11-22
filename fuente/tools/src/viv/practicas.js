@@ -25,7 +25,7 @@ export const APARATOS = [
 // Cada paso: { t: título, txt: explicación corta, cables: [ids de la solución] | fichas: 'CE1' | accion: 'red'|'test'|'sobrecarga'|'corto' }
 const P = (t, txt, o = {}) => ({ t, txt, ...o });
 export const PRACTICAS = [
-  { id: 'vp1', n: 1, proy: 'cuadro', base: 'cuadro', icon: 'shield-check', title: 'El cuadro general: IGA, diferencial y PIAs', sub: 'Cablea el cuadro en orden y prueba que cada protección salta cuando debe.',
+  { id: 'vp1', n: 1, proy: 'cuadro', base: 'cuadro', reserva: true, icon: 'shield-check', title: 'El cuadro general: IGA, diferencial y PIAs', sub: 'Cablea el cuadro en orden y prueba que cada protección salta cuando debe.',
     level: 'Iniciación', duration: '2 h', norma: 'ITC-BT-17 y ITC-BT-25', circuito: 'IGA 25 A · ID 40 A/30 mA · C1 10 A · C2 16 A',
     intro: 'El cuadro general de mando y protección (CGMP) reparte la instalación. Orden: manguera → IGA → diferencial → un PIA por circuito. En la aparamenta, la entrada va arriba y la salida abajo.',
     pasos: [
@@ -101,12 +101,20 @@ export const ACCIONES = { red: 'Con tensión y sin disparos', test: 'Salta el di
 // Cables que el alumno no tiene que tirar (los da hechos el montaje de partida)
 function hechos(Pr) { if (Pr.base === 'cuadro') { const ids = new Set(Pr.pasos.flatMap((s) => s.cables || [])); return (c) => !ids.has(c.id); } return () => false; }
 // Montaje de partida: piezas, tubos y aparamenta colocados; sin los cables de la práctica
+// PIAs C3, C4 y C5 montados en el carril (como en un cuadro real de electrificación básica), sin cablear en esta práctica
+const RESERVA = [['C3', 25, 6, 'cocina y horno'], ['C4', 20, 7, 'lavadora y termo'], ['C5', 16, 8, 'baño y cocina']];
+export function conReserva(Pr, m) {
+  if (!Pr?.reserva || !m?.parts) return m; const q = m.parts.find((p) => p.type === 'cuadro'); if (!q) return m;
+  const usados = new Set(); for (const p of m.parts) if (p.cuadro === q.id && TIPOS[p.type]?.modulo) for (let i = 0; i < (TIPOS[p.type].mods || 1); i++) usados.add((p.slot ?? 0) + i);
+  for (const [id, In, slot, uso] of RESERVA) if (!m.parts.some((p) => p.id === id) && !usados.has(slot)) { m.parts.push({ id, type: 'mt', nombre: `${id} ${In} A (${uso})`, cuadro: q.id, slot, on: true, In, curva: 'C', circ: id }); usados.add(slot); }
+  return m;
+}
 export function modeloInicial(Pr) {
   const m = solucion(proyDe(Pr)); const queda = hechos(Pr); m.cables = m.cables.filter(queda); m.proyecto = proyDe(Pr).id; m.practica = Pr.id;
   if (Pr.vaciar) { const c = partePorId(m, Pr.vaciar); if (c) c.fichas = {}; }
-  return sanear(m);
+  return sanear(conReserva(Pr, m));
 }
-export const modeloSolucion = (Pr) => { const m = solucion(proyDe(Pr)); m.practica = Pr.id; return sanear(m); };
+export const modeloSolucion = (Pr) => { const m = solucion(proyDe(Pr)); m.practica = Pr.id; return sanear(conReserva(Pr, m)); };
 const igual = (a, b) => a.p === b.p && a.t === b.t;
 const mismoColor = (x, y) => x === y || (COLORES[x]?.clase === 'fase' && COLORES[y]?.clase === 'fase');
 // ¿Está el cable c de la solución en el montaje m? (mismos bornes, color de la misma clase y misma sección)

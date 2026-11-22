@@ -448,7 +448,7 @@ export function planoSVG(m, { sel = null, k = 9 } = {}) {
   if (!m) return '';
   const D = dims(m); const W = D.w * k, H = D.h * k; const X = (x) => x * k, Y = (y) => (D.h - y) * k;
   let s = `<svg class="viv-plano" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif"><rect width="${W}" height="${H}" rx="10" fill="#e9d3ae" stroke="#b08a57" stroke-width="3"/>`;
-  for (const t of m.tubos) { const r = rutaTubo(m, t.a, t.b); if (!r?.pts) continue; s += `<polyline points="${r.pts.map((p) => `${X(p.x)},${Y(p.y)}`).join(' ')}" fill="none" stroke="#9aa1a8" stroke-width="${(t.d || 16) * 0.9}" stroke-linecap="round" opacity=".55"/>`; }
+  for (const t of m.tubos) { const r = rutaTubo(m, t.a, t.b); if (!Array.isArray(r) || r.length < 2) continue; s += `<polyline points="${r.map((p) => `${X(p.x)},${Y(p.y)}`).join(' ')}" fill="none" stroke="#9aa1a8" stroke-width="${(t.d || 16) * 0.9}" stroke-linecap="round" opacity=".55"/>`; }
   for (const p of m.parts) {
     if (TIPOS[p.type].modulo || p.type === 'manguera') continue; const c = posParte(m, p); const d = medidas(p);
     const fill = p.type === 'cuadro' ? '#f4f6f8' : p.type === 'caja' ? '#d9dde1' : '#fbfbf8';

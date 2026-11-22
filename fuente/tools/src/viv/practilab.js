@@ -1,6 +1,6 @@
 // Prácticas del tablero una a una (lista como la de Circuitos, guiada y autónoma, candados del profesor) sobre ViviendaLab.
 // Se instala con instalarPracticas(ViviendaLab). Los datos y la corrección están en practicas.js.
-import { PRACTICAS, practica, modeloInicial, modeloSolucion, estadoPasos, comprobarPractica, textoCable, APARATOS, CIRCUITOS_VIV, ACCIONES, proyDe } from './practicas.js';
+import { PRACTICAS, practica, modeloInicial, modeloSolucion, estadoPasos, comprobarPractica, textoCable, APARATOS, CIRCUITOS_VIV, ACCIONES, proyDe, conReserva } from './practicas.js';
 import { vivAbierta, alternarViv } from '../circ/guiadas.js';
 import { sanear } from './modelo.js';
 import { planoSVG, tablaCables } from './proyectos.js';
@@ -28,20 +28,13 @@ const DISPAROS = [
   { i: 'thermometer', n: 'Sobrecarga', txt: 'Demasiados aparatos en un circuito (más corriente que su calibre): salta la parte térmica del PIA al cabo de un rato.' },
   { i: 'flame', n: 'Cortocircuito', txt: 'Fase y neutro se tocan: la corriente se dispara y salta al instante la parte magnética del PIA (o el IGA).' },
 ];
-// Cuadro tipo de la ITC-BT-25 en 2D: IGA, diferencial y PIAs C1…C5 con su serigrafía y el peine
+// Cuadro tipo de la ITC-BT-25 en HTML (texto real, legible en el móvil): IGA, diferencial y PIAs C1…C5 con su serigrafía y el peine
 function cuadroSVG() {
-  const M = [{ t: 'IGA', l: ['C25', '6000'], w: 2, c: '#DE0714' }, { t: 'ID', l: ['40 A', '30 mA'], w: 2, c: '#2f6fd6', T: true },
-    ...CIRCUITOS_VIV.map((c) => ({ t: c.c, l: ['C' + c.pia, '6000'], w: 1, c: '#3a3f45' }))];
-  const u = 30; let x = 12; const parts = [];
-  for (const m of M) { const W = m.w * u - 4;
-    parts.push(`<g transform="translate(${x},28)"><rect width="${W}" height="96" rx="4" fill="#f4f4f1" stroke="#9aa3ab"/><rect x="${W / 2 - 8}" y="22" width="16" height="22" rx="3" fill="${m.c}"/>
-      ${m.T ? `<circle cx="${W - 9}" cy="18" r="5" fill="#f2c230" stroke="#8a6d00"/><text x="${W - 9}" y="21" font-size="7" text-anchor="middle" font-weight="700">T</text>` : ''}
-      <text x="${W / 2}" y="60" font-size="9" text-anchor="middle" font-weight="800">${m.t}</text><text x="${W / 2}" y="72" font-size="8" text-anchor="middle">${m.l[0]}</text><text x="${W / 2}" y="83" font-size="7" text-anchor="middle" fill="#506C88">${m.l[1]}</text></g>`);
-    x += m.w * u; }
-  const pe0 = 12 + 4 * u, pe1 = x - 4;
-  return `<div class="vv-plano"><svg viewBox="0 0 ${x + 12} 140" role="img" aria-label="Cuadro con IGA de 25 A, diferencial de 40 A y 30 mA y cinco PIAs: C1 10 A, C2 16 A, C3 25 A, C4 20 A y C5 16 A">
-    <rect x="4" y="6" width="${x}" height="128" rx="8" fill="#fff" stroke="#c9ced3"/><rect x="8" y="70" width="${x - 8}" height="8" fill="#b7bec5"/>
-    ${parts.join('')}<rect x="${pe0}" y="22" width="${pe1 - pe0}" height="5" rx="2" fill="#5d6166"/><text x="${pe1}" y="18" font-size="7" text-anchor="end" fill="#5d6166">peine</text></svg></div>`;
+  const M = [{ t: 'IGA', l: ['C25', '6000'], w: 2, k: 'iga' }, { t: 'ID', l: ['40 A', '30 mA'], w: 2, k: 'id', T: true },
+    ...CIRCUITOS_VIV.map((c) => ({ t: c.c, l: ['C' + c.pia, '6000'], w: 1, k: 'pia', u: c.uso }))];
+  const mod = (m) => `<div class="vv-cqm vv-cq-${m.k} ${m.w === 2 ? 'w2' : ''}" title="${esc(m.u || m.t)}">${m.T ? '<span class="vv-cqt">T</span>' : ''}<span class="vv-cqp"></span><b>${m.t}</b><span>${m.l[0]}</span><small>${m.l[1]}</small></div>`;
+  return `<div class="vv-cq" role="img" aria-label="Cuadro con IGA de 25 A, diferencial de 40 A y 30 mA y cinco PIAs: C1 10 A, C2 16 A, C3 25 A, C4 20 A y C5 16 A">
+    <div class="vv-cqg">${M.slice(0, 2).map(mod).join('')}</div><div class="vv-cqg vv-cqpias"><i class="vv-cqpeine">peine</i>${M.slice(2).map(mod).join('')}</div></div>`;
 }
 
 const M = {
@@ -94,7 +87,7 @@ const M = {
     this.crumbs(); this.initScene(); this.vistaActiva = 'tablero'; this.activarControles(); this.stepbar(); this.strip();
     if (!mismo) {
       this.red = false; this.test = false; this.res = null; this.chk = null; this.prchk = null; this.sel = null; this.undoS = []; this.redoS = []; this.multi.a = this.multi.b = null; this.tool = 'mover'; this.tapas = false;
-      this.m = sanear(lee('pr:m:' + modo) || modeloInicial(Pr)); this.prAcc = lee('pr:acc:' + modo) || {};
+      this.m = sanear(conReserva(Pr, lee('pr:m:' + modo) || modeloInicial(Pr))); this.prAcc = lee('pr:acc:' + modo) || {};
       this.tab = auto ? 'enunciado' : 'guia'; this._dimKey = null;
     }
     this.cambio(false); this.vista(); this.resume();
