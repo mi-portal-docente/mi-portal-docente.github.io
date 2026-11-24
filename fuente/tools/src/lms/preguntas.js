@@ -5,6 +5,7 @@
 //  · corregir(qPublica, clave, respuesta) → fracción acertada (0…1). Puntuación parcial donde tiene sentido.
 import { normaliza, barajar, semilla } from './modelo.js';
 import { evaluarFormula, valoresAlumno, leeVariables } from './formula.js';
+import { validarComponente, textoValor, corregirColores } from './colores.js';
 
 const esTexto = (x) => typeof x === 'string';
 const listaTextos = (L) => Array.isArray(L) && L.every(esTexto);
@@ -261,6 +262,20 @@ export const TIPOS_PREGUNTA = {
     exportar: (q) => ({ extension: q.extension || 'corta', ...(q.rubrica?.length ? { rubrica: q.rubrica } : {}) }),
     corregir: () => 0,
     revisar: (q, k, r) => r != null && String(r).replace(/<[^>]*>/g, '').trim() !== '',
+  },
+  // Bloque 4 · código de colores: el alumno LEE el valor de un componente dibujado (valor + unidad + tolerancia
+  // [+ tensión]) o PINTA sus bandas a partir del valor. La solución sale de las bandas (tablas de lms/colores.js).
+  colores: {
+    nombre: 'Código de colores', parcial: true,
+    validar(q, err) {
+      const modo = q.modo ?? 'leer'; if (!['leer', 'pintar'].includes(modo)) { err('modo', '«modo» tiene que ser "leer" o "pintar".'); return null; }
+      const c = validarComponente({ id: q.id, clase: q.clase, bandas: q.bandas }, 0, (r, t) => err(r.replace(/^\./, ''), t), '');
+      return c ? { clase: c.clase, bandas: c.bandas, modo } : null;
+    },
+    // «leer»: el alumno necesita ver las bandas; «pintar»: ve el valor, y las bandas son la solución
+    separar: (q) => ({ publica: q.modo === 'pintar' ? { clase: q.clase, modo: 'pintar', n: q.bandas.length, valor: textoValor(q.clase, q.bandas) } : { clase: q.clase, modo: 'leer', bandas: q.bandas }, clave: { bandas: q.bandas } }),
+    exportar: (q, k) => ({ clase: q.clase, modo: q.modo || 'leer', bandas: k?.bandas || q.bandas || [] }),
+    corregir: (q, k, r) => corregirColores(q, k, r),
   },
 };
 // Celda o hueco: alguna alternativa igual (sin tildes ni mayúsculas) o el mismo número («0,5» = «0.5»)

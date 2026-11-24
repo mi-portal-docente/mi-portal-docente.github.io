@@ -1,0 +1,157 @@
+{
+  "tipo": "interactiva",
+  "titulo": "Código de colores · repaso (BORRADOR)",
+  "seccion": "clase",
+  "intentos": 3,
+  "colores": {
+    "modo": "leer",
+    "componentes": [
+      {
+        "id": "R1",
+        "clase": "resistencia4",
+        "bandas": [
+          "Marrón",
+          "Verde",
+          "Marrón",
+          "Oro"
+        ]
+      },
+      {
+        "id": "R2",
+        "clase": "resistencia4",
+        "bandas": [
+          "Amarillo",
+          "Violeta",
+          "Naranja",
+          "Marrón"
+        ]
+      },
+      {
+        "id": "R3",
+        "clase": "resistencia4",
+        "bandas": [
+          "Azul",
+          "Gris",
+          "Rojo",
+          "Plata"
+        ]
+      },
+      {
+        "id": "R4",
+        "clase": "resistencia4",
+        "bandas": [
+          "Rojo",
+          "Rojo",
+          "Rojo",
+          "Oro"
+        ]
+      },
+      {
+        "id": "R5",
+        "clase": "resistencia4",
+        "bandas": [
+          "Verde",
+          "Azul",
+          "Amarillo",
+          "Plata"
+        ]
+      },
+      {
+        "id": "R6",
+        "clase": "resistencia4",
+        "bandas": [
+          "Marrón",
+          "Negro",
+          "Negro",
+          "Oro"
+        ]
+      },
+      {
+        "id": "R7",
+        "clase": "resistencia5",
+        "bandas": [
+          "Violeta",
+          "Violeta",
+          "Naranja",
+          "Negro",
+          "Marrón"
+        ]
+      },
+      {
+        "id": "R8",
+        "clase": "resistencia5",
+        "bandas": [
+          "Rojo",
+          "Rojo",
+          "Rojo",
+          "Marrón",
+          "Oro"
+        ]
+      },
+      {
+        "id": "R9",
+        "clase": "resistencia5",
+        "bandas": [
+          "Gris",
+          "Blanco",
+          "Violeta",
+          "Rojo",
+          "Plata"
+        ]
+      },
+      {
+        "id": "C1",
+        "clase": "condensador",
+        "bandas": [
+          "Amarillo",
+          "Violeta",
+          "Naranja",
+          "Verde",
+          "Amarillo"
+        ]
+      },
+      {
+        "id": "C2",
+        "clase": "condensador",
+        "bandas": [
+          "Marrón",
+          "Negro",
+          "Amarillo",
+          "Blanco",
+          "Azul"
+        ]
+      },
+      {
+        "id": "C3",
+        "clase": "condensador",
+        "bandas": [
+          "Rojo",
+          "Rojo",
+          "Rojo",
+          "Rojo",
+          "Rojo"
+        ]
+      },
+      {
+        "id": "L1",
+        "clase": "inductor",
+        "bandas": [
+          "Marrón",
+          "Negro",
+          "Rojo",
+          "Oro"
+        ]
+      },
+      {
+        "id": "L2",
+        "clase": "inductor",
+        "bandas": [
+          "Rojo",
+          "Rojo",
+          "Marrón",
+          "Plata"
+        ]
+      }
+    ]
+  }
+}

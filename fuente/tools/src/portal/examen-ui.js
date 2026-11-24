@@ -6,6 +6,7 @@ import { barajar, semilla, fmtNota } from '../lms/modelo.js';
 import { textoHTML } from './aula-vistas.js';
 import { TIPOS_PREGUNTA, leeNumero, alternativas, txtEl, imgEl } from '../lms/preguntas.js';
 import { abrirVisor } from './visor-img.js';
+import { coloresHTML, leerColores, enlazarColores, marcarColores, solucionColores, respuestaColores } from './colores-ui.js';
 import { limpiarDoc, textoDeDoc, contarPalabras } from '../lms/doc-html.js';
 import { valoresAlumno, sustituir } from '../lms/formula.js';
 
@@ -19,6 +20,7 @@ export const ayudaTipo = {
   clasificar: 'Arrastra cada elemento a su grupo (o elige el grupo en su desplegable). Cuenta cada elemento bien clasificado.',
   tabla: 'Completa las casillas vacías de la tabla. Cuenta cada casilla bien escrita.',
   abierta: 'Respuesta abierta: la corrige tu profesor (con la rúbrica, si la hay).',
+  colores: 'Pasa el dedo o el ratón por cada banda: en la tabla se ilumina lo que vale. Cuenta cada parte bien hecha.',
 };
 const BOT_AB = [['bold', 'letter-b', 'Negrita'], ['italic', 'italic', 'Cursiva'], ['insertUnorderedList', 'list', 'Lista'], ['insertOrderedList', 'list-ordered', 'Lista numerada']];
 const rubricaQ = (q) => (q.rubrica?.length ? `<details class="ex-rub"><summary>${ic('list-checks')} Rúbrica (${esc(fmtNota(q.puntos || 1))} pt)</summary><ul>${q.rubrica.map((r) => `<li>${esc(r.c)} · <b>${esc(fmtNota(r.p))}</b></li>`).join('')}</ul></details>` : '');
@@ -60,6 +62,7 @@ export function preguntaHTML(q, r, { n, barajarOps = false, s = 1, datos = true 
     const p = r && typeof r === 'object' ? r : null;
     cuerpo = `<div class="ex-zonas-w"><div class="ex-zonas" data-zonas tabindex="0" role="button" aria-label="Imagen: pulsa el punto que se pide. Con el teclado: flechas para mover la marca"><img src="${esc(q.imagen)}" alt="${esc(q.alt || 'Imagen de la pregunta')}" draggable="false">${p ? `<span class="ex-marca" style="left:${p.x}%;top:${p.y}%"></span>` : ''}</div>${lupa(q.imagen, q.alt)}</div>`;
   }
+  else if (q.tipo === 'colores') cuerpo = coloresHTML(q, r && typeof r === 'object' ? r : null);
   else if (q.tipo === 'clasificar') {
     const R = Array.isArray(r) ? r : []; const G = q.grupos || [];
     const chip = (e, i) => `<span class="ex-cl-chip${imgEl(e) ? ' ex-cl-img' : ''}" draggable="true" data-cle="${i}"><span class="ex-cl-t">${elHTML(e)}</span><select data-cl="${i}" aria-label="Grupo de «${esc(txtEl(e) || 'imagen ' + (i + 1))}»"><option value="">—</option>${G.map((g, j) => `<option value="${j}" ${R[i] === j ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></span>`;
@@ -92,6 +95,7 @@ export function leerRespuesta(q, fs) {
     const ed = fs.querySelector('.ex-ab-ed'); if (ed) { const h = limpiarDoc(ed.innerHTML).slice(0, 20000); return textoDeDoc(h).trim() ? h : undefined; }
     const v = fs.querySelector('.ex-ab-c')?.value || ''; return v.trim() ? v.slice(0, 2000) : undefined;
   }
+  if (q.tipo === 'colores') return leerColores(fs);
   if (q.tipo === 'zonas') { const m = fs.querySelector('.ex-marca'); return m ? { x: parseFloat(m.style.left), y: parseFloat(m.style.top) } : undefined; }
   return undefined;
 }
@@ -99,6 +103,7 @@ export function leerRespuesta(q, fs) {
 // Interacción: botones de ordenar y clic en la imagen. alCambiar() se llama tras cada cambio.
 export function enlazarPreguntas(raiz, alCambiar) {
   if (raiz.dataset.exOk) return; raiz.dataset.exOk = '1';
+  enlazarColores(raiz, alCambiar);
   // clasificar: arrastrar y soltar (y el desplegable de cada elemento, que sirve con teclado y en el móvil)
   const moverChip = (chip, g) => { const fs = chip.closest('fieldset'); const dest = fs.querySelector(`[data-clg="${g}"]`); if (dest) dest.appendChild(chip); chip.querySelector('select').value = g; alCambiar?.({ id: fs.dataset.q }); };
   raiz.addEventListener('dragstart', (e) => { const c = e.target.closest?.('.ex-cl-chip'); if (!c) return; e.dataTransfer.setData('text/plain', c.dataset.cle); e.dataTransfer.effectAllowed = 'move'; c.classList.add('arr'); });
@@ -164,6 +169,7 @@ export function respuestaTexto(q, v) {
   if (q.tipo === 'tabla') return (Array.isArray(v) ? v : []).map((x, i) => `${i + 1}: ${x || '—'}`).join(' · ');
   if (q.tipo === 'abierta') return q.extension === 'larga' ? textoDeDoc(limpiarDoc(String(v))) : String(v);
   if (q.tipo === 'zonas') return `punto (${Math.round(v.x)} %, ${Math.round(v.y)} %)`;
+  if (q.tipo === 'colores') return respuestaColores(q, v);
   return String(v);
 }
 export function solucionTexto(q, k) {
@@ -178,6 +184,7 @@ export function solucionTexto(q, k) {
   if (q.tipo === 'clasificar') return (q.grupos || []).map((g, j) => `${g}: ${(q.elementos || []).map(txtElI).filter((_, i) => (k || [])[i] === j).join(', ')}`).join(' · ');
   if (q.tipo === 'tabla') return (k || []).map((a, i) => `${i + 1}: ${alternativas(a).join(' / ')}`).join(' · ');
   if (q.tipo === 'abierta') return q.rubrica?.length ? 'con rúbrica: ' + q.rubrica.map((r) => `${r.c} (${fmtNota(r.p)})`).join(' · ') : '(la corriges tú)';
+  if (q.tipo === 'colores') return solucionColores(q, k);
   if (q.tipo === 'zonas') return (k || []).filter((z) => z.correcta).map((z) => z.nombre || `zona (${z.x}, ${z.y})`).join(' · ');
   return '';
 }
@@ -185,7 +192,7 @@ export const nombreTipoPregunta = (t) => TIPOS_PREGUNTA[t]?.nombre || t;
 
 // Marca cada pregunta ya corregida (bien / a medias / mal) y, si se permite, su solución. La usan la actividad
 // interactiva y «Probar como alumno» del profesor. resp (opcional): respuestas, para el detalle por partes.
-export const MARCADORES = {}; // tipo → (fs, q, clave, respuesta) para marcar por partes (p. ej. «colores»)
+export const MARCADORES = { colores: marcarColores }; // tipo → (fs, q, clave, respuesta) para marcar por partes (p. ej. «colores»)
 export function marcarCorreccion(fieldsets, P, K, detalle, soluciones = true, resp = {}) {
   fieldsets.forEach((fs) => {
     const q = P.find((x) => x.id === fs.dataset.q); if (!q) return;

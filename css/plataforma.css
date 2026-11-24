@@ -672,3 +672,63 @@ html[data-theme="dark"] .ex-portada-t { color: #e5e5ea; }
 .ex-visor-b svg { width: 24px; height: 24px; }
 .ex-visor-ayuda { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 0; right: 0; text-align: center; color: rgba(255,255,255,.75); font-size: 15px; margin: 0; pointer-events: none; }
 .ex-visor.zoom .ex-visor-ayuda { display: none; }
+
+/* ---- Bloque 4 · código de colores (cc) ---- */
+.cc { display: grid; gap: 12px; margin-top: 6px; }
+@media (max-width: 520px) { .cc-t { font-size: 13.5px; } .cc-t th, .cc-t td { padding: 5px 4px; } .cc-sw { width: 13px; height: 13px; margin-right: 4px; } }
+.cc-comp { background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(240,243,247,.9)); border: 1px solid rgba(80,108,136,.18); border-radius: 22px; padding: 12px; }
+.cc-svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto; touch-action: manipulation; }
+.cc-svg .cc-b { cursor: pointer; outline: none; }
+.cc-svg .cc-b .cc-bf { transition: stroke-width .15s; }
+.cc-svg .cc-b.cc-on .cc-bf, .cc-svg .cc-b:focus-visible .cc-bf { stroke: #DE0714; stroke-width: 3; }
+.cc-svg .cc-b.vacia .cc-bf { stroke: #506C88; stroke-dasharray: 4 3; stroke-width: 1.5; }
+.cc-svg .cc-b.cc-ok .cc-bf { stroke: #248a3d; stroke-width: 4; }
+.cc-svg .cc-b.cc-ko .cc-bf { stroke: #DE0714; stroke-width: 4; stroke-dasharray: 5 3; }
+.cc-lab { font: 600 15px system-ui, sans-serif; fill: #506C88; }
+.cc-tw { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 18px; border: 1px solid rgba(80,108,136,.18); background: rgba(255,255,255,.75); }
+.cc-t { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+.cc-t caption { text-align: left; padding: 8px 12px; font-weight: 700; color: #506C88; font-size: 14px; }
+.cc-t th, .cc-t td { padding: 5px 8px; border-top: 1px solid rgba(80,108,136,.12); text-align: center; white-space: nowrap; }
+.cc-t thead th { background: #506C88; color: #fff; font-size: 13px; font-weight: 700; position: sticky; top: 0; }
+.cc-t tbody th { text-align: left; font-weight: 600; }
+.cc-sw { display: inline-block; width: 16px; height: 16px; border-radius: 5px; margin-right: 6px; vertical-align: -3px; border: 1px solid rgba(0,0,0,.25); }
+.cc-t .cc-col { background: rgba(80,108,136,.10); }
+.cc-t thead th.cc-col { background: #3d566e; }
+.cc-t tr.cc-fila > * { background: rgba(243,153,0,.14); }
+.cc-t td.cc-on { background: #DE0714 !important; color: #fff; font-weight: 800; border-radius: 6px; }
+.cc-t td.cc-sol { box-shadow: inset 0 0 0 3px #248a3d; background: rgba(52,199,89,.16); font-weight: 800; }
+.cc-resp { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.cc-f { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; color: #506C88; }
+.cc-f input, .cc-f select { font-size: 18px; min-height: 46px; padding: 6px 10px; border-radius: 14px; border: 1.5px solid rgba(80,108,136,.35); background: #fff; color: #1d1d1f; }
+.cc-fv input { width: 130px; }
+.cc-f .cc-ok, .cc .cc-ok { border-color: #248a3d !important; background: rgba(52,199,89,.12) !important; }
+.cc-f .cc-ko, .cc .cc-ko { border-color: #DE0714 !important; background: rgba(222,7,20,.08) !important; }
+.cc-dato { font-size: 18px; padding: 10px 14px; border-radius: 16px; background: rgba(80,108,136,.10); display: flex; align-items: center; gap: 8px; }
+.cc-dato b { font-size: 22px; }
+.cc-paleta { border: 1px solid rgba(80,108,136,.22); border-radius: 18px; padding: 10px; background: rgba(255,255,255,.92); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.cc-pal-h { font-size: 14px; color: #506C88; margin-bottom: 8px; }
+.cc-pal-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.cc-pc { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 10px; border-radius: 12px; border: 1.5px solid rgba(80,108,136,.25); background: #fff; font-size: 15px; font-weight: 600; cursor: pointer; color: #1d1d1f; }
+.cc-pc:hover, .cc-pc:focus-visible { border-color: #DE0714; }
+.cc-pc .cc-sw { width: 20px; height: 20px; margin: 0; }
+.cc-partes { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-parte { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 999px; font-size: 14px; font-weight: 700; }
+.cc-parte svg { width: 16px; height: 16px; }
+.cc-parte.ok { background: rgba(52,199,89,.16); color: #1d6b31; } .cc-parte.ko { background: rgba(222,7,20,.10); color: #b1000c; }
+.cc-prev { max-width: 320px; margin: 4px 0; }
+.cc-prev .cc-svg { max-width: 320px; }
+/* práctica libre en Circuitos 3D */
+.cx-colores { width: 100%; box-sizing: border-box; min-width: 0; overflow-x: hidden; max-width: 1180px; margin: 0 auto; padding: 8px 4px 40px; }
+.cx-colores h2 { display: flex; align-items: center; gap: 8px; margin: 14px 0 4px; }
+.ccp-cab { min-width: 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+.ccp-pills { flex: 1 1 100%; min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 4px; border-radius: 999px; background: rgba(80,108,136,.10); max-width: 100%; }
+.ccp-pill { white-space: nowrap; border: 0; background: transparent; padding: 9px 14px; border-radius: 999px; font-size: 15px; font-weight: 600; color: #506C88; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
+.ccp-pill svg { width: 18px; height: 18px; }
+.ccp-pill.on { background: #fff; color: #DE0714; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.ccp-marcador { margin-left: auto; display: flex; align-items: baseline; gap: 6px; color: #506C88; }
+.ccp-marcador b { font-size: 34px; line-height: 1; color: #DE0714; }
+.ccp-q { border-radius: 22px; }
+.ccp-q legend { font-size: 19px; font-weight: 700; }
+.cx-card-colores .cx-num svg { width: 28px; height: 28px; }
+html[data-theme="dark"] .cc-comp, html[data-theme="dark"] .cc-tw, html[data-theme="dark"] .cc-paleta { background: rgba(28,28,30,.85); }
+html[data-theme="dark"] .cc-t, html[data-theme="dark"] .cc-dato { color: #e5e5ea; }

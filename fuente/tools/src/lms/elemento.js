@@ -105,8 +105,10 @@ export function validarElemento(j) {
   let contenido = null;
   const m = MOTORES.get(tipo);
   if (m) {
-    if (j.contenido == null || typeof j.contenido !== 'object') err('contenido', `El tipo «${tipo}» necesita «contenido» (ver FORMATO_IMPORTAR.md).`);
-    else contenido = m.validar(j.contenido, (ruta, t) => err(`contenido${ruta ? '.' + ruta : ''}`, t));
+    // Bloque 4 · atajo: una actividad interactiva de «Código de colores» puede traer «colores» fuera de «contenido»
+    const cont = j.contenido == null && tipo === 'interactiva' && j.colores != null ? { colores: j.colores, ...(j.intentos != null ? { intentos: j.intentos } : {}) } : j.contenido;
+    if (cont == null || typeof cont !== 'object') err('contenido', `El tipo «${tipo}» necesita «contenido» (ver FORMATO_IMPORTAR.md).`);
+    else contenido = m.validar(cont, (ruta, t) => err(`${j.contenido == null && ruta.startsWith('colores') ? '' : 'contenido'}${ruta ? (j.contenido == null && ruta.startsWith('colores') ? '' : '.') + ruta : ''}`, t));
   }
   // v5 · sección, PDF oficial, versión interactiva, origen en Drive (solo profesor) y tema por nombre
   let seccion = null;

@@ -21,6 +21,7 @@ const LS = 'circ:v1:';
 import { guiadaAbierta, evaluacionAbierta, alternarBloqueo } from './guiadas.js';
 import { EVALS, evalDe, practicaDe, corregirNivel, autonomaDe, idAutonoma } from './evaluaciones.js';
 import { confirmar } from '../portal/dialogo.js';
+import { montarPracticaColores } from '../portal/colores-ui.js';
 import { lsKey as lsKeyBase, migrarLegado as migrarBase } from './almacen.js';
 const portalAmbito = () => { try { return (typeof window !== 'undefined' && window.PORTAL?.ambito?.()) || null; } catch (e) { return null; } };
 const lsKey = (k) => lsKeyBase(k, portalAmbito());
@@ -139,6 +140,16 @@ export class CircuitLab {
       if (A && abierta(A.practica) && (!alumno || guiadaHecha(A.practica))) return this.soloOpen(view);
       const msg = !A ? 'No existe esa práctica.' : !abierta(A.practica) ? 'Esta práctica todavía está bloqueada: la desbloqueará tu profesor.' : 'Primero completa la práctica guiada (todos los pasos y «Comprobar circuito» en verde). Después podrás hacerla tú solo.';
       setTimeout(() => this.toast(msg, 4500), 300); view = A && abierta(A.practica) ? A.practica : 'home'; try { history.replaceState(null, '', '#eee/circuitos' + (view === 'home' ? '' : '/' + view)); } catch (e) { }
+    }
+    // Bloque 4 · «Código de colores»: práctica libre, aleatoria y sin nota (no se guarda nada)
+    if (view === 'colores') {
+      if (this.view && this.view !== 'home' && this.view !== 'colores') this.saveNow();
+      this.view = 'colores'; this.pr = null; root.classList.add('is-home'); root.classList.remove('is-editor');
+      this.$('#cxHome').innerHTML = `<div class="cx-colores"><a class="btn small" href="#eee/circuitos">${ic('arrow-left')} Volver a Circuitos</a><h2>${ic('palette')} Código de colores</h2><p class="cx-sub">Lee el valor de resistencias, condensadores e inductores, o pinta sus bandas. Componentes al azar para practicar sin fin.</p><div id="cxColores"></div></div>`;
+      montarPracticaColores(this.$('#cxColores'));
+      this.$('#cxHome').scrollTop = 0; window.scrollTo(0, 0);
+      this.setCrumbs(); this.pause(); this.setPTitle('');
+      return;
     }
     if (view === 'evaluacion') { this.homeTab = 'eval'; view = 'home'; } else if (view === 'home') this.homeTab = 'guiadas';
     if (/^c\d+$/.test(view) && !abierta(view)) { setTimeout(() => this.toast('Esta práctica todavía está bloqueada: la desbloqueará tu profesor.', 4000), 300); view = 'home'; try { history.replaceState(null, '', '#eee/circuitos'); } catch (e) { } }
@@ -361,7 +372,7 @@ export class CircuitLab {
     const base = `<a href="#inicio">Inicio</a> › <a href="#asignaturas">Asignaturas</a> › <a href="#asig/eee">${esc(this.opts.subject || 'Equipos eléctricos y electrónicos')}</a> › <a href="#asig/eee/laboratorio">Laboratorio</a> › `;
     const v = this.view;
     if (v === 'revision') { this.$('#cxCrumbs').innerHTML = `<a href="#panel">Panel del profesor</a> › <a href="#panel/entregas">Entregas</a> › <span>Revisión</span>`; this.$('#cxProf').innerHTML = portal()?.chipHTML?.() || ''; return; }
-    this.$('#cxCrumbs').innerHTML = base + (v === 'home' ? '<span>Circuitos</span>' : `<a href="#eee/circuitos">Circuitos</a> › <span>${this.solo ? (this.solo.tipo === 'auto' ? `<a href="#eee/circuitos/${this.solo.circs[0].id}">Práctica ${this.solo.circs[0].n}</a> › Autónoma` : `<a href="#eee/circuitos/evaluacion">Evaluación</a> › Nivel ${this.solo.ev.nivel}`) : this.av ? 'Encuentra la avería: ' + esc(this.av.titulo || '') : this.pr ? 'Práctica ' + this.pr.n + ': ' + esc(this.pr.title) : 'Modo libre'}</span>`);
+    this.$('#cxCrumbs').innerHTML = base + (v === 'home' ? '<span>Circuitos</span>' : `<a href="#eee/circuitos">Circuitos</a> › <span>${this.solo ? (this.solo.tipo === 'auto' ? `<a href="#eee/circuitos/${this.solo.circs[0].id}">Práctica ${this.solo.circs[0].n}</a> › Autónoma` : `<a href="#eee/circuitos/evaluacion">Evaluación</a> › Nivel ${this.solo.ev.nivel}`) : this.av ? 'Encuentra la avería: ' + esc(this.av.titulo || '') : v === 'colores' ? 'Código de colores' : this.pr ? 'Práctica ' + this.pr.n + ': ' + esc(this.pr.title) : 'Modo libre'}</span>`);
     this.$('#cxProf').innerHTML = (this.opts.profesor ? `Profesor: <b>${esc(this.opts.profesor)}</b>` : '') + (portal()?.chipHTML?.() || '');
   }
   // Título de la práctica en la cabecera y botón «Volver a las prácticas» (no en la portada ni en una revisión).
@@ -436,6 +447,7 @@ export class CircuitLab {
       <h3 class="cx-tema"><span>Por tu cuenta</span> Modo libre y averías</h3>
       <div class="cx-cards">
         <a class="cx-card free" href="#eee/circuitos/libre"><div class="cx-card-h"><span class="cx-num">∞</span><span class="cx-ic">🛠️</span></div><h3>Modo libre</h3><div class="cx-sub">Monta lo que quieras con todos los componentes</div><div class="cx-meta"><span>Sin guía</span><span>Guarda y exporta</span></div></a>
+        <a class="cx-card free cx-card-colores" href="#eee/circuitos/colores"><div class="cx-card-h"><span class="cx-num">${ic('palette')}</span></div><h3>Código de colores</h3><div class="cx-sub">Lee el valor de resistencias, condensadores e inductores, o pinta sus bandas</div><div class="cx-meta"><span>Al azar</span><span>Sin nota</span></div></a>
         <a class="cx-card free" href="#eee/circuitos/averia-ejemplo"><div class="cx-card-h"><span class="cx-num">${ic('search-check')}</span></div><h3>Encuentra la avería</h3><div class="cx-sub">Un circuito con un componente estropeado: mide con el polímetro y descubre cuál es</div><div class="cx-meta"><span>Ejemplo</span><span>Polímetro y continuidad</span></div></a>
       </div>`}
       <h2>Cómo se usa</h2>

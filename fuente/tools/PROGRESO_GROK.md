@@ -1062,3 +1062,23 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Pruebas: imagenes_test 3/3, aula_e2e 126/126, examen_v5, importador_v5, notas_v5, banco_v5, plataforma, aula_modelo,
   circ_test 77/77. Formato en FORMATO_IMPORTAR.md («Imágenes en todas las preguntas»). Sin reglas nuevas.
 - Capturas: /workspace/capturas-colores/b3_*.png.
+
+### Bloque 4 · código de colores — HECHO (caché v5-20261124c)
+- src/lms/colores.js: tablas exactas del encargo (resistencias de 4 y 5 bandas, condensadores con tensión, inductores
+  en µH), cálculo, validación en castellano, aleatorios con semilla y corrección. src/portal/colores-ui.js: dibujos
+  propios (resistencia beige, bobina verde, condensador), tabla al lado que se ilumina (fila del color + columna de la
+  banda) al pasar el dedo o el ratón, paleta para pintar, marcas de corrección y solución en la tabla.
+- Tipo de pregunta nuevo `colores` (examen, interactiva): «leer» (valor + unidad + tolerancia [+ tensión], nota parcial
+  por partes, 4,7 kΩ = 4700 Ω) y «pintar» (cuenta cada banda; cualquier combinación equivalente vale entera).
+- Interactiva con atajo `"colores": { "modo", "componentes", "aleatorio": n, "clases" }`: los fijos y, además, n al
+  azar de cada clase en cada intento (mismos si se recarga). Errores con ruta en castellano.
+- Circuitos 3D: tarjeta «Código de colores» en «Por tu cuenta» → #eee/circuitos/colores, práctica libre al azar, sin nota
+  y sin guardar nada.
+- Borrador: src/lms/semilla/colores_repaso_borrador.json (14 componentes: R1–R9, C1–C3, L1–L2, bandas leídas de los SVG
+  de Claude img/eee/test/eee_rep_*.svg). No se ha cargado en Firestore ni publicado: se importa a mano sin publicar.
+  No están R10–R13 (el PDF de clase no está en la caja).
+- Ojo: en los SVG de Claude (eee_rep_r*) los multiplicadores Violeta, Gris y Blanco salen «—»; el encargo t167u da
+  ×10 000 000, ×100 000 000 y ×1 000 000 000 y es lo que usa el motor. Los SVG no se han tocado.
+- Compatibilidad: nada existente cambia; campos nuevos opcionales; sin migraciones; sin reglas nuevas.
+- Pruebas: colores_test 6/6, imagenes_test 3/3 (corrección idéntica a 7e709a9), plataforma 41/41 y el resto de *_v5,
+  aula_e2e, circ_test, viv_test. Capturas: /workspace/capturas-colores/b4_*.png.

@@ -5,9 +5,13 @@ import { esc } from './util.js';
 import { ic } from './ico.js';
 import { corregirExamen, fmtNota, semilla } from '../lms/modelo.js';
 import { preguntaHTML, leerRespuesta, enlazarPreguntas, marcarCorreccion } from './examen-ui.js';
+import { preguntasAleatorias } from '../lms/motores/interactiva.js';
 
 export function montarInteractiva(nodo, it, cx) {
-  const c = it.contenido || {}; const P = c.preguntas || []; const K = c.claves || {};
+  const c = it.contenido || {}; const P0 = c.preguntas || []; const K0 = c.claves || {};
+  // Bloque 4 · «colores» con «aleatorio»: componentes nuevos en cada intento (además de los fijos)
+  let P = P0; let K = K0; let semP = null;
+  const preparar = () => { if (!c.colores?.aleatorio) return; const sd = seed(); if (sd === semP) return; semP = sd; const R = preguntasAleatorias(c.colores, sd); P = [...P0, ...R.map((x) => x.publica)]; K = { ...K0, ...Object.fromEntries(R.map((x) => [x.publica.id, x.clave])) }; };
   const prof = cx.rol !== 'alumno';
   const S = { datos: cx.trabajo?.datos || null, nota: cx.nota || null, res: null, intentoVista: 0, msg: '', guardando: false };
   const usados = () => S.datos?.intentos || 0;
@@ -21,6 +25,7 @@ export function montarInteractiva(nodo, it, cx) {
       ${prof ? `<p class="au-small">${ic('eye')} Vista previa del profesor: puedes probarla (no se guarda). ${c.soluciones !== false ? 'Al comprobar, el alumno ve la solución de lo que falle.' : 'El alumno solo ve si acierta, no la solución.'}</p>` : ''}`;
   }
   function pintar() {
+    if (!S.res) preparar();
     const s = seed(); const fin = S.res;
     let h = cabecera();
     if (bloqueado() && !fin) {

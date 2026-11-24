@@ -586,3 +586,66 @@ Rutas válidas (las mismas que en `zonas`): `https://…`, `materiales/…` o `i
       { "nombre": "Bobinas", "elementos": [ { "texto": "L", "imagen": "img/eee/test/eee_rep_l2.svg" } ] } ] }
   ] }
 ```
+
+## Código de colores (24/11/2026)
+
+Resistencias de 4 y 5 bandas, condensadores (5 bandas, con tensión) e inductores (4 bandas). Las tablas están en
+`fuente/tools/src/lms/colores.js` y el alumno las ve siempre junto al dibujo: al pasar el dedo o el ratón por una banda
+se ilumina su fila y su columna.
+
+Clases: `resistencia4`, `resistencia5`, `condensador`, `inductor`. Colores (con o sin tilde): Negro, Marrón, Rojo,
+Naranja, Amarillo, Verde, Azul, Violeta, Gris, Blanco, Oro, Plata. Una resistencia de 4 bandas puede llevar solo 3
+(sin banda de tolerancia = ±20 %).
+
+### Como pregunta suelta (en un examen o una interactiva)
+
+```json
+{
+  "tipo": "examen", "titulo": "Código de colores (examen)",
+  "examen": { "limiteMin": 20, "barajar": true },
+  "preguntas": [
+    { "id": "R1", "tipo": "colores", "enunciado": "¿Qué valor tiene esta resistencia?", "clase": "resistencia4",
+      "bandas": ["Marrón", "Verde", "Marrón", "Oro"], "modo": "leer", "puntos": 1 },
+    { "id": "L1", "tipo": "colores", "enunciado": "Pinta las bandas de esta bobina", "clase": "inductor",
+      "bandas": ["Amarillo", "Violeta", "Rojo", "Plata"], "modo": "pintar", "puntos": 1 }
+  ]
+}
+```
+
+- `"modo": "leer"` (por defecto): se dibuja el componente y el alumno escribe valor + unidad y elige tolerancia (y
+  tensión en los condensadores). Nota parcial: cuenta por igual **Cifras**, **Valor y unidad** (4,7 kΩ = 4700 Ω),
+  **Tolerancia** y, en condensadores, **Tensión**.
+- `"modo": "pintar"`: el alumno ve el valor (p. ej. «4,7 mH ±10 %») y pinta cada banda con la paleta. Cuenta cada
+  banda; cualquier combinación que dé el mismo valor, tolerancia y tensión vale entera.
+- Las bandas no llegan al alumno en «pintar» (la solución se guarda en las claves, como el resto de tipos).
+
+### Como actividad interactiva (atajo «colores»)
+
+```json
+{
+  "tipo": "interactiva", "titulo": "Código de colores", "seccion": "clase", "intentos": 3,
+  "colores": {
+    "modo": "leer",
+    "componentes": [
+      { "id": "R1", "clase": "resistencia4", "bandas": ["Marrón", "Verde", "Marrón", "Oro"] },
+      { "id": "C1", "clase": "condensador", "bandas": ["Amarillo", "Violeta", "Naranja", "Verde", "Amarillo"] }
+    ],
+    "aleatorio": 2,
+    "clases": ["resistencia4", "condensador"]
+  }
+}
+```
+
+- `componentes`: fijos (máximo 40). Cada uno se convierte en una pregunta «colores».
+- `aleatorio` (opcional, 1–10): además, **n componentes al azar de cada clase** de `clases` (si no se pone, todas).
+  Cambian en cada intento y son los mismos si el alumno recarga la página.
+- Hace falta `componentes` o `aleatorio` (o los dos). Los errores salen en castellano con la ruta, p. ej.
+  `colores.componentes[0].bandas[0]: Componente R1: el color Oro no tiene valor como 1.ª cifra (banda 1)…`
+
+Ejemplo listo para importar: `colores_repaso_borrador.json` (14 componentes sacados de las bandas de los dibujos del
+examen de repaso `img/eee/test/eee_rep_*.svg`). Es un **borrador**: impórtalo sin publicar y revísalo.
+
+### Práctica libre
+
+En Circuitos 3D (`#eee/circuitos/colores`, tarjeta «Código de colores» en «Por tu cuenta») hay una práctica al azar,
+sin nota, que no guarda nada.
