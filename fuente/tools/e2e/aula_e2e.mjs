@@ -393,15 +393,20 @@ ok('el enlace «javascript:» se descarta', !JSON.stringify(trT).includes('javas
 await A.pg.goto(BASE + '#trabajo/' + ID_E);
 await A.pg.waitForSelector('[data-au=empezar]');
 await A.pg.screenshot({ path: SHOTS + 'aula_alumno_examen_inicio.png' });
+ok('bloque 1 · la portada dice cuántos minutos hay desde «Empezar»', /Tienes 20 minutos desde que pulses Empezar/.test(await A.pg.textContent('.ex-portada-t')));
 await A.pg.click('[data-au=empezar]');
 await A.pg.waitForSelector('#auExamen', { timeout: 15000 });
 ok('empezar el examen: se ven las preguntas y el reloj', /Tiempo restante: 19:|Tiempo restante: 20:/.test(await A.pg.textContent('#auReloj')));
+await A.pg.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+ok('bloque 1 · el reloj sigue fijo arriba al bajar', await A.pg.evaluate(() => { const r = document.getElementById('auReloj'); const b = r.querySelector('.ex-reloj-in').getBoundingClientRect(); return getComputedStyle(r).position === 'fixed' && b.top >= 0 && b.top < 30 && b.height > 30 && parseFloat(getComputedStyle(r.querySelector('.ex-reloj-n')).fontSize) >= 26; }));
+await A.pg.evaluate(() => window.scrollTo(0, 0));
 await A.pg.check('fieldset.au-q:has-text("suma un rango") label:has-text("=SUMA()") input');
 await A.pg.check('fieldset.au-q:has-text("Una celda se nombra") label:has-text("Falso") input');
 await A.pg.fill('fieldset.au-q:has-text("intersección") input.au-corta', 'Celda');
 await A.pg.screenshot({ path: SHOTS + 'aula_alumno_examen.png' });
 await A.pg.click('#auExamen button[type=submit]');
 await A.pg.waitForSelector('.au-ok:has-text("Examen entregado")', { timeout: 15000 });
+ok('bloque 1 · al entregar desaparece el reloj', !(await A.pg.$('#auReloj')) && !(await A.pg.evaluate(() => document.body.classList.contains('con-reloj'))));
 ok('entregar el examen', true);
 let trE = null; // la escritura puede llegar al servidor un poco después de que la interfaz diga «entregado»
 for (let i = 0; i < 20; i++) { trE = await (await fetch(`${REST}/trabajos/${ID_E}_${GA.id}_5`, owner)).json(); if (trE.fields?.estado?.stringValue === 'entregado') break; await A.pg.waitForTimeout(500); }
@@ -590,6 +595,22 @@ await P.pg.goto(BASE + '#trabajo/' + ID_E);
 await P.pg.click('[data-au=verPreguntas]');
 await P.pg.waitForSelector('.au-prev');
 ok('vista previa del profesor: preguntas con soluciones', /=SUMA\(\)/.test(await P.pg.textContent('.au-prev .ok')));
+{ // bloque 2 · «Probar como alumno»: el examen como lo ve un alumno, con reloj y corrección, sin escribir nada
+  const contar = async () => JSON.stringify(await (await fetch(`${REST}/trabajos?pageSize=300`, owner)).json()).length;
+  const antes = await contar();
+  await P.pg.click('[data-au=probar]');
+  await P.pg.waitForSelector('#auProbar', { timeout: 15000 });
+  ok('bloque 2 · «Probar como alumno» abre el examen con el reloj fijo', /Tiempo restante: (19|20):/.test(await P.pg.textContent('#auReloj')));
+  await P.pg.check('#auProbar fieldset.au-q:has-text("suma un rango") label:has-text("=SUMA()") input');
+  await P.pg.screenshot({ path: SHOTS + 'aula_profesor_probar.png' });
+  await P.pg.click('#auProbar button[type=submit]');
+  await P.pg.waitForSelector('.au-probar .ia-res', { timeout: 10000 });
+  ok('bloque 2 · al entregar la prueba se ve la nota y cada pregunta marcada', /Nota/.test(await P.pg.textContent('.au-probar .ia-res')) && (await P.pg.$$('#auProbar .ia-fb')).length >= 3 && !(await P.pg.$('#auReloj')));
+  await P.pg.waitForTimeout(800);
+  ok('bloque 2 · «Probar como alumno» no guarda nada en Firestore', (await contar()) === antes);
+  await P.pg.click('[data-au=probarFin]');
+  await P.pg.waitForSelector('[data-au=verPreguntas]');
+}
 await P.pg.goto(BASE + '#asignaturas');
 await P.pg.waitForSelector('#subjects .bib-card');
 ok('profesor: «Curso 2026/27» solo con las del curso', /Curso 2026\/27/.test(await P.pg.textContent('#subjects h1')) && (await P.pg.$$('#subjects .bib-card')).length === 2);

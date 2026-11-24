@@ -8,9 +8,10 @@ import { esc } from './util.js';
 import { ic } from './ico.js';
 import { asignatura, TIPOS } from '../lms/biblioteca.js';
 import { fmtNota, barajar, semilla, versionAlumno, leeEnlaces, urlSegura, idTrabajo, TIPOS_ENTREGA, corregirExamen, tipoAdjunto } from '../lms/modelo.js';
-import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTipoPregunta } from './examen-ui.js';
+import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTipoPregunta, marcarCorreccion } from './examen-ui.js';
 import { crearModoExamen } from './modo-examen.js';
 import { montarPruebaProfe } from './prueba-profe.js';
+import { crearReloj } from './reloj-examen.js';
 import { montarExplicacion } from './explicacion-ui.js';
 import { montarPiac } from './piac-ui.js';
 import { montarInteractiva } from './interactiva-ui.js';
@@ -52,8 +53,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   instalarVisor(db, rol === 'profesor');
   const st = aula.st;
   const al = ses ? `${ses.grupo}_${ses.numero}` : null;
-  const ex = { id: null, examen: null, resp: {}, timer: null, guardado: 0, tGuardar: null, enviando: false, error: '' };
+  const ex = { id: null, examen: null, resp: {}, timer: null, reloj: null, guardado: 0, tGuardar: null, enviando: false, error: '' };
   let actual = null; // {el, tipo: 'lista'|'item', id}
+  const prueba = { id: null, timer: null, reloj: null, P: [], K: {}, s: 0, fin: false };
   let motorM = null; // motor montado en la página del elemento
   let entM = null; // entrega (fase 9) montada en la página del elemento
   // Modo examen (pantalla completa + registro informativo de salidas). Solo alumno.
@@ -119,7 +121,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   function examenInfoHTML(it) {
     const v = ventana(it); const tr = st.trabajos.get(it.id); const now = Date.now();
     let h = `<div class="au-facts"><div><b>Abre</b>${esc(fFecha(v.desde))}</div><div><b>Cierra</b>${esc(fFecha(v.hasta))}</div><div><b>Tiempo</b>${v.limiteMin ? v.limiteMin + ' min' : 'sin límite'}</div><div><b>Preguntas</b>${esc(it.examen?.n ?? '—')}</div></div>`;
-    if (rol === 'profesor') return h + `<div class="au-acts"><button class="btn" data-au="verPreguntas">👁 Ver preguntas y soluciones</button><button class="btn" data-au="editar">✏️ Editar</button></div><div id="auPrev"></div>`;
+    if (rol === 'profesor') return h + `<div class="au-acts"><button class="btn" data-au="verPreguntas">👁 Ver preguntas y soluciones</button><button class="btn" data-au="probar">${ic('user-check')} Probar como alumno</button><button class="btn" data-au="editar">✏️ Editar</button></div><div id="auPrev"></div>`;
     if (st.notas.get(it.id)) return h + notaHTML(it);
     if (tr?.estado === 'entregado') return h + '<div class="au-ok">✅ Examen entregado. Verás la nota cuando el profesor la publique.</div>';
     if (tr?.estado === 'en_curso' && now <= Math.min(v.hasta, tr.inicio + (v.limiteMin ? v.limiteMin * 60e3 : Infinity)) + 60e3) return h + '<div class="au-acts"><button class="btn primary" data-au="seguir">▶ Continuar el examen</button></div>';
@@ -127,7 +129,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (now < v.desde) return h + `<p class="au-vacio">El examen se abrirá el ${esc(fFecha(v.desde))}.</p>`;
     if (now > v.hasta) return h + '<p class="au-vacio">El plazo del examen ha terminado.</p>';
     const me = it.examen?.sinExternos || it.sinExternos ? '<div class="au-aviso ex-modo-aviso pb-aviso">' + ic('shield-check') + ' <b>Prueba sin elementos externos</b>: esta prueba registra si sales de la pantalla y se bloquea. Se abre a pantalla completa; si sales de la pestaña, de la ventana o de la pantalla completa, solo podrás seguir con el código de tu profesor. No se puede pegar texto.</div>' : it.examen?.pantallaCompleta ? '<div class="au-aviso ex-modo-aviso">' + ic('shield-check') + ' <b>Modo examen</b>: se abrirá a pantalla completa. Si sales de la pestaña o de la pantalla completa, queda anotada la hora y cuánto tiempo (lo ve solo tu profesor). No anula el examen.</div>' : '';
-    return h + me + `<div class="au-aviso">Solo tienes <b>un intento</b>. ${v.limiteMin ? `Tendrás <b>${v.limiteMin} minutos</b> desde que pulses «Empezar».` : ''} Las respuestas se guardan solas mientras contestas.</div>
+    const dur = v.limiteMin ? `<div class="ex-portada-t">${ic('timer')}<div><b>Tienes ${v.limiteMin} minutos desde que pulses Empezar</b><span>El reloj se verá siempre arriba de la pantalla.</span></div></div>`
+      : `<div class="ex-portada-t">${ic('timer')}<div><b>Sin límite de tiempo</b><span>Puedes hacerlo hasta que cierre: ${esc(fFecha(v.hasta))}.</span></div></div>`;
+    return h + dur + me + `<div class="au-aviso">Solo tienes <b>un intento</b>. Las respuestas se guardan solas mientras contestas.</div>
       <div class="au-acts"><button class="btn primary" data-au="empezar">▶ Empezar el examen</button><span class="au-msg" id="auMsg"></span></div>`;
   }
   function itemHTML(it) {
@@ -150,6 +154,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   function renderItem(el, id) {
     if (!el) return; actual = { el, tipo: 'item', id };
     if (ex.id === id && ex.examen && rol === 'alumno') return; // examen en marcha: no se repinta
+    if (prueba.id === id && rol === 'profesor' && el.querySelector('#auProbar')) return; // «Probar como alumno» en marcha
+    if (prueba.id && prueba.id !== id) { prueba.reloj?.quitar(); prueba.reloj = null; clearInterval(prueba.timer); prueba.id = null; }
     let it = st.items.get(id); if (it && rol === 'alumno' && it.pub && it.pub > Date.now()) it = null;
     if (!it) { el.innerHTML = barraSup() + `<div class="au-page">${st.listo.items ? '<p class="au-vacio">Este elemento no existe o no está publicado para tu grupo.</p><a class="btn" href="#asignaturas">← Asignaturas</a>' : '<p class="au-small">Cargando…</p>'}</div>`; return; }
     // motor ya montado (explicación, laboratorio…): no se repinta para no perder lo que está haciendo el alumno
@@ -226,7 +232,6 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     const V = versionAlumno(examen, it.id, al); const s = V.semilla; const qs = V.preguntas; // 6c: su versión (orden, opciones y datos)
     const r = (q) => ex.resp[q.id];
     actual.el.innerHTML = barraSup() + `<div class="au-page au-examen">${cabeceraItem(it)}
-      <div class="au-reloj" id="auReloj" role="timer"></div>
       ${examen.pantallaCompleta || sinExt(it) ? '<div class="ex-modo" id="exModo" role="status">' + ic('shield-check') + (sinExt(it) ? ' Prueba sin elementos externos · si sales de la pantalla se bloquea.' : ' Modo examen · las salidas de la pestaña o de la pantalla completa quedan anotadas (solo informativo).') + ' <button type="button" class="btn tiny" data-au="pantalla">' + ic('maximize') + ' Volver a pantalla completa</button></div>' : ''}
       <form id="auExamen" class="au-form" autocomplete="off">${qs.map((q, n) => preguntaHTML(q, r(q), { n: n + 1, barajarOps: examen.barajar, s })).join('')}
         <div class="au-acts"><button type="submit" class="btn primary">📤 Entregar el examen</button><span class="au-msg" id="auMsg"></span></div>
@@ -234,14 +239,15 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     enlazarPreguntas(actual.el, () => { const f = document.getElementById('auExamen'); if (f && ex.examen) { leerRespuestas(f); programarGuardado(); } });
     if (examen.pantallaCompleta || sinExt(it)) modo?.empezar(it); else modo?.parar();
     if (sinExt(it)) await modo.asegurarPrueba(it).catch(() => { });
+    const v = ventana(it); const fin = limiteDe(it, tr);
+    ex.reloj?.quitar(); ex.reloj = crearReloj({ fin, inicio: v.limiteMin ? Math.min(fin, tr.inicio || Date.now()) : Math.min(Date.now(), v.desde || Date.now()), sinLimite: !v.limiteMin || fin < (tr.inicio || 0) + v.limiteMin * 60e3 });
     clearInterval(ex.timer); ex.timer = setInterval(() => tic(it), 1000); tic(it);
   }
   function tic(it) {
     const tr = st.trabajos.get(it.id); const el = document.getElementById('auReloj');
-    if (!el || ex.id !== it.id) { clearInterval(ex.timer); return; }
-    if (tr?.estado === 'entregado') { modo?.parar(true); clearInterval(ex.timer); ex.id = null; ex.examen = null; renderItem(actual.el, it.id); return; }
-    const fin = limiteDe(it, tr || { inicio: Date.now() }); const s = Math.max(0, Math.round((fin - Date.now()) / 1000));
-    el.textContent = `⏱ Tiempo restante: ${Math.floor(s / 60)}:${pad(s % 60)}`; el.classList.toggle('poco', s < 120);
+    if (!el || ex.id !== it.id || !document.getElementById('auExamen')) { clearInterval(ex.timer); ex.reloj?.quitar(); ex.reloj = null; return; }
+    if (tr?.estado === 'entregado') { modo?.parar(true); clearInterval(ex.timer); ex.reloj?.quitar(); ex.reloj = null; ex.id = null; ex.examen = null; renderItem(actual.el, it.id); return; }
+    const s = ex.reloj ? ex.reloj.tic() : 0;
     if (s <= 0 && !ex.enviando) entregarExamen(true);
   }
   function leerRespuestas(f) {
@@ -273,15 +279,53 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     try {
       await updateDoc(doc(db, 'trabajos', idTrabajo(id, ses.grupo, ses.numero)), { respuestas: ex.resp, estado: 'entregado', fecha: serverTimestamp() });
       modo?.parar(true);
-      clearInterval(ex.timer); ex.id = null; ex.examen = null; renderItem(actual.el, id);
+      clearInterval(ex.timer); ex.reloj?.quitar(); ex.reloj = null; ex.id = null; ex.examen = null; renderItem(actual.el, id);
     } catch (e) {
       ex.enviando = false;
       if (msg) { msg.textContent = auto ? '⏱ Se acabó el tiempo: se han guardado las últimas respuestas enviadas.' : '❌ No se ha podido entregar. Revisa la conexión y vuelve a pulsar.'; msg.className = 'au-msg ko'; }
-      if (auto) { clearInterval(ex.timer); ex.id = null; ex.examen = null; }
+      if (auto) { clearInterval(ex.timer); ex.reloj?.quitar(); ex.reloj = null; ex.id = null; ex.examen = null; }
     }
   }
 
   // ---------------------------------------------------------------- vista previa del profesor
+  // Bloque 2 · «Probar como alumno»: el examen tal y como lo ve un alumno (su versión barajada, reloj, imágenes)
+  // y la corrección al final. Solo LEE el examen y las claves: no escribe nada en Firestore ni cuenta como entrega.
+  async function probarComoAlumno() {
+    const it = st.items.get(actual?.id); if (!it || rol !== 'profesor') return;
+    const box = document.getElementById('auPrev'); if (box) box.innerHTML = '<p class="au-small">Abriendo la prueba…</p>';
+    let examen, claves;
+    try { ({ examen, claves } = await aula.examen(it.id, { claves: true })); } catch (e) { if (box) box.innerHTML = '<p class="au-vacio">No se ha podido abrir el examen.</p>'; return; }
+    if (!examen?.preguntas?.length) { if (box) box.innerHTML = '<p class="au-vacio">Este examen todavía no tiene preguntas.</p>'; return; }
+    const V = versionAlumno(examen, it.id, 'prueba_profesor');
+    Object.assign(prueba, { id: it.id, P: V.preguntas, K: claves?.respuestas || {}, s: V.semilla, fin: false });
+    const v = ventana(it); const ahora = Date.now();
+    const fin = v.limiteMin ? ahora + v.limiteMin * 60e3 : (v.hasta > ahora ? v.hasta : ahora + 30 * 60e3);
+    actual.el.innerHTML = barraSup() + `<div class="au-page au-examen au-probar">${cabeceraItem(it)}
+      <div class="au-aviso ex-probar-aviso">${ic('user-check')} <b>Prueba del profesor</b>: así lo ve un alumno. No se guarda nada ni cuenta como entrega.${!v.limiteMin && !(v.hasta > ahora) ? ' (Sin límite y ya cerrado: el reloj simula 30 minutos.)' : ''} <button type="button" class="btn small" data-au="probarFin">${ic('x')} Salir de la prueba</button></div>
+      <form id="auProbar" class="au-form" autocomplete="off">${V.preguntas.map((q, n) => preguntaHTML(q, undefined, { n: n + 1, barajarOps: examen.barajar, s: V.semilla })).join('')}
+        <div class="au-acts"><button type="submit" class="btn primary">${ic('send')} Entregar y ver la corrección</button><span class="au-msg" id="auMsg"></span></div></form>
+      <div id="auProbarRes"></div></div>`;
+    enlazarPreguntas(actual.el, () => { });
+    prueba.reloj?.quitar(); prueba.reloj = crearReloj({ fin, inicio: ahora, sinLimite: !v.limiteMin, extra: 'prueba' });
+    clearInterval(prueba.timer); prueba.timer = setInterval(() => {
+      if (!document.getElementById('auProbar') || prueba.id !== it.id) { clearInterval(prueba.timer); prueba.reloj?.quitar(); prueba.reloj = null; return; }
+      if (!prueba.fin && prueba.reloj.tic() <= 0) corregirPrueba();
+    }, 1000);
+    window.scrollTo(0, 0);
+  }
+  function corregirPrueba() {
+    const f = document.getElementById('auProbar'); if (!f || prueba.fin) return; prueba.fin = true;
+    clearInterval(prueba.timer); prueba.reloj?.quitar(); prueba.reloj = null;
+    const resp = {};
+    for (const q of prueba.P) { const fs = f.querySelector(`fieldset[data-q="${CSS.escape(q.id)}"]`); if (!fs) continue; const x = leerRespuesta(q, fs); if (x != null) resp[q.id] = x; }
+    const r = corregirExamen(prueba.P, prueba.K, resp, {}, { s: prueba.s });
+    marcarCorreccion([...f.querySelectorAll('fieldset[data-q]')], prueba.P, prueba.K, r.detalle, true, resp);
+    f.querySelector('.au-acts')?.remove();
+    const res = document.getElementById('auProbarRes');
+    if (res) res.innerHTML = `<div class="ia-res ${r.nota >= 5 ? 'ok' : 'ko'}" role="status"><b>${esc(fmtNota(r.puntos))} / ${esc(fmtNota(r.max))} puntos · Nota ${esc(fmtNota(r.nota))}</b><span>${r.revisar.length ? `${r.revisar.length} pregunta(s) las corregirías tú a mano.` : 'Corrección automática.'} No se ha guardado nada.</span></div>
+      <div class="au-acts"><button type="button" class="btn primary" data-au="probar">${ic('rotate-ccw')} Probar otra vez</button><button type="button" class="btn" data-au="probarFin">${ic('arrow-left')} Volver al examen</button></div>`;
+    document.querySelector('.au-probar .ia-res')?.scrollIntoView?.({ block: 'center' });
+  }
   async function verPreguntas() {
     const it = st.items.get(actual?.id); const box = document.getElementById('auPrev'); if (!it || !box) return;
     box.innerHTML = '<p class="au-small">Cargando…</p>';
@@ -308,6 +352,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     // Seguir: se intenta la pantalla completa; si el navegador no la concede, la prueba se abre BLOQUEADA (código del profesor).
     if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); b.disabled = true; pantallaObligatoria(it, null).then(() => abrirExamen(it)).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }
     if (b.dataset.au === 'verPreguntas') verPreguntas();
+    if (b.dataset.au === 'probar') probarComoAlumno();
+    if (b.dataset.au === 'probarFin') { prueba.reloj?.quitar(); clearInterval(prueba.timer); prueba.id = null; renderItem(actual.el, actual.id); }
     if (b.dataset.au === 'editar') window.PORTAL?.aula?.editar?.(actual.id);
     if (b.dataset.au === 'leer') leerEnVoz(b);
     if (b.dataset.au === 'calMes') { cal.mes += +b.dataset.d; renderCalendario(actual.el); }
@@ -318,11 +364,12 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (!actual?.el.contains(e.target)) return;
     if (e.target.id === 'auEntrega') { e.preventDefault(); entregarTarea(e.target); }
     if (e.target.id === 'auExamen') { e.preventDefault(); entregarExamen(false); }
+    if (e.target.id === 'auProbar') { e.preventDefault(); corregirPrueba(); }
   });
   const alCambiar = (e) => { const f = e.target.closest?.('#auExamen'); if (f && ex.examen) { leerRespuestas(f); programarGuardado(); } };
   document.addEventListener('change', alCambiar); document.addEventListener('input', alCambiar);
   window.addEventListener('hashchange', () => { if (!ex.id && modo?.activo && actual?.tipo === 'item' && !location.hash.startsWith('#trabajo/' + actual.id)) modo.parar(true); });
-  window.addEventListener('hashchange', () => { if (ex.id && !location.hash.startsWith('#trabajo/' + ex.id)) { guardarExamen(); modo?.parar(true); clearInterval(ex.timer); ex.id = null; ex.examen = null; } });
+  window.addEventListener('hashchange', () => { if (ex.id && !location.hash.startsWith('#trabajo/' + ex.id)) { guardarExamen(); modo?.parar(true); clearInterval(ex.timer); ex.reloj?.quitar(); ex.reloj = null; ex.id = null; ex.examen = null; } });
 
   // ---------------------------------------------------------------- actividades de clase (alumno)
   // Tarea de tipo «actividad» publicada para su grupo que enlaza a esta actividad (#asig/<a>/actividades/<id>).

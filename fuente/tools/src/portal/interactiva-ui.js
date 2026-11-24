@@ -4,7 +4,7 @@
 import { esc } from './util.js';
 import { ic } from './ico.js';
 import { corregirExamen, fmtNota, semilla } from '../lms/modelo.js';
-import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto } from './examen-ui.js';
+import { preguntaHTML, leerRespuesta, enlazarPreguntas, marcarCorreccion } from './examen-ui.js';
 
 export function montarInteractiva(nodo, it, cx) {
   const c = it.contenido || {}; const P = c.preguntas || []; const K = c.claves || {};
@@ -38,15 +38,7 @@ export function montarInteractiva(nodo, it, cx) {
     nodo.innerHTML = `<div class="ia">${h}</div>`;
     if (fin) marcar(nodo, fin);
   }
-  function marcar(raiz, fin) {
-    raiz.querySelectorAll('.ia-form fieldset[data-q]').forEach((fs) => {
-      const q = P.find((x) => x.id === fs.dataset.q); if (!q) return;
-      const p = fin.r.detalle[q.id] || 0; const max = Number(q.puntos) > 0 ? Number(q.puntos) : 1;
-      const cl = p >= max - 1e-9 ? 'ok' : p > 0 ? 'med' : 'ko'; fs.classList.add('ia-' + cl); fs.disabled = true;
-      const sol = cl !== 'ok' && c.soluciones !== false ? `<div class="ia-sol">${ic('lightbulb')} Solución: ${esc(solucionTexto(q, K[q.id]) || '')}</div>` : '';
-      fs.insertAdjacentHTML('beforeend', `<div class="ia-fb ${cl}">${ic(cl === 'ok' ? 'circle-check' : cl === 'med' ? 'circle-dashed' : 'circle-x')} ${cl === 'ok' ? 'Correcta' : cl === 'med' ? `A medias (${esc(fmtNota(p))} de ${esc(fmtNota(max))})` : 'Incorrecta'}</div>${sol}`);
-    });
-  }
+  function marcar(raiz, fin) { marcarCorreccion([...raiz.querySelectorAll('.ia-form fieldset[data-q]')], P, K, fin.r.detalle, c.soluciones !== false, fin.resp); }
   async function comprobar(f) {
     const resp = {}; f.querySelectorAll('fieldset[data-q]').forEach((fs) => { const q = P.find((x) => x.id === fs.dataset.q); if (!q) return; const v = leerRespuesta(q, fs); if (v !== undefined && v !== null) resp[q.id] = v; });
     if (!Object.keys(resp).length) { S.msg = 'Responde al menos una pregunta.'; pintar(); return; }

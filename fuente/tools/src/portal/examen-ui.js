@@ -168,3 +168,17 @@ export function solucionTexto(q, k) {
   return '';
 }
 export const nombreTipoPregunta = (t) => TIPOS_PREGUNTA[t]?.nombre || t;
+
+// Marca cada pregunta ya corregida (bien / a medias / mal) y, si se permite, su solución. La usan la actividad
+// interactiva y «Probar como alumno» del profesor. resp (opcional): respuestas, para el detalle por partes.
+export const MARCADORES = {}; // tipo → (fs, q, clave, respuesta) para marcar por partes (p. ej. «colores»)
+export function marcarCorreccion(fieldsets, P, K, detalle, soluciones = true, resp = {}) {
+  fieldsets.forEach((fs) => {
+    const q = P.find((x) => x.id === fs.dataset.q); if (!q) return;
+    const p = detalle[q.id] || 0; const max = Number(q.puntos) > 0 ? Number(q.puntos) : 1;
+    const cl = p >= max - 1e-9 ? 'ok' : p > 0 ? 'med' : 'ko'; fs.classList.add('ia-' + cl); fs.disabled = true;
+    MARCADORES[q.tipo]?.(fs, q, K[q.id], resp?.[q.id], soluciones);
+    const sol = cl !== 'ok' && soluciones ? `<div class="ia-sol">${ic('lightbulb')} Solución: ${esc(solucionTexto(q, K[q.id]) || '')}</div>` : '';
+    fs.insertAdjacentHTML('beforeend', `<div class="ia-fb ${cl}">${ic(cl === 'ok' ? 'circle-check' : cl === 'med' ? 'circle-dashed' : 'circle-x')} ${cl === 'ok' ? 'Correcta' : cl === 'med' ? `A medias (${esc(fmtNota(p))} de ${esc(fmtNota(max))})` : 'Incorrecta'}</div>${sol}`);
+  });
+}

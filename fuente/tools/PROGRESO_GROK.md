@@ -1022,3 +1022,27 @@ tablero de la SA1, modo libre, juego, averías, materiales).
 - Migración compatible: los datos sin ámbito se los queda, una vez, el primero que abre el laboratorio en ese navegador. Lo enviado al profesor (v6–v9) está en Firestore y no se toca.
 - Pruebas: viv_eval 6/6 (con la migración), viv_practicas_e2e, viv_emoji, viv_test 94/94, circ_test 77/77.
 - Bloque H terminado salvo: captura de la tabla «Progreso en Vivienda» (necesita sesión de profesor con Firebase) y una prueba e2e del panel con el emulador.
+
+## Encargo t167u (22/11/2026) · reloj, «Probar como alumno», imágenes y «colores» — retomado el 24/11/2026
+Punto de partida: main 7e709a9 (con lo de Claude: c3c284b imagen de `zonas` en «Ver preguntas y soluciones» con la zona
+correcta en verde, las demás en gris y la solución debajo; 49215db tablas de condensador e inductor; SVG de img/eee/test).
+Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los campos nuevos son opcionales.
+
+### Bloques 1 y 2 — HECHO (caché v5-20261124a)
+- Bloque 1 · reloj: src/portal/reloj-examen.js (nuevo). Fijo arriba de la pantalla (colgado del <body>, visible al bajar y a
+  pantalla completa), 28 px, icono Lucide «timer», barra del tiempo que queda; gris #506C88 normal, ámbar a 5 min, rojo
+  #DE0714 con parpadeo suave a 1 min (sin animación si el sistema pide menos movimiento); avisos «Te quedan 5 minutos» /
+  «Te queda 1 minuto» que se cierran solos (sin alert). Portada: «Tienes N minutos desde que pulses Empezar» (o «Sin
+  límite de tiempo · hasta que cierre: fecha»). Sin límite → cuenta hasta el cierre («hasta que cierre»).
+  aula-vistas.js: abrirExamen/tic/entregarExamen usan el reloj nuevo; se quita al entregar, al salir o al cambiar de página.
+  El texto accesible sigue siendo «Tiempo restante: mm:ss». Nada cambia en lo que se guarda.
+- Bloque 2 · «Probar como alumno» (botón en el examen del profesor): su versión barajada, el reloj (limiteMin real; sin
+  límite → hasta el cierre o 30 min simulados), imágenes y corrección al final con cada pregunta marcada y la solución.
+  SOLO LEE examenes/{id} y claves/{id}: no escribe nada ni cuenta como entrega (comprobado en e2e contando /trabajos).
+  La marca de corrección se ha sacado a examen-ui.js (marcarCorreccion) y la usa también la actividad interactiva
+  (mismo HTML que antes). Lo de `zonas` en «Ver preguntas y soluciones» ya lo había hecho Claude (imagen, zonas y texto de
+  la solución debajo): no se ha tocado.
+- Pruebas: aula_e2e 126/126 (antes 120; 6 nuevas: portada con minutos, reloj fijo al bajar, reloj fuera al entregar,
+  «Probar como alumno» con reloj, nota y marcas, y que no escribe en Firestore); examen_v5, importador_v5, notas_v5,
+  banco_v5, plataforma, aula_modelo OK. Sin reglas nuevas.
+- Capturas: /workspace/capturas-colores/b1_*.png y las de la e2e (aula_alumno_examen*.png, aula_profesor_probar.png).
