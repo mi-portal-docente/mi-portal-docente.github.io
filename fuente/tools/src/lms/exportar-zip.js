@@ -81,9 +81,12 @@ export function manifiesto(plan, { asignatura = '', curso = '', fecha = new Date
 //  → { enunciado, lineas: [..] (opciones / lo que ve el alumno), solucion: [..] }
 export function textoPregunta(q) {
   const L = []; const S = []; const letra = (i) => String.fromCharCode(97 + i) + ') ';
+  // bloque 3: elementos con imagen → su texto y la ruta de la imagen (el PDF no lleva imágenes)
+  const tx = (o) => (o && typeof o === 'object' && !Array.isArray(o) ? (o.texto || '') + (o.imagen ? ` [imagen: ${o.imagen}]` : '') : o);
+  if (q && (q.pares || q.grupos)) q = { ...q, ...(q.pares ? { pares: q.pares.map((p) => (Array.isArray(p) ? p.map(tx) : p)), distractores: (q.distractores || []).map(tx) } : {}), ...(Array.isArray(q.grupos) ? { grupos: q.grupos.map((g) => ({ ...g, elementos: (g.elementos || []).map(tx) })) } : {}) };
   const enunciado = String(q?.enunciado || '').trim();
   switch (q?.tipo) {
-    case 'test': (q.opciones || []).forEach((o, i) => L.push(letra(i) + o)); S.push(letra(Number(q.correcta) || 0) + ((q.opciones || [])[Number(q.correcta) || 0] ?? '')); break;
+    case 'test': { const t = (o) => (o && typeof o === 'object' ? (o.texto || '') + (o.imagen ? ` [imagen: ${o.imagen}]` : '') : o); (q.opciones || []).forEach((o, i) => L.push(letra(i) + t(o))); S.push(letra(Number(q.correcta) || 0) + (t((q.opciones || [])[Number(q.correcta) || 0]) ?? '')); break; }
     case 'vf': L.push('Verdadero / Falso'); S.push(q.correcta ? 'Verdadero' : 'Falso'); break;
     case 'corta': L.push('Respuesta: ______________________'); S.push((q.aceptadas || []).length ? 'Se acepta: ' + q.aceptadas.join(' · ') : 'La corrige el profesor.'); break;
     case 'emparejar': { const der = [...(q.pares || []).map((p) => p[1]), ...(q.distractores || [])].sort((a, b) => String(a).localeCompare(String(b), 'es'));

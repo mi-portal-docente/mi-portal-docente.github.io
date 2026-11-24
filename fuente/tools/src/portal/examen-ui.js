@@ -4,7 +4,8 @@ import { esc } from './util.js';
 import { ic } from './ico.js';
 import { barajar, semilla, fmtNota } from '../lms/modelo.js';
 import { textoHTML } from './aula-vistas.js';
-import { TIPOS_PREGUNTA, leeNumero, alternativas } from '../lms/preguntas.js';
+import { TIPOS_PREGUNTA, leeNumero, alternativas, txtEl, imgEl } from '../lms/preguntas.js';
+import { abrirVisor } from './visor-img.js';
 import { limpiarDoc, textoDeDoc, contarPalabras } from '../lms/doc-html.js';
 import { valoresAlumno, sustituir } from '../lms/formula.js';
 
@@ -24,20 +25,29 @@ const rubricaQ = (q) => (q.rubrica?.length ? `<details class="ex-rub"><summary>$
 // Orden inicial de «ordenar» para un alumno (barajado y distinto del guardado)
 export function ordenInicial(q, s) { return barajar((q.elementos || []).map((_, i) => i), s ^ semilla('ord' + q.id)); }
 
+// Bloque 3 · imágenes: botón que abre el visor (zoom de dos dedos) y miniaturas de opciones y elementos
+const imgBtn = (src, alt, cls = 'ex-img') => `<button type="button" class="${cls}" data-zoom="${esc(src)}" data-alt="${esc(alt || '')}" aria-label="Ampliar imagen${alt ? ': ' + esc(alt) : ''}"><img src="${esc(src)}" alt="${esc(alt || '')}" loading="lazy" draggable="false"></button>`;
+const lupa = (src, alt) => `<button type="button" class="ex-lupa" data-zoom="${esc(src)}" data-alt="${esc(alt || '')}" aria-label="Ampliar imagen" title="Ampliar">${ic('zoom-in')}</button>`;
+const elHTML = (x) => (imgEl(x) ? `<span class="ex-elimg">${imgBtn(imgEl(x), x.alt || txtEl(x), 'ex-mini')}${txtEl(x) ? `<span>${esc(txtEl(x))}</span>` : ''}</span>` : esc(txtEl(x)));
+const LETRA = (j) => String.fromCharCode(65 + j);
 export function preguntaHTML(q, r, { n, barajarOps = false, s = 1, datos = true } = {}) {
   // P4: datos propios del alumno ({R} → su valor). En la vista previa del profesor (datos = false) se ve la plantilla.
   if (q.tipo === 'variables' && datos) q = { ...q, enunciado: sustituir(q.enunciado, valoresAlumno(q.variables, s, q.id)) };
   const nm = 'q_' + q.id;
-  const leyenda = `<legend><span class="au-qn">${n}</span> ${textoHTML(q.enunciado)}<span class="au-small"> (${esc(fmtNota(q.puntos || 1))} pt)</span></legend>`;
+  const fig = q.imagen && q.tipo !== 'zonas' ? `<div class="ex-img-w">${imgBtn(q.imagen, q.alt)}</div>` : '';
+  const leyenda = `<legend>${fig}<span class="au-qn">${n}</span> ${textoHTML(q.enunciado)}<span class="au-small"> (${esc(fmtNota(q.puntos || 1))} pt)</span></legend>`;
   let cuerpo = '';
   if (q.tipo === 'test') {
     const idx = (q.opciones || []).map((_, i) => i); const orden = barajarOps ? barajar(idx, s ^ semilla(q.id)) : idx;
-    cuerpo = orden.map((i) => `<label class="au-op"><input type="radio" name="${esc(nm)}" value="${i}" ${r === i ? 'checked' : ''}> ${esc(q.opciones[i])}</label>`).join('');
+    if ((q.opciones || []).some(imgEl)) cuerpo = `<div class="ex-opcs">${orden.map((i) => { const o = q.opciones[i]; const im = imgEl(o); return `<label class="au-op ex-opc"><input type="radio" name="${esc(nm)}" value="${i}" ${r === i ? 'checked' : ''}>${im ? `<img src="${esc(im)}" alt="${esc(o.alt || txtEl(o))}" loading="lazy" draggable="false">${lupa(im, o.alt || txtEl(o))}` : ''}<span class="ex-opc-t">${esc(txtEl(o))}</span></label>`; }).join('')}</div>`;
+    else cuerpo = orden.map((i) => `<label class="au-op"><input type="radio" name="${esc(nm)}" value="${i}" ${r === i ? 'checked' : ''}> ${esc(q.opciones[i])}</label>`).join('');
   } else if (q.tipo === 'vf') cuerpo = `<label class="au-op"><input type="radio" name="${esc(nm)}" value="true" ${r === true ? 'checked' : ''}> Verdadero</label><label class="au-op"><input type="radio" name="${esc(nm)}" value="false" ${r === false ? 'checked' : ''}> Falso</label>`;
   else if (q.tipo === 'corta') cuerpo = `<input type="text" class="au-corta" name="${esc(nm)}" maxlength="500" value="${esc(r || '')}" placeholder="Tu respuesta" aria-label="Tu respuesta">`;
   else if (q.tipo === 'emparejar') {
     const R = Array.isArray(r) ? r : [];
-    cuerpo = `<div class="ex-emp">${(q.izquierda || []).map((iz, i) => `<label class="ex-emp-f"><span class="ex-emp-iz">${esc(iz)}</span><select data-emp="${i}" name="${esc(nm)}_${i}"><option value="">— elige —</option>${(q.derecha || []).map((d, j) => `<option value="${j}" ${R[i] === j ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></label>`).join('')}</div>`;
+    const conImg = (q.izquierda || []).some(imgEl) || (q.derecha || []).some(imgEl); const derImg = (q.derecha || []).some(imgEl);
+    if (!conImg) cuerpo = `<div class="ex-emp">${(q.izquierda || []).map((iz, i) => `<label class="ex-emp-f"><span class="ex-emp-iz">${esc(iz)}</span><select data-emp="${i}" name="${esc(nm)}_${i}"><option value="">— elige —</option>${(q.derecha || []).map((d, j) => `<option value="${j}" ${R[i] === j ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></label>`).join('')}</div>`;
+    else cuerpo = `${derImg ? `<div class="ex-emp-der">${(q.derecha || []).map((d, j) => `<div class="ex-emp-dc"><b>${LETRA(j)}</b>${elHTML(d)}</div>`).join('')}</div>` : ''}<div class="ex-emp ex-emp-img">${(q.izquierda || []).map((iz, i) => `<label class="ex-emp-f"><span class="ex-emp-iz">${elHTML(iz)}</span><select data-emp="${i}" name="${esc(nm)}_${i}"><option value="">— elige —</option>${(q.derecha || []).map((d, j) => `<option value="${j}" ${R[i] === j ? 'selected' : ''}>${derImg ? LETRA(j) + (txtEl(d) ? ' · ' + esc(txtEl(d)) : '') : esc(txtEl(d))}</option>`).join('')}</select></label>`).join('')}</div>`;
   } else if (q.tipo === 'ordenar') {
     const R = Array.isArray(r) && r.length === (q.elementos || []).length ? r : ordenInicial(q, s);
     cuerpo = `<ol class="ex-ord" data-orden="${esc(JSON.stringify(R))}">${R.map((i, p) => `<li data-i="${i}"><span class="ex-ord-t">${esc(q.elementos[i])}</span><span class="ex-ord-b"><button type="button" class="btn tiny" data-ord="-1" ${p ? '' : 'disabled'} aria-label="Subir «${esc(q.elementos[i])}»">${ic('arrow-up')}</button><button type="button" class="btn tiny" data-ord="1" ${p < R.length - 1 ? '' : 'disabled'} aria-label="Bajar «${esc(q.elementos[i])}»">${ic('arrow-down')}</button></span></li>`).join('')}</ol>`;
@@ -48,11 +58,11 @@ export function preguntaHTML(q, r, { n, barajarOps = false, s = 1, datos = true 
   } else if (q.tipo === 'numerica' || q.tipo === 'variables') cuerpo = `<label class="ex-num"><input type="text" inputmode="decimal" name="${esc(nm)}" maxlength="40" value="${esc(r ?? '')}" placeholder="Número" aria-label="Respuesta numérica">${q.unidad ? `<span>${esc(q.unidad)}</span>` : ''}</label>`;
   else if (q.tipo === 'zonas') {
     const p = r && typeof r === 'object' ? r : null;
-    cuerpo = `<div class="ex-zonas" data-zonas tabindex="0" role="button" aria-label="Imagen: pulsa el punto que se pide. Con el teclado: flechas para mover la marca"><img src="${esc(q.imagen)}" alt="${esc(q.alt || 'Imagen de la pregunta')}" draggable="false">${p ? `<span class="ex-marca" style="left:${p.x}%;top:${p.y}%"></span>` : ''}</div>`;
+    cuerpo = `<div class="ex-zonas-w"><div class="ex-zonas" data-zonas tabindex="0" role="button" aria-label="Imagen: pulsa el punto que se pide. Con el teclado: flechas para mover la marca"><img src="${esc(q.imagen)}" alt="${esc(q.alt || 'Imagen de la pregunta')}" draggable="false">${p ? `<span class="ex-marca" style="left:${p.x}%;top:${p.y}%"></span>` : ''}</div>${lupa(q.imagen, q.alt)}</div>`;
   }
   else if (q.tipo === 'clasificar') {
     const R = Array.isArray(r) ? r : []; const G = q.grupos || [];
-    const chip = (e, i) => `<span class="ex-cl-chip" draggable="true" data-cle="${i}"><span class="ex-cl-t">${esc(e)}</span><select data-cl="${i}" aria-label="Grupo de «${esc(e)}»"><option value="">—</option>${G.map((g, j) => `<option value="${j}" ${R[i] === j ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></span>`;
+    const chip = (e, i) => `<span class="ex-cl-chip${imgEl(e) ? ' ex-cl-img' : ''}" draggable="true" data-cle="${i}"><span class="ex-cl-t">${elHTML(e)}</span><select data-cl="${i}" aria-label="Grupo de «${esc(txtEl(e) || 'imagen ' + (i + 1))}»"><option value="">—</option>${G.map((g, j) => `<option value="${j}" ${R[i] === j ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></span>`;
     const L = (q.elementos || []).map((e, i) => [e, i]);
     cuerpo = `<div class="ex-cl"><div class="ex-cl-pool" data-clg="" aria-label="Sin clasificar">${L.filter(([, i]) => R[i] == null).map(([e, i]) => chip(e, i)).join('')}</div><div class="ex-cl-grupos">${G.map((g, j) => `<div class="ex-cl-grupo" data-clg="${j}"><div class="ex-cl-h">${esc(g)}</div>${L.filter(([, i]) => R[i] === j).map(([e, i]) => chip(e, i)).join('')}</div>`).join('')}</div></div>`;
   } else if (q.tipo === 'tabla') {
@@ -108,6 +118,8 @@ export function enlazarPreguntas(raiz, alCambiar) {
     document.execCommand('insertHTML', false, h ? limpiarDoc(h) : esc(t).replace(/\n/g, '<br>'));
   });
   raiz.addEventListener('click', (e) => {
+    const zb = e.target.closest('[data-zoom]');
+    if (zb) { e.preventDefault(); e.stopPropagation(); abrirVisor(zb.dataset.zoom, zb.dataset.alt || ''); return; }
     const bx = e.target.closest('[data-exab]');
     if (bx) { bx.closest('.ex-ab').querySelector('.ex-ab-ed').focus(); document.execCommand(bx.dataset.exab); alCambiar?.({ id: bx.closest('fieldset').dataset.q }); return; }
     const b = e.target.closest('[data-ord]');
@@ -137,31 +149,33 @@ function marcar(z, x, y) {
   m.style.left = x + '%'; m.style.top = y + '%';
 }
 
+// Texto de un elemento que puede llevar imagen (si no tiene texto: «imagen n»)
+const txtElI = (x, i) => (typeof x === 'string' ? x : txtEl(x) || `imagen ${LETRA(Number(i) || 0)}`);
 // Texto de una respuesta y de la solución (cuaderno del profesor, vista previa)
 export function respuestaTexto(q, v) {
   if (v == null) return '— sin responder';
-  if (q.tipo === 'test') return (q.opciones || [])[v] ?? String(v);
+  if (q.tipo === 'test') return (q.opciones || [])[v] != null ? txtElI((q.opciones || [])[v], v) : String(v);
   if (q.tipo === 'vf') return v ? 'Verdadero' : 'Falso';
-  if (q.tipo === 'emparejar') return (q.izquierda || []).map((iz, i) => `${iz} → ${v[i] == null ? '—' : (q.derecha || [])[v[i]]}`).join(' · ');
+  if (q.tipo === 'emparejar') return (q.izquierda || []).map((iz, i) => `${txtElI(iz, i)} → ${v[i] == null ? '—' : txtElI((q.derecha || [])[v[i]], v[i])}`).join(' · ');
   if (q.tipo === 'ordenar') return (Array.isArray(v) ? v : []).map((i) => (q.elementos || [])[i]).join(' → ');
   if (q.tipo === 'huecos') return (Array.isArray(v) ? v : []).map((x, i) => `${i + 1}: ${x || '—'}`).join(' · ');
   if (q.tipo === 'numerica' || q.tipo === 'variables') { const x = leeNumero(v); return (x == null ? String(v) : String(x).replace('.', ',')) + (q.unidad ? ' ' + q.unidad : ''); }
-  if (q.tipo === 'clasificar') return (q.grupos || []).map((g, j) => `${g}: ${(q.elementos || []).filter((_, i) => (Array.isArray(v) ? v : [])[i] === j).join(', ') || '—'}`).join(' · ');
+  if (q.tipo === 'clasificar') return (q.grupos || []).map((g, j) => `${g}: ${(q.elementos || []).map(txtElI).filter((_, i) => (Array.isArray(v) ? v : [])[i] === j).join(', ') || '—'}`).join(' · ');
   if (q.tipo === 'tabla') return (Array.isArray(v) ? v : []).map((x, i) => `${i + 1}: ${x || '—'}`).join(' · ');
   if (q.tipo === 'abierta') return q.extension === 'larga' ? textoDeDoc(limpiarDoc(String(v))) : String(v);
   if (q.tipo === 'zonas') return `punto (${Math.round(v.x)} %, ${Math.round(v.y)} %)`;
   return String(v);
 }
 export function solucionTexto(q, k) {
-  if (q.tipo === 'test') return (q.opciones || [])[k];
+  if (q.tipo === 'test') return (q.opciones || [])[k] != null ? txtElI((q.opciones || [])[k], k) : (q.opciones || [])[k];
   if (q.tipo === 'vf') return k ? 'Verdadero' : 'Falso';
   if (q.tipo === 'corta') return (k || []).join(' · ') || '(manual)';
-  if (q.tipo === 'emparejar') return (q.izquierda || []).map((iz, i) => `${iz} → ${(q.derecha || [])[(k || [])[i]] ?? '?'}`).join(' · ');
+  if (q.tipo === 'emparejar') return (q.izquierda || []).map((iz, i) => `${txtElI(iz, i)} → ${(q.derecha || [])[(k || [])[i]] != null ? txtElI((q.derecha || [])[(k || [])[i]], (k || [])[i]) : '?'}`).join(' · ');
   if (q.tipo === 'ordenar') return (k || []).map((i) => (q.elementos || [])[i]).join(' → ');
   if (q.tipo === 'huecos') return (k || []).map((a, i) => `${i + 1}: ${alternativas(a).join(' / ')}`).join(' · ');
   if (q.tipo === 'variables') return k ? `fórmula ${k.f}${q.unidad ? ' (' + q.unidad + ')' : ''} con los datos de cada alumno ± ${String(k.t).replace('.', ',')}${k.m === 'pct' ? ' %' : ''}` : '';
   if (q.tipo === 'numerica') return k ? `${String(k.v).replace('.', ',')}${q.unidad ? ' ' + q.unidad : ''} ± ${String(k.t).replace('.', ',')}${k.m === 'pct' ? ' %' : ''}` : '';
-  if (q.tipo === 'clasificar') return (q.grupos || []).map((g, j) => `${g}: ${(q.elementos || []).filter((_, i) => (k || [])[i] === j).join(', ')}`).join(' · ');
+  if (q.tipo === 'clasificar') return (q.grupos || []).map((g, j) => `${g}: ${(q.elementos || []).map(txtElI).filter((_, i) => (k || [])[i] === j).join(', ')}`).join(' · ');
   if (q.tipo === 'tabla') return (k || []).map((a, i) => `${i + 1}: ${alternativas(a).join(' / ')}`).join(' · ');
   if (q.tipo === 'abierta') return q.rubrica?.length ? 'con rúbrica: ' + q.rubrica.map((r) => `${r.c} (${fmtNota(r.p)})`).join(' · ') : '(la corriges tú)';
   if (q.tipo === 'zonas') return (k || []).filter((z) => z.correcta).map((z) => z.nombre || `zona (${z.x}, ${z.y})`).join(' · ');

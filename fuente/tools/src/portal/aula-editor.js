@@ -10,7 +10,7 @@ import { asignatura, TIPOS, CATEGORIAS } from '../lms/biblioteca.js';
 import { IDS_ELEMENTO, seccionDe, seccionesDe, seccionesActivas } from '../lms/secciones.js';
 import { criterioValido, motor } from '../lms/elemento.js';
 import '../lms/motores/index.js';
-import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta, leerRubricaQ, rubricaQTexto } from '../lms/preguntas.js';
+import { TIPOS_PREGUNTA, separarPregunta, unirPregunta, validarPregunta, leerRubricaQ, rubricaQTexto, txtEl, imgEl, imagenValida, imagenDe } from '../lms/preguntas.js';
 import { categoriaDe, idItem, leeEnlaces, enlacesTexto, TIPOS_ENTREGA, enlaceValido, visibleAlDe } from '../lms/modelo.js';
 import { editorRubricaHTML, leerEditorRubrica, accionRubrica, cambioRubrica } from './rubrica-ui.js';
 import { completarPiac } from '../lms/motores/piac.js';
@@ -203,10 +203,12 @@ export function crearEditor({ db, aula, gruposDe }) {
         <label class="ap-qc">Criterio <input type="text" data-qf="criterio" maxlength="60" value="${esc(q.criterio || '')}" placeholder="p. ej. eee_c1_1" title="Criterio de evaluación (opcional)"></label>
         <span class="pn-grow"></span><button type="button" class="btn small" data-ed="qUp" ${i ? '' : 'disabled'} aria-label="Subir">↑</button><button type="button" class="btn small" data-ed="qDown" ${i < E.preguntas.length - 1 ? '' : 'disabled'} aria-label="Bajar">↓</button><button type="button" class="btn small pn-peligro" data-ed="qDel" aria-label="Quitar">🗑</button></div>
       <textarea data-qf="enunciado" rows="2" maxlength="2000" placeholder="Enunciado de la pregunta">${esc(q.enunciado)}</textarea>
-      ${q.tipo === 'test' ? `<div class="ap-ops">${q.opciones.map((o, j) => `<label class="ap-op"><input type="radio" name="corr_${esc(q.id)}" data-qf="correcta" value="${j}" ${Number(q.correcta) === j ? 'checked' : ''} title="Respuesta correcta"><input type="text" data-qf="op" data-j="${j}" maxlength="500" value="${esc(o)}" placeholder="Opción ${j + 1}"></label>`).join('')}
+      ${q.tipo !== 'zonas' ? `<label class="pn-f ap-qimg">Imagen encima del enunciado (opcional: https://…, materiales/… o img/…)<input data-qf="imgq" maxlength="500" value="${esc(q.imagen || '')}" placeholder="img/eee/test/…svg"></label>` : ''}
+      ${q.tipo === 'test' ? `<div class="ap-ops">${q.opciones.map((o, j) => `<label class="ap-op"><input type="radio" name="corr_${esc(q.id)}" data-qf="correcta" value="${j}" ${Number(q.correcta) === j ? 'checked' : ''} title="Respuesta correcta"><input type="text" data-qf="op" data-j="${j}" maxlength="500" value="${esc(txtEl(o))}" placeholder="Opción ${j + 1}">${imgEl(o) ? `<span class="pn-small" title="${esc(imgEl(o))}">+ imagen</span>` : ''}</label>`).join('')}
           <button type="button" class="btn small" data-ed="op+">➕ Opción</button>${q.opciones.length > 2 ? '<button type="button" class="btn small" data-ed="op-">➖ Opción</button>' : ''}<span class="pn-small"> Marca el círculo de la correcta.</span></div>`
       : q.tipo === 'vf' ? `<label class="ap-op">Respuesta correcta: <select data-qf="correcta"><option value="true" ${q.correcta === true ? 'selected' : ''}>Verdadero</option><option value="false" ${q.correcta === false ? 'selected' : ''}>Falso</option></select></label>`
       : q.tipo === 'corta' ? `<label class="pn-f">Respuestas aceptadas (una por línea; vacío = corrección manual)<textarea data-qf="aceptadas" rows="2" maxlength="2000">${esc((q.correcta || []).join('\n'))}</textarea></label>`
+      : (q.tipo === 'emparejar' && [...(q.pares || []).flat(), ...(q.distractores || [])].some(imgEl)) || (q.tipo === 'clasificar' && (q.grupos || []).some((g) => (g.elementos || []).some(imgEl))) ? `<p class="pn-small">${ic('image')} Esta pregunta lleva imágenes en sus elementos: sus parejas o grupos solo se cambian por JSON (Exportar / Importar). El enunciado, los puntos y la imagen sí se pueden cambiar aquí.</p>`
       : q.tipo === 'emparejar' ? `<label class="pn-f">Parejas (una por línea: «izquierda | derecha»; se puntúa cada pareja)<textarea data-qf="pares" rows="4" maxlength="4000">${esc((q.pares || []).map((p) => p.join(' | ')).join('\n'))}</textarea></label><label class="pn-f">Distractores (opcional: opciones de la derecha que no van con ninguna, una por línea)<textarea data-qf="distractores" rows="2" maxlength="2000">${esc((q.distractores || []).join('\n'))}</textarea></label>`
       : q.tipo === 'ordenar' ? `<label class="pn-f">Elementos EN EL ORDEN CORRECTO (uno por línea; al alumno le salen desordenados)<textarea data-qf="elementos" rows="4" maxlength="4000">${esc((q.elementos || []).join('\n'))}</textarea></label>`
       : q.tipo === 'huecos' ? `<label class="pn-f">Texto con huecos: escribe la respuesta entre [[ ]]; otras válidas con «|». Ej.: La ley de [[Ohm]] relaciona [[intensidad|corriente]]…<textarea data-qf="texto" rows="3" maxlength="3000">${esc(q.texto || '')}</textarea></label>`
@@ -225,17 +227,19 @@ export function crearEditor({ db, aula, gruposDe }) {
       q.enunciado = el.querySelector('[data-qf=enunciado]').value.slice(0, 2000);
       q.puntos = Math.max(0.25, Math.min(100, Number(String(el.querySelector('[data-qf=puntos]').value).replace(',', '.')) || 1));
       const qc = el.querySelector('[data-qf=criterio]'); if (qc) { const v = qc.value.trim().slice(0, 60); if (v) q.criterio = v; else delete q.criterio; }
-      if (q.tipo === 'test') { q.opciones = [...el.querySelectorAll('[data-qf=op]')].map((x) => x.value.slice(0, 500)); const c = el.querySelector('[data-qf=correcta]:checked'); q.correcta = c ? Number(c.value) : 0; }
+      const qi = el.querySelector('[data-qf=imgq]'); if (qi) { const v = qi.value.trim().slice(0, 500); if (v) q.imagen = v; else { delete q.imagen; delete q.alt; } }
+      if (q.tipo === 'test') { const prev = q.opciones || []; q.opciones = [...el.querySelectorAll('[data-qf=op]')].map((x, j) => (imgEl(prev[j]) ? { ...prev[j], texto: x.value.slice(0, 500) } : x.value.slice(0, 500))); const c = el.querySelector('[data-qf=correcta]:checked'); q.correcta = c ? Number(c.value) : 0; }
       if (q.tipo === 'vf') q.correcta = el.querySelector('[data-qf=correcta]').value === 'true';
       if (q.tipo === 'corta') q.correcta = el.querySelector('[data-qf=aceptadas]').value.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 20);
       const lineas = (k) => (el.querySelector(`[data-qf=${k}]`)?.value || '').split('\n').map((s) => s.trim()).filter(Boolean);
-      if (q.tipo === 'emparejar') { q.pares = lineas('pares').slice(0, 12).map((l) => { const i = l.indexOf('|'); return i < 0 ? [l, ''] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }); q.distractores = lineas('distractores').slice(0, 6); }
+      const conImgs = (q.tipo === 'emparejar' && [...(q.pares || []).flat(), ...(q.distractores || [])].some(imgEl)) || (q.tipo === 'clasificar' && (q.grupos || []).some((g) => (g.elementos || []).some(imgEl)));
+      if (q.tipo === 'emparejar' && !conImgs) { q.pares = lineas('pares').slice(0, 12).map((l) => { const i = l.indexOf('|'); return i < 0 ? [l, ''] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }); q.distractores = lineas('distractores').slice(0, 6); }
       if (q.tipo === 'ordenar') q.elementos = lineas('elementos').slice(0, 12);
       if (q.tipo === 'huecos') q.texto = el.querySelector('[data-qf=texto]').value.slice(0, 3000);
       if (q.tipo === 'numerica') { const n = (k) => Number(String(el.querySelector(`[data-qf=${k}]`).value).trim().replace(',', '.')); q.valor = n('valor'); q.tolerancia = n('tolerancia') || 0; q.modo = el.querySelector('[data-qf=modo]').value; q.unidad = el.querySelector('[data-qf=unidad]').value.trim().slice(0, 20); }
       if (q.tipo === 'variables') { const r = leeVariables(el.querySelector('[data-qf=variables]').value); q.variables = r.V; q.formula = el.querySelector('[data-qf=formula]').value.trim().slice(0, 200); q.tolerancia = Number(String(el.querySelector('[data-qf=tolerancia]').value).trim().replace(',', '.')) || 0; q.modo = el.querySelector('[data-qf=modo]').value; q.unidad = el.querySelector('[data-qf=unidad]').value.trim().slice(0, 20); }
       if (q.tipo === 'zonas') { q.imagen = el.querySelector('[data-qf=imagen]').value.trim(); q.zonas = leeZonas(el.querySelector('[data-qf=zonasTxt]').value); }
-      if (q.tipo === 'clasificar') q.grupos = lineas('grupos').slice(0, 6).map((l) => { const i = l.indexOf(':'); return { nombre: (i < 0 ? l : l.slice(0, i)).trim(), elementos: i < 0 ? [] : l.slice(i + 1).split(';').map((x) => x.trim()).filter(Boolean) }; });
+      if (q.tipo === 'clasificar' && !conImgs) q.grupos = lineas('grupos').slice(0, 6).map((l) => { const i = l.indexOf(':'); return { nombre: (i < 0 ? l : l.slice(0, i)).trim(), elementos: i < 0 ? [] : l.slice(i + 1).split(';').map((x) => x.trim()).filter(Boolean) }; });
       if (q.tipo === 'tabla') { const L = lineas('tabla').map(celdas); q.columnas = L[0] || []; q.filas = L.slice(1, 31).map((c) => ({ c })); }
       if (q.tipo === 'abierta') { q.extension = el.querySelector('[data-qf=extension]').value; const R = leerRubricaQ(lineas('rubricaQ'), q.rubrica); if (R.length) { q.rubrica = R; q.puntos = R.reduce((a, r) => a + r.p, 0); } else delete q.rubrica; }
     });
@@ -284,7 +288,8 @@ export function crearEditor({ db, aula, gruposDe }) {
       if (publicado && !E.preguntas.length) return err('El cuestionario no tiene preguntas: añade alguna o guárdalo como borrador.');
       for (const [i, q] of E.preguntas.entries()) {
         if (!q.enunciado.trim()) return err(`La pregunta ${i + 1} no tiene enunciado.`);
-        if (q.tipo === 'test' && (q.opciones.filter((o) => o.trim()).length < 2 || !String(q.opciones[q.correcta] || '').trim())) return err(`La pregunta ${i + 1} necesita al menos 2 opciones y la correcta marcada.`);
+        if (q.imagen && q.tipo !== 'zonas' && !imagenValida(q.imagen)) return err(`La pregunta ${i + 1}: la imagen tiene que ser una URL https://… o una ruta materiales/… / img/…`);
+        if (q.tipo === 'test' && (q.opciones.filter((o) => txtEl(o).trim() || imgEl(o)).length < 2 || !(txtEl(q.opciones[q.correcta]).trim() || imgEl(q.opciones[q.correcta])))) return err(`La pregunta ${i + 1} necesita al menos 2 opciones y la correcta marcada.`);
         if (!BASICAS.includes(q.tipo)) { const errs = []; validarPregunta(q, i, (r, t) => errs.push(t)); if (errs.length) return err(errs[0]); }
       }
     }
@@ -319,7 +324,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       if (st.reglasV5 === true) { if (E.origen) b.set(doc(db, 'origenes', id), { ...E.origen, asig: e.asig, curso: e.curso }); else if (E.origenExiste) b.delete(doc(db, 'origenes', id)); }
       if (esEx) {
         const sep = E.preguntas.map((q) => (BASICAS.includes(q.tipo) ? null : separarPregunta(validarPregunta(q, 0, () => { }) || q)));
-        const qs = E.preguntas.map((q, i) => sep[i] ? sep[i].publica : ({ id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.tipo === 'test' ? { opciones: q.opciones } : {}) }));
+        const qs = E.preguntas.map((q, i) => sep[i] ? sep[i].publica : ({ id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos, ...(q.criterio ? { criterio: q.criterio } : {}), ...imagenDe(q), ...(q.tipo === 'test' ? { opciones: q.opciones } : {}) }));
         b.set(doc(db, 'examenes', id), { grupos: e.grupos, publicado, desde: Timestamp.fromMillis(e.examen.desde), hasta: Timestamp.fromMillis(e.examen.hasta), limiteMin: e.examen.limiteMin, barajar: e.examen.barajar, preguntas: qs, ...(e.examen.pantallaCompleta || e.sinExternos ? { pantallaCompleta: true } : {}), ...(e.sinExternos ? { sinExternos: true } : {}) });
         b.set(doc(db, 'claves', id), { respuestas: Object.fromEntries(E.preguntas.map((q, i) => [q.id, sep[i] ? sep[i].clave : q.correcta])) });
       } else if (e.id && st.items.get(e.id)?.tipo === 'examen') { b.update(doc(db, 'examenes', id), { publicado: false }); } // P1: las preguntas y claves de un examen no se borran (evidencia)

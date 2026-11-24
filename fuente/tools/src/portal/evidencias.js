@@ -67,7 +67,7 @@ const CSS = `.ev-capa{position:fixed;inset:0;z-index:2147482000;overflow:auto;ba
 .ev-al h3{margin:0 0 6px}.ev-al table{border-collapse:collapse;width:100%;font-size:.9rem}.ev-al td,.ev-al th{border-bottom:1px solid rgba(0,0,0,.08);padding:4px 6px;text-align:left;vertical-align:top}
 .ev-doc{border:1px solid rgba(0,0,0,.12);border-radius:10px;padding:10px;max-height:420px;overflow:auto;background:#fff;color:#1d1d1f}
 @media print{body.ev-imp>*:not(.ev-capa){display:none!important}.ev-capa{position:static;overflow:visible;padding:0;background:#fff;color:#000}.ev-cab,.ev-al:not(.ev-sel),.ev-noimp{display:none!important}.ev-doc{max-height:none}}`;
-const respTxt = (q, r) => { if (r == null || r === '') return '—'; if (q.tipo === 'test') return (q.opciones || [])[r] ?? String(r); if (q.tipo === 'vf') return r ? 'Verdadero' : 'Falso'; return typeof r === 'string' ? r : JSON.stringify(r); };
+const respTxt = (q, r) => { if (r == null || r === '') return '—'; if (q.tipo === 'test') { const o = (q.opciones || [])[r]; return o == null ? String(r) : typeof o === 'string' ? o : (o.texto || 'imagen ' + String.fromCharCode(65 + Number(r))); } if (q.tipo === 'vf') return r ? 'Verdadero' : 'Falso'; return typeof r === 'string' ? r : JSON.stringify(r); };
 function alumnoHTML(E, a) {
   const t = a.trabajo; const n = a.nota; const el = E.elemento;
   const sal = resumenSalidas(a.incidencias || []);

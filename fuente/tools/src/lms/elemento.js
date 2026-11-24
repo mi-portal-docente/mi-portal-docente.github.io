@@ -3,7 +3,7 @@
 // en la web y en las pruebas. Documentación y ejemplos: lms/semilla/FORMATO_IMPORTAR.md
 import { TIPOS } from './biblioteca.js';
 import { enlaceValido, redondea } from './modelo.js';
-import { validarPregunta, TIPOS_PREGUNTA } from './preguntas.js';
+import { validarPregunta, TIPOS_PREGUNTA, imagenDe } from './preguntas.js';
 
 export const FORMATO_EL = 'superprofe/elemento@1';
 import { IDS_ELEMENTO, validarSecciones, parcialSecciones } from './secciones.js';
@@ -173,6 +173,6 @@ export function exportarElemento(it, { preguntas = null, claves = null, examen =
 // Pregunta (examenes + clave) → JSON (las de tipos nuevos guardan en la clave cómo deshacer el barajado)
 export function exportarPregunta(q, k) {
   const T = TIPOS_PREGUNTA[q.tipo];
-  const base = { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}) };
+  const base = { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...imagenDe(q) };
   return T?.exportar ? { ...base, ...T.exportar(q, k) } : base;
 }

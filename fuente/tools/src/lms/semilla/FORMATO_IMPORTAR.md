@@ -550,3 +550,39 @@ Además, el archivo puede traer las **secciones de la asignatura** (orden, nombr
   en el archivo (otras secciones, o el nombre u orden que no se indique) se queda como estaba. Importar secciones no activa
   las secciones en una asignatura que aún no las usa (eso se hace en Gestión).
 - Sin `seccion`, el elemento va a la sección que toca por su tipo (tabla de arriba); sin `tema`, al tema elegido en la ventana.
+
+## Imágenes en todas las preguntas (24/11/2026)
+Todo es **opcional**: las preguntas sin imagen se guardan, se ven y se corrigen exactamente igual que antes.
+Rutas válidas (las mismas que en `zonas`): `https://…`, `materiales/…` o `img/…` (sin `..`).
+
+- **`imagen`** (y **`alt`**, texto alternativo) en cualquier tipo: `test`, `vf`, `corta`, `emparejar`, `ordenar`, `huecos`,
+  `numerica`, `variables`, `clasificar`, `tabla` y `abierta`. Sale **encima del enunciado**. En `zonas` la imagen ya es
+  parte de la pregunta y no cambia.
+- **`test`**: cada opción puede ser un texto o `{ "texto": "…", "imagen": "img/…", "alt": "…" }` (el texto puede ir vacío si
+  hay imagen). Si alguna opción tiene imagen, las opciones se ven como **tarjetas** (2 columnas en el móvil, 4 en el
+  ordenador). Tocar la tarjeta elige la opción; la **lupa** de la esquina la amplía.
+- **`emparejar`**: cada lado de una pareja (y cada distractor) puede ser texto u objeto con imagen. Si la derecha tiene
+  imágenes, se ven arriba con letras (A, B, C…) y el desplegable dice «A · texto».
+- **`clasificar`**: cada elemento de un grupo puede ser texto u objeto con imagen (miniatura en la ficha que se arrastra).
+- Al tocar una imagen se abre **ampliada** (zoom con dos dedos, rueda o botones + / −, doble toque). En `zonas` tocar la
+  imagen sigue marcando la respuesta: para ampliar está el botón de la **lupa**. Las imágenes de `zonas` se ven a todo el
+  ancho disponible, como máximo 800 px.
+- «Exportar JSON» devuelve las mismas imágenes. En el editor del portal hay un campo «Imagen encima del enunciado»; las
+  parejas y grupos con imagen solo se cambian por JSON (el editor lo avisa y no las toca).
+
+```json
+{ "formato": "superprofe/elemento@1", "tipo": "examen", "titulo": "Test visual · componentes",
+  "examen": { "abre": "2026-12-01T09:00", "cierra": "2026-12-01T10:00", "limiteMin": 30 },
+  "preguntas": [
+    { "id": "v1", "tipo": "test", "enunciado": "¿Qué símbolo es el de un condensador?",
+      "opciones": [ { "texto": "A", "imagen": "img/eee/test/eee_rep_c1.svg" }, { "texto": "B", "imagen": "img/eee/test/eee_rep_l1.svg" }, "Ninguno" ],
+      "correcta": 0 },
+    { "id": "v2", "tipo": "vf", "imagen": "img/eee/test/eee_t56_patas.svg", "alt": "LED con sus patas",
+      "enunciado": "La pata larga del LED es el ánodo.", "correcta": true },
+    { "id": "v3", "tipo": "emparejar", "enunciado": "Une cada resistencia con su valor", "puntos": 2,
+      "pares": [ [ { "imagen": "img/eee/test/eee_rep_r1.svg" }, "150 Ω" ], [ { "imagen": "img/eee/test/eee_rep_r2.svg" }, "Otro valor" ] ] },
+    { "id": "v4", "tipo": "clasificar", "enunciado": "Clasifica", "grupos": [
+      { "nombre": "Resistencias", "elementos": [ { "texto": "R", "imagen": "img/eee/test/eee_rep_r3.svg" } ] },
+      { "nombre": "Bobinas", "elementos": [ { "texto": "L", "imagen": "img/eee/test/eee_rep_l2.svg" } ] } ] }
+  ] }
+```

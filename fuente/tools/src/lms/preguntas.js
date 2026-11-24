@@ -10,17 +10,40 @@ const esTexto = (x) => typeof x === 'string';
 const listaTextos = (L) => Array.isArray(L) && L.every(esTexto);
 const corto = (t, n = 500) => String(t ?? '').trim().slice(0, n);
 
+// Bloque 3 · imágenes: rutas válidas (las mismas que en «zonas») y elementos «texto o { texto, imagen, alt }»
+export const RUTA_IMAGEN = /^(https:\/\/\S+|materiales\/[\w\-./]+|img\/[\w\-./]+)$/;
+export const imagenValida = (u) => esTexto(u) && RUTA_IMAGEN.test(u) && !u.includes('..');
+// Texto de un elemento (opción, pareja, elemento de clasificar) que puede ser texto o { texto, imagen }
+export const txtEl = (x) => (x && typeof x === 'object' ? String(x.texto ?? '') : String(x ?? ''));
+export const imgEl = (x) => (x && typeof x === 'object' && x.imagen ? x.imagen : null);
+export const claveEl = (x) => (x && typeof x === 'object' ? normaliza(x.texto || '') + '\u0001' + (x.imagen || '') : normaliza(x));
+// Valida un elemento: texto (se queda igual) u objeto con imagen. Devuelve el elemento limpio o null.
+function elemento(x, n, err, ruta, nombre) {
+  if (esTexto(x)) return corto(x, n);
+  if (x && typeof x === 'object' && !Array.isArray(x)) {
+    const t = x.texto == null ? '' : x.texto; if (!esTexto(t)) { err(ruta, `${nombre}: «texto» tiene que ser texto.`); return null; }
+    if (x.imagen == null || x.imagen === '') { if (!t.trim()) { err(ruta, `${nombre}: pon un «texto» o una «imagen».`); return null; } return corto(t, n); }
+    if (!imagenValida(x.imagen)) { err(ruta, `${nombre}: «imagen» tiene que ser una URL https://… o una ruta materiales/… / img/…`); return null; }
+    return { texto: corto(t, n), imagen: x.imagen, ...(x.alt ? { alt: corto(x.alt, 200) } : {}) };
+  }
+  err(ruta, `${nombre}: tiene que ser un texto o { "texto": "…", "imagen": "img/…" }.`); return null;
+}
+const esElemento = (x) => esTexto(x) || (x && typeof x === 'object' && !Array.isArray(x) && (esTexto(x.texto) || esTexto(x.imagen)));
+const vacio = (x) => !txtEl(x).trim() && !imgEl(x);
+
 export const alternativas = (a) => (Array.isArray(a) ? a : String(a ?? '').split('|')).map((x) => String(x).trim()).filter(Boolean);
 
 export const TIPOS_PREGUNTA = {
   test: {
     nombre: 'Test',
     validar(q, err) {
-      if (!listaTextos(q.opciones) || q.opciones.filter((o) => o.trim()).length < 2) { err('opciones', 'Una pregunta de test necesita «opciones»: al menos 2 textos.'); return null; }
+      if (!Array.isArray(q.opciones) || !q.opciones.every(esElemento) || q.opciones.filter((o) => !vacio(o)).length < 2) { err('opciones', 'Una pregunta de test necesita «opciones»: al menos 2 (textos o { "texto": "…", "imagen": "img/…" }).'); return null; }
       if (q.opciones.length > 8) err('opciones', 'Máximo 8 opciones.');
       const c = Number(q.correcta);
       if (!Number.isInteger(c) || c < 0 || c >= q.opciones.length) { err('correcta', `«correcta» tiene que ser el número de la opción buena, empezando en 0 (de 0 a ${q.opciones.length - 1}).`); return null; }
-      return { opciones: q.opciones.map((o) => corto(o)), correcta: c };
+      let mal = false; const opciones = q.opciones.map((o, i) => { const e = elemento(o, 500, err, `opciones[${i}]`, `Opción ${i + 1}`); if (e == null) mal = true; return e; });
+      if (mal) return null;
+      return { opciones, correcta: c };
     },
     separar: (q) => ({ publica: { opciones: q.opciones }, clave: q.correcta }),
     exportar: (q, k) => ({ opciones: q.opciones || [], correcta: Number(k ?? 0) }),
@@ -50,13 +73,17 @@ export const TIPOS_PREGUNTA = {
     nombre: 'Emparejar', parcial: true,
     validar(q, err) {
       const P = q.pares;
-      if (!Array.isArray(P) || P.length < 2 || P.some((p) => !Array.isArray(p) || p.length !== 2 || !esTexto(p[0]) || !esTexto(p[1]) || !p[0].trim() || !p[1].trim())) { err('pares', '«pares» tiene que ser una lista de al menos 2 parejas: [["izquierda", "derecha"], …].'); return null; }
+      if (!Array.isArray(P) || P.length < 2 || P.some((p) => !Array.isArray(p) || p.length !== 2 || !esElemento(p[0]) || !esElemento(p[1]) || vacio(p[0]) || vacio(p[1]))) { err('pares', '«pares» tiene que ser una lista de al menos 2 parejas: [["izquierda", "derecha"], …] (cada lado, texto o { "texto": "…", "imagen": "img/…" }).'); return null; }
       if (P.length > 12) err('pares', 'Máximo 12 parejas.');
       const D = q.distractores ?? [];
-      if (!listaTextos(D)) { err('distractores', '«distractores» tiene que ser una lista de textos (opciones de la derecha que no van con ninguna).'); return null; }
-      const der = [...P.map((p) => corto(p[1], 300)), ...D.map((d) => corto(d, 300))];
-      if (new Set(der.map(normaliza)).size !== der.length) { err('pares', 'Hay textos de la derecha repetidos: cada opción de la derecha tiene que ser distinta.'); return null; }
-      return { pares: P.map((p) => [corto(p[0], 300), corto(p[1], 300)]), distractores: D.map((d) => corto(d, 300)).filter(Boolean).slice(0, 6) };
+      if (!Array.isArray(D) || !D.every(esElemento)) { err('distractores', '«distractores» tiene que ser una lista de textos (opciones de la derecha que no van con ninguna).'); return null; }
+      let mal = false; const el = (x, r, nm) => { const e = elemento(x, 300, err, r, nm); if (e == null) mal = true; return e; };
+      const pares = P.map((p, i) => [el(p[0], `pares[${i}][0]`, `Pareja ${i + 1} (izquierda)`), el(p[1], `pares[${i}][1]`, `Pareja ${i + 1} (derecha)`)]);
+      const dis = D.map((d, i) => el(d, `distractores[${i}]`, `Distractor ${i + 1}`));
+      if (mal) return null;
+      const der = [...pares.map((p) => p[1]), ...dis];
+      if (new Set(der.map(claveEl)).size !== der.length) { err('pares', 'Hay textos de la derecha repetidos: cada opción de la derecha tiene que ser distinta.'); return null; }
+      return { pares, distractores: dis.filter((d) => !vacio(d)).slice(0, 6) };
     },
     // la derecha se guarda barajada; la clave dice qué opción de la derecha va con cada una de la izquierda
     separar(q, seed) {
@@ -177,13 +204,15 @@ export const TIPOS_PREGUNTA = {
     // grupos: [{ nombre: 'Conductores', elementos: ['Cobre', 'Hierro'] }, …]  (2–6 grupos, máx. 24 elementos)
     validar(q, err) {
       const G = q.grupos;
-      if (!Array.isArray(G) || G.length < 2 || G.some((g) => !g || !esTexto(g.nombre) || !g.nombre.trim() || !listaTextos(g.elementos ?? []))) { err('grupos', '«grupos» tiene que ser una lista de al menos 2 grupos: [{ "nombre": "Conductores", "elementos": ["Cobre", "Hierro"] }, …].'); return null; }
+      if (!Array.isArray(G) || G.length < 2 || G.some((g) => !g || !esTexto(g.nombre) || !g.nombre.trim() || !Array.isArray(g.elementos ?? []) || !(g.elementos ?? []).every(esElemento))) { err('grupos', '«grupos» tiene que ser una lista de al menos 2 grupos: [{ "nombre": "Conductores", "elementos": ["Cobre", "Hierro"] }, …].'); return null; }
       if (G.length > 6) err('grupos', 'Máximo 6 grupos.');
-      const grupos = G.slice(0, 6).map((g) => ({ nombre: corto(g.nombre, 80), elementos: (g.elementos || []).map((e) => corto(e, 200)).filter(Boolean) }));
+      let mal = false;
+      const grupos = G.slice(0, 6).map((g, gi) => ({ nombre: corto(g.nombre, 80), elementos: (g.elementos || []).map((e, i) => { const x = elemento(e, 200, err, `grupos[${gi}].elementos[${i}]`, `Elemento ${i + 1} de «${corto(g.nombre, 40)}»`); if (x == null) mal = true; return x; }).filter((x) => x != null && !vacio(x)) }));
+      if (mal) return null;
       const todos = grupos.flatMap((g) => g.elementos);
       if (todos.length < 2) { err('grupos', 'Pon al menos 2 elementos para clasificar.'); return null; }
       if (todos.length > 24) err('grupos', 'Máximo 24 elementos en total.');
-      if (new Set(todos.map(normaliza)).size !== todos.length) { err('grupos', 'Hay elementos repetidos: cada elemento va en un solo grupo.'); return null; }
+      if (new Set(todos.map(claveEl)).size !== todos.length) { err('grupos', 'Hay elementos repetidos: cada elemento va en un solo grupo.'); return null; }
       if (new Set(grupos.map((g) => normaliza(g.nombre))).size !== grupos.length) { err('grupos', 'Hay dos grupos con el mismo nombre.'); return null; }
       return { grupos };
     },
@@ -256,10 +285,16 @@ export function validarPregunta(q, i, err) {
   const id = q.id != null && /^[\w-]{1,30}$/.test(String(q.id)) ? String(q.id) : 'q' + (i + 1);
   const extra = T.validar(q, (ruta, t) => err(ruta, /^Pregunta \d/.test(t) ? t : `Pregunta ${i + 1}: ${t}`));
   if (!extra) return null;
+  // Bloque 3 · imagen opcional encima del enunciado en todos los tipos («zonas» ya la tiene como parte de la pregunta)
+  let img = null;
+  if (q.tipo !== 'zonas' && q.imagen != null && q.imagen !== '') {
+    if (!imagenValida(q.imagen)) err('imagen', `Pregunta ${i + 1}: «imagen» tiene que ser una URL https://… o una ruta materiales/… / img/…`);
+    else img = { imagen: q.imagen, ...(q.alt ? { alt: corto(q.alt, 200) } : {}) };
+  }
   // v5 · «paso»: la puntuación parcial va por escalones (p. ej. 0,25 → 0 · 0,25 · 0,5 …), nunca todo o nada en las de varias partes
   let paso = null;
   if (q.paso != null && q.paso !== '') { paso = Number(String(q.paso).replace(',', '.')); if (!(paso > 0 && paso <= 100)) { err('paso', `Pregunta ${i + 1}: «paso» tiene que ser un número mayor que 0 (p. ej. 0.25).`); paso = null; } else if (!T.parcial) err('paso', `Pregunta ${i + 1}: «paso» solo vale en preguntas con puntuación parcial (${Object.entries(TIPOS_PREGUNTA).filter(([, x]) => x.parcial).map(([k]) => k).join(', ')}).`); }
-  return { id, tipo: q.tipo, enunciado: corto(q.enunciado, 2000), puntos, ...(criterio ? { criterio } : {}), ...extra, ...(paso && T.parcial ? { paso } : {}) };
+  return { id, tipo: q.tipo, enunciado: corto(q.enunciado, 2000), puntos, ...(criterio ? { criterio } : {}), ...(img || {}), ...extra, ...(paso && T.parcial ? { paso } : {}) };
 
 }
 
@@ -277,13 +312,15 @@ export function leerRubricaQ(lineas, previa = []) {
 }
 export const rubricaQTexto = (R) => (R || []).map((r) => `${r.c} | ${r.p}${r.paso ? ' | ' + r.paso : ''}`).join('\n');
 // Pregunta del profesor → { publica (para examenes), clave (para claves) }
+// Imagen general de la pregunta (bloque 3). Las preguntas sin imagen quedan exactamente igual.
+export const imagenDe = (q) => (q && q.tipo !== 'zonas' && q.imagen ? { imagen: q.imagen, ...(q.alt ? { alt: q.alt } : {}) } : {});
 export function separarPregunta(q) {
   const T = TIPOS_PREGUNTA[q.tipo]; const s = T.separar(q, semilla(q.id + '|' + q.enunciado));
-  return { publica: { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.paso ? { paso: q.paso } : {}), ...s.publica }, clave: s.clave ?? null };
+  return { publica: { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.paso ? { paso: q.paso } : {}), ...imagenDe(q), ...s.publica }, clave: s.clave ?? null };
 }
 // Pregunta pública + clave → forma del profesor
 export function unirPregunta(q, k) {
   const T = TIPOS_PREGUNTA[q.tipo];
-  return { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.paso ? { paso: q.paso } : {}), ...(T ? T.exportar(q, k) : {}) };
+  return { id: q.id, tipo: q.tipo, enunciado: q.enunciado, puntos: q.puntos ?? 1, ...(q.criterio ? { criterio: q.criterio } : {}), ...(q.paso ? { paso: q.paso } : {}), ...imagenDe(q), ...(T ? T.exportar(q, k) : {}) };
 }
 export { barajar };

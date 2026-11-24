@@ -12,6 +12,7 @@ import { preguntaHTML, leerRespuesta, enlazarPreguntas, solucionTexto, nombreTip
 import { crearModoExamen } from './modo-examen.js';
 import { montarPruebaProfe } from './prueba-profe.js';
 import { crearReloj } from './reloj-examen.js';
+import { txtEl, imgEl } from '../lms/preguntas.js';
 import { montarExplicacion } from './explicacion-ui.js';
 import { montarPiac } from './piac-ui.js';
 import { montarInteractiva } from './interactiva-ui.js';
@@ -334,8 +335,8 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       const k = claves?.respuestas || {};
       const pq = examen?.preguntas || [];
       const prueba = corregirExamen(pq, k, k);
-      box.innerHTML = pq.length ? `<ol class="au-prev">${pq.map((q) => `<li><div>${textoHTML(q.enunciado)} <span class="au-small">(${esc(fmtNota(q.puntos || 1))} pt)</span></div>
-        ${q.criterio ? `<span class="au-crit">${esc(q.criterio)}</span>` : ''}${q.tipo === 'test' ? `<ul>${(q.opciones || []).map((o, i) => `<li class="${Number(k[q.id]) === i ? 'ok' : ''}">${Number(k[q.id]) === i ? '✔ ' : ''}${esc(o)}</li>`).join('')}</ul>`
+      box.innerHTML = pq.length ? `<ol class="au-prev">${pq.map((q) => `<li>${q.imagen && q.tipo !== 'zonas' ? `<img class="ex-prev-img" src="${esc(q.imagen)}" alt="${esc(q.alt || '')}" loading="lazy">` : ''}<div>${textoHTML(q.enunciado)} <span class="au-small">(${esc(fmtNota(q.puntos || 1))} pt)</span></div>
+        ${q.criterio ? `<span class="au-crit">${esc(q.criterio)}</span>` : ''}${q.tipo === 'test' ? `<ul>${(q.opciones || []).map((o, i) => `<li class="${Number(k[q.id]) === i ? 'ok' : ''}">${Number(k[q.id]) === i ? '✔ ' : ''}${imgEl(o) ? `<img class="ex-prev-mini" src="${esc(imgEl(o))}" alt="" loading="lazy"> ` : ''}${esc(txtEl(o))}</li>`).join('')}</ul>`
         : q.tipo === 'vf' ? `<div class="ok">✔ ${k[q.id] ? 'Verdadero' : 'Falso'}</div>` : q.tipo === 'corta' ? `<div class="ok">✔ Se aceptan: ${esc((k[q.id] || []).join(' · ') || '— (corrección manual)')}</div>`
         : `${q.tipo === 'zonas' && q.imagen ? `<div class="ex-zonas ex-zonas-prof"><img src="${esc(q.imagen)}" alt="${esc(q.alt || '')}" loading="lazy">${(Array.isArray(k[q.id]) ? k[q.id] : []).map((z) => `<span class="ex-zona ${z.correcta === false ? '' : 'ok'}" style="left:${z.x}%;top:${z.y}%;width:${z.w}%;height:${z.h}%" title="${esc(z.nombre || '')}"></span>`).join('')}</div>` : ''}<div class="au-small">${esc(nombreTipoPregunta(q.tipo))}</div><div class="ok">${ic('check')} ${esc(solucionTexto(q, k[q.id]))}</div>`}</li>`).join('')}</ol>
         <p class="au-small">Total: ${esc(fmtNota(prueba.max))} puntos · ${examen.barajar ? 'preguntas y opciones barajadas para cada alumno' : 'sin barajar'}.</p>` : '<p class="au-vacio">Este examen todavía no tiene preguntas.</p>';

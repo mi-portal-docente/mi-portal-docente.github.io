@@ -1046,3 +1046,19 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
   «Probar como alumno» con reloj, nota y marcas, y que no escribe en Firestore); examen_v5, importador_v5, notas_v5,
   banco_v5, plataforma, aula_modelo OK. Sin reglas nuevas.
 - Capturas: /workspace/capturas-colores/b1_*.png y las de la e2e (aula_alumno_examen*.png, aula_profesor_probar.png).
+
+### Bloque 3 · imágenes en todas las preguntas — HECHO (caché v5-20261124b)
+- Campo opcional `imagen` (+ `alt`) en cualquier tipo (en `zonas` sigue siendo la imagen de las zonas, como lo dejó Claude).
+  Opciones de test, parejas/distractores de emparejar y elementos de clasificar aceptan texto o `{ "texto", "imagen", "alt" }`.
+  Rutas válidas: https://…, materiales/…, img/… (error en castellano si no).
+- Alumno (examen-ui.js): imagen sobre el enunciado; opciones con imagen en tarjetas (2 columnas en móvil, 4 en escritorio);
+  emparejar con galería «A · B · C»; chips con miniatura. Botón lupa (zoom-in) → visor a pantalla completa
+  (src/portal/visor-img.js: pellizcar, arrastrar, doble toque, rueda, +/−, Esc). En `zonas` la imagen ocupa todo el ancho
+  (hasta 800 px) y la lupa está fuera de la imagen, así que tocar sigue marcando.
+- Profesor: campo «Imagen encima del enunciado» en el editor; vista previa con imagen y miniaturas. Emparejar/clasificar
+  con imágenes se cargan por JSON (el editor lo avisa y no las pisa). Exportar ZIP y evidencias escriben «texto [imagen: ruta]».
+- Compatibilidad: las preguntas sin imagen se validan, separan, corrigen y pintan IGUAL que antes (imagenes_test.mjs compara
+  con preguntas.js de 7e709a9 con 12 preguntas tipo «Test Temas 5 y 6», y el HTML de preguntaHTML sale idéntico).
+- Pruebas: imagenes_test 3/3, aula_e2e 126/126, examen_v5, importador_v5, notas_v5, banco_v5, plataforma, aula_modelo,
+  circ_test 77/77. Formato en FORMATO_IMPORTAR.md («Imágenes en todas las preguntas»). Sin reglas nuevas.
+- Capturas: /workspace/capturas-colores/b3_*.png.
