@@ -423,8 +423,18 @@ export async function barrerPlantilla(page, { etapa = ETAPA, viewport = { width:
 
 export async function ponerOscuro(page) {
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.evaluate(() => { try { localStorage.setItem('portal.tema', 'dark'); } catch {} window.portalTema?.elegir('dark'); document.documentElement.setAttribute('data-theme', 'dark'); });
-  await page.waitForTimeout(200);
+  await page.evaluate(() => {
+    try { localStorage.setItem('portal.tema', 'dark'); } catch {}
+    window.portalTema?.elegir('dark');
+    document.documentElement.setAttribute('data-theme', 'dark');
+    // Sin transiciones: si no, se mide a mitad de un cambio de color y salen fallos que el usuario no ve.
+    document.documentElement.classList.add('medir-contraste');
+  });
+  await page.waitForFunction(() => {
+    const t = getComputedStyle(document.documentElement).getPropertyValue('--tinta').trim().toLowerCase();
+    return t === '#f5f5f7';
+  }, null, { timeout: 8000 }).catch(() => {});
+  await page.waitForTimeout(80);
 }
 
 export async function ponerClaro(page) {
@@ -442,6 +452,7 @@ export async function barrerPortal(page, { etiqueta, rutas, etapa = ETAPA, ok = 
       await page.goto(ruta, { waitUntil: 'domcontentloaded' }).catch(() => {});
       await page.waitForTimeout(400);
       await ponerOscuro(page);
+      await page.waitForTimeout(200);
       const slug = etiqueta + '_' + (ruta.split('#')[1] || 'ini').replace(/[^\w]+/g, '_') + '_' + vp.width;
       await page.screenshot({ path: `${CAP}${etapa}/${slug}.png`, fullPage: false });
       const repo = await medirPagina(page, { hover: false });

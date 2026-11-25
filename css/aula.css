@@ -390,7 +390,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   .pn-layout { grid-template-columns: 1fr; }
   .pn-nav { position: static; flex-direction: row; overflow-x: auto; gap: 6px; }
   .pn-g { flex-direction: row; align-items: center; flex: none; } .pn-gt { display: none; }
-  .pn-nav a { white-space: nowrap; background: #fff; border: 1px solid var(--claro); }
+  .pn-nav a { white-space: nowrap; background: var(--card); border: 1px solid var(--sep); }
 }
 @media (max-width: 600px) {
   .as-hero-in { padding: 14px 14px 8px; } .as-ic { font-size: 30px; }

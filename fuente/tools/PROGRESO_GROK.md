@@ -1202,3 +1202,16 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - e2e/run_validar.sh + firebase/firebase.validar.json: los mismos e2e con puertos propios (8391/9401/8776) para no chocar
   con otros emuladores en la misma máquina (PRUEBA=aula|reglas|plataforma, FASES=…).
 - Capturas: /workspace/capturas-validar/. Caché v5-20261125e.
+
+### A3 · Importar visible y contraste del panel en móvil (tras 10326db) — caché v5-20261125f
+- Causa de `aula_e2e` 22/23 (luego 38/39): en asignaturas **sin secciones** (Trabajo de clase · Tablón) no hay pestaña
+  Gestión, y «Importar de Classroom» / «Importar JSON» y el bloque «Grupos y seguimiento» se habían quedado solo en
+  los apartados de Gestión. El profesor no podía pulsarlos. Vuelven a la barra y al pie de «Trabajo de clase» cuando
+  no hay secciones. Con secciones, se siguen abriendo en «Exportar e importar» / «Grupo y alumnos», pulsando el apartado
+  (nada oculto: hay que entrar en él).
+- `aula_e2e`: `abrirImportarClassroom()` pulsa el control visible, como el profesor (apartado o barra). 126/126.
+- Contraste oscuro: la medición espera a `--tinta` de modo oscuro y quita transiciones (`html.medir-contraste`).
+  Así dejan de fallar «Salir» y `#biblio` por medir a medias. El fallo de `#panel/cursos` a 390 px sí era real:
+  `aula.css` pintaba las pastillas del menú del panel con `background: #fff` y el texto iba en `--tinta` claro.
+  Ahora usan `var(--card)` / `#2c2c2e` en oscuro.
+- Sin cambios en reglas ni en datos. El trabajo de corrección de exámenes (10326db) no se toca.

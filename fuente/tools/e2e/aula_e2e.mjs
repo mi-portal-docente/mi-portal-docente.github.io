@@ -174,13 +174,29 @@ await P.pg.waitForSelector('#asTrabajo .cl-it.borr:has-text("Material en prepara
 ok('guardar un material como borrador (marcado «Borrador»)', true);
 await P.pg.click('#asTrabajo [data-cl=filtro][data-tema=""]');
 
+
+// Abre «Importar de Classroom» como lo haría el profesor: si hay Gestión, entra en «Exportar e importar»
+// y pulsa la fila visible; si la asignatura no tiene secciones, pulsa el botón de la barra de trabajo.
+async function abrirImportarClassroom(pg) {
+  const nav = pg.locator('#asTrabajo [data-cl=gsNav][data-s=exportar]');
+  if (await nav.count()) {
+    await nav.click();
+    const fila = pg.locator('#asTrabajo [data-gs-pane=exportar]:not([hidden]) [data-cl=importar]');
+    await fila.waitFor({ state: 'visible', timeout: 20000 });
+    await fila.click();
+    return;
+  }
+  const btn = pg.locator('#asTrabajo [data-cl=importar]');
+  await btn.waitFor({ state: 'visible', timeout: 20000 });
+  await btn.click();
+}
+
 // ================================================================ 3b. EEE: importar de Classroom, borradores, arrastrar
 await P.pg.goto(BASE + '#eee');
 await P.pg.waitForFunction(() => location.hash === '#asig/eee/trabajo');
 ok('#eee (enlace antiguo) → página única de EEE', true);
 await P.pg.goto(BASE + '#asig/eee/trabajo');
-await P.pg.waitForSelector('#asTrabajo [data-cl=importar]', { timeout: 20000 });
-await P.pg.click('#asTrabajo [data-cl=importar]');
+await abrirImportarClassroom(P.pg);
 await P.pg.waitForSelector('.cl-modal [data-m=importar]');
 await P.pg.click('.cl-modal [data-m=importar]');
 await P.pg.waitForFunction(() => /✔/.test(document.querySelector('#clImpMsg')?.textContent || ''), null, { timeout: 30000 });
@@ -196,7 +212,7 @@ ok('aviso «Pendiente de completar» (solo profesor) en lo que no tiene detalle'
 const ej3 = '#asTrabajo .cl-it:has-text("Ejercicio 3 PREPARAMOS")';
 ok('Ejercicio 3 del tablero: con el PDF alojado en el portal', /materiales\/eee\/sa1\/SA1_Trabajo3/.test(JSON.stringify(await (await fetch(`${REST}/items/${await P.pg.getAttribute(ej3, 'data-item')}`, owner)).json())));
 // importar otra vez no duplica
-await P.pg.click('#asTrabajo [data-cl=importar]');
+await abrirImportarClassroom(P.pg);
 await P.pg.click('.cl-modal [data-m=importar]');
 await P.pg.waitForFunction(() => /✔/.test(document.querySelector('#clImpMsg')?.textContent || ''), null, { timeout: 30000 });
 ok('importar dos veces no duplica', /0 temas y 0 elementos/.test(await P.pg.textContent('#clImpMsg')));

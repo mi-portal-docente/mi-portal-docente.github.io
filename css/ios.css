@@ -1555,3 +1555,24 @@ html[data-theme="dark"] .ap-c:hover {
 html[data-theme="dark"] .pn-row.sel td {
   background: var(--acc-tint);
 }
+
+
+/* Panel (móvil): las pastillas no pueden ser blancas en modo oscuro (texto claro sobre #fff) */
+html[data-theme="dark"] .pn-nav a {
+  background: #2c2c2e;
+  border-color: var(--glass-borde);
+  color: var(--tinta);
+}
+html[data-theme="dark"] .pn-nav a:hover,
+html[data-theme="dark"] .pn-nav a:focus-visible {
+  background: #3a3a3c;
+  color: var(--tinta);
+}
+html[data-theme="dark"] .pn-nav a.on {
+  background: var(--acc-tint);
+  color: var(--acc-t);
+  border-color: transparent;
+}
+
+/* Medición de contraste: sin transiciones (si no, se pilla un color a medias) */
+html.medir-contraste, html.medir-contraste * { transition: none !important; animation: none !important; }
