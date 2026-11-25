@@ -62,6 +62,28 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const gestionSec = prof ? crearGestionSecciones({ db, aula, pintar: () => pintar(), asig: () => C.asig, items: () => itemsAsig(C.asig), temas: () => temasAsig(C.asig, []),
     extra: () => ({ grupos: gruposAsigHTML() }) }) : null;
   const ahora = () => Date.now();
+  // Plegado de temas: se recuerda en este navegador por usuario y asignatura. No se escribe en Firestore.
+  const idPlegado = (tid) => tid || '_sin';
+  const ambitoPlegar = () => { try { return (typeof window !== 'undefined' && window.PORTAL?.ambito?.()) || 'x'; } catch (e) { return 'x'; } };
+  const clavePlegar = () => `portal.temasPlegados:${ambitoPlegar()}:${C.asig || ''}:${prof ? (st.cursoSel || '') : ''}`;
+  const mapaPlegados = () => { try { const o = JSON.parse(localStorage.getItem(clavePlegar()) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } };
+  const estaPlegado = (tid) => !!mapaPlegados()[idPlegado(tid)];
+  const guardarPlegados = (o) => { try { localStorage.setItem(clavePlegar(), JSON.stringify(o)); } catch (e) { /* modo privado */ } };
+  const fijarPlegado = (tid, v) => { const o = mapaPlegados(); const k = idPlegado(tid); if (v) o[k] = true; else delete o[k]; guardarPlegados(o); };
+  const plegarTodos = (ids, v) => { guardarPlegados(v ? Object.fromEntries(ids.map((id) => [idPlegado(id), true])) : {}); };
+  let dragFin = 0;
+  function chevronPlegar(tid, nombre) {
+    const plegado = estaPlegado(tid);
+    const acc = plegado ? 'Desplegar' : 'Plegar';
+    const label = nombre ? `${acc} «${nombre}»` : `${acc} «Sin tema»`;
+    return `<button type="button" class="cl-th-chev" data-cl="temaPlegar" aria-expanded="${plegado ? 'false' : 'true'}" aria-label="${esc(label)}">${ic('chevron-down')}</button>`;
+  }
+  function cuerpoTemaHTML(inner) { return `<div class="cl-tema-cuerpo"><div class="cl-tema-cuerpo-in">${inner}</div></div>`; }
+  function plegarBarraHTML(ids) {
+    if (!ids.length) return '';
+    return `<div class="cl-plegar-todo" role="group" aria-label="Plegar o desplegar los temas"><button type="button" class="btn tiny" data-cl="plegarTodos">${ic('chevron-right')} Plegar todo</button><button type="button" class="btn tiny" data-cl="desplegarTodos">${ic('chevron-down')} Desplegar todo</button></div>`;
+  }
+
 
   // ------------------------------------------------------------------ datos
   function itemsAsig(asig) {
@@ -191,15 +213,20 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     // filtro por estado (antes en «Organización»): con un filtro puesto solo se ven los temas que tienen algo
     const fe = gestion && C.orgF !== 'todo'; const okE = gestion ? filtroEstado() : () => true;
     const sinL = E.sin.filter(okE);
-    const sin = (!filtro && (sinL.length || (prof && !fe))) ? `<section class="cl-tema cl-sin" data-tema="">${prof ? '<header class="cl-th cl-th-sin"><h3>Sin tema</h3></header>' : ''}<div class="cl-items" data-lista="">${sinL.map(itemHTML).join('') || (prof ? '<p class="cl-hueco">Arrastra aquí lo que no tenga tema.</p>' : '')}</div></section>` : '';
+    const sin = (!filtro && (sinL.length || (prof && !fe))) ? `<section class="cl-tema cl-sin${estaPlegado('') && prof ? ' is-plegado' : ''}" data-tema="">${prof ? `<header class="cl-th cl-th-sin" data-cl="temaPlegar" aria-expanded="${estaPlegado('') ? 'false' : 'true'}">${chevronPlegar('', 'Sin tema')}<h3>Sin tema</h3></header>` : ''}${cuerpoTemaHTML(`<div class="cl-items" data-lista="">${sinL.map(itemHTML).join('') || (prof ? '<p class="cl-hueco">Arrastra aquí lo que no tenga tema.</p>' : '')}</div>`)}</section>` : '';
     const temas = E.temas.filter((t) => !filtro || t.id === filtro).map((t, i, L) => { const I = E.de(t.id).filter(okE); return fe && !I.length ? '' : temaHTML(t, I, i, L.length); }).join('');
-    return bar + `<div class="cl-grid">${lado}<div class="cl-temas" data-temas>${sin}${temas || (fe && !sin ? '<p class="pn-small">Nada con este filtro.</p>' : '')}</div></div>`;
+    const idsPlegar = [
+      ...((!filtro && prof && (sinL.length || !fe)) ? [''] : []),
+      ...E.temas.filter((t) => !filtro || t.id === filtro).filter((t) => !(fe && !E.de(t.id).filter(okE).length)).map((t) => t.id),
+    ];
+    return bar + plegarBarraHTML(idsPlegar) + `<div class="cl-grid">${lado}<div class="cl-temas" data-temas>${sin}${temas || (fe && !sin ? '<p class="pn-small">Nada con este filtro.</p>' : '')}</div></div>`;
   }
   function temaHTML(t, items, i, n) {
-    return `<section class="cl-tema" data-tema="${esc(t.id)}" id="tema-${esc(t.id)}">
-      <header class="cl-th" ${prof ? 'draggable="true"' : ''} data-tema-h="${esc(t.id)}">${prof ? '<span class="cl-grip" title="Arrastra para mover el tema" aria-hidden="true">⠿</span>' : ''}<h3>${esc(t.nombre)}</h3>
+    const plegado = estaPlegado(t.id);
+    return `<section class="cl-tema${plegado ? ' is-plegado' : ''}" data-tema="${esc(t.id)}" id="tema-${esc(t.id)}">
+      <header class="cl-th" ${prof ? 'draggable="true"' : ''} data-tema-h="${esc(t.id)}" data-cl="temaPlegar" aria-expanded="${plegado ? 'false' : 'true'}">${chevronPlegar(t.id, t.nombre)}${prof ? '<span class="cl-grip" title="Arrastra para mover el tema" aria-hidden="true">⠿</span>' : ''}<h3>${esc(t.nombre)}</h3>
       ${prof ? `<span class="cl-th-acts"><button class="btn tiny" data-cl="temaUp" ${i ? '' : 'disabled'} aria-label="Subir el tema">↑</button><button class="btn tiny" data-cl="temaDown" ${i < n - 1 ? '' : 'disabled'} aria-label="Bajar el tema">↓</button><button class="btn tiny" data-cl="temaRen">✏️ Cambiar nombre</button><button class="btn tiny pn-peligro" data-cl="temaDel" aria-label="Borrar el tema">🗑</button></span>` : ''}</header>
-      <div class="cl-items" data-lista="${esc(t.id)}">${items.map(itemHTML).join('') || (prof ? '<p class="cl-hueco">Tema vacío: arrastra aquí elementos o usa ＋ Crear.</p>' : '')}</div></section>`;
+      ${cuerpoTemaHTML(`<div class="cl-items" data-lista="${esc(t.id)}">${items.map(itemHTML).join('') || (prof ? '<p class="cl-hueco">Tema vacío: arrastra aquí elementos o usa ＋ Crear.</p>' : '')}</div>`)}</section>`;
   }
   function metaItem(it) {
     const m = [];
@@ -252,9 +279,14 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const ids = new Set(D.temas.map((t) => t.id)); const sin = D.items.filter((it) => !it.tema || !ids.has(it.tema));
     const filtro = !prev && C.filtro && D.temas.some((t) => t.id === C.filtro) ? C.filtro : null;
     const lado = prev ? '' : `<aside class="cl-lado"><button class="cl-lado-b ${filtro ? '' : 'on'}" data-cl="filtro" data-tema="">Todos los temas</button>${D.temas.map((t) => `<button class="cl-lado-b ${filtro === t.id ? 'on' : ''}" data-cl="filtro" data-tema="${esc(t.id)}">${esc(t.nombre)}</button>`).join('')}</aside>`;
-    const sec = (nom, L, id) => `<section class="cl-tema" data-tema="${esc(id)}">${nom ? `<header class="cl-th"><h3>${esc(nom)}</h3></header>` : ''}<div class="cl-items">${L.map((it) => filaAlumno(it, prev)).join('')}</div></section>`;
-    const temas = (filtro ? [] : sin.length ? [sec('', sin, '')] : []).concat(D.temas.filter((t) => !filtro || t.id === filtro).map((t) => sec(t.nombre, D.items.filter((it) => it.tema === t.id), t.id))).join('');
-    return `<div class="cl-grid ${prev ? 'cl-grid-prev' : ''}">${lado}<div class="cl-temas">${temas}</div></div>`;
+    const sec = (nom, L, id) => {
+      const plegado = !!(nom && estaPlegado(id));
+      const cab = nom ? `<header class="cl-th" data-cl="temaPlegar" aria-expanded="${plegado ? 'false' : 'true'}">${chevronPlegar(id, nom)}<h3>${esc(nom)}</h3></header>` : '';
+      return `<section class="cl-tema${plegado ? ' is-plegado' : ''}" data-tema="${esc(id)}">${cab}${cuerpoTemaHTML(`<div class="cl-items">${L.map((it) => filaAlumno(it, prev)).join('')}</div>`)}</section>`;
+    };
+    const visibles = D.temas.filter((t) => !filtro || t.id === filtro);
+    const temas = (filtro ? [] : sin.length ? [sec('', sin, '')] : []).concat(visibles.map((t) => sec(t.nombre, D.items.filter((it) => it.tema === t.id), t.id))).join('');
+    return plegarBarraHTML(visibles.map((t) => t.id)) + `<div class="cl-grid ${prev ? 'cl-grid-prev' : ''}">${lado}<div class="cl-temas">${temas}</div></div>`;
   }
   function proximasHTML(D) {
     const t = ahora(); const L = D.items.filter((it) => (it.fechaEntrega || it.examen?.hasta) > t).sort((a, b) => (a.fechaEntrega || a.examen?.hasta) - (b.fechaEntrega || b.examen?.hasta)).slice(0, 5);
@@ -333,12 +365,13 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const limpiar = () => el.querySelectorAll('.cl-drop-antes, .cl-drop-fin, .cl-drop-tema').forEach((x) => x.classList.remove('cl-drop-antes', 'cl-drop-fin', 'cl-drop-tema'));
     el.addEventListener('dragstart', (ev) => {
       if (!prof) return;
+      if (ev.target.closest?.('.cl-th-chev, .cl-th-acts, .cl-acts, .cl-mas, input, select, label')) return;
       const th = ev.target.closest?.('[data-tema-h]'); const it = ev.target.closest?.('.cl-it[data-item]');
       if (th) C.drag = { k: 'tema', id: th.dataset.temaH }; else if (it) C.drag = { k: 'item', id: it.dataset.item }; else return;
       ev.dataTransfer.effectAllowed = 'move'; try { ev.dataTransfer.setData('text/plain', C.drag.id); } catch (e) { }
       (th ? th.closest('.cl-tema') : it).classList.add('cl-arrastrando');
     });
-    el.addEventListener('dragend', () => { C.drag = null; limpiar(); el.querySelectorAll('.cl-arrastrando').forEach((x) => x.classList.remove('cl-arrastrando')); });
+    el.addEventListener('dragend', () => { dragFin = Date.now(); C.drag = null; limpiar(); el.querySelectorAll('.cl-arrastrando').forEach((x) => x.classList.remove('cl-arrastrando')); });
     const destino = (ev) => {
       if (!C.drag) return null;
       if (C.drag.k === 'item') {
@@ -569,6 +602,15 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const acc = b.dataset.cl; const it = st.items.get(b.closest('[data-item]')?.dataset.item || ''); const t = st.temas.get(b.closest('[data-tema]')?.dataset.tema || '');
     try {
       if (acc === 'filtro') { C.filtro = b.dataset.tema || null; pintar(); return; }
+      if (acc === 'temaPlegar') {
+        if (Date.now() - dragFin < 400) return;
+        const tid = b.closest('[data-tema]')?.dataset.tema ?? '';
+        fijarPlegado(tid, !estaPlegado(tid)); pintar(); return;
+      }
+      if (acc === 'plegarTodos' || acc === 'desplegarTodos') {
+        const ids = [...(C.el?.querySelectorAll('.cl-tema[data-tema] .cl-th') || [])].map((h) => h.closest('[data-tema]').dataset.tema);
+        plegarTodos(ids, acc === 'plegarTodos'); pintar(); return;
+      }
       if (!prof) return;
       if (acc === 'orgF') { C.orgF = b.dataset.f; pintar(); return; }
       if (acc === 'sustDrive') { C.el.querySelector('[data-cl-sust]')?.click(); return; }

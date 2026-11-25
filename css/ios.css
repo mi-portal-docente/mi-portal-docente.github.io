@@ -302,6 +302,26 @@ a.subj:hover .subj-foto img { transform: scale(1.03); }
 .cl-th { border-bottom: 0 !important; padding: 4px 6px 8px; }
 .cl-th h3, .au-sec.cl .cl-th h3 { font-size: 19px; font-weight: 650; color: var(--tinta) !important; }
 .cl-th-sin h3 { font-size: 13px !important; color: var(--gris) !important; text-transform: uppercase; letter-spacing: .04em; }
+.cl-th[data-cl="temaPlegar"] { cursor: pointer; }
+.cl-th-chev {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 32px; height: 32px; margin: 0; padding: 0; border: 0; border-radius: 10px;
+  background: transparent; color: #506C88; cursor: pointer;
+}
+.cl-th-chev .ic { width: 20px; height: 20px; transition: transform .22s ease; }
+.cl-tema.is-plegado .cl-th-chev .ic { transform: rotate(-90deg); }
+.cl-th-chev:hover, .cl-th-chev:focus-visible { background: var(--fill); }
+.cl-tema-cuerpo { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .28s ease; min-width: 0; overflow: hidden; }
+.cl-tema.is-plegado .cl-tema-cuerpo { grid-template-rows: 0fr; }
+.cl-tema-cuerpo-in { min-height: 0; overflow: hidden; }
+.cl-tema:not(.is-plegado) .cl-tema-cuerpo { margin-bottom: 2px; }
+.cl-plegar-todo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; min-width: 0; }
+.cl-bar + .cl-plegar-todo, .org-chips + .cl-plegar-todo { margin-top: -4px; }
+@media (prefers-reduced-motion: reduce) {
+  .cl-tema-cuerpo, .cl-th-chev .ic { transition: none; }
+}
+html[data-theme="dark"] .cl-th-chev { color: #8aa0b5; }
+
 .cl-items { background: var(--card); border-radius: var(--r); box-shadow: var(--sh1); padding: 0; }
 .cl-items > :first-child { border-top-left-radius: var(--r); border-top-right-radius: var(--r); }
 .cl-items > :last-child { border-bottom-left-radius: var(--r); border-bottom-right-radius: var(--r); }
@@ -1251,7 +1271,7 @@ body.con-asigbar header.top > .brand, body.con-asigbar .vv-crumbs .top-nav { dis
 .sg-caja { margin: 0 0 18px; display: grid; gap: 14px; min-width: 0; }
 .sg-acc:empty { display: none; }
 .sg-acc { display: flex; flex-wrap: wrap; gap: 10px; }
-.sg-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.sg-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; align-items: start; }
 @media (min-width: 720px) { .sg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1100px) { .sg-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .sg-card {

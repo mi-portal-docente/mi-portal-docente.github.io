@@ -98,8 +98,38 @@ try {
   ok('Gestión: botones y enlaces de siempre en las tarjetas', !!(await P.pg.$('#asTrabajo [data-cl=exportarZip]')) && !!(await P.pg.$('#asTrabajo [data-cl=importar]')) && !!(await P.pg.$('#asTrabajo [data-cl=importarJSON]')) && !!(await P.pg.$('#asTrabajo [data-cl=secGuardar]')) && !!(await P.pg.$('#asTrabajo [data-cl=banco]')) && !!(await P.pg.$('#asTrabajo a[href="#panel/notas"]')) && !!(await P.pg.$('#asTrabajo a[href="#panel/entregas"]')) && !!(await P.pg.$('#asTrabajo [data-sg-act]')));
   ok('Gestión: todo junto (7 elementos, también el borrador)', (await P.pg.$$('#asTrabajo .cl-it[data-item]')).length === 7);
   await P.pg.screenshot({ path: CAP + 'v5_profesor_gestion.png', fullPage: false });
+  const GES = process.env.CAPTURAS_GESTION ? process.env.CAPTURAS_GESTION.replace(/\/?$/, '/') : '';
+  if (GES) {
+    mkdirSync(GES, { recursive: true });
+    await P.pg.setViewportSize({ width: 1280, height: 800 });
+    await P.pg.screenshot({ path: GES + 'despues_gestion_1280.png', fullPage: true });
+    await P.pg.setViewportSize({ width: 390, height: 844 });
+    await P.pg.screenshot({ path: GES + 'despues_gestion_390.png', fullPage: true });
+    await P.pg.setViewportSize({ width: 1440, height: 900 });
+  }
   const enSec = async (sec) => { await P.pg.goto(BASE + '#asig/eee/' + sec); await P.pg.waitForFunction((s) => document.querySelector('#tab-' + s)?.getAttribute('aria-selected') === 'true' && document.querySelector('#asTrabajo .cl-bar'), sec, { timeout: 15000 }); return P.pg.$$eval('#asTrabajo .cl-it[data-item]', (l) => l.map((x) => x.dataset.item).sort().join(',')); };
   ok('Teoría: material y explicación', (await enSec('teoria')) === 'itExp002,itMat001');
+  // Plegado de temas (localStorage, sin escribir en Firestore)
+  await P.pg.waitForSelector('#asTrabajo .cl-tema[data-tema="tmUno01"] .cl-th-chev');
+  ok('tema: cabecera con chevrón y aria-expanded', await P.pg.$eval('#asTrabajo .cl-tema[data-tema="tmUno01"] .cl-th', (h) => h.getAttribute('aria-expanded') === 'true') && !!(await P.pg.$('#asTrabajo [data-cl=plegarTodos]')));
+  await P.pg.click('#asTrabajo .cl-tema[data-tema="tmUno01"] .cl-th-chev');
+  await P.pg.waitForFunction(() => {
+    const s = document.querySelector('.cl-tema[data-tema="tmUno01"]');
+    return s?.classList.contains('is-plegado') && (s.querySelector('.cl-tema-cuerpo')?.getBoundingClientRect().height || 0) < 8;
+  });
+  ok('profesor: plegar un tema oculta el contenido', await P.pg.$eval('#asTrabajo .cl-tema[data-tema="tmUno01"]', (s) => s.classList.contains('is-plegado') && s.querySelector('.cl-th').getAttribute('aria-expanded') === 'false' && (s.querySelector('.cl-tema-cuerpo')?.getBoundingClientRect().height || 0) < 8));
+  await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo .sg-caja');
+  await P.pg.goto(BASE + '#asig/eee/teoria'); await P.pg.waitForSelector('#asTrabajo .cl-tema[data-tema="tmUno01"] .cl-th');
+  ok('profesor: el plegado se conserva al cambiar de pestaña (localStorage)', await P.pg.$eval('#asTrabajo .cl-tema[data-tema="tmUno01"]', (s) => s.classList.contains('is-plegado')));
+  if (GES) {
+    await P.pg.setViewportSize({ width: 1280, height: 800 });
+    await P.pg.screenshot({ path: GES + 'despues_tema_plegado_1280.png', fullPage: true });
+    await P.pg.setViewportSize({ width: 390, height: 844 });
+    await P.pg.screenshot({ path: GES + 'despues_tema_plegado_390.png', fullPage: true });
+    await P.pg.setViewportSize({ width: 1440, height: 900 });
+  }
+  await P.pg.click('#asTrabajo [data-cl=desplegarTodos]');
+  ok('profesor: Desplegar todo abre los temas', await P.pg.$eval('#asTrabajo .cl-tema[data-tema="tmUno01"]', (s) => !s.classList.contains('is-plegado') && s.querySelector('.cl-th').getAttribute('aria-expanded') === 'true'));
   ok('Ejercicios en clase: la actividad (y las actividades 3D debajo)', (await enSec('clase')) === 'itAct005' && !!(await P.pg.$('#asig .ac-card')));
   ok('Tareas: tarea, pregunta y borrador', (await enSec('tareas')) === 'itPre004,itRec007,itTar003');
   ok('Laboratorio: la práctica y los laboratorios 3D', (await enSec('laboratorio')) === 'itPra006' && !!(await P.pg.$('#asig .ap-card')));
@@ -156,7 +186,7 @@ try {
   await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo .sg-caja');
   if (VIEJAS) {
     // Reglas antiguas (sin pegar las v5): todo funciona con las secciones por defecto y se avisa al guardar.
-    await P.pg.click('#asTrabajo [data-sg-det] > summary');
+    await P.pg.waitForSelector('#asTrabajo [data-sg-card=ajustes] .sg-lista');
     ok('reglas antiguas: aviso «pegar las reglas nuevas» y «Guardar» desactivado', /reglas nuevas \(v5\)/.test(await P.pg.textContent('.sg-caja')) && await P.pg.$eval('[data-cl=secGuardar]', (x) => x.disabled));
     await P.pg.click('#asTrabajo [data-cl=nuevo], #asTrabajo [data-cl=crear]'); await P.pg.click('[data-cl=nuevo][data-tipo=material]');
     await P.pg.waitForSelector('#apItemForm'); ok('reglas antiguas: el editor no ofrece «Sección» (no escribiría campos nuevos)', !(await P.pg.$('#apItemForm [name=seccion]')));
@@ -165,7 +195,7 @@ try {
     ok('reglas antiguas: crear un elemento sigue funcionando', true);
     throw new Error('FIN');
   }
-  await P.pg.click('#asTrabajo [data-sg-det] > summary');
+  await P.pg.waitForSelector('#asTrabajo [data-sg-card=ajustes] .sg-fila[data-sec=teoria] [data-sg-nom]');
   await P.pg.fill('.sg-fila[data-sec=teoria] [data-sg-nom]', 'Apuntes');
   await P.pg.uncheck('.sg-fila[data-sec=laboratorio] [data-sg-vis]');
   await P.pg.click('.sg-fila[data-sec=tareas] [data-cl=secUp]');
@@ -200,6 +230,12 @@ try {
   ok('alumno: filtro por tema', (await A.pg.$$eval('#asTrabajo .cl-it[data-item]', (l) => l.map((x) => x.dataset.item).join(','))) === 'itTar003');
   await A.pg.screenshot({ path: CAP + 'v5_alumno_ordenador_tareas.png' });
   await A.pg.goto(BASE + '#asig/eee/teoria'); await A.pg.waitForSelector('#asTrabajo .cl-it[data-item=itMat001]', { timeout: 15000 });
+  ok('alumno: también puede plegar un tema', !!(await A.pg.$('#asTrabajo .cl-tema[data-tema="tmUno01"] .cl-th-chev')));
+  await A.pg.click('#asTrabajo .cl-tema[data-tema="tmUno01"] .cl-th');
+  await A.pg.waitForFunction(() => document.querySelector('.cl-tema[data-tema="tmUno01"]')?.classList.contains('is-plegado'));
+  ok('alumno: el tema queda plegado y el contenido se oculta', await A.pg.$eval('#asTrabajo .cl-tema[data-tema="tmUno01"]', (s) => s.classList.contains('is-plegado') && s.querySelector('.cl-th').getAttribute('aria-expanded') === 'false'));
+  await A.pg.click('#asTrabajo [data-cl=desplegarTodos]');
+  await A.pg.waitForSelector('#asTrabajo .cl-it[data-item=itMat001]');
   ok('alumno: «Ver PDF» en el material con PDF; sin «Versión interactiva» si no existe', !!(await A.pg.$('#asTrabajo .cl-fila .cl-cara[href="materiales/eee/sa1/SA1_Trabajo2_cables.pdf"]')) && !(await A.pg.$('#asTrabajo .cl-cara[title]')));
   await A.pg.click('#asTrabajo .cl-cara[href$=".pdf"]');
   ok('alumno: «Ver PDF» abre el visor del portal', !!(await A.pg.waitForSelector('#visorPdf, #visorArchivo', { timeout: 15000 }).catch(() => null)));

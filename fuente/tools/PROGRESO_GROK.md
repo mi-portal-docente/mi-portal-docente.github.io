@@ -1121,3 +1121,17 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Sin desbordamiento lateral: `minmax(0, 1fr)`, textos que parten y la corrección de la cabecera de 0fdfa98 se mantiene.
 - Sin cambios en Firestore, reglas ni datos de exámenes.
 - Pruebas: `secciones_e2e` (tarjetas y botones de siempre presentes). Capturas en /workspace/capturas-gestion/.
+
+### B · Plegar y desplegar el contenido de cada tema — HECHO (caché v5-20261125b)
+- En cada tema (p. ej. «Teoría / Presentaciones y Libro») hay un chevrón y la cabecera se puede pulsar para
+  ocultar o mostrar lo que tiene debajo. `aria-expanded` en el botón y en la cabecera. Animación suave
+  (sin movimiento si el sistema pide menos).
+- Vale para el alumno y para el profesor, en escritorio y en el móvil. «Sin tema» también se pliega en la vista
+  del profesor. Arrastrar, subir/bajar, cambiar el nombre y borrar un tema siguen igual: el chevrón y los
+  botones de edición no inician el arrastre, y un arrastre no se confunde con un clic.
+- El estado se guarda en localStorage (`portal.temasPlegados:{ámbito}:{asignatura}:{curso}`), con el ámbito de
+  `PORTAL.ambito()` (alumno = huella, profesor = «p»). No se escribe en Firestore.
+- Botones «Plegar todo» y «Desplegar todo».
+- Pruebas: `secciones_e2e` (plegar, se conserva al cambiar de pestaña, desplegar todo; también el alumno).
+  Capturas en /workspace/capturas-gestion/.
+- Sin cambios en reglas ni en datos de exámenes.
