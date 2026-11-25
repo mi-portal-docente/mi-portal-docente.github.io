@@ -1232,3 +1232,12 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Iconos Lucide nuevos (ISC): chevrons-up-down, chevrons-down-up, funnel.
 - Reglas: NO cambian. Pruebas: e2e/plataforma_f17.mjs (15/15) y plataforma_f18.mjs (11/11); aula_e2e 126/126; plataforma 9, 15, 16 OK.
 - Capturas: /workspace/capturas-seguimiento/.
+
+### Etiquetas con el cristal de la barra superior (t175u, parte 4) — caché v5-20261125h
+- css/plataforma.css (al final, para ganar a lo anterior): pestañas de la asignatura (Avisos, Teoría…), cápsulas de biblioteca/entrada/
+  vistas (`.as-tabs`, `.bib-chips`, `.gate-tabs`, `.ap-vista`, `.tabs`) y etiquetas sueltas (`.pn-n`, `.au-crit`, `.ap-chip`, `.pchip-*`,
+  `.pi-chip`, `.ia-chip`, `.en-chip`, `.ex-cl-chip`, `.vv-chip`, `.ccp-pill`, `.pn-est`) con el mismo `backdrop-filter` (`--blur`),
+  la misma translucidez (`--glass`), borde (`--glass-borde`) y brillo superior que `.scr-top`. Los chips de estado conservan su color.
+  Pastillas del panel en móvil también. En `html.glass-lite` sin desenfoque (como el resto).
+- Pruebas: e2e/plataforma_f19.mjs (21/21 con f17; compara los estilos calculados con los de `.scr-top`, claro y oscuro, 1280 y 390),
+  contraste_oscuro 113/113, aula_e2e 126/126, plataforma 2,3,17,18,19 61/61.

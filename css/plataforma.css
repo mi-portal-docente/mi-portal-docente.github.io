@@ -789,3 +789,38 @@ html[data-theme="dark"] .pn-al-ver { color: #9db6cf; }
 .pn-al-c .pn-tw, .pn-al-c .pn-t { max-width: 100%; }
 .pn-al-c .pn-tw { overflow-x: auto; }
 .pn-resumen-al { margin: 0 0 8px; color: var(--gris); font-size: 14px; }
+
+/* Etiquetas, pestañas y chips con el mismo cristal que la barra superior (t175u):
+   mismo desenfoque (--blur), misma translucidez (--glass), mismo borde (--glass-borde) y brillo superior.
+   Los chips de estado (entregado, calificado, hecho…) conservan su color y ganan borde y cristal. */
+:root {
+  --etq-sombra: inset 0 1px 1px rgba(255, 255, 255, .9), 0 2px 8px rgba(20, 24, 40, .07);
+  --etq-sombra-cap: inset 0 1px 1px rgba(255, 255, 255, .9), 0 8px 24px rgba(20, 24, 40, .06);
+}
+html[data-theme="dark"] {
+  --etq-sombra: inset 0 1px 1px rgba(255, 255, 255, .14), 0 2px 8px rgba(0, 0, 0, .3);
+  --etq-sombra-cap: inset 0 1px 1px rgba(255, 255, 255, .14), 0 8px 24px rgba(0, 0, 0, .35);
+}
+/* Cápsulas de pestañas: asignatura (Avisos, Teoría…), biblioteca, entrada, vistas */
+html .as-tabs, html .bib-chips, html .gate-tabs, html .ap-vista, html .tabs, html .pn-tabs {
+  background: var(--glass); border: .5px solid var(--glass-borde); box-shadow: var(--etq-sombra-cap);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+}
+/* Etiquetas sueltas: insignias, chips y filtros */
+html .pn-n, html .au-crit, html .ap-chip, html .pchip-who, html .pchip-b, html .pi-chip, html .ia-chip, html .en-chip,
+html .ex-cl-chip, html .vv-chip, html .ccp-pill, html .pn-est, html .pl-chip, html .aj-volver, html .btn-salir {
+  border: .5px solid var(--glass-borde); box-shadow: var(--etq-sombra);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+}
+html .pn-n, html .au-crit, html .ap-chip, html .pchip-b, html .ex-cl-chip, html .vv-chip { background: var(--glass); }
+html .pchip:not(.prof) .pchip-who { background: var(--glass); }
+html .ccp-pill:not(.on) { background: var(--glass); }
+html .pn-nav a.on .pn-n { background: var(--acc-tint); }
+/* pastillas de las secciones del panel en móvil */
+@media (max-width: 900px) {
+  html .pn-nav a { background: var(--glass); border: .5px solid var(--glass-borde); box-shadow: var(--etq-sombra); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
+  html .pn-nav a.on { background: var(--acc-tint); }
+}
+html[data-theme="dark"] .as-tabs { background: var(--glass); }
+html.glass-lite :is(.as-tabs, .bib-chips, .gate-tabs, .ap-vista, .tabs, .pn-tabs, .pn-n, .au-crit, .ap-chip, .pchip-who, .pchip-b, .pi-chip, .ia-chip, .en-chip, .ex-cl-chip, .vv-chip, .ccp-pill, .pn-est, .pn-nav a) {
+  -webkit-backdrop-filter: none; backdrop-filter: none; }
