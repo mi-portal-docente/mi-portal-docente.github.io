@@ -771,3 +771,21 @@ html[data-theme="dark"] .cc-t, html[data-theme="dark"] .cc-dato { color: #e5e5ea
 }
 /* desplegables con opciones largas (títulos de actividades): nunca más anchos que la pantalla */
 .screen select, .cl-modal select { max-width: min(100%, calc(100vw - 48px)); text-overflow: ellipsis; }
+
+/* Entregas del laboratorio · filtro por alumno y grupos plegables */
+.pn-al-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.pn-al { margin: 0 0 10px; border-radius: var(--r, 16px); background: var(--card); box-shadow: var(--sh1); overflow: hidden; }
+.pn-al-h { display: flex; align-items: stretch; }
+.pn-al-b { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 0; background: transparent; color: var(--tinta); font: inherit; font-weight: 600; text-align: left; cursor: pointer; flex-wrap: wrap; }
+.pn-al-flecha { display: inline-flex; transition: transform .18s ease; }
+.pn-al.open .pn-al-flecha { transform: rotate(90deg); }
+.pn-al-t { font-size: 15px; }
+.pn-al-b .pn-n-sin { background: rgba(222, 7, 20, .12); color: #DE0714; }
+html[data-theme="dark"] .pn-al-b .pn-n-sin { background: rgba(255, 69, 58, .2); color: #ff8a82; }
+.pn-al-ver { border: 0; background: transparent; color: #506C88; padding: 0 14px; cursor: pointer; display: inline-flex; align-items: center; }
+html[data-theme="dark"] .pn-al-ver { color: #9db6cf; }
+.pn-al-b:focus-visible, .pn-al-ver:focus-visible { outline: 2px solid #506C88; outline-offset: -2px; }
+.pn-al-c { padding: 0 10px 10px; }
+.pn-al-c .pn-tw, .pn-al-c .pn-t { max-width: 100%; }
+.pn-al-c .pn-tw { overflow-x: auto; }
+.pn-resumen-al { margin: 0 0 8px; color: var(--gris); font-size: 14px; }

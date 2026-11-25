@@ -25,6 +25,7 @@ import { copiarContenido } from './aula-copia.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
 import { exportarCurso, limpiarCurso } from './curso-datos.js';
 import { totalCopia } from '../lms/copia.js';
+import { seccionDe } from '../lms/secciones.js';
 import { calcularAjuste, ajusteDe, ajustesDe, soloAjustes, claveRespuesta } from '../lms/ajustes.js';
 
 // Elementos que entregan «Aciertos: a/t» (actividades de clase y motores entregables: explicación, laboratorios…)
@@ -55,7 +56,12 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
 
   // =============================================================== estructura
+  // Seguimiento: el cuaderno también se ve por tipo de entrega (mismos datos, solo cambian las columnas):
+  // «trabajos» = Ejercicios en clase, «tareas», «test» y «examenes» (secciones de la asignatura).
+  const VISTA_SECC = { trabajos: 'clase', tareas: 'tareas', test: 'test', examenes: 'examenes' };
+  const NOMBRE_SECC = { clase: 'trabajos de clase', tareas: 'tareas', test: 'tests', examenes: 'exámenes' };
   function render(B, sub, extra) {
+    A.seccion = VISTA_SECC[sub] || null; if (A.seccion) sub = 'notas'; A.key = '';
     A.el = B.closest('.pn') || B; A.sub = sub;
     if (!['notas', 'analitica'].includes(sub)) pararGrupo();
     if (sub !== 'notas') A.corr = false;
@@ -73,7 +79,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     }
     if (A.sub === 'notas') {
       // Con datos nuevos solo se repinta la tabla: el detalle (lo que el profesor está calificando) no se toca.
-      const g = grupoSel(); const key = g ? `${g.id}|${asigGrupo(g)}` : '';
+      const g = grupoSel(); const key = g ? `${g.id}|${asigGrupo(g)}|${A.seccion || ''}` : '';
       const W = $('#apTablaW');
       if (!forzar && W && A.key === key && A.listoG) { if (A.vistaNotas === 'criterio') { pintarCriterios(g); return; } W.innerHTML = tablaNotas(g, A.gAsig) || W.innerHTML; const D = $('#apDetalle'); if (D && !D.querySelector('form')) pintarDetalle(); return; }
       A.key = key; B.innerHTML = notasHTML(); if (A.vistaNotas === 'criterio') pintarCriterios(g); else pintarDetalle();
@@ -176,9 +182,9 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   }
   function pararGrupo() { A.gUnsubs.forEach((f) => { try { f(); } catch (e) { } }); A.gUnsubs = []; A.gEsc = null; }
   function columnas(g, asig) {
-    const cols = ordenarItems([...st.items.values()].filter((it) => it.asig === asig && it.tipo !== 'material' && (it.grupos || []).includes(g.id)))
+    const cols = ordenarItems([...st.items.values()].filter((it) => it.asig === asig && it.tipo !== 'material' && (it.grupos || []).includes(g.id) && (!A.seccion || seccionDe(it) === A.seccion)))
       .map((it) => ({ k: it.id, it, cat: it.categoria || categoriaDe(it.tipo), titulo: it.titulo }));
-    if (asig === 'eee') {
+    if (asig === 'eee' && !A.seccion) {
       const labs = [...new Set(ps.entregas.filter((e) => e.grupo === g.id).map((e) => e.practica))].sort();
       labs.forEach((p) => cols.push({ k: 'lab:' + p, lab: p, cat: 'practicas', titulo: tituloPractica(p) }));
     }
@@ -206,7 +212,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (!A.listoG || !st.listo.items) return bar + '<p class="pn-small">Cargando…</p>';
     if (A.vistaNotas === 'criterio') return bar + `<p class="pn-small">Una fila por nº de lista y una columna por criterio: en cada casilla, las notas de las actividades de ese criterio (sin medias ni porcentajes; la calificación final la calcula QE). Las preguntas de los exámenes cuentan en su criterio.</p><div class="ap-tabla-wrap" id="apCritW"><p class="pn-small">Cargando…</p></div>`;
     const t = tablaNotas(g, asig);
-    if (!t) return bar + `<p class="pn-vacio">Todavía no hay tareas, proyectos ni exámenes de ${esc(asignatura(asig)?.corto || asig)} asignados a ${esc(g.nombre)}.</p>`;
+    if (!t) return bar + `<p class="pn-vacio">Todavía no hay ${A.seccion ? esc(NOMBRE_SECC[A.seccion]) : 'tareas, proyectos ni exámenes'} de ${esc(asignatura(asig)?.corto || asig)} asignados a ${esc(g.nombre)}.</p>`;
     return bar + `<p class="pn-small">Clic en una casilla para ver la entrega y calificar. <b>Negrita</b> = nota publicada · <i>cursiva</i> = sin publicar · 📥 entregado · ⏳ examen empezado · ⏰ con retraso. Aquí solo se ve la nota de cada actividad: la calificación por criterios se calcula en SuperProfe y en QE.</p>
       <div class="ap-libro"><div class="ap-tabla-wrap" id="apTablaW">${t}</div><aside id="apDetalle" class="pn-det"></aside></div>`;
   }

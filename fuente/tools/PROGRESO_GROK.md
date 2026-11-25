@@ -1215,3 +1215,20 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
   `aula.css` pintaba las pastillas del menú del panel con `background: #fff` y el texto iba en `--tinta` claro.
   Ahora usan `var(--card)` / `#2c2c2e` en oscuro.
 - Sin cambios en reglas ni en datos. El trabajo de corrección de exámenes (10326db) no se toca.
+
+## 25/11/2026 · Seguimiento: entregas por alumno y pestañas en orden (t175u, partes 1 y 2) — caché v5-20261125g
+- (La parte 3, nombre del equipo, se descartó por indicación de Pablo (t176u): «Usuarios y conectados» no cambia.)
+- **Laboratorio (antes «Entregas del laboratorio», `#panel/entregas`)**: filtro «Alumno» (grupo + nº de lista, sin nombres) y
+  «Todos» agrupado por alumno, con grupos plegables ordenados por grupo y nº, cuenta de entregas y de «sin nota», y las
+  entregas de cada uno por fecha (la más antigua primero). Botones «Desplegar todos / Plegar todos» y, en cada alumno, un
+  embudo para ver solo a ese alumno. «Quitar filtros». Con ≤ 3 alumnos salen desplegados.
+  El filtro se recuerda en `localStorage` (`pd.lab.filtro`: grupo, alumno, práctica y estado) y el alumno va en la dirección:
+  `#panel/entregas/<grupo>_<nº>` (enlace directo). Sin datos nuevos en Firestore.
+- **Seguimiento, orden**: Cuaderno de calificaciones · Trabajos de clase · Tareas · Test · Exámenes · Laboratorio · Analítica ·
+  Usuarios y conectados. Las cuatro vistas por tipo son el mismo cuaderno (mismos datos, mismas casillas y corrección) filtrado
+  por la sección del elemento (`seccionDe`: Ejercicios en clase, Tareas, Test, Exámenes). Rutas nuevas `#panel/trabajos|tareas|test|examenes`;
+  siguen `#panel/notas`, `entregas`, `analitica`, `conectados` y los alias (`cuaderno`, `calificaciones`, `usuarios`, `analítica`…); además `laboratorio`.
+  `#panel/analítica` con tilde ya no cae en «Grupos» (se decodifica la dirección).
+- Iconos Lucide nuevos (ISC): chevrons-up-down, chevrons-down-up, funnel.
+- Reglas: NO cambian. Pruebas: e2e/plataforma_f17.mjs (15/15) y plataforma_f18.mjs (11/11); aula_e2e 126/126; plataforma 9, 15, 16 OK.
+- Capturas: /workspace/capturas-seguimiento/.

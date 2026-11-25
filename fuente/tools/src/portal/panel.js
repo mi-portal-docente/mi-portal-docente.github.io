@@ -24,23 +24,36 @@ function hace(t) {
   if (s < 60) return `hace ${s} s`; const m = Math.round(s / 60); if (m < 60) return `hace ${m} min`;
   const h = Math.floor(m / 60); return `hace ${h} h ${m % 60} min`;
 }
+// Filtro de «Entregas del laboratorio» recordado en este navegador (solo grupo, nº de lista y práctica: sin nombres).
+const CLAVE_FILTRO = 'pd.lab.filtro';
+function filtroGuardado() {
+  const f = { grupo: '', alumno: '', practica: '', estado: '' };
+  try { const o = JSON.parse(localStorage.getItem(CLAVE_FILTRO) || '{}'); for (const k of Object.keys(f)) if (typeof o[k] === 'string') f[k] = o[k].slice(0, 120); } catch (e) { /* sin datos */ }
+  return f;
+}
+const guardarFiltro = (f) => { try { localStorage.setItem(CLAVE_FILTRO, JSON.stringify(f)); } catch (e) { /* modo privado */ } };
 const nuevoId = () => 'g' + Math.random().toString(36).slice(2, 10);
 
 export function crearPanel({ db, PORTAL, email, aula }) {
-  const st = { grupos: new Map(), sesiones: [], entregas: [], pines: new Set(), accesos: new Map(), bloqueos: new Set(), uGrupo: '', uTodos: false, listo: { g: false, s: false, e: false }, sub: 'grupos', el: null, unsubs: [], tick: null, editando: null, abierta: null, verTodos: false, dstHecho: false, f: { grupo: '', practica: '', estado: '' } };
+  const st = { grupos: new Map(), sesiones: [], entregas: [], pines: new Set(), accesos: new Map(), bloqueos: new Set(), uGrupo: '', uTodos: false, listo: { g: false, s: false, e: false }, sub: 'grupos', el: null, unsubs: [], tick: null, editando: null, abierta: null, verTodos: false, dstHecho: false, f: filtroGuardado(), alAb: new Map() };
   const cat = () => window.PORTAL_CATALOGO || { practicas: [], proyectos: [], subjects: [], apartados: {} };
   const nombreGrupo = (id) => st.grupos.get(id)?.nombre || '(grupo borrado)';
   const tituloPractica = (id, fallback) => { if (id === 'v1') return 'Vivienda · Tablero eléctrico de la SA1'; if (id === 'v2') return 'Vivienda · Modo libre'; if (id === VIV_REGISTRO) return 'Vivienda · Registro de las prácticas del tablero'; const ve = VIV_EV.find(x => x.entrega === id); if (ve) return `Evaluación de vivienda · Nivel ${ve.nivel}: ${ve.title}`; const c = cat(); const p = c.practicas.find(x => x.id === id); if (p) return `Circuitos ${p.n} · ${p.titulo}`; const q = c.proyectos.find(x => x.id === id); if (q) return `ESP32 ${q.n} · ${q.titulo}`; return fallback || id; };
   const $ = (s) => st.el && st.el.querySelector(s);
   const ap = crearAulaPanel({ db, aula, ps: st, nombreGrupo, tituloPractica });
-  const TABS = ['cursos', 'grupos', 'notas', 'analitica', 'entregas', 'conectados', 'ajustes'];
-  const ALIAS = { analítica: 'analitica', estadisticas: 'analitica', limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas', usuarios: 'conectados' };
-  const AULA = ['cursos', 'notas', 'analitica'];
+  const TABS = ['cursos', 'grupos', 'notas', 'trabajos', 'tareas', 'test', 'examenes', 'entregas', 'analitica', 'conectados', 'ajustes'];
+  const ALIAS = { analítica: 'analitica', estadisticas: 'analitica', limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas', usuarios: 'conectados', laboratorio: 'entregas', 'trabajos-de-clase': 'trabajos', clase: 'trabajos', ejercicios: 'trabajos', cuestionarios: 'test', tests: 'test', examen: 'examenes', exámenes: 'examenes' };
+  const AULA = ['cursos', 'notas', 'trabajos', 'tareas', 'test', 'examenes', 'analitica'];
+  const SEGUIMIENTO_AULA = ['notas', 'trabajos', 'tareas', 'test', 'examenes'];
   const DESC = {
     cursos: 'Cada curso escolar eliges qué asignaturas impartes. El curso activo es el que ves en «Curso»; la «Biblioteca» guarda todas las asignaturas, también las de otros años.',
     grupos: 'Cada grupo tiene un código de clase que los alumnos usan para entrar (con su nº de lista y un PIN). Sin nombres.',
     notas: 'Cuaderno por grupo y asignatura: tareas, cuestionarios, actividades y prácticas del laboratorio. Nota de cada actividad (la nota por criterios se calcula en SuperProfe y QE).',
     analitica: 'Cómo ha ido cada examen: % de acierto por pregunta y por criterio, de menor a mayor, y las preguntas más falladas. Sin nombres: solo cuenta las entregas del grupo.',
+    trabajos: 'Ejercicios y actividades en clase de cada grupo: qué ha entregado cada nº de lista y su nota. Es el cuaderno filtrado por este tipo.',
+    tareas: 'Tareas, proyectos y documentos de cada grupo: entregas, estado y nota por nº de lista. Es el cuaderno filtrado por este tipo.',
+    test: 'Tests y cuestionarios autocorregidos: quién los ha hecho y con qué nota. Abre la casilla de un alumno para ver sus respuestas.',
+    examenes: 'Exámenes y pruebas escritas de cada grupo: entregas, nota y corrección por nº de lista. Es el cuaderno filtrado por este tipo.',
     entregas: 'Prácticas entregadas desde los laboratorios 3D (ESP32, Circuitos y Vivienda): revisa el montaje y pon nota.',
     conectados: 'Quién está dentro ahora mismo y todos los números de lista de cada grupo, con su último acceso. Si entra alguien que no debe, cierra su sesión o bloquea el número mientras lo aclaras (solo grupo y nº, sin nombres).',
     ajustes: 'Tu cuenta, el PIN de los alumnos y la limpieza de datos al cerrar el curso.',
@@ -90,11 +103,14 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   // ------------------------------------------------------------ estructura
   function render(el, sub) {
     const nuevo = st.el !== el || !el.querySelector('.pn');
-    const extra = String(sub || '').split('/')[1] || ''; sub = String(sub || '').split('/')[0];
+    let crudo = String(sub || ''); try { crudo = decodeURIComponent(crudo); } catch (e) { /* se queda como viene */ }
+    const extra = crudo.split('/')[1] || ''; sub = crudo.split('/')[0].toLowerCase();
     // el antiguo «Contenido» ahora vive en cada asignatura
     if (sub === 'contenido') { const it = extra && aula.st.items.get(extra); const a = it?.asig || aula.cursoActivo()?.asignaturas?.[0]; location.replace(a ? `#asig/${a}/trabajo` : '#asignaturas'); if (it) setTimeout(() => PORTAL.aula?.editar?.(it.id), 50); return; }
     sub = ALIAS[sub] || sub;
     st.el = el; st.sub = TABS.includes(sub) ? sub : 'grupos'; st.extra = extra;
+    // #panel/entregas/<grupo>_<nº>: abre las entregas de ese alumno (el filtro se recuerda también en el navegador)
+    if (st.sub === 'entregas' && /^[A-Za-z0-9]+_\d{1,2}$/.test(extra)) { st.f.alumno = extra; st.f.grupo = extra.slice(0, extra.lastIndexOf('_')); guardarFiltro(st.f); }
     if (!st.unsubs.length) iniciar();
     if (nuevo) {
       el.innerHTML = `<div class="pn">
@@ -116,7 +132,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const sinNota = st.entregas.filter(e => e.nota == null).length;
     const cAct = aula.cursoActivo();
     const G = [['Clases', [['cursos', '📅', 'Cursos escolares', cAct ? cAct.nombre : ''], ['grupos', '👥', 'Grupos y códigos', st.grupos.size]]],
-      ['Seguimiento', [['notas', '📊', 'Cuaderno de calificaciones', ''], ['analitica', 'chart-column', 'Analítica', ''], ['entregas', '🔬', 'Entregas del laboratorio', sinNota ? `${sinNota} sin nota` : st.entregas.length], ['conectados', '👤', 'Usuarios y conectados', vivos]]],
+      ['Seguimiento', [['notas', 'notebook-pen', 'Cuaderno de calificaciones', ''], ['trabajos', 'pencil', 'Trabajos de clase', ''], ['tareas', 'clipboard-list', 'Tareas', ''], ['test', 'list-checks', 'Test', ''], ['examenes', 'clipboard-check', 'Exámenes', ''], ['entregas', 'flask-conical', 'Laboratorio', sinNota ? `${sinNota} sin nota` : st.entregas.length], ['analitica', 'chart-column', 'Analítica', ''], ['conectados', 'users', 'Usuarios y conectados', vivos]]],
       ['Ajustes', [['ajustes', '⚙️', 'Ajustes y limpieza', '']]]];
     $('#pnTabs').innerHTML = G.map(([g, L]) => `<div class="pn-g"><div class="pn-gt">${g}</div>${L.map(([k, ic, t, n]) => `<a href="#panel/${k}" class="${k === st.sub ? 'on' : ''}" data-pn-tab="${k}" ${k === st.sub ? 'aria-current="page"' : ''}><span aria-hidden="true">${/^[a-z-]+$/.test(ic) ? lucide(ic) : ic}</span> ${t}${n !== '' ? ` <span class="pn-n">${esc(n)}</span>` : ''}</a>`).join('')}</div>`).join('');
     const act = G.flatMap((x) => x[1]).find((x) => x[0] === st.sub);
@@ -144,7 +160,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     if (st.sub === 'conectados' && $('#pnCon')) { $('#pnCon').innerHTML = conectadosHTML(); $('#pnUsuRes').innerHTML = resumenUsuariosHTML(); if (!$('#pnUsuBar').contains(document.activeElement)) $('#pnUsuBar').innerHTML = barraUsuariosHTML(); $('#pnUsu').innerHTML = usuariosHTML(); }
     if (st.sub === 'entregas' && $('#pnTabla')) { $('#pnFiltros').innerHTML = filtrosHTML(); $('#pnTabla').innerHTML = tablaEntregasHTML(); }
     if (st.sub === 'ajustes' && $('#pnLimp')) { $('#pnLimp').innerHTML = limpiezaHTML(); $('#apLimp').innerHTML = ap.limpiezaHTML(); }
-    if ((st.sub === 'notas' || st.sub === 'analitica') && st.listo.g) ap.pintar();
+    if ((SEGUIMIENTO_AULA.includes(st.sub) || st.sub === 'analitica') && st.listo.g) ap.pintar();
   }
 
   // ------------------------------------------------------------ grupos
@@ -432,24 +448,53 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     } catch (e) { st.migError = !manual; if (manual) alert('No se ha podido migrar (' + (e?.code || 'error') + ').'); return 0; } finally { st.migrando = false; }
   }
   const pendientesMigrar = () => planMigracion(st.entregasTodas || []).length;
+  const alId = (e) => `${e.grupo}_${e.numero}`;
   function filtradas() {
-    return st.entregas.filter(e => (!st.f.grupo || e.grupo === st.f.grupo) && (!st.f.practica || e.practica === st.f.practica) && (!st.f.estado || (st.f.estado === 'sin' ? e.nota == null : e.nota != null)));
+    return st.entregas.filter(e => (!st.f.grupo || e.grupo === st.f.grupo) && (!st.f.alumno || alId(e) === st.f.alumno) && (!st.f.practica || e.practica === st.f.practica) && (!st.f.estado || (st.f.estado === 'sin' ? e.nota == null : e.nota != null)));
   }
   function filtrosHTML() {
     const c = cat(); const usados = new Set(st.entregas.map(e => e.practica)); const gIds = [...new Set([...st.grupos.keys(), ...st.entregas.map(e => e.grupo)])];
     const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
     const pracs = [...c.practicas.map(p => [p.id, `Circuitos ${p.n} · ${p.titulo}`]), ...c.proyectos.map(p => [p.id, `ESP32 ${p.n} · ${p.titulo}`]), ...EVALS.map(e => [e.id, `Evaluación de circuitos · Nivel ${e.nivel}`]), ...c.practicas.map(p => [idAutonoma(p.id), `Circuitos ${p.n} · ${p.titulo} (autónoma)`])].filter(([id]) => usados.has(id) || id === st.f.practica);
+    // Alumnos (grupo + nº de lista) que tienen entregas, dentro del grupo elegido
+    const als = new Map(); st.entregas.forEach(e => { if (!st.f.grupo || e.grupo === st.f.grupo) als.set(alId(e), (als.get(alId(e)) || 0) + 1); });
+    if (st.f.alumno && !als.has(st.f.alumno)) als.set(st.f.alumno, 0);
+    const listaAl = [...als.entries()].map(([id, n]) => { const i = id.lastIndexOf('_'); return { id, g: id.slice(0, i), n: +id.slice(i + 1), c: n }; })
+      .sort((a, b) => nombreGrupo(a.g).localeCompare(nombreGrupo(b.g), 'es') || a.n - b.n);
+    const optAl = listaAl.map(a => opt(a.id, `${st.f.grupo ? '' : nombreGrupo(a.g) + ' · '}nº ${pad(a.n)} (${a.c})`, st.f.alumno)).join('');
     return `<label>Grupo <select data-pn-f="grupo">${opt('', 'Todos', st.f.grupo)}${gIds.map(id => opt(id, nombreGrupo(id), st.f.grupo)).join('')}</select></label>
+      <label>Alumno <select data-pn-f="alumno" aria-label="Alumno (nº de lista)">${opt('', 'Todos, agrupados por alumno', st.f.alumno)}${optAl}</select></label>
       <label>Práctica <select data-pn-f="practica">${opt('', 'Todas', st.f.practica)}${pracs.map(([id, t]) => opt(id, t, st.f.practica)).join('')}</select></label>
       <label>Estado <select data-pn-f="estado">${opt('', 'Todas', st.f.estado)}${opt('sin', 'Sin nota', st.f.estado)}${opt('con', 'Con nota', st.f.estado)}</select></label>
+      ${st.f.grupo || st.f.alumno || st.f.practica || st.f.estado ? `<button class="btn small" type="button" data-pn="quitarFiltros">${lucide('x')} Quitar filtros</button>` : ''}
       <span class="pn-grow"></span>${pendientesMigrar() ? `<button class="btn" data-pn="migrar" title="Copia las entregas antiguas (ligadas al ordenador) al nº de lista del alumno, sin borrar las originales">${lucide('refresh-cw')} Migrar ${pendientesMigrar()} entregas antiguas</button>` : ''}<button class="btn" data-pn="csv">${lucide('download')} Exportar CSV</button>`;
+  }
+  function filaEntregaHTML(e, corta) {
+    return `<tr class="pn-row ${st.abierta === e.id ? 'sel' : ''}" data-ent="${esc(e.id)}" tabindex="0"><td>${fFecha(e.fecha)}</td>${corta ? '' : `<td>${esc(nombreGrupo(e.grupo))}</td><td class="c"><b>${pad(e.numero)}</b></td>`}<td>${esc(tituloPractica(e.practica, e.titulo))}</td>
+      <td class="c">${e.tipo === 'circuitos' || e.tipo === 'vivienda' ? (e.datos?.comprobacion?.ok ? '✅' : '❌') : (e.datos?.hecho ? '✅ hecho' : '—')}</td><td class="c">${esc(e.datos?.aciertos || '—')}</td><td class="c">${e.nota != null ? `<b>${esc(String(e.nota).replace('.', ','))}</b>` : '<span class="pn-small">sin nota</span>'}</td></tr>`;
   }
   function tablaEntregasHTML() {
     if (!st.listo.e) return '<p class="pn-small">Cargando…</p>';
-    const L = filtradas(); if (!L.length) return '<p class="pn-vacio">No hay entregas con estos filtros.</p>';
-    return `<table class="pn-t"><thead><tr><th>Fecha</th><th>Grupo</th><th>Nº</th><th>Práctica</th><th>Comprobación</th><th>Preguntas</th><th>Nota</th></tr></thead><tbody>${L.map(e => `
-      <tr class="pn-row ${st.abierta === e.id ? 'sel' : ''}" data-ent="${esc(e.id)}" tabindex="0"><td>${fFecha(e.fecha)}</td><td>${esc(nombreGrupo(e.grupo))}</td><td class="c"><b>${pad(e.numero)}</b></td><td>${esc(tituloPractica(e.practica, e.titulo))}</td>
-      <td class="c">${e.tipo === 'circuitos' || e.tipo === 'vivienda' ? (e.datos?.comprobacion?.ok ? '✅' : '❌') : (e.datos?.hecho ? '✅ hecho' : '—')}</td><td class="c">${esc(e.datos?.aciertos || '—')}</td><td class="c">${e.nota != null ? `<b>${esc(String(e.nota).replace('.', ','))}</b>` : '<span class="pn-small">sin nota</span>'}</td></tr>`).join('')}</tbody></table>`;
+    const L = filtradas().sort((a, b) => a.fecha - b.fecha); if (!L.length) return '<p class="pn-vacio">No hay entregas con estos filtros.</p>';
+    const cab = (corta) => `<thead><tr><th>Fecha</th>${corta ? '' : '<th>Grupo</th><th>Nº</th>'}<th>Práctica</th><th>Comprobación</th><th>Preguntas</th><th>Nota</th></tr></thead>`;
+    const sin = (x) => x.filter(e => e.nota == null).length;
+    if (st.f.alumno) {
+      return `<p class="pn-resumen-al"><b>${L.length}</b> ${L.length === 1 ? 'entrega' : 'entregas'}${sin(L) ? ` · ${sin(L)} sin nota` : ''} · por fecha, de la primera a la última</p>
+        <table class="pn-t">${cab(false)}<tbody>${L.map(e => filaEntregaHTML(e, false)).join('')}</tbody></table>`;
+    }
+    const por = new Map(); L.forEach(e => { const k = alId(e); if (!por.has(k)) por.set(k, []); por.get(k).push(e); });
+    const ids = [...por.keys()].sort((a, b) => { const ia = a.lastIndexOf('_'), ib = b.lastIndexOf('_'); return nombreGrupo(a.slice(0, ia)).localeCompare(nombreGrupo(b.slice(0, ib)), 'es') || +a.slice(ia + 1) - +b.slice(ib + 1); });
+    const porDefecto = ids.length <= 3;
+    return `<div class="pn-al-bar"><span class="pn-small"><b>${ids.length}</b> ${ids.length === 1 ? 'alumno' : 'alumnos'} · ${L.length} entregas</span><span class="pn-grow"></span>
+      <button class="btn small" type="button" data-pn="alTodos" data-v="1">${lucide('chevrons-up-down')} Desplegar todos</button><button class="btn small" type="button" data-pn="alTodos" data-v="0">${lucide('chevrons-down-up')} Plegar todos</button></div>
+      ${ids.map(id => {
+    const E = por.get(id); const i = id.lastIndexOf('_'); const abierto = st.alAb.has(id) ? st.alAb.get(id) : porDefecto;
+    return `<section class="pn-al ${abierto ? 'open' : ''}" data-al="${esc(id)}"><div class="pn-al-h"><button type="button" class="pn-al-b" data-pn="alToggle" aria-expanded="${abierto}" aria-controls="al-${esc(id)}">
+        <span class="pn-al-flecha" aria-hidden="true">${lucide('chevron-right')}</span><span class="pn-al-t">${esc(nombreGrupo(id.slice(0, i)))} · nº ${pad(+id.slice(i + 1))}</span>
+        <span class="pn-n">${E.length} ${E.length === 1 ? 'entrega' : 'entregas'}</span>${sin(E) ? `<span class="pn-n pn-n-sin">${sin(E)} sin nota</span>` : ''}</button>
+        <button type="button" class="pn-al-ver" data-pn="alSolo" title="Ver solo a este alumno" aria-label="Ver solo a este alumno">${lucide('funnel')}</button></div>
+      <div class="pn-al-c" id="al-${esc(id)}" ${abierto ? '' : 'hidden'}><div class="pn-tw"><table class="pn-t">${cab(true)}<tbody>${E.map(e => filaEntregaHTML(e, true)).join('')}</tbody></table></div></div></section>`;
+  }).join('')}`;
   }
   function pintarDetalle() {
     const D = $('#pnDetalle'); if (!D) return;
@@ -503,6 +548,13 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const fila = t.closest('[data-ent]'); if (fila && !t.closest('button')) { st.abierta = fila.dataset.ent; $('#pnTabla').innerHTML = tablaEntregasHTML(); pintarDetalle(); return; }
     const b = t.closest('[data-pn]'); if (!b) return;
     const acc = b.dataset.pn;
+    if (acc === 'alToggle' || acc === 'alSolo') {
+      const sec = b.closest('[data-al]'); const id = sec?.dataset.al; if (!id) return;
+      if (acc === 'alSolo') { cambiarFiltro('alumno', id); return; }
+      const ab = !sec.classList.contains('open'); st.alAb.set(id, ab); pintarDatos(); return;
+    }
+    if (acc === 'alTodos') { const v = b.dataset.v === '1'; st.el.querySelectorAll('[data-al]').forEach(x => st.alAb.set(x.dataset.al, v)); pintarDatos(); return; }
+    if (acc === 'quitarFiltros') { st.f.grupo = ''; st.f.alumno = ''; st.f.practica = ''; st.f.estado = ''; guardarFiltro(st.f); ponerHashEntregas(); pintarDatos(); return; }
     const usu = b.closest('[data-usu]')?.dataset.usu; if (usu) return accionUsuario(acc, usu, b);
     const g = st.grupos.get(b.closest('[data-grupo]')?.dataset.grupo || '');
     if (g) return accionGrupo(acc, g);
@@ -526,6 +578,14 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       if (!await confirmar(`¿Borrar ${viejas.length} sesiones antiguas?`)) return;
       b.disabled = true; await borrarEnLotes(viejas.map(s => doc(db, 'sesiones', s.uid))).catch(e => alert('Error al borrar (' + (e?.code || 'error') + ').'));
     }
+  }
+  // El hash recuerda al alumno elegido (#panel/entregas/<grupo>_<nº>); sin alumno, vuelve a #panel/entregas.
+  function ponerHashEntregas() { if (st.sub !== 'entregas') return; try { history.replaceState(null, '', '#panel/entregas' + (st.f.alumno ? '/' + st.f.alumno : '')); } catch (e) { /* sin historial */ } }
+  function cambiarFiltro(k, v) {
+    st.f[k] = v;
+    if (k === 'grupo' && st.f.alumno && !st.f.alumno.startsWith(v + '_') && v) st.f.alumno = '';
+    if (k === 'alumno' && v) st.f.grupo = v.slice(0, v.lastIndexOf('_'));
+    guardarFiltro(st.f); ponerHashEntregas(); pintarDatos();
   }
   function onChange(ev) {
     const t = ev.target;
@@ -554,7 +614,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     if (t.id === 'pnVerTodos') { st.verTodos = t.checked; pintarDatos(); }
     if (t.dataset.pnU === 'grupo') { st.uGrupo = t.value; $('#pnUsu').innerHTML = usuariosHTML(); }
     if (t.dataset.pnU === 'todos') { st.uTodos = t.checked; $('#pnUsu').innerHTML = usuariosHTML(); }
-    if (t.dataset.pnF) { st.f[t.dataset.pnF] = t.value; pintarDatos(); }
+    if (t.dataset.pnF) cambiarFiltro(t.dataset.pnF, t.value);
     if (t.name === 'conHorario') t.form.querySelector('.pn-hor').classList.toggle('off', !t.checked);
     if (t.name === 'asig' && t.form?.id === 'pnGrupoForm') t.form.querySelector('.pn-aps').classList.toggle('off', !t.form.querySelector('[name=asig][value=eee]')?.checked);
     if (t.name === 'curso' && t.form?.id === 'pnGrupoForm' && !st.editando) { st.cursoForm = t.value; const n = t.form.elements.nombre.value; $('#pnForm').innerHTML = formHTML(null); $('#pnGrupoForm').elements.nombre.value = n; }
