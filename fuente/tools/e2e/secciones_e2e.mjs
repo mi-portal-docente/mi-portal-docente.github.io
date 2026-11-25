@@ -50,6 +50,8 @@ async function loginAlumno(pg, codigo, numero, pin) {
 }
 const pestañas = (pg) => pg.$$eval('#asig .as-tabs [role=tab] .as-tt', (l) => l.map((x) => x.textContent.trim()));
 const hash = (pg) => pg.evaluate(() => location.hash);
+// Gestión (estilo Ajustes): elige el apartado y espera a que se vea
+const gs = async (pg, s) => { await pg.click('#asTrabajo [data-cl=gsNav][data-s=' + s + ']'); await pg.waitForSelector('#asTrabajo [data-gs-pane=' + s + ']:not([hidden])'); };
 
 try {
   // ---------------------------------------------------------------- profesor: curso y grupo
@@ -92,20 +94,32 @@ try {
   ok('profesor: por defecto «Gestión»', (await hash(P.pg)) === '#asig/eee/gestion');
   const tp = await pestañas(P.pg);
   ok('profesor: Avisos · Teoría · Ejercicios en clase · Tareas · Test · Exámenes · Laboratorio · Gestión', tp.join('|') === 'Avisos|Teoría|Ejercicios en clase|Tareas|Test|Exámenes|Laboratorio|Gestión', tp.join('|'));
-  ok('Gestión: grupos y seguimiento, filtros por estado, programación y botones de importar', !!(await P.pg.$('#asTrabajo .org-chips')) && /Grupos y seguimiento/.test(await P.pg.textContent('#asig')) && /Programación de la asignatura/.test(await P.pg.textContent('#asig')) && !!(await P.pg.$('#asTrabajo [data-cl=importarJSON]')));
-  const cards = await P.pg.$$eval('#asTrabajo .sg-card[data-sg-card]', (l) => l.map((x) => x.dataset.sgCard).join(','));
-  ok('Gestión: tarjetas Asignaturas, Calificaciones, Exportar y copias, Ajustes', cards === 'asignaturas,calificaciones,exportar,ajustes', cards);
+  ok('Gestión: grupos y seguimiento, filtros por estado, programación y botones de importar', !!(await P.pg.$('#asTrabajo .org-chips')) && /Grupo y alumnos/.test(await P.pg.textContent('#asig')) && /Programación de la asignatura/.test(await P.pg.textContent('#asig')) && !!(await P.pg.$('#asTrabajo [data-cl=importarJSON]')));
+  const cards = await P.pg.$$eval('#asTrabajo .gs-nav-b', (l) => l.map((x) => x.dataset.s).join(','));
+  ok('Gestión: apartados Grupo y alumnos, Calificaciones, Asignaturas visibles, Exportar e importar, Ajustes', cards === 'grupo,calificaciones,asignaturas,exportar,ajustes', cards);
+  ok('Gestión: cada apartado empieza con un número grande y solo se ve uno', (await P.pg.$$('#asTrabajo .gs-pane:not([hidden])')).length === 1 && /^\d+$/.test((await P.pg.textContent('#asTrabajo .gs-pane:not([hidden]) .gs-big')).trim()));
+  const guardarVisible = (pg) => pg.$eval('#asTrabajo [data-gs-foot]', (f) => !f.hidden);
+  const vistos = [];
+  for (const s of ['calificaciones', 'asignaturas', 'exportar', 'ajustes', 'grupo']) { await gs(P.pg, s); vistos.push(s + ':' + (await guardarVisible(P.pg))); }
+  ok('Gestión: «Guardar» solo en Asignaturas visibles y Ajustes', vistos.join(',') === 'calificaciones:false,asignaturas:true,exportar:false,ajustes:true,grupo:false', vistos.join(','));
+  ok('Gestión: calificaciones tiene el botón relleno del cuaderno y la fila de entregas del laboratorio', (await gs(P.pg, 'calificaciones'), !!(await P.pg.$('#asTrabajo .gs-pane:not([hidden]) a.btn.primary[href="#panel/notas"]')) && !!(await P.pg.$('#asTrabajo .gs-pane:not([hidden]) a.gs-row[href="#panel/entregas"]'))));
+  ok('Gestión: exportar tiene el botón relleno y filas con chevrón para importar', (await gs(P.pg, 'exportar'), !!(await P.pg.$('#asTrabajo .gs-pane:not([hidden]) .btn.primary[data-cl=exportarZip]')) && (await P.pg.$$('#asTrabajo .gs-pane:not([hidden]) button.gs-row')).length === 2));
+  await gs(P.pg, 'grupo');
   ok('Gestión: botones y enlaces de siempre en las tarjetas', !!(await P.pg.$('#asTrabajo [data-cl=exportarZip]')) && !!(await P.pg.$('#asTrabajo [data-cl=importar]')) && !!(await P.pg.$('#asTrabajo [data-cl=importarJSON]')) && !!(await P.pg.$('#asTrabajo [data-cl=secGuardar]')) && !!(await P.pg.$('#asTrabajo [data-cl=banco]')) && !!(await P.pg.$('#asTrabajo a[href="#panel/notas"]')) && !!(await P.pg.$('#asTrabajo a[href="#panel/entregas"]')) && !!(await P.pg.$('#asTrabajo [data-sg-act]')));
   ok('Gestión: todo junto (7 elementos, también el borrador)', (await P.pg.$$('#asTrabajo .cl-it[data-item]')).length === 7);
   await P.pg.screenshot({ path: CAP + 'v5_profesor_gestion.png', fullPage: false });
   const GES = process.env.CAPTURAS_GESTION ? process.env.CAPTURAS_GESTION.replace(/\/?$/, '/') : '';
   if (GES) {
     mkdirSync(GES, { recursive: true });
-    await P.pg.setViewportSize({ width: 1280, height: 800 });
-    await P.pg.screenshot({ path: GES + 'despues_gestion_1280.png', fullPage: true });
-    await P.pg.setViewportSize({ width: 390, height: 844 });
-    await P.pg.screenshot({ path: GES + 'despues_gestion_390.png', fullPage: true });
-    await P.pg.setViewportSize({ width: 1440, height: 900 });
+    const tema = (v) => P.pg.evaluate((x) => { document.documentElement.setAttribute('data-theme', x); }, v);
+    const foto = async (nombre, w, h, panel) => { await P.pg.setViewportSize({ width: w, height: h }); await gs(P.pg, panel); await P.pg.waitForTimeout(250); await P.pg.screenshot({ path: GES + nombre, fullPage: true }); };
+    await foto('v2_gestion_1280_claro.png', 1280, 800, 'grupo'); await foto('v2_gestion_1280_claro_ajustes.png', 1280, 800, 'ajustes');
+    await tema('dark'); await foto('v2_gestion_1280_oscuro.png', 1280, 800, 'calificaciones'); await foto('v2_gestion_1280_oscuro_exportar.png', 1280, 800, 'exportar'); await tema('light');
+    await foto('v2_gestion_390.png', 390, 844, 'grupo'); await foto('v2_gestion_390_ajustes.png', 390, 844, 'ajustes');
+    await tema('dark'); await foto('v2_gestion_390_oscuro.png', 390, 844, 'asignaturas'); await tema('light');
+    const ancho = await P.pg.evaluate(() => { const s = document.querySelector('.screen') || document.documentElement; return [document.documentElement.scrollWidth, innerWidth, s.scrollWidth, s.clientWidth]; });
+    ok('Gestión a 390: sin desbordamiento lateral', ancho[0] <= ancho[1] && ancho[2] <= ancho[3] + 1, ancho.join('/'));
+    await P.pg.setViewportSize({ width: 1440, height: 900 }); await gs(P.pg, 'grupo');
   }
   const enSec = async (sec) => { await P.pg.goto(BASE + '#asig/eee/' + sec); await P.pg.waitForFunction((s) => document.querySelector('#tab-' + s)?.getAttribute('aria-selected') === 'true' && document.querySelector('#asTrabajo .cl-bar'), sec, { timeout: 15000 }); return P.pg.$$eval('#asTrabajo .cl-it[data-item]', (l) => l.map((x) => x.dataset.item).sort().join(',')); };
   ok('Teoría: material y explicación', (await enSec('teoria')) === 'itExp002,itMat001');
@@ -146,7 +160,7 @@ try {
 
   // ---------------------------------------------------------------- v5 fase 2: importar con sección, tema, interactivo y origen
   if (!VIEJAS) {
-    await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo [data-cl=importarJSON]');
+    await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { state: 'attached' }); await gs(P.pg, 'exportar');
     await P.pg.click('#asTrabajo [data-cl=importarJSON]'); await P.pg.waitForSelector('.cl-modal [data-m-f=json]');
     const J = { elementos: [{ tipo: 'material', titulo: 'Guía del polímetro', seccion: 'laboratorio', tema: 'SA3 · Medidas', interactivo: { tipo: 'laboratorio', ref: '#eee/circuitos' }, origen: { drive: 'ID_DE_PRUEBA', ruta: '1_EEE_SA3/Polimetro', version: 'v2' } }] };
     await P.pg.fill('.cl-modal [data-m-f=json]', JSON.stringify(J)); await P.pg.click('.cl-modal [data-m=validar]');
@@ -186,7 +200,7 @@ try {
   await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo .sg-caja');
   if (VIEJAS) {
     // Reglas antiguas (sin pegar las v5): todo funciona con las secciones por defecto y se avisa al guardar.
-    await P.pg.waitForSelector('#asTrabajo [data-sg-card=ajustes] .sg-lista');
+    await gs(P.pg, 'ajustes');
     ok('reglas antiguas: aviso «pegar las reglas nuevas» y «Guardar» desactivado', /reglas nuevas \(v5\)/.test(await P.pg.textContent('.sg-caja')) && await P.pg.$eval('[data-cl=secGuardar]', (x) => x.disabled));
     await P.pg.click('#asTrabajo [data-cl=nuevo], #asTrabajo [data-cl=crear]'); await P.pg.click('[data-cl=nuevo][data-tipo=material]');
     await P.pg.waitForSelector('#apItemForm'); ok('reglas antiguas: el editor no ofrece «Sección» (no escribiría campos nuevos)', !(await P.pg.$('#apItemForm [name=seccion]')));
@@ -195,7 +209,7 @@ try {
     ok('reglas antiguas: crear un elemento sigue funcionando', true);
     throw new Error('FIN');
   }
-  await P.pg.waitForSelector('#asTrabajo [data-sg-card=ajustes] .sg-fila[data-sec=teoria] [data-sg-nom]');
+  await gs(P.pg, 'ajustes'); await P.pg.waitForSelector('#asTrabajo .sg-fila[data-sec=teoria] [data-sg-nom]');
   await P.pg.fill('.sg-fila[data-sec=teoria] [data-sg-nom]', 'Apuntes');
   await P.pg.uncheck('.sg-fila[data-sec=laboratorio] [data-sg-vis]');
   await P.pg.click('.sg-fila[data-sec=tareas] [data-cl=secUp]');
@@ -262,7 +276,7 @@ try {
   await poner('items/itTst008', { ...base, tipo: 'examen', titulo: 'Test: la ley de Ohm', tema: 'tmUno01', orden: 8, puntos: 10, examen: { desde: Date.now() - 864e5, hasta: Date.now() + 864e5, limiteMin: 20, barajar: true } });
   await poner('examenes/itTst008', { curso, asig: 'eee', desde: Date.now() - 864e5, hasta: Date.now() + 864e5, limiteMin: 20, barajar: true, grupos: [G.id], preguntas: [{ id: 'q1', tipo: 'test', enunciado: '¿En qué unidad se mide la resistencia?', puntos: 1, opciones: ['Voltio', 'Ohmio', 'Amperio'] }, { id: 'q2', tipo: 'vf', enunciado: 'La tensión se mide en paralelo.', puntos: 1 }] });
   await poner('claves/itTst008', { respuestas: { q1: 1, q2: true } });
-  await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo [data-cl=exportarZip]', { timeout: 15000 });
+  await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo [data-cl=exportarZip]', { state: 'attached', timeout: 15000 }); await gs(P.pg, 'exportar');
   await P.pg.waitForSelector('#asTrabajo .cl-it[data-item=itTst008]', { timeout: 15000 });
   await P.pg.click('#asTrabajo [data-cl=exportarZip]'); await P.pg.waitForSelector('.cl-modal [data-m=exZip]');
   ok('exportar: casillas por sección y por tema', (await P.pg.$$('.cl-modal [data-ex-sec]')).length === 6 && (await P.pg.$$('.cl-modal [data-ex-tema]')).length >= 3);
@@ -285,7 +299,7 @@ print(json.dumps({'n':n,'m':m,'pdf':all(z.read(x)[:4]==b'%PDF' for x in n if x.e
   await P.pg.click('.cl-modal [data-m=cerrar]');
 
   // ---------------------------------------------------------------- importar solo algunas secciones (lo demás se conserva)
-  await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo [data-cl=importarJSON]');
+  await P.pg.goto(BASE + '#asig/eee/gestion'); await P.pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { state: 'attached' }); await gs(P.pg, 'exportar');
   await P.pg.click('#asTrabajo [data-cl=importarJSON]'); await P.pg.waitForSelector('.cl-modal [data-m-f=json]');
   await P.pg.fill('.cl-modal [data-m-f=json]', JSON.stringify({ secciones: [{ id: 'examenes', nombre: 'Pruebas escritas' }] })); await P.pg.click('.cl-modal [data-m=validar]');
   ok('importar secciones: la vista previa lo enseña y avisa de que lo demás se queda', /Pruebas escritas\. Lo que no venga en el archivo se queda como está/.test(await P.pg.textContent('#jsPrev')));

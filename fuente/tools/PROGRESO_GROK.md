@@ -1159,3 +1159,23 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Capturas: /workspace/capturas-oscuro/antes y despues (y claro/).
 - Sin cambios en Firestore, reglas, firebase-config.js ni datos de exámenes.
 
+### A2 · Gestión replanteada como unos Ajustes de iOS (t174u) — caché v5-20261125d
+- Las tarjetas con «etiqueta, luego botones y luego información» no gustaron. Nueva estructura:
+  1. Lista de apartados (izquierda en escritorio; píldoras arriba en el móvil): Grupo y alumnos · Calificaciones ·
+     Asignaturas visibles · Exportar e importar · Ajustes (`data-cl="gsNav"`, solo cambia lo que se ve, sin escribir nada).
+  2. Cada apartado empieza con un resumen: un número grande (alumnos, elementos calificables, asignaturas con secciones,
+     elementos a exportar, secciones visibles), una línea que lo explica y la acción principal como botón relleno
+     (Grupos y códigos · Abrir el cuaderno · Exportar asignatura en PDF).
+  3. Debajo, filas de lista de iOS: icono · etiqueta · una línea · chevron o interruptor (grupos, entregas del laboratorio,
+     importar de Classroom, importar JSON, un interruptor por asignatura, y las secciones con nombre, visible, ↑ ↓).
+     Un solo «Guardar» (`secGuardar`), visible solo en Asignaturas visibles y Ajustes. «Restaurar orden y nombres» (`secReset`).
+  - Debajo queda «Contenido de la asignatura» con la barra de siempre (＋ Crear, Banco de preguntas, Pregunta en directo,
+    Sustituir adjuntos de Drive), los filtros y los temas. Todos los `data-cl` siguen igual; no se pierde ninguna función.
+  - Sin Firestore nuevo: lo único que se escribe es `config/secciones` al pulsar «Guardar», como antes.
+- Pruebas: `secciones_e2e` 60/60 (apartados, un solo apartado visible, «Guardar» solo donde toca, botón relleno y filas con
+  chevron, 390 px sin desbordamiento, importar/exportar/guardar secciones). `contraste_oscuro.mjs`: selectores y plantilla
+  nuevos (`.gs-*`); en la ruta de Gestión (1280 y 390) ningún fallo de los elementos nuevos. `capturarHover` ya no tumba la
+  medición si el elemento no está visible. Ojo: dos ejecutores a la vez con los mismos emuladores dan lecturas a medias de las
+  transiciones (p. ej. «Salir», #panel/cursos); la plantilla en 1280 «reposo» ya fallaba igual en 49710c9.
+- Capturas: /workspace/capturas-gestion/v2_*.png.
+

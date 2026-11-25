@@ -60,7 +60,8 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const curso = () => st.cursos.get(st.cursoSel) || null;
   const exportar = prof ? crearExportar({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal() }) : null;
   const gestionSec = prof ? crearGestionSecciones({ db, aula, pintar: () => pintar(), asig: () => C.asig, items: () => itemsAsig(C.asig), temas: () => temasAsig(C.asig, []),
-    extra: () => ({ grupos: gruposAsigHTML() }) }) : null;
+    extra: () => { const its = itemsAsig(C.asig); return { grupos: gruposDe(st.cursoSel, C.asig).map((g) => ({ nombre: g.nombre, codigo: g.codigo, alumnos: g.alumnos })), asig: asignatura(C.asig)?.corto || '', curso: curso()?.nombre || '',
+      calificables: its.filter((it) => !['material', 'info', 'explicacion'].includes(it.tipo)).length, elementos: its.length }; } }) : null;
   const ahora = () => Date.now();
   // Plegado de temas: se recuerda en este navegador por usuario y asignatura. No se escribe en Firestore.
   const idPlegado = (tid) => tid || '_sin';
@@ -174,23 +175,12 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const n = { todo: E.items.length, borr: E.items.filter((i) => k(i) === 'borr').length, pend: E.items.filter((i) => i.pendiente).length, pub: E.items.filter((i) => k(i) === 'pub').length, prog: E.items.filter((i) => k(i) === 'prog').length };
     return `<div class="org-chips" role="group" aria-label="Filtrar por estado">${[['todo', 'Todo'], ['pub', 'Publicados'], ['borr', 'Borradores'], ['prog', 'Programados'], ['pend', 'Pendientes de completar']].map(([f, tx]) => `<button class="bib-chip ${C.orgF === f ? 'on' : ''}" data-cl="orgF" data-f="${f}" aria-pressed="${C.orgF === f}">${tx} <span>${n[f]}</span></button>`).join('')}</div>`;
   }
-  function gruposAsigHTML() {
-    const gs = gruposDe(st.cursoSel, C.asig);
-    const nom = asignatura(C.asig)?.corto || '';
-    const cur = curso()?.nombre || '';
-    return `<div class="sg-grupos">
-      <h4 class="sg-card-sub">Grupos y seguimiento</h4>
-      <p class="pn-small">Grupos de ${esc(nom)} en ${esc(cur)}.</p>
-      ${gs.length ? `<ul class="org-grupos">${gs.map((g) => `<li><b>${esc(g.nombre)}</b><span class="pn-small">Código <code>${esc(g.codigo || '—')}</code> · ${Number(g.alumnos || 0)} alumnos</span></li>`).join('')}</ul>` : '<p class="pn-small">Todavía no hay grupos con esta asignatura.</p>'}
-      <a class="cl-link" href="#panel/grupos">${ic('users')} Grupos y códigos</a>
-    </div>`;
-  }
   // ---- Trabajo de clase
   // v5 · Gestión del profesor: lo que antes estaba en «Trabajo de clase» (todo junto, con filtros por estado,
   // grupos y seguimiento, papelera), más la configuración de las secciones y la exportación.
   function gestionHTML() {
     const w = cargando(); if (w) return w;
-    return gestionSec.html(C.asig) + trabajoHTML(null, true);
+    return gestionSec.html(C.asig) + `<h2 class="gs-h">${ic('folder-open')} Contenido de la asignatura</h2>` + trabajoHTML(null, true);
   }
   // Nombre de la sección en esta asignatura
   const nomSec = (sec) => seccionesDe(st.secConf, C.asig).find((s) => s.id === sec)?.nombre || sec;
@@ -618,6 +608,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
       if (acc === 'crear') { C.crear = !C.crear; pintar(); if (C.crear) C.el.querySelector('.cl-crear-m button')?.focus(); return; }
       C.crear = false;
       if (acc === 'nuevo') { pintar(); editor.abrir(null, { tipo: b.dataset.tipo, asig: C.asig, curso: st.cursoSel, tema: C.filtro || null, ...(IDS_ELEMENTO.includes(C.vista) && seccionDe({ tipo: b.dataset.tipo }) !== C.vista ? { seccion: C.vista } : {}) }); return; }
+      if (acc === 'gsNav') return gestionSec.nav(b);
       if (acc.startsWith('sec')) return gestionSec.click(b, acc);
       if (acc === 'exportarZip') return exportar.abrirAsignatura({ asig: C.asig, items: itemsAsig(C.asig), temas: temasAsig(C.asig, []) });
       if (acc === 'pdfCuestionario' && it) return exportar.abrirCuestionario(it);

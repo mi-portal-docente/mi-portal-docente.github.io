@@ -41,9 +41,17 @@ const SELECTORES = [
   'a.cl-it, .cl-it',
   '.org-it',
   '.cl-post-it',
-  '.sg-card',
-  '.sg-card .btn:not(.primary)',
-  '.sg-fila',
+  '.gs-main',
+  '.gs-nav-b',
+  '.gs-nav-b.on',
+  '.gs-row',
+  '.gs-rt > b',
+  '.gs-desc',
+  '.gs-big',
+  '.gs-sum-t b',
+  '.gs-sum-t span',
+  '.gs-h',
+  '.gs-main .btn.primary',
   '.pn-nav a',
   '.pn-row td',
   '.tbl td, .au-t td, .pn-t td',
@@ -330,19 +338,18 @@ ${CSS.map((c) => `<link rel="stylesheet" href="${ORIGIN}/${c}?v=${Date.now()}">`
       <a class="cl-it" href="#it"><span class="cl-tx"><b>Apuntes de la ley de Ohm</b></span></a>
       <div class="cl-it"><span class="cl-tx"><b>Tarea: medir tensiones</b></span></div>
     </div>
-    <div class="sg-grid" style="margin-top:14px">
-      <article class="sg-card" data-sg-card="calificaciones">
-        <div class="sg-card-h"><span class="sg-card-ic">★</span><h3>Calificaciones</h3></div>
-        <div class="sg-card-acts"><button type="button" class="btn">Cuaderno de calificaciones</button></div>
-      </article>
-      <article class="sg-card" data-sg-card="exportar">
-        <div class="sg-card-h"><span class="sg-card-ic">↓</span><h3>Exportar y copias</h3></div>
-        <div class="sg-card-acts"><button type="button" class="btn">Exportar asignatura</button></div>
-      </article>
+    <div class="gs" style="margin-top:14px">
+      <nav class="gs-nav"><button type="button" class="gs-nav-b on">Grupo y alumnos</button><button type="button" class="gs-nav-b">Calificaciones</button></nav>
+      <div class="gs-main">
+        <div class="gs-sum"><span class="gs-big">12</span><span class="gs-sum-t"><b>alumnos</b><span>1 grupo de EEE 2º CFGB</span></span><span class="gs-sum-a"><a class="btn primary" href="#g">Grupos y códigos</a></span></div>
+        <div class="gs-list">
+          <a class="gs-row" href="#g"><span class="gs-ri">★</span><span class="gs-rt"><b>2º CFGB</b><span class="gs-desc">Código AMPER-782 · 12 alumnos</span></span><span class="gs-re">›</span></a>
+          <button type="button" class="gs-row"><span class="gs-ri">↓</span><span class="gs-rt"><b>Importar JSON</b><span class="gs-desc">Elementos o secciones desde un archivo</span></span><span class="gs-re">›</span></button>
+          <li class="sg-fila gs-row"><span class="gs-ri">T</span><span class="gs-rt"><b>Teoría</b><span class="gs-desc">2 elementos</span></span><span class="gs-re"><button type="button" class="btn tiny">Subir</button></span></li>
+        </div>
+        <h3 class="gs-h">Contenido de la asignatura</h3>
+      </div>
     </div>
-    <ul class="sg-lista" style="margin-top:10px">
-      <li class="sg-fila"><span>Teoría</span><button type="button" class="btn tiny">Ocultar</button></li>
-    </ul>
   </section>
   <section>
     <h2>Tablas, campos y calendario</h2>
@@ -367,8 +374,9 @@ export async function cargarPlantilla(page, { theme = 'dark', bodyClass = 'scr-a
 export async function capturarHover(page, sel, ruta) {
   const loc = page.locator(sel).first();
   if (!(await loc.count())) return false;
-  await loc.scrollIntoViewIfNeeded();
-  await loc.hover({ force: true });
+  // solo es la captura del hover: si el elemento no está visible no debe tumbar la medición
+  await loc.scrollIntoViewIfNeeded({ timeout: 4000 }).catch(() => {});
+  await loc.hover({ force: true, timeout: 4000 }).catch(() => {});
   await page.waitForTimeout(80);
   await page.screenshot({ path: ruta, fullPage: false });
   return true;
