@@ -1104,3 +1104,20 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
   imágenes ampliables, `zonas` (marca del alumno + zona correcta), `colores` (corrección por partes), marcas y nota. No escribe nada.
 - Entregas antiguas (sin campos nuevos) y exámenes empezados se abren igual; lo no contestado sale «sin responder».
 - Prueba: `e2e/plataforma_f15.mjs` (también comprueba que no cambia el nº de documentos). Sin reglas nuevas, sin migraciones.
+
+## 25/11/2026 · Gestión más clara y temas plegables (t172u)
+
+### A · Pestaña Gestión en tarjetas de cristal — HECHO (caché v5-20261125a)
+- Las acciones del profesor (exportar asignatura, cuaderno, selección de asignaturas, importar, secciones…) estaban sueltas:
+  un botón solo, un desplegable cerrado, una tira de botones y los grupos al final. No se ha quitado ninguna función.
+- Ahora van en una rejilla de tarjetas de cristal (1 columna en 390 px, 2 desde 720 px, 3 desde 1100 px):
+  - **Asignaturas**: grupos de la asignatura y «Asignaturas con secciones».
+  - **Calificaciones**: cuaderno y entregas del laboratorio.
+  - **Exportar y copias**: PDF de la asignatura, importar de Classroom e importar JSON.
+  - **Ajustes** (ancho completo): secciones (orden, nombre, visibilidad), Guardar y Por defecto.
+- Iconos Lucide, esquinas grandes, poco texto, acento #DE0714 y iconos #506C88. Sin morado y sin emoji nuevos.
+- El «＋ Crear», el banco, la pregunta en directo y sustituir Drive siguen en la barra del trabajo de clase.
+- El enlace al cuaderno se quita de la barra del curso solo en Gestión (queda en la tarjeta); en el resto de pestañas no cambia.
+- Sin desbordamiento lateral: `minmax(0, 1fr)`, textos que parten y la corrección de la cabecera de 0fdfa98 se mantiene.
+- Sin cambios en Firestore, reglas ni datos de exámenes.
+- Pruebas: `secciones_e2e` (tarjetas y botones de siempre presentes). Capturas en /workspace/capturas-gestion/.

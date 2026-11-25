@@ -60,7 +60,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const curso = () => st.cursos.get(st.cursoSel) || null;
   const exportar = prof ? crearExportar({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal() }) : null;
   const gestionSec = prof ? crearGestionSecciones({ db, aula, pintar: () => pintar(), asig: () => C.asig, items: () => itemsAsig(C.asig), temas: () => temasAsig(C.asig, []),
-    extra: () => `<button class="btn" data-cl="exportarZip">${ic('file-down')} Exportar asignatura en PDF</button>` }) : null;
+    extra: () => ({ grupos: gruposAsigHTML() }) }) : null;
   const ahora = () => Date.now();
 
   // ------------------------------------------------------------------ datos
@@ -107,7 +107,8 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   function barraCursoHTML() {
     const c = curso(); if (!c && st.listo.cursos) return '';
     const sel = st.cursos.size > 1 ? `<label class="cl-curso">Curso escolar <select data-cl-f="curso">${[...st.cursos.values()].sort((x, y) => y.nombre.localeCompare(x.nombre)).map((x) => opt(x.id, x.nombre + (x.activo ? ' (activo)' : ''), st.cursoSel)).join('')}</select></label>` : `<span class="cl-curso">Curso escolar <b>${esc(c?.nombre || '…')}</b></span>`;
-    return `<div class="cl-cursobar">${sel}<span class="pn-grow"></span><a class="cl-link" href="#panel/notas">📊 Cuaderno de calificaciones</a></div>`;
+    const notas = C.vista === 'gestion' ? '' : `<a class="cl-link" href="#panel/notas">${ic('clipboard-list')} Cuaderno de calificaciones</a>`;
+    return `<div class="cl-cursobar">${sel}<span class="pn-grow"></span>${notas}</div>`;
   }
   function cargando() {
     if (st.error && !st.listo.items) return `<p class="au-vacio">No se puede cargar el trabajo de clase (${esc(st.error)}).</p>`;
@@ -151,11 +152,16 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const n = { todo: E.items.length, borr: E.items.filter((i) => k(i) === 'borr').length, pend: E.items.filter((i) => i.pendiente).length, pub: E.items.filter((i) => k(i) === 'pub').length, prog: E.items.filter((i) => k(i) === 'prog').length };
     return `<div class="org-chips" role="group" aria-label="Filtrar por estado">${[['todo', 'Todo'], ['pub', 'Publicados'], ['borr', 'Borradores'], ['prog', 'Programados'], ['pend', 'Pendientes de completar']].map(([f, tx]) => `<button class="bib-chip ${C.orgF === f ? 'on' : ''}" data-cl="orgF" data-f="${f}" aria-pressed="${C.orgF === f}">${tx} <span>${n[f]}</span></button>`).join('')}</div>`;
   }
-  function gruposSeguimientoHTML() {
+  function gruposAsigHTML() {
     const gs = gruposDe(st.cursoSel, C.asig);
-    return `<details class="cl-org-extra"><summary>${ic('users')} Grupos y seguimiento <span class="pn-small">${gs.length} ${gs.length === 1 ? 'grupo' : 'grupos'}</span></summary><div class="org-cols2">
-      <section class="org-box"><h3>Grupos de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}</h3>${gs.length ? `<ul class="org-grupos">${gs.map((g) => `<li><b>${esc(g.nombre)}</b><span class="pn-small">Código <code>${esc(g.codigo || '—')}</code> · ${Number(g.alumnos || 0)} alumnos</span></li>`).join('')}</ul>` : '<p class="pn-small">Todavía no hay grupos con esta asignatura.</p>'}<a class="cl-link" href="#panel/grupos">Grupos y códigos →</a></section>
-      <section class="org-box"><h3>Seguimiento</h3><p class="pn-small">Notas de tareas, cuestionarios, actividades y prácticas de laboratorio.</p><a class="cl-link" href="#panel/notas">Abrir el cuaderno de calificaciones →</a><br><a class="cl-link" href="#panel/entregas">Entregas del laboratorio →</a></section></div></details>`;
+    const nom = asignatura(C.asig)?.corto || '';
+    const cur = curso()?.nombre || '';
+    return `<div class="sg-grupos">
+      <h4 class="sg-card-sub">Grupos y seguimiento</h4>
+      <p class="pn-small">Grupos de ${esc(nom)} en ${esc(cur)}.</p>
+      ${gs.length ? `<ul class="org-grupos">${gs.map((g) => `<li><b>${esc(g.nombre)}</b><span class="pn-small">Código <code>${esc(g.codigo || '—')}</code> · ${Number(g.alumnos || 0)} alumnos</span></li>`).join('')}</ul>` : '<p class="pn-small">Todavía no hay grupos con esta asignatura.</p>'}
+      <a class="cl-link" href="#panel/grupos">${ic('users')} Grupos y códigos</a>
+    </div>`;
   }
   // ---- Trabajo de clase
   // v5 · Gestión del profesor: lo que antes estaba en «Trabajo de clase» (todo junto, con filtros por estado,
@@ -175,7 +181,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const bar = prof ? `<div class="cl-bar"><div class="cl-crear"><button class="btn primary cl-crear-b" data-cl="crear" aria-haspopup="true" aria-expanded="${C.crear}">＋ Crear</button>
         ${C.crear ? `<div class="cl-crear-m" role="menu">${[['tarea', 'Tarea'], ['examen', 'Tarea de cuestionario'], ['pregunta', 'Pregunta'], ['material', 'Material']].map(([t, n]) => `<button role="menuitem" data-cl="nuevo" data-tipo="${t}"><span>${icono(t)}</span>${n}</button>`).join('')}
           <hr><button role="menuitem" data-cl="reutilizar"><span>♻️</span>Reutilizar publicación</button><button role="menuitem" data-cl="nuevoTema"><span>🗂</span>Tema</button></div>` : ''}</div>
-        ${gestion ? `<button class="btn" data-cl="importar">⬇ Importar de Classroom</button><button class="btn" data-cl="importarJSON">${ic('upload')} Importar JSON</button><button class="btn" data-cl="banco">${ic('archive')} Banco de preguntas</button><button class="btn" data-cl="directo">${ic('radio')} Pregunta en directo</button>${nDrive(E.items) ? `<button class="btn" data-cl="sustDrive" title="Sube los archivos (PDF, imágenes…) y sustituyen a los enlaces de Drive con el mismo nombre">${ic('upload')} Sustituir adjuntos de Drive <span class="pn-small">(${nDrive(E.items)})</span></button><input type="file" data-cl-sust multiple hidden>` : ''}` : `<span class="pn-small cl-sec-n">${E.items.length} en ${esc(nomSec(sec))}</span>`}<span class="pn-grow"></span>
+        ${gestion ? `<button class="btn" data-cl="banco">${ic('archive')} Banco de preguntas</button><button class="btn" data-cl="directo">${ic('radio')} Pregunta en directo</button>${nDrive(E.items) ? `<button class="btn" data-cl="sustDrive" title="Sube los archivos (PDF, imágenes…) y sustituyen a los enlaces de Drive con el mismo nombre">${ic('upload')} Sustituir adjuntos de Drive <span class="pn-small">(${nDrive(E.items)})</span></button><input type="file" data-cl-sust multiple hidden>` : ''}` : `<span class="pn-small cl-sec-n">${E.items.length} en ${esc(nomSec(sec))}</span>`}<span class="pn-grow"></span>
         </div>${gestion ? chipsEstadoHTML(E) : ''}` : '';
     if (sec && !E.items.length) return bar + `<div class="cl-vacio"><p>Todavía no hay nada en «${esc(nomSec(sec))}».</p><p>Pulsa <b>＋ Crear</b> o cambia la sección de un elemento al editarlo (en «Gestión» está todo junto).</p></div>`;
     if (!E.items.length && !E.temas.length) return bar + (prof
@@ -187,7 +193,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const sinL = E.sin.filter(okE);
     const sin = (!filtro && (sinL.length || (prof && !fe))) ? `<section class="cl-tema cl-sin" data-tema="">${prof ? '<header class="cl-th cl-th-sin"><h3>Sin tema</h3></header>' : ''}<div class="cl-items" data-lista="">${sinL.map(itemHTML).join('') || (prof ? '<p class="cl-hueco">Arrastra aquí lo que no tenga tema.</p>' : '')}</div></section>` : '';
     const temas = E.temas.filter((t) => !filtro || t.id === filtro).map((t, i, L) => { const I = E.de(t.id).filter(okE); return fe && !I.length ? '' : temaHTML(t, I, i, L.length); }).join('');
-    return bar + `<div class="cl-grid">${lado}<div class="cl-temas" data-temas>${sin}${temas || (fe && !sin ? '<p class="pn-small">Nada con este filtro.</p>' : '')}</div></div>` + (gestion ? gruposSeguimientoHTML() : '');
+    return bar + `<div class="cl-grid">${lado}<div class="cl-temas" data-temas>${sin}${temas || (fe && !sin ? '<p class="pn-small">Nada con este filtro.</p>' : '')}</div></div>`;
   }
   function temaHTML(t, items, i, n) {
     return `<section class="cl-tema" data-tema="${esc(t.id)}" id="tema-${esc(t.id)}">

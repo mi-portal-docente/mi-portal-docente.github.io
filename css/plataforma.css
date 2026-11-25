@@ -755,7 +755,7 @@ html[data-theme="dark"] .cc-t, html[data-theme="dark"] .cc-dato { color: #e5e5ea
 .screen { overflow-x: hidden; }
 .tbl-scroll { display: block; min-width: 0; max-width: calc(100% + 4px); overflow-x: auto; overflow-y: hidden; padding: 2px 2px 12px; margin: -2px -2px -12px; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 .tbl-scroll > table { margin: 0; }
-.pn-ent > *, .ap-libro > *, .cl-grid > *, .cl-dlg-b > *, .co-grid > *, .p5-grid > *, .pn-layout > *, .org-cols > *, .cl-tablon-prof > *, .cl-stream > * { min-width: 0; }
+.pn-ent > *, .ap-libro > *, .cl-grid > *, .cl-dlg-b > *, .co-grid > *, .p5-grid > *, .pn-layout > *, .org-cols > *, .cl-tablon-prof > *, .cl-stream > *, .sg-grid > *, .sg-card > *, .sg-card-b > * { min-width: 0; }
 @media (max-width: 1000px) { .ap-libro { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 900px) { .pn-ent, .co-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 860px) { .cl-grid, .p5-grid { grid-template-columns: minmax(0, 1fr); } }

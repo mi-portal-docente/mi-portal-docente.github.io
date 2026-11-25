@@ -93,6 +93,9 @@ try {
   const tp = await pestañas(P.pg);
   ok('profesor: Avisos · Teoría · Ejercicios en clase · Tareas · Test · Exámenes · Laboratorio · Gestión', tp.join('|') === 'Avisos|Teoría|Ejercicios en clase|Tareas|Test|Exámenes|Laboratorio|Gestión', tp.join('|'));
   ok('Gestión: grupos y seguimiento, filtros por estado, programación y botones de importar', !!(await P.pg.$('#asTrabajo .org-chips')) && /Grupos y seguimiento/.test(await P.pg.textContent('#asig')) && /Programación de la asignatura/.test(await P.pg.textContent('#asig')) && !!(await P.pg.$('#asTrabajo [data-cl=importarJSON]')));
+  const cards = await P.pg.$$eval('#asTrabajo .sg-card[data-sg-card]', (l) => l.map((x) => x.dataset.sgCard).join(','));
+  ok('Gestión: tarjetas Asignaturas, Calificaciones, Exportar y copias, Ajustes', cards === 'asignaturas,calificaciones,exportar,ajustes', cards);
+  ok('Gestión: botones y enlaces de siempre en las tarjetas', !!(await P.pg.$('#asTrabajo [data-cl=exportarZip]')) && !!(await P.pg.$('#asTrabajo [data-cl=importar]')) && !!(await P.pg.$('#asTrabajo [data-cl=importarJSON]')) && !!(await P.pg.$('#asTrabajo [data-cl=secGuardar]')) && !!(await P.pg.$('#asTrabajo [data-cl=banco]')) && !!(await P.pg.$('#asTrabajo a[href="#panel/notas"]')) && !!(await P.pg.$('#asTrabajo a[href="#panel/entregas"]')) && !!(await P.pg.$('#asTrabajo [data-sg-act]')));
   ok('Gestión: todo junto (7 elementos, también el borrador)', (await P.pg.$$('#asTrabajo .cl-it[data-item]')).length === 7);
   await P.pg.screenshot({ path: CAP + 'v5_profesor_gestion.png', fullPage: false });
   const enSec = async (sec) => { await P.pg.goto(BASE + '#asig/eee/' + sec); await P.pg.waitForFunction((s) => document.querySelector('#tab-' + s)?.getAttribute('aria-selected') === 'true' && document.querySelector('#asTrabajo .cl-bar'), sec, { timeout: 15000 }); return P.pg.$$eval('#asTrabajo .cl-it[data-item]', (l) => l.map((x) => x.dataset.item).sort().join(',')); };
