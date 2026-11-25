@@ -25,6 +25,7 @@ import { copiarContenido } from './aula-copia.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
 import { exportarCurso, limpiarCurso } from './curso-datos.js';
 import { totalCopia } from '../lms/copia.js';
+import { calcularAjuste, ajusteDe, ajustesDe, soloAjustes, claveRespuesta } from '../lms/ajustes.js';
 
 // Elementos que entregan «Aciertos: a/t» (actividades de clase y motores entregables: explicación, laboratorios…)
 const conResultado = (t) => t === 'actividad' || !!motor(t)?.entregable;
@@ -259,7 +260,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
           const resp = ab && q.extension === 'larga' && v != null ? `<div class="ap-ab dc-ro">${limpiarDoc(String(v))}</div>` : `<div>➜ <b>${esc(txt)}</b></div>`;
           const rub = ab && q.rubrica?.length ? `<table class="pn-t ap-qrub">${q.rubrica.map((rc, i) => `<tr><td>${esc(rc.c)}</td><td class="c"><span class="ap-niv" role="group" aria-label="Subniveles">${nivelesBotones(q.id, i, rc)}</span><input type="number" class="ap-qr" data-qid="${esc(q.id)}" data-ri="${i}" min="0" max="${esc(rc.p)}" step="${esc(rc.paso || 0.25)}" value="${esc(det[q.id + '_r' + i] ?? '')}"> / ${esc(fmtNota(rc.p))}</td></tr>`).join('')}</table>` : '';
           return `<li class="${ab && !(q.id in det) ? 'med' : okk ? 'ok' : p > 0 ? 'med' : 'ko'}"><div>${esc(q.tipo === 'variables' ? sustituir(q.enunciado, valoresAlumno(q.variables, V.semilla, q.id)) : q.enunciado)}${ex.examen?.barajar ? ` <span class="pn-small">(n.º ${numEx.get(q.id)} del examen)</span>` : ''}</div>${resp}${ab ? '' : `<div class="pn-small">Solución: ${esc(sol || '(manual)')}</div>`}${rub}
-            <label class="pn-small">Puntos <input type="number" class="ap-qpts" data-qid="${esc(q.id)}" min="0" max="${esc(q.puntos || 1)}" step="${esc(q.paso || 0.25)}" value="${esc(p)}"> / ${esc(fmtNota(q.puntos || 1))}${q.paso ? ` <span class="pn-small">(de ${esc(fmtNota(q.paso))} en ${esc(fmtNota(q.paso))})</span>` : ''}${auto.revisar.includes(q.id) ? ' · <b>revisar</b>' : ''}</label></li>`;
+            <label class="pn-small">Puntos <input type="number" class="ap-qpts" data-qid="${esc(q.id)}" min="0" max="${esc(q.puntos || 1)}" step="${esc(q.paso || 0.25)}" value="${esc(p)}"> / ${esc(fmtNota(q.puntos || 1))}${q.paso ? ` <span class="pn-small">(de ${esc(fmtNota(q.paso))} en ${esc(fmtNota(q.paso))})</span>` : ''}${auto.revisar.includes(q.id) ? ' · <b>revisar</b>' : ''}</label>${ab || !tr ? '' : ajusteHTML(it, q, p, det, r, id)}</li>`;
         }).join('')}</ol>`;
         if (it.examen?.pantallaCompleta || ex.examen?.pantallaCompleta) h += salidasHTML(id);
       }
@@ -331,7 +332,50 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const manual = {}; pq.forEach((q) => { if (det[q.id] != null) manual[q.id] = det[q.id]; });
     const V = versionAlumno(ex.examen, it.id, `${g.id}_${ab.n}`);
     const auto = corregirExamen(pq, k, r, manual, { s: V.semilla });
-    abrirRevisionExamen({ titulo: it.titulo, quien: `${g.nombre} · nº ${pad(ab.n)}`, examen: ex.examen, V, K: k, resp: r, auto, estado: tr?.estado === 'en_curso' ? 'Examen empezado, sin entregar' : 'Entregado', fecha: fFecha(tr?.fecha), nota: nt?.nota ?? null, publicada: !!nt?.publicada, comentario: nt?.comentario || '' });
+    abrirRevisionExamen({ titulo: it.titulo, quien: `${g.nombre} · nº ${pad(ab.n)}`, examen: ex.examen, V, K: k, resp: r, auto, estado: tr?.estado === 'en_curso' ? 'Examen empezado, sin entregar' : 'Entregado', fecha: fFecha(tr?.fecha), nota: nt?.nota ?? null, publicada: !!nt?.publicada, comentario: nt?.comentario || '', ajustes: det, ajustar: async (qid, pts, todos) => { await ajustar(it, g, ab.n, qid, pts, todos); pintarDetalle(); verExamenCompleto(); } });
+  }
+  // ===== Ajustes del profesor: «Dar por válida», puntos a mano y deshacer (lms/ajustes.js). Solo se escribe notas/{id}.
+  function igualesA(it, q, r, id) {
+    if (q.tipo === 'variables' || r?.[q.id] == null) return [];
+    const c = claveRespuesta(r[q.id]); const max = Number(q.puntos) > 0 ? Number(q.puntos) : 1;
+    return [...A.trabajos.values()].filter((t) => t.item === it.id && t.id !== id && t.estado !== 'en_curso' && claveRespuesta(t.respuestas?.[q.id]) === c && !ajusteDe(A.notas.get(t.id)?.detalle, q.id)
+      && (A.notas.get(t.id)?.detalle?.[q.id] ?? corregirExamen([q], A.cargaEx.get(it.id)?.claves?.respuestas || {}, t.respuestas || {}, {}, { s: semillaAlumno(it.id, t.al) }).detalle[q.id]) < max);
+  }
+  function ajusteHTML(it, q, p, det, r, id) {
+    const aj = ajusteDe(det, q.id); const max = Number(q.puntos) > 0 ? Number(q.puntos) : 1; const q1 = esc(q.id);
+    const otros = aj ? [] : igualesA(it, q, r, id);
+    return `<div class="aj-bar" role="group" aria-label="Ajuste del profesor">${aj ? `<span class="aj-badge" title="Automática: ${esc(fmtNota(aj.a))} pt">${ic('user-check')} Ajustada por el profesor · antes ${esc(fmtNota(aj.a))} pt</span>` : ''}
+      ${p < max ? `<button type="button" class="btn small aj-ok" data-ap="ajValida" data-qid="${q1}">${ic('check')} Dar por válida</button>` : ''}
+      <button type="button" class="btn small" data-ap="ajPuntos" data-qid="${q1}" title="Guarda los puntos escritos en esta pregunta">${ic('pencil')} Aplicar puntos</button>
+      ${aj ? `<button type="button" class="btn small" data-ap="ajDeshacer" data-qid="${q1}">${ic('undo-2')} Deshacer</button>` : ''}
+      ${p < max && otros.length ? `<button type="button" class="btn small" data-ap="ajTodos" data-qid="${q1}" title="La misma respuesta, en este grupo">${ic('users')} Válida para todos los que respondieron igual (${otros.length + 1})</button>` : ''}</div>`;
+  }
+  async function ajustar(it, g, n, qid, pts, todos = false) {
+    const ex = A.cargaEx.get(it.id); if (!ex) return;
+    const id = idTrabajo(it.id, g.id, n); const tr = A.trabajos.get(id); if (!tr) return;
+    const q = (ex.examen?.preguntas || []).find((x) => x.id === qid);
+    const lista = [tr, ...(todos && q ? igualesA(it, q, tr.respuestas || {}, id) : [])];
+    if (todos && !(await confirmar(`¿Dar por válida esta respuesta a ${lista.length} alumnos de ${g.nombre} que respondieron lo mismo? Se puede deshacer en cada uno.`, { aceptar: 'Dar por válida' }))) return;
+    const ops = [];
+    for (const t of lista) {
+      const nt = A.notas.get(t.id) || null;
+      const r = calcularAjuste({ preguntas: ex.examen?.preguntas || [], claves: ex.claves?.respuestas || {}, respuestas: t.respuestas || {}, s: semillaAlumno(it.id, t.al) }, nt, qid, pts);
+      if (r.error) continue;
+      const datos = { item: it.id, curso: it.curso, asig: it.asig, al: t.al || `${g.id}_${t.numero}`, grupo: g.id, numero: t.numero ?? n, comentario: nt?.comentario || '', ...r.datos, fecha: Date.now() };
+      A.notas.set(t.id, { id: t.id, ...datos }); // se ve al momento; el snapshot lo confirma
+      ops.push({ db, fn: (b) => b.set(doc(db, 'notas', t.id), datos) });
+    }
+    await enLotes(ops);
+  }
+  async function accionAjuste(acc, qid) {
+    const g = grupoSel(); const ab = A.abierta; const it = ab && st.items.get(ab.k); if (!g || !it) return;
+    const q = (A.cargaEx.get(it.id)?.examen?.preguntas || []).find((x) => x.id === qid); if (!q) return;
+    const max = Number(q.puntos) > 0 ? Number(q.puntos) : 1;
+    let pts = max;
+    if (acc === 'ajPuntos') { const i = A.el.querySelector(`#apDetalle .ap-qpts[data-qid="${CSS.escape(qid)}"]`); const v = String(i?.value ?? '').replace(',', '.'); if (v === '' || Number.isNaN(+v)) return; pts = +v; }
+    if (acc === 'ajDeshacer') pts = null;
+    await ajustar(it, g, ab.n, qid, pts, acc === 'ajTodos');
+    pintarDetalle();
   }
   function recalcular() {
     const D = $('#apDetalle'); const ab = A.abierta; if (!D || !ab) return;
@@ -359,6 +403,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       const ex = A.cargaEx.get(it.id); const manual = {}; A.el.querySelectorAll('#apDetalle .ap-qpts').forEach((i) => { manual[i.dataset.qid] = i.value; });
       const r = corregirExamen(ex.examen?.preguntas || [], ex.claves?.respuestas || {}, A.trabajos.get(idTrabajo(it.id, g.id, ab.n))?.respuestas || {}, manual, { s: semillaAlumno(it.id, `${g.id}_${ab.n}`) });
       Object.assign(detalle, r.detalle); puntos = r.puntos; max = r.max;
+      Object.assign(detalle, soloAjustes(A.notas.get(idTrabajo(it.id, g.id, ab.n))?.detalle)); // los ajustes del profesor se conservan
     } else if (it.rubrica?.length) { const r = notaRubrica(it.rubrica, Object.fromEntries(Object.entries(detalle).map(([k, v]) => [k.slice(1), v]))); puntos = r.puntos; max = r.max; }
     msg.textContent = 'Guardando…'; msg.className = 'pn-msg';
     try {
@@ -511,6 +556,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       if (acc === 'notasActividad' && col) { b.disabled = true; await notasActividad(col); }
       if (acc === 'corregir' && col && st.items.get(col)) { corr.abrir(st.items.get(col), grupoSel()); pintar(true); return; }
       if (acc === 'verExamen' && A.abierta) { verExamenCompleto(); return; }
+      if (['ajValida', 'ajPuntos', 'ajDeshacer', 'ajTodos'].includes(acc) && A.abierta) { b.disabled = true; await accionAjuste(acc, b.dataset.qid); return; }
       if (acc === 'corregirAl' && A.abierta && st.items.get(A.abierta.k)) { corr.abrir(st.items.get(A.abierta.k), grupoSel(), A.abierta.n); pintar(true); return; }
       if (acc === 'publicarNotas' && col) await publicarNotas(col);
       if (acc === 'csvNotas') exportarCSV();

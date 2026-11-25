@@ -446,3 +446,17 @@ main.subj-wrap { flex: none; }
 .pl-mon-in input { flex: 1; min-width: 0; font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 1px solid #3a4148; background: #15171a; color: #fff; }
 .placa-cta { margin: 14px 0; padding: 12px 14px; border-radius: 12px; background: #eefaf2; border: 1px solid #9fd3b4; }
 .placa-cta-b { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+/* Ajustes del profesor en la corrección de exámenes («Dar por válida»): t174u */
+.aj-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.aj-bar .btn.small { min-height: 32px; }
+.aj-bar .aj-ok { color: #0f7a3a; }
+.aj-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; background: #506C88; }
+.aj-badge svg { width: 14px; height: 14px; }
+.rv-form .aj-bar { margin: -4px 0 14px; padding: 8px 10px; border-radius: 14px; background: rgba(80,108,136,.08); }
+html[data-theme="dark"] .aj-bar .aj-ok { color: #6fdc9a; }
+html[data-theme="dark"] .aj-badge { background: #6f8aa6; color: #0b0d10; }
+html[data-theme="dark"] .rv-form .aj-bar { background: rgba(255,255,255,.05); }
+.aj-bar .btn.small { max-width: 100%; white-space: normal; text-align: left; }
+html[data-theme="dark"] .ap-resp li.ok { background: rgba(52,199,89,.16); }
+html[data-theme="dark"] .ap-resp li.ko { background: rgba(222,7,20,.18); }
+html[data-theme="dark"] .ap-resp li.med { background: rgba(255,159,10,.16); }

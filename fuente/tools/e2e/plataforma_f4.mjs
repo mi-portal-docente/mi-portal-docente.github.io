@@ -3,7 +3,7 @@ const menu = (pg, id, acc) => pg.evaluate(([i, a]) => document.querySelector(`#a
 export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJSON }) {
   const pg = T.P.pg;
   await pg.goto(BASE + '#asig/eee/trabajo');
-  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   const EXP = { tipo: 'explicacion', titulo: 'Explicación de prueba', puntos: 10, criterio: 'eee_c2_1', contenido: { diapositivas: [
     { titulo: 'Qué vamos a ver', texto: 'Texto de la **primera** diapositiva.', imagen: 'img/fotos/eee.webp', alt: 'Foto' },
     { titulo: 'Comprueba', texto: 'Pregunta de control:', pregunta: { tipo: 'vf', enunciado: 'La afirmación de prueba es verdadera.', correcta: true, explicacion: 'Porque sí.' } },

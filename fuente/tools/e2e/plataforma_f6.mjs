@@ -74,7 +74,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await pg.check('#apItemForm [name=estado][value=publicar]'); await pg.click('#apItemForm button[type=submit]'); await pg.waitForTimeout(1500);
   // ------------------------------------------------------------- elemento «info» importado en JSON
   await pg.goto(BASE + '#asig/tic1/trabajo');
-  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   await pegarJSON(pg, { tipo: 'web', titulo: 'x', contenido: { retos: [{ titulo: 'a', enunciado: 'b', comprobaciones: [{ tipo: 'estilo', selector: 'h1' }] }] } });
   await pg.waitForSelector('#jsErr li', { timeout: 10000 });
   ok('JSON web con errores: ruta y mensaje en castellano', /comprobaciones\[0\]\.propiedad/.test(await pg.textContent('#jsErr')));

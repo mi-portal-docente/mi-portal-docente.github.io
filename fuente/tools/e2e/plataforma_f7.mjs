@@ -41,7 +41,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await shot(pg, 'f7_averia_encontrada');
   // ------------------------------------------------------------- tarea importada en JSON
   await pg.goto(BASE + '#asig/eee/trabajo');
-  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   await pegarJSON(pg, { tipo: 'averia', titulo: 'x', contenido: { montaje: '{"parts":[],"wires":[]}', averia: { elemento: 'R1', tipo: 'abierto' } } });
   await pg.waitForSelector('#jsErr li', { timeout: 10000 });
   ok('JSON de avería con un elemento que no existe: error en castellano', /No hay ningún componente ni cable «R1»/.test(await pg.textContent('#jsErr')));

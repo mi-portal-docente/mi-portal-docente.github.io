@@ -4,7 +4,7 @@ const menu = (pg, id, acc) => pg.evaluate(([i, a]) => document.querySelector(`#a
 const local = (ms) => { const d = new Date(ms); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 async function importarYPublicar(pg, BASE, asig, el, { pegarJSON, guardarJSON }, antes) {
   await pg.goto(BASE + `#asig/${asig}/trabajo`);
-  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   await pegarJSON(pg, el); await pg.waitForSelector('#jsPrev .js-prev', { timeout: 10000 }); await guardarJSON(pg);
   await pg.waitForSelector(`#asTrabajo .cl-it:has-text("${el.titulo}")`, { timeout: 15000 });
   const id = await pg.getAttribute(`#asTrabajo .cl-it:has-text("${el.titulo}")`, 'data-item');

@@ -7,7 +7,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const pg = T.P.pg;
   const EL = { tipo: 'documento', titulo: 'Informe: el circuito de mi casa', texto: 'Describe el circuito eléctrico de una habitación.', puntos: 10,
     contenido: { plantilla: '<h2>Introducción</h2><p>Escribe aquí.</p><h2>Componentes</h2><p>…</p>', palabrasMin: 20 }, rubrica: [{ criterio: 'Contenido', puntos: 10 }] };
-  await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   await pegarJSON(pg, EL); await pg.waitForSelector('#jsPrev .js-prev', { timeout: 10000 }); await guardarJSON(pg);
   await pg.waitForSelector(`#asTrabajo .cl-it:has-text("${EL.titulo}")`, { timeout: 15000 });
   const id = await pg.getAttribute(`#asTrabajo .cl-it:has-text("${EL.titulo}")`, 'data-item');

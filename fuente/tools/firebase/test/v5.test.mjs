@@ -86,3 +86,23 @@ describe('v5 · plantillas de examen', () => {
     await assertFails(setDoc(doc(profe(), 'plantillas/plaA03'), { ...P, nombre: '' }));
   });
 });
+
+describe('t174u · ajustes del profesor en la nota de un examen («Dar por válida»)', () => {
+  const N = { item: 'itemM01', curso: 'c2627', asig: 'eee', al: 'g1_7', grupo: 'g1', numero: 7, nota: 3.33, puntos: 1, max: 3, detalle: { t1: 0, v1: 1, c1: 0 }, comentario: '', publicada: true, fecha: 1 };
+  const AJ = { ...N, nota: 6.67, puntos: 2, detalle: { t1: 1, v1: 1, c1: 0, 'aj:t1': { a: 0, p: 1, f: 2 }, 'aj:_': { nota0: 3.33, pub0: true, creada: false } } };
+  test('el profesor guarda y deshace un ajuste con las reglas de siempre', async () => {
+    await assertSucceeds(setDoc(doc(profe(), 'notas/itemM01_g1_7'), N));
+    await assertSucceeds(setDoc(doc(profe(), 'notas/itemM01_g1_7'), AJ));
+    await assertSucceeds(setDoc(doc(profe(), 'notas/itemM01_g1_7'), N));
+  });
+  test('el alumno NO puede escribir ajustes ni cambiar su nota (ni crearla, ni actualizarla)', async () => {
+    await assertFails(setDoc(doc(anon('a7'), 'notas/itemM01_g1_7'), AJ));
+    await sembrar(async (db) => setDoc(doc(db, 'notas/itemM01_g1_7'), N));
+    await assertFails(updateDoc(doc(anon('a7'), 'notas/itemM01_g1_7'), { 'detalle.t1': 1, nota: 6.67 }));
+    await assertFails(setDoc(doc(anon('a7'), 'notas/itemM01_g1_7'), AJ));
+    await assertSucceeds(getDoc(doc(anon('a7'), 'notas/itemM01_g1_7'))); // la suya, publicada, sí la lee
+  });
+  test('campos nuevos fuera de «detalle» siguen sin estar permitidos (no hay que pegar reglas)', async () => {
+    await assertFails(setDoc(doc(profe(), 'notas/itemM01_g1_7'), { ...N, ajustes: {} }));
+  });
+});

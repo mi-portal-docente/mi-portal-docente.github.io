@@ -1179,3 +1179,26 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
   transiciones (p. ej. «Salir», #panel/cursos); la plantilla en 1280 «reposo» ya fallaba igual en 49710c9.
 - Capturas: /workspace/capturas-gestion/v2_*.png.
 
+## 25/11/2026 · «Dar por válida» al corregir un test o examen (t174u, 2.ª parte)
+- Dónde: Panel → Cuaderno → casilla del alumno → «Respuestas», y también en «Ver el examen completo».
+- En cada pregunta autocorregida (no en las abiertas): **Dar por válida** (puntos completos), **Aplicar puntos** (los escritos en
+  la casilla «Puntos», p. ej. 0,5), **Deshacer** (vuelve lo automático) y, si otros alumnos del grupo dieron la MISMA respuesta,
+  **Válida para todos los que respondieron igual (n)** (pide confirmación; no en preguntas con datos por alumno).
+- La nota se recalcula al momento (detalle, cuaderno, examen completo y alumno si está publicada) y sale la marca
+  «Ajustada por el profesor · antes X pt» (el alumno ve «Ajustada por el profesor» junto a su nota).
+- Datos (src/lms/ajustes.js), SIN migración y SIN cambiar reglas: todo va en `notas/{id}.detalle`, que ya es un mapa libre:
+  - `detalle[idPregunta]` sigue siendo los puntos de la pregunta (como siempre);
+  - `detalle['aj:' + idPregunta] = { a: puntos automáticos, p: puntos puestos, f: fecha }`;
+  - `detalle['aj:_'] = { nota0, pub0, creada }` (nota antes del primer ajuste).
+  - Si la nota tenía un retoque a mano, el ajuste suma la diferencia (no la pisa). Al deshacer el último ajuste vuelve
+    exactamente la nota de antes (o la automática si la nota la creó el ajuste). «Guardar nota» conserva los ajustes.
+  - `trabajos/{id}` (respuestas del alumno) no se toca nunca. Notas sin claves `aj:` se ven y calculan igual que antes.
+  - Promedios, CSV, analítica por criterio y la vista del alumno ya leen `nota` y `detalle[q.id]`: no necesitan cambios.
+- Reglas: NO cambian (notas solo las escribe el profesor; el alumno no). Pruebas nuevas en firebase/test/v5.test.mjs
+  (el profesor guarda y deshace; el alumno no puede crear ni actualizar su nota con ajustes): reglas 152/152.
+- Pruebas: ajustes_test.mjs (unidad); e2e/plataforma_f16.mjs (válida → 6,67 en detalle, cuaderno y alumno; Guardar nota
+  conserva; deshacer desde el examen completo → 3,33; válida para todos (21 y 24); la nota antigua del 22 idéntica;
+  deshacer en el 24; puntos parciales; móvil sin scroll lateral) — 15/15 OK; F15 OK; examen_v5 8/8; notas_v5 2/2.
+- e2e/run_validar.sh + firebase/firebase.validar.json: los mismos e2e con puertos propios (8391/9401/8776) para no chocar
+  con otros emuladores en la misma máquina (PRUEBA=aula|reglas|plataforma, FASES=…).
+- Capturas: /workspace/capturas-validar/. Caché v5-20261125e.

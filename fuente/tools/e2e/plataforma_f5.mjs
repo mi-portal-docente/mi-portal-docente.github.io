@@ -45,7 +45,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
 
   // ------------------------------------------------------------- elemento importado en JSON
   await pg.goto(BASE + '#asig/cdpc1/trabajo');
-  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   const P5 = { tipo: 'p5', titulo: 'Retos p5 de prueba', puntos: 10, contenido: { retos: [
     { id: 'rojo', titulo: 'Cuadrado rojo', enunciado: 'Dibuja un cuadrado rojo que tape el punto (50, 50).', codigo: 'function setup() {\n  createCanvas(100, 100);\n}\nfunction draw() {\n  background(255);\n}\n',
       pistas: ['fill(255, 0, 0) pone el relleno rojo.'], comprobaciones: [{ tipo: 'codigo', contiene: 'rect(' }, { tipo: 'pixel', x: 50, y: 50, color: '#ff0000', tolerancia: 10 }] },

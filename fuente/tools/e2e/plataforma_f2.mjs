@@ -4,7 +4,7 @@ const SHOTS_V5 = process.env.SHOTS_V5 || '/workspace/capturas-v5/';
 export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJSON, local }) {
   const pg = T.P.pg;
   await pg.goto(BASE + '#asig/eee/trabajo');
-  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   const EX = { tipo: 'examen', titulo: 'Examen tipos nuevos', puntos: 10,
     examen: { abre: local(Date.now() - 600e3), cierra: local(Date.now() + 7200e3), limiteMin: 30, barajar: true, pantallaCompleta: true },
     preguntas: [

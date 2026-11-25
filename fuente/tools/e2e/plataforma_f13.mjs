@@ -8,7 +8,7 @@ const STL = () => { let s = 'solid cubo\n'; const v = [[0, 0, 0], [10, 0, 0], [1
 export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJSON }) {
   const pg = T.P.pg;
   const crear = async (EL) => {
-    await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+    await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
     await pegarJSON(pg, EL); await pg.waitForSelector('#jsPrev .js-prev', { timeout: 10000 });
     try { await guardarJSON(pg); } catch (e) { throw new Error('guardar: ' + (await pg.textContent('#jsErr').catch(() => ''))); }
     await pg.waitForSelector(`#asTrabajo .cl-it:has-text("${EL.titulo}")`, { timeout: 15000 });

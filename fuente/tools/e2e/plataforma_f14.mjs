@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJSON, PROMPT }) {
   const pg = T.P.pg;
   const EL = { tipo: 'tarea', titulo: 'Tarea F14 para la copia', texto: 'Describe un fusible.', puntos: 10 };
-  await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   await pegarJSON(pg, EL); await pg.waitForSelector('#jsPrev .js-prev', { timeout: 10000 }); await guardarJSON(pg);
   await pg.waitForSelector(`#asTrabajo .cl-it:has-text("${EL.titulo}")`, { timeout: 15000 });
   const id = await pg.getAttribute(`#asTrabajo .cl-it:has-text("${EL.titulo}")`, 'data-item');

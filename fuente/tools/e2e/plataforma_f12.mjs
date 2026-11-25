@@ -5,7 +5,7 @@ const num = (f) => Number(f?.doubleValue ?? f?.integerValue);
 export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJSON, local }) {
   const pg = T.P.pg;
   const crear = async (EL) => {
-    await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+    await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
     await pegarJSON(pg, EL); await pg.waitForSelector('#jsPrev .js-prev', { timeout: 10000 });
     const prev = await pg.textContent('#jsPrev');
     try { await guardarJSON(pg); } catch (e) { throw new Error('guardar: ' + (await pg.textContent('#jsMsg').catch(() => '')) + ' ' + (await pg.textContent('#jsErr').catch(() => ''))); }

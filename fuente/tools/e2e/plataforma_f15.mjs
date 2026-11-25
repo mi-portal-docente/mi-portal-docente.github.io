@@ -15,7 +15,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
       { id: 'z1', tipo: 'zonas', enunciado: 'Pulsa la zona A', imagen: IMG, alt: 'Plano', zonas: [{ x: 5, y: 5, w: 40, h: 40, nombre: 'Zona A', correcta: true }, { x: 55, y: 55, w: 30, h: 30, nombre: 'Zona B', correcta: false }] },
       { id: 'k1', tipo: 'colores', enunciado: 'Lee la resistencia', clase: 'resistencia4', bandas: ['Marrón', 'Negro', 'Rojo', 'Oro'], modo: 'leer' },
       { id: 'k2', tipo: 'colores', enunciado: 'Pinta la bobina', clase: 'inductor', bandas: ['Amarillo', 'Violeta', 'Rojo', 'Plata'], modo: 'pintar' }] };
-  await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.goto(BASE + '#asig/eee/trabajo'); await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   await pegarJSON(pg, EX); await pg.waitForSelector('#jsPrev .js-prev', { timeout: 10000 }).catch(async (e) => { throw new Error('JSON inválido: ' + (await pg.textContent('#jsErr').catch(() => ''))); }); await guardarJSON(pg);
   await pg.waitForSelector(`#asTrabajo .cl-it:has-text("${EX.titulo}")`, { timeout: 15000 });
   const id = await pg.getAttribute(`#asTrabajo .cl-it:has-text("${EX.titulo}")`, 'data-item');

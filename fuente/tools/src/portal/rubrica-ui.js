@@ -96,5 +96,6 @@ export function notaAlumnoHTML(n, icono = '💬') {
   const ap = n.nota >= 5;
   return `<div class="au-nota rb-nota ${ap ? 'ok' : 'ko'}"><div class="rb-nota-n"><span class="rb-nota-big">${esc(fmtNota(n.nota))}</span><span class="rb-nota-de">/ 10</span></div>
     <div class="rb-nota-tx"><b>${ap ? 'Aprobado' : 'Sin aprobar todavía'}</b>${n.max && n.puntos != null ? `<span class="pn-small">${esc(fmtNota(n.puntos))} de ${esc(fmtNota(n.max))} puntos de la rúbrica</span>` : ''}
+    ${n.detalle && Object.keys(n.detalle).some((k) => k.startsWith('aj:') && k !== 'aj:_') ? `<span class="aj-badge">Ajustada por el profesor</span>` : ''}
     ${n.comentario ? `<div class="au-nota-c">${icono} ${esc(n.comentario)}</div>` : ''}</div></div>`;
 }

@@ -46,7 +46,7 @@ async function loginAlumno(pg, codigo, numero, pin) {
 }
 export const local = (ms) => { const d = new Date(ms); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 async function pegarJSON(pg, obj) {
-  await pg.click('#asTrabajo [data-cl=importarJSON]');
+  await pg.evaluate(() => document.querySelector('#asTrabajo [data-cl=importarJSON]').click()); // desde d663e9c está dentro de Gestión (puede estar oculto)
   await pg.waitForSelector('.cl-modal [data-m-f=json]');
   await pg.fill('.cl-modal [data-m-f=json]', typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
   await pg.click('.cl-modal [data-m=validar]');

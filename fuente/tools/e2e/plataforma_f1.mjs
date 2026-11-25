@@ -3,7 +3,7 @@ const menu = (pg, id, acc) => pg.evaluate(([i, a]) => document.querySelector(`#a
 export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJSON, local }) {
   const pg = T.P.pg;
   await pg.goto(BASE + '#asig/eee/trabajo');
-  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000 });
+  await pg.waitForSelector('#asTrabajo [data-cl=importarJSON]', { timeout: 20000, state: 'attached' });
   await pegarJSON(pg, '{ "tipo": "examen", "titulo": "Roto", }');
   await pg.waitForSelector('#jsErr li');
   ok('JSON mal escrito: error en castellano', /No es un JSON válido/.test(await pg.textContent('#jsErr')));
