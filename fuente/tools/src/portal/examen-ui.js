@@ -192,7 +192,12 @@ export const nombreTipoPregunta = (t) => TIPOS_PREGUNTA[t]?.nombre || t;
 
 // Marca cada pregunta ya corregida (bien / a medias / mal) y, si se permite, su solución. La usan la actividad
 // interactiva y «Probar como alumno» del profesor. resp (opcional): respuestas, para el detalle por partes.
-export const MARCADORES = { colores: marcarColores }; // tipo → (fs, q, clave, respuesta) para marcar por partes (p. ej. «colores»)
+// «zonas»: al corregir se dibujan sobre la imagen las zonas correctas (y las demás en discontinuo), junto a la marca del alumno
+function marcarZonas(fs, q, k, r, soluciones = true) {
+  const caja = fs.querySelector('[data-zonas]'); if (!caja || !soluciones || !Array.isArray(k)) return;
+  caja.insertAdjacentHTML('beforeend', k.map((z) => `<span class="ex-zona-sol ${z.correcta ? 'ok' : 'otra'}" style="left:${Number(z.x)}%;top:${Number(z.y)}%;width:${Number(z.w)}%;height:${Number(z.h)}%" title="${esc(z.nombre || '')}"></span>`).join(''));
+}
+export const MARCADORES = { colores: marcarColores, zonas: marcarZonas }; // tipo → (fs, q, clave, respuesta) para marcar por partes (p. ej. «colores»)
 export function marcarCorreccion(fieldsets, P, K, detalle, soluciones = true, resp = {}) {
   fieldsets.forEach((fs) => {
     const q = P.find((x) => x.id === fs.dataset.q); if (!q) return;

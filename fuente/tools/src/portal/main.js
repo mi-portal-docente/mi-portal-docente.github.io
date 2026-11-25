@@ -13,6 +13,7 @@ import { copiarContenido, ultimoCursoCon, tieneContenido } from './aula-copia.js
 import { instalarVisorPDF, abrirPDF } from './visor-pdf.js';
 import { instalarBotones3D } from './modelo3d-ui.js';
 import { crearVistas } from './aula-vistas.js';
+import { iniciarTablasScroll } from './tablas-scroll.js';
 import { seccionesActivas, seccionesDe, seccionesVisibles, vistaNueva, pendientesPorSeccion, seccionDe } from '../lms/secciones.js';
 import { crearClase } from './aula-clase.js';
 import { crearDirectoAlumno } from './directo.js';
@@ -570,6 +571,7 @@ async function comprobarProfesor(user, interactivo) {
 // ------------------------------------------------------------------ arranque
 export async function arrancar(cfg) {
   instalarVisorPDF(); window.PORTAL_PDF = abrirPDF;
+  iniciarTablasScroll(); // tablas anchas: se deslizan dentro de su contenedor, nunca ensanchan la página
   try { fb = iniciarFirebase(cfg); } catch (e) { console.error('[portal] Firebase no se ha podido iniciar', e); ACC.fallback?.(); return; }
   instalarBotones3D(() => fb.db);
   mostrarGate({ cargando: true });

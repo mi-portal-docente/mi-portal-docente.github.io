@@ -576,6 +576,34 @@ await P.pg.goto(BASE + '#panel/notas');
 await P.pg.waitForSelector(`td[data-celda]`, { timeout: 20000 });
 await E.ctx.close();
 
+if (process.env.BARRIDO) { // barrido de maquetación (e2e/barrido_layout.mjs) con los datos de esta prueba
+  const { barrido } = await import('./barrido_layout.mjs');
+  if (process.env.BARRIDO_ESTRES) { // datos «reales»: 24 actividades más con títulos largos en el cuaderno del grupo
+    const H = { ...owner.headers, 'Content-Type': 'application/json' };
+    for (const base of [ID_T, ID_E]) {
+      const di = await (await fetch(`${REST}/items/${base}`, owner)).json();
+      for (let i = 1; i <= 12; i++) {
+        const nid = `estres${base === ID_E ? 'e' : 't'}${i}`; const f = JSON.parse(JSON.stringify(di.fields)); f.titulo = { stringValue: `Actividad de repaso número ${i} del tema (título largo para el cuaderno)` }; f.orden = { integerValue: String(2000 + i) };
+        await fetch(`${REST}/items/${nid}`, { method: 'PATCH', headers: H, body: JSON.stringify({ fields: f }) });
+        if (base === ID_E) for (const col of ['examenes', 'claves']) { const dd = await (await fetch(`${REST}/${col}/${base}`, owner)).json(); if (dd.fields) await fetch(`${REST}/${col}/${nid}`, { method: 'PATCH', headers: H, body: JSON.stringify({ fields: dd.fields }) }); }
+      }
+    }
+    await P.pg.waitForTimeout(1500);
+  }
+  const selGrupo = async (pg) => { await pg.waitForSelector('[data-ap-f=gGrupo]'); await pg.selectOption('[data-ap-f=gGrupo]', GA.id); await pg.waitForSelector('td[data-celda]'); };
+  const rutasP = [['asignaturas', '#asignaturas', '#subjects .bib-card'], ['biblioteca', '#biblioteca', '#bibRes'], ['panel-cursos', '#panel/cursos', '#apCursoForm'], ['panel-grupos', '#panel/grupos', '#pnGrupoForm'],
+    ['panel-notas', '#panel/notas', '[data-ap-f=gGrupo]', selGrupo],
+    ['panel-notas-examen', '#panel/notas', '[data-ap-f=gGrupo]', async (pg) => { await selGrupo(pg); await pg.click(`td[data-celda="${ID_E}"][data-n="5"]`); await pg.waitForSelector('#apDetalle .ap-resp'); }],
+    ['panel-notas-criterio', '#panel/notas', '[data-ap-f=gGrupo]', async (pg) => { await selGrupo(pg); await pg.click('[data-ap=vistaNotas][data-v=criterio]'); await pg.waitForSelector('#apCritW table.ap-crit, #apCritW .pn-vacio'); }],
+    ['panel-examen-completo', '#panel/notas', '[data-ap-f=gGrupo]', async (pg) => { await selGrupo(pg); await pg.click(`td[data-celda="${ID_E}"][data-n="5"]`); await pg.waitForSelector('[data-ap=verExamen]'); await pg.click('[data-ap=verExamen]'); await pg.waitForSelector('.rv-modal .rv-form fieldset'); }],
+    ['panel-analitica', '#panel/analitica', '#pnBody'], ['panel-entregas', '#panel/entregas', '#pnTabla'], ['panel-conectados', '#panel/conectados', '#pnBody'], ['panel-ajustes', '#panel/ajustes', '#pnBody'],
+    ['asig-trabajo', '#asig/tic1/trabajo', '#asTrabajo'], ['asig-tablon', '#asig/tic1/tablon', '#asig'], ['asig-laboratorio', '#asig/eee/laboratorio', '#asig'], ['asig-actividades', '#asig/eee/actividades', '#asig'],
+    ['examen-profesor', '#trabajo/' + ID_E, '[data-au=verPreguntas]'], ['calendario', '#calendario', '.screen']];
+  const rutasA = [['asignaturas', '#asignaturas', '#subjects .bib-card'], ['asig-trabajo', '#asig/tic1/trabajo', '#asTrabajo'], ['examen-entregado', '#trabajo/' + ID_E, '.au-ok'], ['tarea', '#trabajo/' + ID_T, '.au-nota'], ['mis-trabajos', '#mis-trabajos', '.screen'], ['calendario', '#calendario', '.screen']];
+  await P.pg.goto(BASE + '#panel/notas'); await P.pg.waitForSelector('[data-ap-f=gGrupo]'); await P.pg.selectOption('[data-ap-f=gGrupo]', GA.id); await P.pg.waitForSelector('.ap-tabla');
+  await barrido({ P, A, rutasP, rutasA, ok, fase: process.env.BARRIDO });
+  await P.pg.goto(BASE + '#panel/notas'); await P.pg.waitForSelector('[data-ap-f=gGrupo]'); await P.pg.selectOption('[data-ap-f=gGrupo]', GA.id); await P.pg.waitForSelector('td[data-celda]', { timeout: 20000 });
+}
 // ================================================================ 7. reiniciar PIN
 await P.pg.click(`td[data-celda="${ID_T}"][data-n="5"]`);
 await P.pg.waitForSelector('[data-ap=pinReset]');

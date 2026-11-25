@@ -19,6 +19,7 @@ import { motor } from '../lms/elemento.js';
 import { estadoTrabajo, cuentaComoEntrega, ordenarVersiones, ESTADOS_TRABAJO } from '../lms/entrega.js';
 import { estadoChipHTML } from './entrega-ui.js';
 import { crearCorreccion } from './correccion-ui.js';
+import { abrirRevisionExamen } from './revision-examen.js';
 import { limpiarDoc } from '../lms/doc-html.js';
 import { copiarContenido } from './aula-copia.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
@@ -250,7 +251,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
         const manual = {}; pq.forEach((q) => { if (det[q.id] != null) manual[q.id] = det[q.id]; });
         const alId = `${grupoSel().id}_${ab.n}`; const V = versionAlumno(ex.examen, it.id, alId); const numEx = new Map(pq.map((q, i) => [q.id, i + 1]));
         auto = corregirExamen(pq, k, r, manual, { s: V.semilla });
-        h += `<h4>Respuestas · ${esc(fmtNota(auto.puntos))} / ${esc(fmtNota(auto.max))} puntos</h4>${ex.examen?.barajar || pq.some((q) => q.tipo === 'variables') ? `<p class="pn-small ap-ver" id="apVersion">${ic('shuffle')} Su versión: ${ex.examen?.barajar ? 'preguntas y opciones en el orden que le salieron' : 'en el orden del examen'}${pq.some((q) => q.tipo === 'variables') ? ', con sus propios datos' : ''} · semilla <code>${V.semilla}</code></p>` : ''}<ol class="ap-resp">${V.preguntas.map((q) => {
+        h += `<h4>Respuestas · ${esc(fmtNota(auto.puntos))} / ${esc(fmtNota(auto.max))} puntos</h4>${tr ? `<div class="pn-acts"><button class="btn small" type="button" data-ap="verExamen">${ic('clipboard-check')} Ver el examen completo (solo lectura)</button></div>` : ''}${ex.examen?.barajar || pq.some((q) => q.tipo === 'variables') ? `<p class="pn-small ap-ver" id="apVersion">${ic('shuffle')} Su versión: ${ex.examen?.barajar ? 'preguntas y opciones en el orden que le salieron' : 'en el orden del examen'}${pq.some((q) => q.tipo === 'variables') ? ', con sus propios datos' : ''} · semilla <code>${V.semilla}</code></p>` : ''}<ol class="ap-resp">${V.preguntas.map((q) => {
           const v = r[q.id]; const txt = respuestaTexto(q, v);
           const sol = solucionTexto(q, k[q.id]);
           const p = auto.detalle[q.id]; const okk = p >= (q.puntos || 1);
@@ -321,6 +322,16 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const R = resumenSalidas(L); const hora = (t) => new Date(t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const dur = (s) => (s == null ? 'no volvió (o cerró la página)' : s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`);
     return `<h4>${ic('shield-check')} Modo examen · salidas</h4>${R.length ? `<table class="pn-t ex-sal"><thead><tr><th>Hora</th><th>De</th><th>Duración</th></tr></thead><tbody>${R.map((x) => `<tr><td>${esc(hora(x.t))}</td><td>${esc(({ pantalla: 'pantalla completa', 'pestaña': 'la pestaña', ventana: 'la ventana (otra aplicación)', bloqueo: 'BLOQUEO de la prueba' + (x.motivo ? ' (' + x.motivo + ')' : ''), desbloqueo: 'desbloqueo con el código' })[x.tipo] || x.tipo)}</td><td>${esc((x.tipo === "bloqueo" ? "—" : x.tipo === "desbloqueo" ? (x.dur == null ? "—" : "estuvo bloqueada " + dur(x.dur)) : dur(x.dur)))}</td></tr>`).join('')}</tbody></table><p class="pn-small">${R.length} salida${R.length === 1 ? '' : 's'}. Es solo informativo: no cambia la nota.</p>` : '<p class="pn-small">Sin salidas registradas.</p>'}`;
+  }
+  // Examen completo del alumno en una ventana de solo lectura (nada se escribe)
+  function verExamenCompleto() {
+    const g = grupoSel(); const ab = A.abierta; const it = ab && st.items.get(ab.k); const ex = it && A.cargaEx.get(it.id); if (!g || !it || !ex) return;
+    const id = idTrabajo(it.id, g.id, ab.n); const tr = A.trabajos.get(id); const nt = A.notas.get(id); const det = nt?.detalle || {};
+    const pq = ex.examen?.preguntas || []; const k = ex.claves?.respuestas || {}; const r = tr?.respuestas || {};
+    const manual = {}; pq.forEach((q) => { if (det[q.id] != null) manual[q.id] = det[q.id]; });
+    const V = versionAlumno(ex.examen, it.id, `${g.id}_${ab.n}`);
+    const auto = corregirExamen(pq, k, r, manual, { s: V.semilla });
+    abrirRevisionExamen({ titulo: it.titulo, quien: `${g.nombre} · nº ${pad(ab.n)}`, examen: ex.examen, V, K: k, resp: r, auto, estado: tr?.estado === 'en_curso' ? 'Examen empezado, sin entregar' : 'Entregado', fecha: fFecha(tr?.fecha), nota: nt?.nota ?? null, publicada: !!nt?.publicada, comentario: nt?.comentario || '' });
   }
   function recalcular() {
     const D = $('#apDetalle'); const ab = A.abierta; if (!D || !ab) return;
@@ -499,6 +510,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       if (acc === 'autocorregir' && col) { b.disabled = true; await autocorregir(col); }
       if (acc === 'notasActividad' && col) { b.disabled = true; await notasActividad(col); }
       if (acc === 'corregir' && col && st.items.get(col)) { corr.abrir(st.items.get(col), grupoSel()); pintar(true); return; }
+      if (acc === 'verExamen' && A.abierta) { verExamenCompleto(); return; }
       if (acc === 'corregirAl' && A.abierta && st.items.get(A.abierta.k)) { corr.abrir(st.items.get(A.abierta.k), grupoSel(), A.abierta.n); pintar(true); return; }
       if (acc === 'publicarNotas' && col) await publicarNotas(col);
       if (acc === 'csvNotas') exportarCSV();

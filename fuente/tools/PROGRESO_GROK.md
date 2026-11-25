@@ -1082,3 +1082,25 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Compatibilidad: nada existente cambia; campos nuevos opcionales; sin migraciones; sin reglas nuevas.
 - Pruebas: colores_test 6/6, imagenes_test 3/3 (corrección idéntica a 7e709a9), plataforma 41/41 y el resto de *_v5,
   aula_e2e, circ_test, viv_test. Capturas: /workspace/capturas-colores/b4_*.png.
+
+## 24-25/11/2026 · Cabecera y márgenes + revisión del examen de cada alumno (t171u)
+
+### Encabezado que no sigue al cuerpo — causa y arreglo (caché v5-20261124d)
+- Causa: las pantallas (`.screen`) hacen scroll por sí mismas y la cabecera pegajosa mide lo que la ventana. Si el cuerpo era más
+  ancho (tabla sin contenedor o rejilla `1fr` que no encoge, p. ej. «Entregas del laboratorio» y «Usuarios y conectados» en 390 px:
+  480 y 641 px), la pantalla se deslizaba hacia los lados y la cabecera se quedaba atrás (medido: cabecera en x = −90 y −251).
+- Arreglo (css/plataforma.css, src/portal/tablas-scroll.js): rejillas `minmax(0, 1fr)`; cada tabla ancha va dentro de
+  `.tbl-scroll` (scroll propio, nunca ensancha la página); `.screen { overflow-x: hidden }` como red de seguridad; textos/URL
+  largos se parten; las tiras deslizables del móvil se desvanecen en el borde. No cambia `a472df0`.
+- Prueba: `e2e/barrido_layout.mjs` (se activa con `BARRIDO=<etiqueta>`; `BARRIDO_ESTRES=1` añade 24 actividades al cuaderno;
+  lanzador `e2e/run_barrido.sh`) recorre 1280/1024/768/390, profesor y alumno, y comprueba scrollWidth, intento de scroll lateral y
+  cabecera 0..ancho. Capturas en /workspace/capturas-encabezado (antes_* / despues_*).
+- Nota: `margenes_e2e` ya fallaba en c42fa46 («examen 390/430: el menú de la cabecera queda tapado por svg») por el reloj fijo del
+  bloque 2; no es de este cambio.
+
+### Revisión del examen de cada alumno (solo lectura)
+- Ya existía: Panel → Cuaderno → casilla del alumno → «Respuestas» (cada pregunta, su respuesta, solución y puntos).
+- Nuevo: botón «Ver el examen completo (solo lectura)» (src/portal/revision-examen.js): el examen entero como lo contestó, con
+  imágenes ampliables, `zonas` (marca del alumno + zona correcta), `colores` (corrección por partes), marcas y nota. No escribe nada.
+- Entregas antiguas (sin campos nuevos) y exámenes empezados se abren igual; lo no contestado sale «sin responder».
+- Prueba: `e2e/plataforma_f15.mjs` (también comprueba que no cambia el nº de documentos). Sin reglas nuevas, sin migraciones.
