@@ -299,6 +299,22 @@ print(json.dumps({'n':n,'m':m,'pdf':all(z.read(x)[:4]==b'%PDF' for x in n if x.e
   // ---------------------------------------------------------------- migración solo en lectura
   const despues = JSON.stringify(await Promise.all(Object.keys(ITEMS).map((id) => leer('items/' + id).then((d) => d.fields))));
   ok('migración en lectura: ningún elemento se ha reescrito (tampoco se añade «seccion»)', antes === despues && !/"seccion"/.test(despues));
+
+  // Contraste en modo oscuro (t173u): se lanza con CONTRASTE=1 (e2e/run_contraste.sh)
+  if (process.env.CONTRASTE) {
+    const { barrerContraste, barrerPlantilla, ponerOscuro, ponerClaro } = await import('./contraste_oscuro.mjs');
+    const ctxCss = await contexto('contraste-css', { width: 1280, height: 800 });
+    await barrerPlantilla(ctxCss.pg, { viewport: { width: 1280, height: 800 } });
+    await ctxCss.ctx.close();
+    await barrerContraste({ P, A, M, BASE, ok });
+    if (P?.pg) {
+      await ponerClaro(P.pg);
+      await P.pg.goto(BASE + '#asig/eee/teoria');
+      await P.pg.waitForTimeout(400);
+      const capClaro = (process.env.CAPTURAS_OSCURO || '/workspace/capturas-oscuro').replace(/\/?$/, '/') + 'claro/';
+      await P.pg.screenshot({ path: capClaro + 'portal_teoria_claro_1280.png' });
+    }
+  }
 } catch (e) { if (e.message !== 'FIN') { ok('sin excepciones', false, e.message); console.log(e.stack); } }
 ok('sin errores de consola', errores.length === 0, errores.slice(0, 5).join(' | '));
 await b.close();

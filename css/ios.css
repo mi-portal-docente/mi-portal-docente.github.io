@@ -1406,3 +1406,127 @@ body.scr-panelprof #panelprof > .pn { flex: none; }
 .ca-ev { background: rgba(80, 108, 136, .13); }
 .ca-ev.ex { background: rgba(222, 7, 20, .12); }
 .pi-aut { color: #3f5870; background: rgba(80, 108, 136, .14); } /* etiqueta «autónoma» de las prácticas: sin morado */
+
+/* ---------- modo oscuro: hovers y cristales (t173u) ----------
+   En claro, pestañas, botones de cristal y filas se aclaran con blanco semitransparente.
+   En oscuro eso deja el texto (tinta clara) ilegible o pinta pastillas blancas.
+   El hover es un tinte de cristal un poco más claro, nunca un fondo blanco.
+   El modo claro no cambia. Los laboratorios 3D siguen con su banco claro. */
+html[data-theme="dark"] {
+  --hover: rgba(255, 255, 255, .08);
+  --hover-2: rgba(255, 255, 255, .14);
+}
+
+/* Filas de trabajos: la capa de cristal ponía un hover blanco (rgba(255,255,255,.48)) */
+html[data-theme="dark"] a.cl-it:hover,
+html[data-theme="dark"] a.cl-it:focus-visible,
+html[data-theme="dark"] .cl-it:hover,
+html[data-theme="dark"] .org-it:hover,
+html[data-theme="dark"] .bib-hits li:hover,
+html[data-theme="dark"] .cl-post-it:hover {
+  background: var(--hover);
+  color: var(--tinta);
+}
+
+/* Botones de cristal: pastilla oscura, no blanca, con texto legible */
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio, .scr-cover, .is-gate) .btn:not(.primary):not(.pn-peligro),
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .pchip-b,
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .btn-salir {
+  background: #2c2c2e;
+  border-color: var(--glass-borde);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 1px 3px rgba(0, 0, 0, .35);
+  color: var(--acc-t);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .pchip-b,
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .btn-salir {
+  color: var(--tinta);
+}
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio, .scr-cover, .is-gate) .btn:not(.primary):not(.pn-peligro):hover,
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio, .scr-cover, .is-gate) .btn:not(.primary):not(.pn-peligro):focus-visible,
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .pchip-b:hover,
+html[data-theme="dark"] body:is(.scr-subjects, .scr-asig, .scr-aula, .scr-panelprof, .scr-biblio) .pchip-b:focus-visible {
+  background: #3a3a3c;
+  border-color: var(--glass-borde);
+  filter: none;
+}
+html[data-theme="dark"] .btn.primary,
+html[data-theme="dark"] .vv .btn.primary,
+html[data-theme="dark"] .vv-btn.primary {
+  background: var(--acc);
+  color: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+}
+
+/* Pestañas: hover de cristal, no blanco; la activa de secciones se lee en tinta (el icono sigue en acento) */
+html[data-theme="dark"] .as-tabs a:hover:not(.on),
+html[data-theme="dark"] .as-tabs a:focus-visible:not(.on),
+html[data-theme="dark"] .asb-tabs a:hover:not(.on),
+html[data-theme="dark"] .asb-tabs a:focus-visible:not(.on),
+html[data-theme="dark"] .tabs button:hover:not(.on),
+html[data-theme="dark"] .tabs button:focus-visible:not(.on),
+html[data-theme="dark"] .gate-tabs button:hover:not(.on),
+html[data-theme="dark"] .gate-tabs button:focus-visible:not(.on),
+html[data-theme="dark"] .bib-chip:hover:not(.on),
+html[data-theme="dark"] .bib-chip:focus-visible:not(.on),
+html[data-theme="dark"] .pn-tabs a:hover:not(.on),
+html[data-theme="dark"] .pn-tabs a:focus-visible:not(.on),
+html[data-theme="dark"] .cl-preview-t button:hover:not(.on),
+html[data-theme="dark"] .pi-tabs button:hover:not(.on),
+html[data-theme="dark"] .cx-tabs button:hover:not(.on),
+html[data-theme="dark"] .vv-tabs button:hover:not(.on),
+html[data-theme="dark"] .ap-vista-b:hover:not(.on) {
+  background: var(--hover-2);
+  color: var(--tinta);
+}
+html[data-theme="dark"] .as-tabs a.on,
+html[data-theme="dark"] .as-tabs.as-secs a.on {
+  background: rgba(72, 72, 74, .92);
+  color: var(--tinta);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
+}
+html[data-theme="dark"] .as-tabs a.on .ic-e,
+html[data-theme="dark"] .as-tabs.as-secs a.on .as-ti,
+html[data-theme="dark"] .as-tabs.as-secs a.on .ic-e {
+  color: var(--acc-t);
+}
+
+/* Navegación, menús, chevrones y tarjetas de Gestión */
+html[data-theme="dark"] .top-nav-a:hover,
+html[data-theme="dark"] .top-nav-a:focus-visible,
+html[data-theme="dark"] .navb:hover,
+html[data-theme="dark"] .pn-nav a:hover,
+html[data-theme="dark"] .cl-lado-b:hover,
+html[data-theme="dark"] .cl-th-chev:hover,
+html[data-theme="dark"] .cl-th-chev:focus-visible,
+html[data-theme="dark"] .cl-crear-m button:hover,
+html[data-theme="dark"] .cl-menu button:hover,
+html[data-theme="dark"] .tema-menu button:hover,
+html[data-theme="dark"] .ses-menu [role=menuitem]:hover,
+html[data-theme="dark"] .sg-fila:hover {
+  background: var(--hover-2);
+  color: inherit;
+}
+html[data-theme="dark"] .top-nav-a.on {
+  background: var(--acc-tint);
+  color: var(--acc-t);
+  border-color: transparent;
+}
+
+/* Celdas: el 28 % de blanco de la capa de cristal se veía gris sucio; hover suave */
+html[data-theme="dark"] .pn-row td,
+html[data-theme="dark"] .au-t td,
+html[data-theme="dark"] .pn-t td,
+html[data-theme="dark"] .tbl td {
+  background: rgba(255, 255, 255, .04);
+}
+html[data-theme="dark"] .pn-row:hover td,
+html[data-theme="dark"] .ap-c:hover {
+  background: var(--hover);
+}
+html[data-theme="dark"] .pn-row.sel td {
+  background: var(--acc-tint);
+}

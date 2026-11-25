@@ -1135,3 +1135,27 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Pruebas: `secciones_e2e` (plegar, se conserva al cambiar de pestaña, desplegar todo; también el alumno).
   Capturas en /workspace/capturas-gestion/.
 - Sin cambios en reglas ni en datos de exámenes.
+
+## 25/11/2026 · Modo oscuro: pestañas y hovers legibles (t173u) — HECHO (caché v5-20261125c)
+
+### Causa
+- El modo oscuro se aplica con `data-theme="dark"` en `<html>` (js/tema.js: Claro / Oscuro / Automático; Automático sigue a `prefers-color-scheme`).
+- La capa de cristal (final de css/ios.css) pintaba hovers y pastillas con blanco semitransparente pensado para el modo claro:
+  - filas `.cl-it:hover` → `rgba(255,255,255,.48)` (sin variante oscura; el texto --tinta #f5f5f7 quedaba a 3,5:1 sobre gris #838384);
+  - pestañas `.as-tabs a:hover` → `rgba(255,255,255,.5)` (había un arreglo débil al 6 %);
+  - botones de cristal `.btn:not(.primary):hover` → `rgba(255,255,255,.58)` y, con `backdrop-filter`, pastillas blancas con texto claro o acento (#ff6b6b) ilegible.
+- La pestaña activa de secciones (`.as-tabs.as-secs a.on`) usaba el rojo de acento sobre gris, a ~3:1.
+
+### Arreglo (solo `html[data-theme="dark"]`; el modo claro no cambia)
+- Variable `--hover` / `--hover-2`: tinte de cristal un poco más claro, nunca fondo blanco.
+- Filas, listas, celdas, chevrones, menús y tarjetas de Gestión: hover con `--hover`.
+- Botones de cristal y chips: pastilla opaca `#2c2c2e` (hover `#3a3a3c`), sin backdrop-filter que los lave a blanco; el primario sigue en acento con texto blanco.
+- Pestañas (asignatura, panel, entrada, biblioteca, `.tabs`, barra `.asb-tabs`): hover de cristal; la pestaña activa de secciones pasa a tinta clara sobre gris más oscuro (el icono sigue en acento).
+- Celdas de tabla: de un 28 % de blanco a un 4 %.
+
+### Pruebas
+- `e2e/contraste_oscuro.mjs` + `e2e/run_contraste.sh` (también con `CONTRASTE=1` en `secciones_e2e`): compara el color del texto con el fondo efectivo en reposo y en :hover (umbral 4,5:1; 3:1 en texto grande e iconos). Plantilla CSS y barrido del portal (profesor y alumno, 1280 y 390).
+- Antes (plantilla 1280 hover): fila `.cl-it` 3,5:1 (lavada) y pestaña activa 3,0:1. Después: hover 42/42 y móvil 41/41 y 43/43 con contraste suficiente. El modo claro es pixel a pixel idéntico (0 diferencias en la plantilla 1280).
+- Capturas: /workspace/capturas-oscuro/antes y despues (y claro/).
+- Sin cambios en Firestore, reglas, firebase-config.js ni datos de exámenes.
+
