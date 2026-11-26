@@ -15,7 +15,8 @@ const corta = (s, n) => String(s ?? '').trim().slice(0, n);
 
 // «8:00», «08.30», «8h», 8 → minutos desde las 0:00 (o NaN)
 export function aMin(v) {
-  if (typeof v === 'number' && Number.isFinite(v)) return Math.round(v * 60);
+  // Números: hasta 24 son horas (8 → 8:00); más de 24 son minutos ya calculados (480 → 8:00), para que validar dos veces dé lo mismo
+  if (typeof v === 'number' && Number.isFinite(v)) return v <= 24 ? Math.round(v * 60) : Math.round(v);
   const m = /^\s*(\d{1,2})(?:[:.h](\d{2}))?\s*h?\s*$/i.exec(String(v ?? ''));
   if (!m) return NaN; const h = +m[1], mi = +(m[2] || 0);
   return h <= 24 && mi < 60 ? h * 60 + mi : NaN;

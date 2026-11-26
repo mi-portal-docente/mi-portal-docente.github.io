@@ -177,6 +177,7 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
         <span class="dv-cnt1" aria-live="polite"><b>Trabajos colocados ${c.colocados}/${c.total}</b> · <span class="${nR ? 'dv-rojo' : c.avisos ? 'dv-hay' : ''}">Avisos ${c.avisos}</span></span><span class="pn-grow"></span>
         <button type="button" class="btn small" data-dv="deshacer" ${S.undo.length ? '' : 'disabled'}>${ic('undo-2')} Deshacer</button>
         <button type="button" class="btn small" data-dv="incidencia">${ic('notebook-pen')} Incidencia</button>
+        <button type="button" class="btn small" data-dv="ampliar" aria-pressed="${S.full ? 'true' : 'false'}">${ic(S.full ? 'minimize-2' : 'maximize-2')} ${S.full ? 'Salir de pantalla completa' : 'Pantalla completa'}</button>
         <button type="button" class="btn small" data-dv="png">${ic('image')} Imagen</button><button type="button" class="btn small" data-dv="pdf">${ic('printer')} PDF</button></div>
       ${pi.length ? `<div class="dv-banner">${ic('radio')} Has atendido ${pi.length === 1 ? 'una llamada' : pi.length + ' llamadas'}. Cambia el tablero y luego explica qué has hecho. <button type="button" class="btn primary small" data-dv="incidencia" data-c="${esc(pi[0].c)}">${ic('notebook-pen')} Escribir la incidencia</button></div>` : ''}
       ${cont.prioridad?.length ? `<details class="dv-prio"><summary>${ic('list-ordered')} Prioridad</summary><ol>${cont.prioridad.map((p) => `<li>${esc(p)}</li>`).join('')}</ol></details>` : ''}
@@ -238,6 +239,7 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
     S.f.querySelectorAll('.dv-drop').forEach((x) => x.classList.remove('dv-drop'));
     const t = destino(e); if (t?.el) t.el.classList.add('dv-drop');
     const sc = S.f.querySelector('.dv-boardw'); if (sc) { const rr = sc.getBoundingClientRect(); if (e.clientY > rr.bottom - 40) sc.scrollTop += 14; else if (e.clientY < rr.top + 40 && e.clientY > rr.top - 60) sc.scrollTop -= 14; }
+    if (e.clientY > innerHeight - 40 || e.clientY < 70) { const pc = contenedorScroll(S.f); if (pc) pc.scrollTop += e.clientY < 70 ? -14 : 14; }
   }
   function onUp(e) {
     const g = S.drag; if (!g || e.pointerId !== g.pid) return; S.drag = null;
@@ -250,6 +252,7 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
     else if (t.tipo === 'fuera') cambio((b) => quitarTrabajo(b, g.id), 'quitar', g.id, '');
     else if (t.tipo === 'bloque') cambio((b) => asignar(S.emp, b, t.id, g.k, g.id), 'asignar', t.id, g.id);
   }
+  function contenedorScroll(el) { for (let p = el?.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowY; if ((o === 'auto' || o === 'scroll') && p.scrollHeight > p.clientHeight) return p; } return document.scrollingElement; }
   function fantasma(g) {
     const el = document.createElement('div'); el.className = 'dv-ghost ' + (g.k === 'b' ? 't' : g.k);
     const t = S.emp.trabajos.find((x) => x.id === g.id);
@@ -278,6 +281,7 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
       if (acc === 'incidencia') return abrirIncidencia(a.dataset.c);
       if (acc === 'png') return svgAPng(tableroSVG(cont, S.emp, S.D.b, { titulo: `${it.titulo} · ${S.emp.nombre}` }), `${it.titulo} ${S.emp.nombre}`);
       if (acc === 'pdf') return imprimirTablero(tableroSVG(cont, S.emp, S.D.b, { titulo: `${it.titulo} · ${S.emp.nombre}` }) + `<h3>Avisos</h3>${avisosHTML(avisos(cont, S.emp, S.D.b))}`, it.titulo);
+      if (acc === 'ampliar') { S.full = !S.full; S.f.querySelector('.dv')?.classList.toggle('dv-full', S.full); document.documentElement.classList.toggle('dv-full-on', S.full); return pintar(); }
       if (acc === 'nosel') { S.sel = null; return pintar(); }
       const w = S.f.querySelector('.dv-kbd');
       if (acc === 'colocar') { const d = +w.querySelector('[data-k=dia]').value; const s = +w.querySelector('[data-k=hora]').value; const id = S.sel.id; const ya = !!S.D.b[id]; S.sel = null; cambio((b) => colocar(cont, S.emp, b, id, d, s), ya ? 'mover' : 'colocar', id, `${diaTxt(d)} ${hhmm(s)}`); return; }
@@ -290,6 +294,7 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
   }
   function onKey(e) {
     if (e.key === 'Escape' && S.sel && !S.modal) { S.sel = null; pintar(); }
+    else if (e.key === 'Escape' && S.full && !S.modal) { S.full = false; S.f.querySelector('.dv')?.classList.remove('dv-full'); document.documentElement.classList.remove('dv-full-on'); pintar(); }
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('.dv-blk')) { e.preventDefault(); e.target.click(); }
   }
   // ----- Centralita (escucha) y registro informativo -----
@@ -306,7 +311,7 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
     html(v, ro) {
       asegurarDoc(v); S.ro = !!ro; escuchar();
       if (ro) return `<div class="dv dv-ro">${despachoLecturaHTML(it, docTexto(S.D), { profesor: false })}</div>`;
-      return `<div class="dv"><div class="dv-in">${interiorHTML()}</div></div>`;
+      return `<div class="dv${S.full ? ' dv-full' : ''}"><div class="dv-in">${interiorHTML()}</div></div>`;
     },
     leer() { return { texto: resumenTexto(cont, S.emp, S.D), doc: docTexto(S.D) }; },
     imprimirHTML(d) { return despachoLecturaHTML(it, d, { profesor: false }); },
