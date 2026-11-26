@@ -1324,3 +1324,33 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - **Aviso** (todas las tareas, solo profesor): «Ningún grupo la ve» cuando `grupos` está vacío, con enlace a Grupos y códigos.
 - Sin cambios de reglas ni de datos. E2E `e2e/plataforma_f23.mjs` (15/15; importa en Proyecto › Tareas, prueba del profesor sin escribir
   en Firestore, alumno del grupo EEE+Proyecto ve la tarea y el tablero). Fases 21-23 65/65; aula 126/126. Capturas: /workspace/capturas-clase/.
+
+## 26/11/2026 · PIP-11 (parte B) · Una clase = un código (t196u) — caché v5-20261126f
+- **Por qué había dos códigos**: un grupo ya admite varias asignaturas (`grupos.asignaturas` y `codigos.asignaturas`), pero solo se
+  podían marcar en «Editar» y solo entre las asignaturas del curso escolar elegido. Con Proyecto fuera de esa lista (o sin saberlo) lo
+  natural era crear otro grupo para Proyecto, con otro código y otros PIN. Además, al editar un grupo se perdían en silencio las
+  asignaturas que no fueran del curso: ahora se conservan.
+- **Gestión › Grupos y códigos, en cada tarjeta**:
+  - «Asignaturas»: cápsulas con las asignaturas de la clase (quitar con la ✕, con confirmación) y «Añadir asignatura…» con TODAS las
+    asignaturas de la biblioteca. Al añadir, se ofrece poner para esa clase los elementos ya creados de esa asignatura (mismo curso,
+    fuera de la papelera, también los que no tenían grupo): solo se añade el id de la clase a `grupos` (y a `visible` si están publicados).
+  - «Alumnos: alta y baja»: los nº de lista (1…Nº de alumnos y los que ya hayan entrado) con «De alta / De baja», «Con PIN / Sin PIN»
+    y el botón «Dar de baja» / «Dar de alta». Baja = `bloqueos/{grupo_nº}` (lo que ya existía: el servidor no deja entrar, ni leer ni
+    entregar) y cierra sus sesiones; alta = borrar ese bloqueo. Conserva número, PIN, entregas y notas. En Seguimiento › Usuarios los
+    botones también se llaman «Dar de baja / Dar de alta» y el aviso al alumno dice «está de baja (bloqueado por el profesor)».
+- **Unir grupos duplicados** (debajo de las tarjetas): clase principal (se queda su código) + grupo duplicado → «Ver qué cambia»
+  (vista previa: asignaturas que gana la principal, elementos y avisos que pasan, centralitas del despacho que se copian, entregas que
+  se quedan en el duplicado) → «Unir». Migración compatible (`src/lms/union.js`, pura y con pruebas):
+  - items y anuncios del duplicado: se AÑADE la clase principal a `grupos` (y `visible` = `grupos` si están publicados, como exigen
+    las reglas); recuperaciones: se añaden `principal_nº` a `visibleAl` para los mismos nº. El duplicado nunca se quita.
+  - `despachos/{item}_{dup}` se copia a `{item}_{principal}` si no existe (no se mueve ni se borra).
+  - la principal recibe las asignaturas del duplicado (grupo y código); el duplicado se queda tal cual pero **cerrado** (`activo: false`
+    en grupo y código) y con la marca `union:<idPrincipal>:<asig…>` en `apartados` (sin reglas nuevas; `sinTokens` la oculta).
+  - **No se copian** entregas, trabajos, notas, PIN ni versiones del duplicado: las reglas no dejan al profesor crear documentos de
+    alumnos (comprobado en `firebase/test/clase.test.mjs`) y no hace falta: siguen en el duplicado y se ven en Seguimiento eligiéndolo.
+  - «Separar (deshacer)» en «Uniones hechas»: quita la principal solo de los elementos y avisos que también son del duplicado, le
+    quita las asignaturas que ganó y vuelve a abrir el duplicado. Nada se borra en ningún paso.
+- **Reglas: NO cambian.** Nuevas pruebas de reglas `firebase/test/clase.test.mjs` (7) añadidas a `npm run test:reglas` (169/169).
+- Pruebas: `union_test.mjs` 17/17; E2E `e2e/plataforma_f24.mjs` (unir con vista previa, alumno con el mismo código ve Proyecto y el
+  tablero, duplicado cerrado y marcado, separar, añadir/quitar asignatura, alta/baja, PIN intactos; capturas móvil y oscuro).
+- Capturas: /workspace/capturas-clase/ (05-10).
