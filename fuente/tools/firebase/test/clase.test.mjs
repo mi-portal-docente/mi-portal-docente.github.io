@@ -71,3 +71,26 @@ describe('clase · alta y baja por nº de lista (bloqueos)', () => {
     await assertFails(deleteDoc(doc(anon('a7'), 'bloqueos/gE_7')));
   });
 });
+
+describe('clase · alta y baja por asignatura (matrícula, parte C: marca «baja:» en apartados, sin reglas nuevas)', () => {
+  test('el profesor pone y quita «baja:proy2:7» en grupo y código a la vez, y lo demás no se toca', async () => {
+    const db = profe(); const ap = ['circuitos', 'baja:proy2:7'];
+    const b = writeBatch(db); b.update(doc(db, 'grupos/gE'), { apartados: ap }); b.update(doc(db, 'codigos/FARO-472'), { apartados: ap }); await assertSucceeds(b.commit());
+    const b2 = writeBatch(db); b2.update(doc(db, 'grupos/gE'), { apartados: ['circuitos'] }); b2.update(doc(db, 'codigos/FARO-472'), { apartados: ['circuitos'] }); await assertSucceeds(b2.commit());
+  });
+  test('el alumno de baja en una asignatura sigue leyendo su código (para saber de qué asignaturas está de baja)', async () => {
+    await sembrar((db) => updateDoc(doc(db, 'codigos/FARO-472'), { apartados: ['circuitos', 'baja:eee:7'] }));
+    await assertSucceeds(getDoc(doc(anon('a7'), 'codigos/FARO-472')));
+  });
+  test('un alumno no puede cambiar la matrícula (ni la suya)', async () => {
+    await assertFails(updateDoc(doc(anon('a7'), 'codigos/FARO-472'), { apartados: ['circuitos', 'baja:eee:7'] }));
+    await assertFails(updateDoc(doc(anon('a7'), 'grupos/gE'), { apartados: [] }));
+  });
+  test('la baja en una asignatura no cierra el acceso: no hay bloqueo y sus entregas y notas siguen siendo suyas', async () => {
+    await sembrar(async (db) => {
+      await updateDoc(doc(db, 'codigos/FARO-472'), { apartados: ['circuitos', 'baja:eee:7'] });
+      await setDoc(doc(db, 'notas/n1'), { item: 'itemP01', curso: 'c2627', asig: 'proy2', al: 'gE_7', grupo: 'gE', numero: 7, nota: 7, puntos: 7, max: 10, publicada: true });
+    });
+    await assertSucceeds(getDoc(doc(anon('a7'), 'notas/n1')));
+  });
+});

@@ -1,0 +1,24 @@
+// Pruebas de la matrícula por asignatura (alta y baja de un nº en una asignatura de la clase). node matricula_test.mjs
+import { leerBajas, cambiarBaja, estaDeBaja, bajasDe, asignaturasEfectivas, bajasEn, sinAsignatura, conBajas, esTokenBaja } from './src/lms/matricula.js';
+import { sinTokens } from './src/circ/guiadas.js';
+let n = 0, f = 0; const ok = (t, c) => { n++; if (!c) { f++; console.log('FAIL', t); } else console.log('OK  ', t); };
+const AP = ['circuitos', 'guiadas:p1,p2'];
+ok('por defecto nadie está de baja en nada', leerBajas(AP).size === 0 && asignaturasEfectivas(['eee', 'proy2'], AP, 5).join() === 'eee,proy2');
+let r = cambiarBaja(AP, 'proy2', 5);
+ok('baja del nº 5 en Proyecto: marca «baja:proy2:5» y conserva el resto', r.baja === true && r.apartados.join('|') === 'circuitos|guiadas:p1,p2|baja:proy2:5');
+r = cambiarBaja(r.apartados, 'proy2', 12); r = cambiarBaja(r.apartados, 'eee', 5);
+ok('varias bajas, una marca por asignatura y nº ordenados', r.apartados.filter(esTokenBaja).join('|') === 'baja:eee:5|baja:proy2:5.12');
+ok('el nº 5 está de baja en EEE y Proyecto; el 12 solo en Proyecto; el 7 en nada', bajasDe(r.apartados, 5).join() === 'proy2,eee' || bajasDe(r.apartados, 5).sort().join() === 'eee,proy2');
+ok('asignaturas que ve cada uno', asignaturasEfectivas(['eee', 'proy2'], r.apartados, 12).join() === 'eee' && asignaturasEfectivas(['eee', 'proy2'], r.apartados, 5).length === 0 && asignaturasEfectivas(['eee', 'proy2'], r.apartados, 7).join() === 'eee,proy2');
+const t = cambiarBaja(r.apartados, 'proy2', 12);
+ok('invertir (dar de alta) quita solo ese nº', t.baja === false && estaDeBaja(t.apartados, 'proy2', 5) && !estaDeBaja(t.apartados, 'proy2', 12));
+const u = cambiarBaja(cambiarBaja(AP, 'proy2', 3).apartados, 'proy2', 3);
+ok('dar de alta al último deja la lista como estaba (sin marca vacía)', u.apartados.join('|') === AP.join('|'));
+ok('forzar baja/alta es idempotente', cambiarBaja(['baja:eee:2'], 'eee', 2, true).apartados.join() === 'baja:eee:2' && cambiarBaja(['baja:eee:2'], 'eee', 9, false).apartados.join() === 'baja:eee:2');
+ok('las marcas de baja no cuentan como apartados de laboratorio (sinTokens)', sinTokens(['circuitos', 'baja:eee:2', 'union:g:proy2']).join() === 'circuitos');
+ok('quitar la asignatura de la clase olvida sus bajas; conBajas las conserva si sigue', sinAsignatura(r.apartados, 'proy2').join('|') === 'circuitos|guiadas:p1,p2|baja:eee:5' && conBajas(['circuitos'], r.apartados, ['eee']).join('|') === 'circuitos|baja:eee:5');
+ok('basura en la marca se ignora', leerBajas(['baja:', 'baja:eee:x.0.100.3', 'baja::4']).get('eee').size === 1 && bajasEn(['baja:eee:3'], 'eee').has(3));
+const lleno = Array.from({ length: 19 }, (_, i) => 'a' + i);
+ok('límite de 20 apartados de las reglas', cambiarBaja(lleno, 'eee', 1).apartados.length === 20 && cambiarBaja(cambiarBaja(lleno, 'eee', 1).apartados, 'proy2', 1).error);
+ok('nº fuera de rango', cambiarBaja([], 'eee', 0).error && cambiarBaja([], '', 3).error);
+console.log(`${n - f}/${n} OK`); process.exit(f ? 1 : 0);

@@ -12,6 +12,8 @@ import { ic } from './ico.js';
 import { BIBLIOTECA, asignatura } from '../lms/biblioteca.js';
 import { confirmar } from './dialogo.js';
 import { leerUnion, conUnion, planUnion, planSeparar, planAsignatura } from '../lms/union.js';
+import { sinAsignatura } from '../lms/matricula.js';
+import { matriculaClaseHTML } from './matricula-ui.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const nAs = (id) => asignatura(id)?.corto || id;
@@ -49,7 +51,7 @@ export function crearClase({ db, st, repintar }) {
   async function quitarAsig(g, asig) {
     const asignaturas = (g.asignaturas || []).filter((a) => a !== asig); if (!asignaturas.length) return;
     if (!await confirmar(`¿Quitar ${nAs(asig)} de ${g.nombre}?\n\nLos alumnos de esta clase dejarán de ver ${nAs(asig)} en el portal. No se borra nada: sus entregas y notas se quedan y puedes volver a añadirla cuando quieras.`, { aceptar: 'Quitar', peligro: true })) return;
-    const b = writeBatch(db); b.update(doc(db, 'grupos', g.id), { asignaturas, ...(asig === 'eee' ? {} : {}) }); b.update(doc(db, 'codigos', g.codigo), { asignaturas }); await b.commit();
+    const b = writeBatch(db); const apartados = sinAsignatura(g.apartados, asig); b.update(doc(db, 'grupos', g.id), { asignaturas, apartados }); b.update(doc(db, 'codigos', g.codigo), { asignaturas, apartados }); await b.commit();
     U.msg[g.id] = `${esc(nAs(asig))} ya no está en ${esc(g.nombre)}.`; repintar();
   }
 
@@ -60,10 +62,13 @@ export function crearClase({ db, st, repintar }) {
     for (const k of [...st.pines, ...st.accesos.keys(), ...st.bloqueos]) if (k.startsWith(pre)) { const n = +k.slice(pre.length); if (n >= 1 && n <= 40) nums.add(n); }
     const L = [...nums].sort((a, b) => a - b); const bajas = L.filter((n) => st.bloqueos.has(pre + n)).length;
     return `<div class="cl-altas" data-altas="${esc(g.id)}"><div class="cl-altas-h"><b>${ic('users')} Alumnos de ${esc(g.nombre)}</b><span class="pn-small">${L.length - bajas} de alta · ${bajas} de baja</span></div>
-      <p class="pn-small">Cada nº de lista conserva su número, su PIN y todo su trabajo. <b>De baja</b>: no puede entrar (lo comprueba el servidor). <b>Dar de alta</b> le deja entrar otra vez con su PIN de siempre.</p>
+      <h4 class="mt-h">${ic('ban')} Baja total del portal</h4><p class="pn-small">Cada nº de lista conserva su número, su PIN y todo su trabajo. <b>De baja</b>: no puede entrar en nada (lo comprueba el servidor). <b>Dar de alta</b> le deja entrar otra vez con su PIN de siempre.</p>
       <ul class="cl-nums">${L.map((n) => { const id = pre + n; const baja = st.bloqueos.has(id); const pin = st.pines.has(id);
         return `<li class="cl-num ${baja ? 'baja' : ''}" data-usu="${esc(id)}"><span class="cl-n">Nº ${pad(n)}</span><span class="cl-est">${baja ? `${ic('ban')} De baja` : `${ic('circle-check')} De alta`}</span><span class="pn-small">${pin ? 'Con PIN' : 'Sin PIN'}</span>
           ${baja ? `<button type="button" class="btn small" data-pn="alta">${ic('user-check')} Dar de alta</button>` : `<button type="button" class="btn small pn-peligro" data-pn="baja">${ic('ban')} Dar de baja</button>`}</li>`; }).join('')}</ul>
+      <h4 class="mt-h">${ic('book-open')} Alta y baja por asignatura</h4>
+      <p class="pn-small">Para que un nº esté en una asignatura y en otra no (por ejemplo, en EEE pero no en Proyecto): pulsa su casilla. Por defecto todos están de alta en todo. También puedes hacerlo desde dentro de cada asignatura.</p>
+      ${matriculaClaseHTML(g)}
       <p class="pn-small">¿Más alumnos? Sube el «Nº de alumnos» en <b>Editar</b>. Los PIN se reinician en Seguimiento › Usuarios y conectados.</p></div>`;
   }
   async function altaBaja(acc, id, b) {

@@ -1,6 +1,7 @@
 // Control de acceso del portal con Firebase (Auth + Firestore).
 //  · Profesor: inicio de sesión con Google (rol comprobado por las reglas de Firestore).
 //  · Alumno: código de grupo + número de lista, con sesión ANÓNIMA (sin nombre ni correo).
+import { asignaturasEfectivas, bajasDe } from '../lms/matricula.js';
 import { onAuthStateChanged, signInAnonymously, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, deleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, updateDoc, onSnapshot, serverTimestamp, collection, query, where, writeBatch } from 'firebase/firestore';
 import { iniciarFirebase } from './fb.js';
@@ -362,7 +363,8 @@ function registrarAcceso(grupo, numero) {
 function entrarAlumno(uid, s, c) {
   rol = 'alumno'; PORTAL.rol = 'alumno'; PORTAL.esProfesor = false;
   ses = { uid, ...s, grupoNombre: c.nombre }; codDoc = c;
-  window.PORTAL_SESION = { asignaturas: (c.asignaturas || []).slice(), apartados: (c.apartados || []).slice(), grupo: c.nombre, numero: s.numero };
+  // Matrícula por asignatura: las asignaturas en las que este nº está de baja no se ven (el resto de la clase sí)
+  window.PORTAL_SESION = { asignaturas: asignaturasEfectivas(c.asignaturas, c.apartados, s.numero), apartados: (c.apartados || []).slice(), bajas: bajasDe(c.apartados, s.numero), grupo: c.nombre, numero: s.numero };
   aula = crearAula({ db: fb.db, rol: 'alumno', ses: { ...ses, asignaturas: (c.asignaturas || []).slice() } });
   vistas = crearVistas({ db: fb.db, aula, rol: 'alumno', ses, uid: () => uid });
   clase = crearClase({ db: fb.db, aula, rol: 'alumno', ses, estado: vistas.estado });
@@ -382,7 +384,7 @@ function entrarAlumno(uid, s, c) {
     const m = motivoCodigo(snap, s.grupo); if (m) return expulsar(m);
     codDoc = snap.data();
     // cambios de asignaturas/apartados del grupo: se aplican al recargar la vista
-    if (window.PORTAL_SESION) { window.PORTAL_SESION.asignaturas = (codDoc.asignaturas || []).slice(); window.PORTAL_SESION.apartados = (codDoc.apartados || []).slice(); window.dispatchEvent(new Event('portal-apartados')); }
+    if (window.PORTAL_SESION) { window.PORTAL_SESION.asignaturas = asignaturasEfectivas(codDoc.asignaturas, codDoc.apartados, s.numero); window.PORTAL_SESION.apartados = (codDoc.apartados || []).slice(); window.PORTAL_SESION.bajas = bajasDe(codDoc.apartados, s.numero); window.dispatchEvent(new Event('portal-apartados')); }
   }, () => { }));
   // Entregas del laboratorio (fase 9): las nuevas van por grupo + nº (se ven desde cualquier ordenador);
   // las antiguas, ligadas al uid de este ordenador, se siguen leyendo. Si hay de las dos, gana la nueva.
@@ -404,7 +406,7 @@ function entrarAlumno(uid, s, c) {
   };
   unsubs.push(onSnapshot(query(collection(db, 'entregas'), where('uid', '==', uid)), leerEnt(entUid, true), () => { }));
   unsubs.push(onSnapshot(query(collection(db, 'entregas'), where('al', '==', idAl(s.grupo, s.numero))), leerEnt(entAl, false), () => { }));
-  concurso = crearConcurso({ db, ses: s, entregas, ambito: () => PORTAL.ambito(), eee: (c.asignaturas || []).includes('eee') });
+  concurso = crearConcurso({ db, ses: s, entregas, ambito: () => PORTAL.ambito(), eee: asignaturasEfectivas(c.asignaturas, c.apartados, s.numero).includes('eee') });
   unsubs.push(() => { concurso?.parar(); concurso = null; });
   ultimoLatido = Date.now();
   timer = setInterval(() => { if (document.visibilityState !== 'hidden' && Date.now() - ultimoLatido >= LATIDO_MS) latido(); }, 5000);

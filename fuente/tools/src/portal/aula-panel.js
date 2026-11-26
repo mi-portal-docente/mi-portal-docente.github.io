@@ -2,6 +2,7 @@
 // materiales, tareas, proyectos y exámenes) y calificaciones (cuaderno por grupo con categorías y pesos).
 import { getDoc, collection, doc, getDocs, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, Timestamp, orderBy, serverTimestamp, deleteField } from 'firebase/firestore';
 import { confirmar, avisar, pedirTexto } from './dialogo.js';
+import { bajasEn } from '../lms/matricula.js';
 import { enlacesVivosHTML, slotCopias, rellenarCopias } from './copias-ui.js';
 import { elegirYAbrirVisor } from './evidencias.js';
 import { leerResultado } from '../act/resultado.js';
@@ -167,7 +168,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   }
 
   // Vista de corrección (fase 10)
-  const corr = crearCorreccion({ db, st, A, grupoSel: () => grupoSel(), filas: (g) => filas(g), $, pintarTodo: (f) => pintar(f), textoHTML });
+  const corr = crearCorreccion({ db, st, A, grupoSel: () => grupoSel(), filas: (g, a) => filas(g, a), $, pintarTodo: (f) => pintar(f), textoHTML });
 
   // =============================================================== CALIFICACIONES
   function grupoSel() { const g = ps.grupos.get(A.gGrupo); if (g) return g; const L = [...ps.grupos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')); A.gGrupo = L[0]?.id || ''; return L[0] || null; }
@@ -201,7 +202,12 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (tr) return { estado: tr.estado === 'en_curso' ? 'curso' : 'entregado', tr, tarde: c.it?.fechaEntrega && tr.fecha > c.it.fechaEntrega };
     return { estado: 'nada' };
   }
-  function filas(g) { const max = Math.max(g.alumnos || 25, ...[...A.trabajos.values(), ...A.notas.values()].map((x) => x.numero || 0)); return Array.from({ length: Math.min(40, max) }, (_, i) => i + 1); }
+  // Nº de lista de la clase. Los de baja en esta asignatura no salen, salvo los que ya tienen trabajo o nota en ella (se conservan, marcados).
+  function filas(g, asig = asigGrupo(g)) {
+    const max = Math.max(g.alumnos || 25, ...[...A.trabajos.values(), ...A.notas.values()].map((x) => x.numero || 0));
+    const baja = bajasEn(g.apartados, asig); const conDatos = new Set(); if (baja.size) for (const x of [...A.trabajos.values(), ...A.notas.values()]) if (x.asig === asig && x.numero) conDatos.add(x.numero);
+    return Array.from({ length: Math.min(40, max) }, (_, i) => i + 1).filter((n) => !baja.has(n) || conDatos.has(n));
+  }
   // v5: el cuaderno ya no calcula medias ponderadas (los pesos antiguos de cursos/{id}.pesos se conservan, sin usarse).
   function notasHTML() {
     const g = grupoSel();
@@ -228,7 +234,8 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     }).join('')}</tr>`;
     const body = filas(g).map((n) => {
       const vals = cols.map((c) => ({ c, v: celda(g, c, n) }));
-      return `<tr><th class="ap-n">${pad(n)}</th>${vals.map(({ c, v }) => `<td class="ap-c e-${v.estado} ${v.pub === false ? 'nopub' : ''} ${A.abierta && A.abierta.k === c.k && A.abierta.n === n ? 'sel' : ''}" data-celda="${esc(c.k)}" data-n="${n}" tabindex="0" title="${v.estado === 'nota' ? (v.pub ? 'Nota publicada' : 'Nota sin publicar') : v.estado === 'entregado' ? 'Entregado, sin nota' : v.estado === 'curso' ? 'Examen empezado' : v.estado === 'borrador' ? 'Borrador: aún no lo ha entregado' : v.estado === 'devuelto' ? 'Devuelto para corregir' : 'Sin entrega'}">${v.estado === 'nota' ? esc(fmtNota(v.nota)) : v.estado === 'entregado' ? '📥' : v.estado === 'curso' ? '⏳' : v.estado === 'borrador' ? ic('pencil') : v.estado === 'devuelto' ? ic('undo-2') : '·'}${v.tarde ? '<sup>⏰</sup>' : ''}</td>`).join('')}</tr>`;
+      const deBaja = bajasEn(g.apartados, asig).has(n);
+      return `<tr class="${deBaja ? 'ap-baja' : ''}"><th class="ap-n" ${deBaja ? 'title="De baja en esta asignatura: se conservan su trabajo y sus notas"' : ''}>${pad(n)}${deBaja ? ` <span class="ap-bj">${ic('ban')}</span>` : ''}</th>${vals.map(({ c, v }) => `<td class="ap-c e-${v.estado} ${v.pub === false ? 'nopub' : ''} ${A.abierta && A.abierta.k === c.k && A.abierta.n === n ? 'sel' : ''}" data-celda="${esc(c.k)}" data-n="${n}" tabindex="0" title="${v.estado === 'nota' ? (v.pub ? 'Nota publicada' : 'Nota sin publicar') : v.estado === 'entregado' ? 'Entregado, sin nota' : v.estado === 'curso' ? 'Examen empezado' : v.estado === 'borrador' ? 'Borrador: aún no lo ha entregado' : v.estado === 'devuelto' ? 'Devuelto para corregir' : 'Sin entrega'}">${v.estado === 'nota' ? esc(fmtNota(v.nota)) : v.estado === 'entregado' ? '📥' : v.estado === 'curso' ? '⏳' : v.estado === 'borrador' ? ic('pencil') : v.estado === 'devuelto' ? ic('undo-2') : '·'}${v.tarde ? '<sup>⏰</sup>' : ''}</td>`).join('')}</tr>`;
     }).join('');
     return `<table class="pn-t ap-tabla"><thead>${head}</thead><tbody>${body}</tbody></table>`;
   }

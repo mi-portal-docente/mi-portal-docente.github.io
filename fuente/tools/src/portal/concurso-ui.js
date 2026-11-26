@@ -3,6 +3,7 @@
 //  · El profesor lo activa o apaga por grupo (concursos/{grupo}).
 //  · Cada alumno publica su propio resumen de puntos (clasificacion/{grupo_nº}: cuatro números) a partir de SUS entregas.
 //  · Los compañeros del mismo grupo leen esos resúmenes solo mientras el concurso está activo (lo exigen las reglas).
+import { bajasEn } from '../lms/matricula.js';
 import { collection, doc, onSnapshot, query, setDoc, where, serverTimestamp } from 'firebase/firestore';
 import { esc } from './util.js';
 import { ic } from './ico.js';
@@ -49,7 +50,8 @@ export function crearConcurso({ db, ses, entregas, ambito, eee }) {
   // Filas del grupo: lo publicado por cada nº; la fila propia, siempre con mis entregas de ahora mismo.
   function filas() {
     const m = new Map(st.docs); const r = mio(); if (r.cg || r.vg) m.set(ses.numero, r); else m.delete(ses.numero);
-    return [...m].map(([numero, v]) => ({ numero, ...v }));
+    const baja = bajasEn(window.PORTAL_SESION?.apartados, 'eee'); // de baja en EEE: no entra en la clasificación
+    return [...m].filter(([numero]) => !baja.has(numero)).map(([numero, v]) => ({ numero, ...v }));
   }
   function repintar() { if (st.el && st.el.isConnected && location.hash === '#concurso' ) pintar(); }
 

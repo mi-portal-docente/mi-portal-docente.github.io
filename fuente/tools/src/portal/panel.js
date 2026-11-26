@@ -15,6 +15,8 @@ import { VIV_PR, VIV_EV, VIV_REGISTRO, progresoRegistro } from '../viv/indice.js
 import { EVALS, idAutonoma } from '../circ/evaluaciones.js';
 import { crearClase } from './clase-ui.js';
 import { leerUnion, conUnion, esTokenUnion } from '../lms/union.js';
+import { conBajas, bajasEn } from '../lms/matricula.js';
+import { iniciarMatricula } from './matricula-ui.js';
 import { resumenAlumno, sanear, iguales, clasificar, puntosDe, maxDe, LABS, MAX_CIRC, MAX_VIV } from '../lms/concurso.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
@@ -64,7 +66,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   };
 
   // ------------------------------------------------------------ datos en tiempo real
-  const clase = crearClase({ db, st, repintar: () => pintarDatos() });
+  const clase = crearClase({ db, st, repintar: () => pintarDatos() }); iniciarMatricula(db);
   function iniciar() {
     let raf = 0; const pintarLuego = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(pintarDatos); };
     st.unsubs.push(onSnapshot(collection(db, 'grupos'), (qs) => {
@@ -225,7 +227,8 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const E = new Map(); for (const e of st.entregas) if (e.grupo === g.id) { const k = e.numero; if (!E.has(k)) E.set(k, new Set()); if (e.datos?.comprobacion?.ok) E.get(k).add(e.practica); }
     const okDe = (m, id) => !!m?.has(id);
     const n = Math.max(g.alumnos || 0, ...E.keys());
-    const filas = Array.from({ length: n }, (_, i) => i + 1).map(num => {
+    const bajaE = bajasEn(g.apartados, 'eee');
+    const filas = Array.from({ length: n }, (_, i) => i + 1).filter(num => !bajaE.has(num) || E.has(num)).map(num => {
       const m = E.get(num); let tg = 0, ta = 0;
       const celdas = PRACTICES.map(p => { const a = okDe(m, idAutonoma(p.id)), gu = a || okDe(m, p.id); tg += gu; ta += a;
         return `<td class="pn-pg-c" title="Nº ${pad(num)} · Práctica ${p.n}: ${esc(p.title)} — guiada ${gu ? 'completada' : 'pendiente'}, autónoma ${a ? 'completada' : 'pendiente'}"><i class="g ${gu ? 'on' : ''}"></i><i class="a ${a ? 'on' : ''}"></i></td>`; }).join('');
@@ -244,7 +247,8 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     }
     const n = Math.max(g.alumnos || 0, ...R.keys(), ...N.keys());
     const f = (x) => (x == null ? '—' : String(x).replace('.', ','));
-    const filas = Array.from({ length: n }, (_, i) => i + 1).map(num => {
+    const bajaE = bajasEn(g.apartados, 'eee');
+    const filas = Array.from({ length: n }, (_, i) => i + 1).filter(num => !bajaE.has(num) || R.has(num) || N.has(num)).map(num => {
       const m = R.get(num) || {}; let tg = 0, ta = 0;
       const celdas = VIV_PR.map(p => { const a = !!m[p.id]?.autonoma, gu = a || !!m[p.id]?.guiada; tg += gu; ta += a;
         return `<td class="pn-pg-c" title="Nº ${pad(num)} · Práctica ${p.n}: ${esc(p.title)} — guiada ${gu ? 'completada' : 'pendiente'}, autónoma ${a ? 'completada' : 'pendiente'}"><i class="g ${gu ? 'on' : ''}"></i><i class="a ${a ? 'on' : ''}"></i></td>`; }).join('');
@@ -278,7 +282,8 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const P = new Map(); for (const e of st.entregas) if (e.grupo === g.id) { if (!P.has(e.numero)) P.set(e.numero, []); P.get(e.numero).push(e); }
     const nums = new Set([...P.keys()]);
     for (const [id, d] of st.clasif) if (d.grupo === g.id && Number.isInteger(d.numero)) nums.add(d.numero);
-    return [...nums].map((numero) => {
+    const bajaE = bajasEn(g.apartados, 'eee'); // de baja en EEE: no entra en la clasificación (su trabajo se conserva)
+    return [...nums].filter((n) => !bajaE.has(n)).map((numero) => {
       const real = resumenAlumno(P.get(numero) || []); const d = st.clasif.get(`${g.id}_${numero}`);
       return { numero, ...real, publicado: d ? !iguales(sanear(d), real) ? 'distinto' : 'igual' : 'no' };
     });
@@ -367,6 +372,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
         v.apartados = escribirViv(v.apartados, v.asignaturas.includes('eee') && leerViv(g.apartados) ? [...leerViv(g.apartados)] : null);
         v.apartados = escribirVivEv(v.apartados, v.asignaturas.includes('eee') ? [...leerVivEv(g.apartados)] : []);
         v.apartados = conUnion(v.apartados, (g.apartados || []).find(esTokenUnion) || null);
+        v.apartados = conBajas(v.apartados, g.apartados, v.asignaturas);
         b.update(doc(db, 'grupos', g.id), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso, alumnos: v.alumnos });
         b.update(doc(db, 'codigos', g.codigo), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso });
         await b.commit(); st.editando = null; pintarTab(); return;

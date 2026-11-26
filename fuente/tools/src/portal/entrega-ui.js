@@ -192,7 +192,7 @@ export function montarEntrega(nodo, it, ctx) {
     if (ed) { const loc = leerLocal(); v = elegirBorrador(tr, loc) || { texto: '', enlaces: [] }; if (v.origen === 'local' && (!tr || v.t > (tr.guardado || 0))) S.sucio = true; if (tr?.doc && v.origen === 'nube') v.doc = tr.doc; else if (loc?.doc && v.origen === 'local') v.doc = loc.doc; }
     else v = { texto: tr?.texto || '', enlaces: tr?.enlaces || [], doc: tr?.doc };
     const tarde = it.fechaEntrega && tr?.fecha && tr.estado === 'entregado' && tr.fecha > it.fechaEntrega;
-    let h = `<div class="en-cab"><h4>Tu trabajo</h4>${estadoChipHTML(e)}${tr?.estado === 'entregado' || e === 'calificado' ? `<span class="au-small">${esc(fFecha(tr.fecha))}${tarde ? ' · <b>con retraso</b>' : ''}</span>` : ''}<span class="en-guardado" id="enGuardado" role="status" aria-live="polite"></span></div>`;
+    let h = `<div class="en-cab"><h4>Tu trabajo</h4>${estadoChipHTML(e)}${tr && (tr.estado === 'entregado' || e === 'calificado') ? `<span class="au-small">${esc(fFecha(tr.fecha))}${tarde ? ' · <b>con retraso</b>' : ''}</span>` : ''}<span class="en-guardado" id="enGuardado" role="status" aria-live="polite"></span></div>`;
     if (e === 'devuelto') h += `<div class="au-aviso">${ic('undo-2')} El profesor te lo ha devuelto para que lo corrijas${tr.devFecha ? ' (' + esc(fFecha(tr.devFecha)) + ')' : ''}. Mira sus comentarios, cámbialo y vuelve a entregarlo.</div>`;
     if (e === 'calificado' && n) h += notaAlumnoHTML(n, ic('message-square'));
     h += `<form id="enForm" class="au-form" autocomplete="off" onsubmit="return false">`;

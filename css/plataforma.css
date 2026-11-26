@@ -1102,3 +1102,36 @@ html[data-theme="dark"] .cl-unida { background: rgba(169, 189, 209, .14); color:
 html[data-theme="dark"] .cl-prev li .ic, html[data-theme="dark"] .cl-unidos li .ic { color: #a9bdd1; }
 html.glass-lite .cl-asig, html.glass-lite .cl-altas { -webkit-backdrop-filter: none; backdrop-filter: none; }
 @media (max-width: 520px) { .cl-nums { grid-template-columns: 1fr 1fr; } .cl-num { grid-template-columns: 1fr; grid-template-areas: "n" "est" "pin" "btn"; } .cl-asig-add { width: 100%; } .cl-asig-add select { flex: 1; max-width: none; } }
+/* PIP-11 parte C · alta y baja por asignatura (matrícula) */
+.mt-h { display: flex; align-items: center; gap: 6px; margin: 14px 0 4px; font-size: 1em; color: #506C88; }
+.mt-det { margin-top: 8px; }
+.mt-det > summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.mt { margin-top: 8px; padding: 10px; border-radius: 14px; background: var(--glass); -webkit-backdrop-filter: blur(var(--blur, 18px)) saturate(1.6); backdrop-filter: blur(var(--blur, 18px)) saturate(1.6); border: 1px solid rgba(80, 108, 136, .25); }
+.mt .pn-small .ic { vertical-align: -3px; color: #506C88; }
+.mt-nums { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; }
+.mt-n { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 10px; border-radius: 12px; border: 1px solid rgba(80, 108, 136, .3); background: rgba(255, 255, 255, .6); color: #1d2f3f; font: inherit; cursor: pointer; }
+.mt-n span { display: inline-flex; align-items: center; gap: 4px; font-size: .88em; font-weight: 600; color: #1f6f3a; }
+.mt-n.baja { background: rgba(222, 7, 20, .07); border-color: rgba(222, 7, 20, .4); }
+.mt-n.baja span { color: #b0050f; }
+.mt-n:focus-visible, .mt-sw:focus-visible { outline: 2px solid #506C88; outline-offset: 2px; }
+.mt-n:disabled, .mt-sw:disabled { opacity: .55; cursor: progress; }
+.mt-clase { overflow-x: auto; margin: 6px 0; border-radius: 12px; }
+.mt-t { border-collapse: separate; border-spacing: 0 4px; min-width: 100%; }
+.mt-t th { text-align: center; padding: 2px 8px; font-size: .9em; color: #506C88; font-weight: 700; white-space: nowrap; }
+.mt-t tbody th { color: #1d2f3f; }
+.mt-t td { padding: 0 3px; text-align: center; }
+.mt-sw { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 76px; padding: 5px 9px; border-radius: 999px; border: 1px solid rgba(31, 111, 58, .4); background: rgba(31, 111, 58, .09); color: #1f6f3a; font: inherit; font-size: .88em; font-weight: 600; cursor: pointer; }
+.mt-sw.baja { border-color: rgba(222, 7, 20, .45); background: rgba(222, 7, 20, .08); color: #b0050f; }
+.ap-tabla tr.ap-baja > * { background-image: linear-gradient(rgba(222, 7, 20, .06), rgba(222, 7, 20, .06)); }
+.ap-bj .ic { color: #b0050f; vertical-align: -3px; width: 14px; height: 14px; }
+html[data-theme="dark"] .mt-h, html[data-theme="dark"] .mt-t th, html[data-theme="dark"] .mt .pn-small .ic { color: #a9bdd1; }
+html[data-theme="dark"] .mt-t tbody th { color: #e6edf4; }
+html[data-theme="dark"] .mt { border-color: rgba(169, 189, 209, .25); }
+html[data-theme="dark"] .mt-n { background: rgba(44, 44, 46, .6); border-color: rgba(169, 189, 209, .28); color: #e6edf4; }
+html[data-theme="dark"] .mt-n span, html[data-theme="dark"] .mt-sw { color: #6fd08f; }
+html[data-theme="dark"] .mt-sw { border-color: rgba(111, 208, 143, .45); background: rgba(111, 208, 143, .1); }
+html[data-theme="dark"] .mt-n.baja { background: rgba(255, 69, 58, .12); border-color: rgba(255, 69, 58, .5); }
+html[data-theme="dark"] .mt-n.baja span, html[data-theme="dark"] .mt-sw.baja, html[data-theme="dark"] .ap-bj .ic { color: #ff6961; }
+html[data-theme="dark"] .mt-sw.baja { background: rgba(255, 69, 58, .12); border-color: rgba(255, 69, 58, .5); }
+html.glass-lite .mt { -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (max-width: 520px) { .mt-nums { grid-template-columns: 1fr 1fr; } .mt-sw { min-width: 64px; padding: 5px 7px; } }

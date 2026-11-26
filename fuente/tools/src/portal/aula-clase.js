@@ -20,6 +20,7 @@ import { IDS_ELEMENTO, seccionDe, seccionesDe, seccionesActivas } from '../lms/s
 import { carasHTML } from './caras-ui.js';
 import { crearGestionSecciones } from './secciones-ui.js';
 import { crearExportar } from './exportar-ui.js';
+import { matriculaAsigHTML, iniciarMatricula } from './matricula-ui.js';
 
 const icono = (tipo) => TIPOS[tipo]?.icon || '📄';
 const TIPOS_ENTREGA_EV = (it) => it.tipo !== 'material' && it.tipo !== 'info';
@@ -51,6 +52,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   const st = aula.st; const prof = rol === 'profesor';
   // vista: 'trabajo' · 'tablon' («organizacion» se unió a «trabajo»). Las pestañas las pinta la página de la asignatura.
   const C = { el: null, asig: null, vista: 'trabajo', filtro: null, drag: null, crear: false, modal: null, orgF: 'todo', verGrupo: null, verTab: 'tablon' };
+  if (prof) iniciarMatricula(db);
   const gruposDe = (cursoId, asig) => [...st.grupos.values()].filter((g) => (!asig || (g.asignaturas || []).includes(asig)) && (g.curso ? g.curso === cursoId : true)).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const editor = prof ? crearEditor({ db, aula, gruposDe }) : null;
   const json = prof ? crearJson({ db, aula, modal: (h, f) => modal(h, f), cerrarModal: () => cerrarModal(), gruposDe }) : null;
@@ -106,7 +108,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   function render(el, asig, vista = C.vista) {
     if (!el) return; if (C.el !== el || C.asig !== asig) { C.filtro = null; C.crear = false; }
     C.el = el; C.asig = asig; C.vista = vista === 'organizacion' ? (prof ? 'trabajo' : 'tablon') : vista === 'avisos' ? 'tablon' : vista;
-    if (!el.dataset.clOk) { el.dataset.clOk = '1'; el.addEventListener('click', onClick); el.addEventListener('change', onChange); el.addEventListener('submit', onSubmit); enlazarArrastre(el); el.addEventListener('keydown', onKey); el.addEventListener('toggle', (e) => { if (e.target.matches?.('[data-sg-det]')) gestionSec?.toggle(e.target.open); }, true); }
+    if (!el.dataset.clOk) { el.dataset.clOk = '1'; el.addEventListener('click', onClick); el.addEventListener('toggle', (e) => { const d = e.target; const k = d?.dataset?.clSet; if (!k) return; const [c, id] = k.split(':'); if (id === undefined) { C[c] = d.open; return; } C[c] = C[c] || new Set(); d.open ? C[c].add(id) : C[c].delete(id); }, true); el.addEventListener('change', onChange); el.addEventListener('submit', onSubmit); enlazarArrastre(el); el.addEventListener('keydown', onKey); el.addEventListener('toggle', (e) => { if (e.target.matches?.('[data-sg-det]')) gestionSec?.toggle(e.target.open); }, true); }
     pintar();
   }
   function pintar() {
@@ -175,10 +177,17 @@ export function crearClase({ db, aula, rol, ses, estado }) {
     const n = { todo: E.items.length, borr: E.items.filter((i) => k(i) === 'borr').length, pend: E.items.filter((i) => i.pendiente).length, pub: E.items.filter((i) => k(i) === 'pub').length, prog: E.items.filter((i) => k(i) === 'prog').length };
     return `<div class="org-chips" role="group" aria-label="Filtrar por estado">${[['todo', 'Todo'], ['pub', 'Publicados'], ['borr', 'Borradores'], ['prog', 'Programados'], ['pend', 'Pendientes de completar']].map(([f, tx]) => `<button class="bib-chip ${C.orgF === f ? 'on' : ''}" data-cl="orgF" data-f="${f}" aria-pressed="${C.orgF === f}">${tx} <span>${n[f]}</span></button>`).join('')}</div>`;
   }
+  // Matrícula por asignatura (PIP-11 C): «Alumnos de esta asignatura» de un grupo; se mantiene abierto al repintar.
+  const matriculaDetHTML = (g) => `<details class="mt-det" data-cl-set="mtAb:${esc(g.id)}" ${(C.mtAb || new Set()).has(g.id) ? 'open' : ''}><summary class="btn tiny">${ic('user-check')} Alumnos de esta asignatura</summary>${matriculaAsigHTML(g, C.asig)}</details>`;
+  function matriculaGestionHTML() {
+    const gs = gruposDe(st.cursoSel, C.asig); if (!gs.length) return '';
+    return `<h2 class="gs-h">${ic('users')} Alumnos de esta asignatura</h2><p class="pn-small">Por defecto todos los nº de lista de la clase están de alta. Aquí puedes dar de baja a un nº solo en ${esc(asignatura(C.asig)?.corto || 'esta asignatura')} (sigue entrando en las demás con su código y PIN).</p><ul class="org-grupos mt-grupos">${gs.map((g) => `<li><b>${esc(g.nombre)}</b> <span class="pn-small">${Number(g.alumnos || 0)} alumnos</span>${matriculaDetHTML(g)}</li>`).join('')}</ul>`;
+  }
   function gruposSeguimientoHTML() {
     const gs = gruposDe(st.cursoSel, C.asig);
-    return `<details class="cl-org-extra"><summary>${ic('users')} Grupos y seguimiento <span class="pn-small">${gs.length} ${gs.length === 1 ? 'grupo' : 'grupos'}</span></summary><div class="org-cols2">
-      <section class="org-box"><h3>Grupos de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}</h3>${gs.length ? `<ul class="org-grupos">${gs.map((g) => `<li><b>${esc(g.nombre)}</b><span class="pn-small">Código <code>${esc(g.codigo || '—')}</code> · ${Number(g.alumnos || 0)} alumnos</span></li>`).join('')}</ul>` : '<p class="pn-small">Todavía no hay grupos con esta asignatura.</p>'}<a class="cl-link" href="#panel/grupos">Grupos y códigos →</a></section>
+    return `<details class="cl-org-extra" data-cl-set="orgAb" ${C.orgAb ? 'open' : ''}><summary>${ic('users')} Grupos y seguimiento <span class="pn-small">${gs.length} ${gs.length === 1 ? 'grupo' : 'grupos'}</span></summary><div class="org-cols2">
+      <section class="org-box"><h3>Grupos de ${esc(asignatura(C.asig)?.corto || '')} en ${esc(curso().nombre)}</h3>${gs.length ? `<ul class="org-grupos">${gs.map((g) => `<li><b>${esc(g.nombre)}</b><span class="pn-small">Código <code>${esc(g.codigo || '—')}</code> · ${Number(g.alumnos || 0)} alumnos</span>
+        ${matriculaDetHTML(g)}</li>`).join('')}</ul>` : '<p class="pn-small">Todavía no hay grupos con esta asignatura.</p>'}<a class="cl-link" href="#panel/grupos">Grupos y códigos →</a></section>
       <section class="org-box"><h3>Seguimiento</h3><p class="pn-small">Notas de tareas, cuestionarios, actividades y prácticas de laboratorio.</p><a class="cl-link" href="#panel/notas">Abrir el cuaderno de calificaciones →</a><br><a class="cl-link" href="#panel/entregas">Entregas del laboratorio →</a></section></div></details>`;
   }
   // ---- Trabajo de clase
@@ -186,7 +195,7 @@ export function crearClase({ db, aula, rol, ses, estado }) {
   // grupos y seguimiento, papelera), más la configuración de las secciones y la exportación.
   function gestionHTML() {
     const w = cargando(); if (w) return w;
-    return gestionSec.html(C.asig) + `<h2 class="gs-h">${ic('folder-open')} Contenido de la asignatura</h2>` + trabajoHTML(null, true);
+    return gestionSec.html(C.asig) + matriculaGestionHTML() + `<h2 class="gs-h">${ic('folder-open')} Contenido de la asignatura</h2>` + trabajoHTML(null, true);
   }
   // Nombre de la sección en esta asignatura
   const nomSec = (sec) => seccionesDe(st.secConf, C.asig).find((s) => s.id === sec)?.nombre || sec;

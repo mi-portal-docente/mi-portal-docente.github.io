@@ -18,11 +18,21 @@ export function crearAula({ db, rol, ses }) {
   const fuentes = { g: new Map(), r: new Map() };
   function leerItems(qs, f = 'g') {
     const m = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); m.set(d.id, { id: d.id, ...x }); });
-    fuentes[f] = m; st.items = new Map([...fuentes.g, ...fuentes.r]);
+    fuentes[f] = m; juntar();
     st.listo.items = true; avisar();
   }
+  // Matrícula por asignatura: un nº de baja en una asignatura no ve sus tareas, avisos ni notas (siguen guardados).
+  // Solo el alumno filtra; el profesor lo ve todo. Se vuelve a calcular cuando el profesor cambia la matrícula.
+  const bajas = () => (rol === 'alumno' && window.PORTAL_SESION?.bajas) || [];
+  const filtrar = (m) => { const b = bajas(); if (!b.length) return m; return new Map([...m].filter(([, x]) => !b.includes(x?.asig))); };
+  const crudo = { items: new Map(), anuncios: new Map(), trabajos: new Map(), notas: new Map() };
+  function juntar() { crudo.items = new Map([...fuentes.g, ...fuentes.r]); st.items = filtrar(crudo.items); }
+  if (rol === 'alumno') {
+    const reaplicar = () => { st.items = filtrar(crudo.items); st.anuncios = filtrar(crudo.anuncios); st.trabajos = filtrar(crudo.trabajos); st.notas = filtrar(crudo.notas); avisar(); };
+    window.addEventListener('portal-apartados', reaplicar); st.unsubs.push(() => window.removeEventListener('portal-apartados', reaplicar));
+  }
   function leerTemas(qs) { st.temas = new Map(); qs.forEach((d) => st.temas.set(d.id, { id: d.id, ...d.data() })); st.listo.temas = true; avisar(); }
-  function leerAnuncios(qs) { st.anuncios = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); st.anuncios.set(d.id, { id: d.id, ...x }); }); st.listo.anuncios = true; avisar(); }
+  function leerAnuncios(qs) { const m = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); m.set(d.id, { id: d.id, ...x }); }); crudo.anuncios = m; st.anuncios = filtrar(m); st.listo.anuncios = true; avisar(); }
   // v5 · Configuración de las secciones (config/secciones). Con las reglas antiguas no se puede leer: se usan
   // los valores por defecto y el portal sigue igual (reglasV5 = false: no se escriben los campos nuevos).
   st.unsubs.push(onSnapshot(doc(db, 'config', 'secciones'), (d) => { st.secConf = d.exists() ? d.data() : null; st.reglasV5 = true; avisar(); },
@@ -35,11 +45,11 @@ export function crearAula({ db, rol, ses }) {
     st.unsubs.push(onSnapshot(query(collection(db, 'items'), where('visible', 'array-contains', ses.grupo)), leerItems, err));
     st.unsubs.push(onSnapshot(query(collection(db, 'items'), where('visibleAl', 'array-contains', al)), (qs) => leerItems(qs, 'r'), err));
     st.unsubs.push(onSnapshot(query(collection(db, 'trabajos'), where('al', '==', al)), (qs) => {
-      st.trabajos = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); st.trabajos.set(x.item, { id: d.id, ...x, inicio: ms(x.inicio), fecha: ms(x.fecha), pendiente: d.metadata.hasPendingWrites }); });
+      const m = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); m.set(x.item, { id: d.id, ...x, inicio: ms(x.inicio), fecha: ms(x.fecha), pendiente: d.metadata.hasPendingWrites }); }); crudo.trabajos = m; st.trabajos = filtrar(m);
       st.listo.trabajos = true; avisar();
     }, err));
     st.unsubs.push(onSnapshot(query(collection(db, 'notas'), where('al', '==', al), where('publicada', '==', true)), (qs) => {
-      st.notas = new Map(); qs.forEach((d) => { const x = d.data(); st.notas.set(x.item, { id: d.id, ...x }); });
+      const m = new Map(); qs.forEach((d) => { const x = d.data(); m.set(x.item, { id: d.id, ...x }); }); crudo.notas = m; st.notas = filtrar(m);
       st.listo.notas = true; avisar();
     }, err));
   } else {

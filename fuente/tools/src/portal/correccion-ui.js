@@ -26,7 +26,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
   const C = { it: null, g: null, n: 1, soloEntregas: true, sel: {}, rapidos: null, cargandoR: false, clave: '' };
   const ids = (n) => idTrabajo(C.it.id, C.g.id, n);
   function lista() {
-    const F = filas(C.g);
+    const F = filas(C.g, C.it.asig);
     return C.soloEntregas ? F.filter((n) => cuentaComoEntrega(A.trabajos.get(ids(n))) || A.notas.get(ids(n))) : F;
   }
   async function cargarRapidos() {
@@ -117,7 +117,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     const clave = `${C.it.id}|${C.g.id}|${C.n}`;
     if (!forzar && C.clave === clave && $('#coForm')) { const T = $('#coTrabajo'); if (T) { const id = ids(C.n); T.innerHTML = trabajoHTML(A.trabajos.get(id), A.notas.get(id)); rellenarImagenes(T, db, id); rellenarCopias(T, db); } return; }
     C.clave = clave; B.innerHTML = html(); rellenarImagenes($('#coTrabajo'), db, ids(C.n)); rellenarCopias($('#coTrabajo'), db);
-    if (C.it.tipo === 'despacho') montarCentralita($('#dvCentral'), { db, it: C.it, g: C.g, numeros: filas(C.g), trabajoDe: (n) => A.trabajos.get(ids(n)) });
+    if (C.it.tipo === 'despacho') montarCentralita($('#dvCentral'), { db, it: C.it, g: C.g, numeros: filas(C.g, C.it.asig), trabajoDe: (n) => A.trabajos.get(ids(n)) });
   }
   function ir(d) { const L = lista(); const i = L.indexOf(C.n); const j = i < 0 ? 0 : i + d; if (j >= 0 && j < L.length) { C.n = L[j]; C.sel = {}; pintarTodo(true); } }
   function recalc() {
@@ -158,7 +158,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
   function textoPlano(h) { if (typeof h !== 'string') return ''; const d = new DOMParser().parseFromString(limpiarDoc(h), 'text/html'); return (d.body.innerText || d.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim(); }
   function exportarCorr() {
     const R = C.it.rubrica || [];
-    const alumnos = filas(C.g).filter((n) => conEntrega(n) || A.notas.get(ids(n))).map((n) => {
+    const alumnos = filas(C.g, C.it.asig).filter((n) => conEntrega(n) || A.notas.get(ids(n))).map((n) => {
       const tr = A.trabajos.get(ids(n)); const nt = A.notas.get(ids(n));
       const det = nt?.detalle || {};
       return { n, entrega: tr ? { estado: tr.estado, fecha: tr.fecha ? new Date(tr.fecha).toISOString() : null, conRetraso: !!(C.it.fechaEntrega && tr.fecha > C.it.fechaEntrega), texto: tr.texto || '', documento: C.it.tipo === 'hoja' || C.it.tipo === 'despacho' ? '' : textoPlano(tr.doc), enlaces: tr.enlaces || [] } : null,
@@ -180,7 +180,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
   async function aplicarArchivo(txt) {
     const r = leeArchivoCorreccion(txt, { itemId: C.it.id, rubrica: C.it.rubrica || [] });
     if (r.error) { await avisar(r.error); return; }
-    const validos = new Set(filas(C.g));
+    const validos = new Set(filas(C.g, C.it.asig));
     const L = r.correcciones.filter((x) => validos.has(x.n));
     const publicadas = L.filter((x) => A.notas.get(ids(x.n))?.publicada);
     const nuevas = L.filter((x) => !A.notas.get(ids(x.n))?.publicada);

@@ -8,7 +8,7 @@ const FS = process.env.E2E_FS_PORT || '8080'; const AU = process.env.E2E_AUTH_PO
 const BASE = process.env.PORTAL_BASE || `http://127.0.0.1:${process.env.E2E_HTTP_PORT || '8765'}/index.html`;
 const PROJ = 'demo-portal';
 const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:${AU}',firestoreHost:'127.0.0.1',firestorePort:${FS}};`;
-const FASES = (process.env.FASES || '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24').split(',').map(Number);
+const FASES = (process.env.FASES || '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25').split(',').map(Number);
 const results = []; const errores = [];
 export const ok = (name, cond, info = '') => { results.push({ name, ok: !!cond, info }); console.log((cond ? 'OK  ' : 'FAIL') + ' ' + name + (info ? ' · ' + info : '')); };
 const benigno = (t) => /favicon|WebGL|GPU stall|swiftshader|GroupMarkerNotSet|Failed to load resource/i.test(t);
@@ -26,7 +26,7 @@ async function contexto(nombre, viewport = { width: 1440, height: 900 }) {
   await ctx.route('**/js/firebase-config.js*', (r) => r.fulfill({ contentType: 'application/javascript', body: CFG }));
   const pg = await ctx.newPage(); await pg.addInitScript(() => { window.__dialogosNativos = true; }); // diálogos del navegador en las pruebas (se aceptan solos)
   pg.on('console', (m) => { if (m.type() === 'error' && !benigno(m.text())) errores.push(`[${nombre}] console: ${m.text()}`); });
-  pg.on('pageerror', (e) => errores.push(`[${nombre}] pageerror: ${e.message}`));
+  pg.on('pageerror', (e) => errores.push(`[${nombre}] pageerror: ${e.message} ${(e.stack||"").split("\n").slice(1,4).join(" ")}`));
   pg.on('dialog', (d) => (d.type() === 'prompt' ? d.accept(PROMPT.shift() ?? d.defaultValue()) : d.accept()));
   return { ctx, pg };
 }
