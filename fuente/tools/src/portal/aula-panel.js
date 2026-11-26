@@ -20,6 +20,7 @@ import { estadoTrabajo, cuentaComoEntrega, ordenarVersiones, ESTADOS_TRABAJO } f
 import { estadoChipHTML } from './entrega-ui.js';
 import { crearCorreccion } from './correccion-ui.js';
 import { abrirRevisionExamen } from './revision-examen.js';
+import { barraAjusteHTML } from './ajuste-ui.js';
 import { limpiarDoc } from '../lms/doc-html.js';
 import { copiarContenido } from './aula-copia.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
@@ -258,7 +259,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
         const manual = {}; pq.forEach((q) => { if (det[q.id] != null) manual[q.id] = det[q.id]; });
         const alId = `${grupoSel().id}_${ab.n}`; const V = versionAlumno(ex.examen, it.id, alId); const numEx = new Map(pq.map((q, i) => [q.id, i + 1]));
         auto = corregirExamen(pq, k, r, manual, { s: V.semilla });
-        h += `<h4>Respuestas · ${esc(fmtNota(auto.puntos))} / ${esc(fmtNota(auto.max))} puntos</h4>${tr ? `<div class="pn-acts"><button class="btn small" type="button" data-ap="verExamen">${ic('clipboard-check')} Ver el examen completo (solo lectura)</button></div>` : ''}${ex.examen?.barajar || pq.some((q) => q.tipo === 'variables') ? `<p class="pn-small ap-ver" id="apVersion">${ic('shuffle')} Su versión: ${ex.examen?.barajar ? 'preguntas y opciones en el orden que le salieron' : 'en el orden del examen'}${pq.some((q) => q.tipo === 'variables') ? ', con sus propios datos' : ''} · semilla <code>${V.semilla}</code></p>` : ''}<ol class="ap-resp">${V.preguntas.map((q) => {
+        h += `<h4>Respuestas · ${esc(fmtNota(auto.puntos))} / ${esc(fmtNota(auto.max))} puntos</h4>${tr ? `<div class="pn-acts"><button class="btn small" type="button" data-ap="verExamen">${ic('clipboard-check')} Ver y corregir el examen completo</button></div>` : ''}${ex.examen?.barajar || pq.some((q) => q.tipo === 'variables') ? `<p class="pn-small ap-ver" id="apVersion">${ic('shuffle')} Su versión: ${ex.examen?.barajar ? 'preguntas y opciones en el orden que le salieron' : 'en el orden del examen'}${pq.some((q) => q.tipo === 'variables') ? ', con sus propios datos' : ''} · semilla <code>${V.semilla}</code></p>` : ''}<ol class="ap-resp">${V.preguntas.map((q) => {
           const v = r[q.id]; const txt = respuestaTexto(q, v);
           const sol = solucionTexto(q, k[q.id]);
           const p = auto.detalle[q.id]; const okk = p >= (q.puntos || 1);
@@ -330,7 +331,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const dur = (s) => (s == null ? 'no volvió (o cerró la página)' : s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`);
     return `<h4>${ic('shield-check')} Modo examen · salidas</h4>${R.length ? `<table class="pn-t ex-sal"><thead><tr><th>Hora</th><th>De</th><th>Duración</th></tr></thead><tbody>${R.map((x) => `<tr><td>${esc(hora(x.t))}</td><td>${esc(({ pantalla: 'pantalla completa', 'pestaña': 'la pestaña', ventana: 'la ventana (otra aplicación)', bloqueo: 'BLOQUEO de la prueba' + (x.motivo ? ' (' + x.motivo + ')' : ''), desbloqueo: 'desbloqueo con el código' })[x.tipo] || x.tipo)}</td><td>${esc((x.tipo === "bloqueo" ? "—" : x.tipo === "desbloqueo" ? (x.dur == null ? "—" : "estuvo bloqueada " + dur(x.dur)) : dur(x.dur)))}</td></tr>`).join('')}</tbody></table><p class="pn-small">${R.length} salida${R.length === 1 ? '' : 's'}. Es solo informativo: no cambia la nota.</p>` : '<p class="pn-small">Sin salidas registradas.</p>'}`;
   }
-  // Examen completo del alumno en una ventana de solo lectura (nada se escribe)
+  // Examen completo del alumno en pantalla completa (se puede corregir con los mismos ajustes)
   function verExamenCompleto() {
     const g = grupoSel(); const ab = A.abierta; const it = ab && st.items.get(ab.k); const ex = it && A.cargaEx.get(it.id); if (!g || !it || !ex) return;
     const id = idTrabajo(it.id, g.id, ab.n); const tr = A.trabajos.get(id); const nt = A.notas.get(id); const det = nt?.detalle || {};
@@ -338,7 +339,9 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const manual = {}; pq.forEach((q) => { if (det[q.id] != null) manual[q.id] = det[q.id]; });
     const V = versionAlumno(ex.examen, it.id, `${g.id}_${ab.n}`);
     const auto = corregirExamen(pq, k, r, manual, { s: V.semilla });
-    abrirRevisionExamen({ titulo: it.titulo, quien: `${g.nombre} · nº ${pad(ab.n)}`, examen: ex.examen, V, K: k, resp: r, auto, estado: tr?.estado === 'en_curso' ? 'Examen empezado, sin entregar' : 'Entregado', fecha: fFecha(tr?.fecha), nota: nt?.nota ?? null, publicada: !!nt?.publicada, comentario: nt?.comentario || '', ajustes: det, ajustar: async (qid, pts, todos) => { await ajustar(it, g, ab.n, qid, pts, todos); pintarDetalle(); verExamenCompleto(); } });
+    const mismos = {};
+    if (tr) pq.forEach((q) => { if (q.tipo !== 'abierta') mismos[q.id] = igualesA(it, q, r, id).length; });
+    abrirRevisionExamen({ titulo: it.titulo, quien: `${g.nombre} · nº ${pad(ab.n)}`, examen: ex.examen, V, K: k, resp: r, auto, estado: tr?.estado === 'en_curso' ? 'Examen empezado, sin entregar' : 'Entregado', fecha: fFecha(tr?.fecha), nota: nt?.nota ?? null, publicada: !!nt?.publicada, comentario: nt?.comentario || '', ajustes: det, mismos, ajustar: async (qid, pts, todos) => { await ajustar(it, g, ab.n, qid, pts, todos); pintarDetalle(); verExamenCompleto(); } });
   }
   // ===== Ajustes del profesor: «Dar por válida», puntos a mano y deshacer (lms/ajustes.js). Solo se escribe notas/{id}.
   function igualesA(it, q, r, id) {
@@ -348,13 +351,8 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       && (A.notas.get(t.id)?.detalle?.[q.id] ?? corregirExamen([q], A.cargaEx.get(it.id)?.claves?.respuestas || {}, t.respuestas || {}, {}, { s: semillaAlumno(it.id, t.al) }).detalle[q.id]) < max);
   }
   function ajusteHTML(it, q, p, det, r, id) {
-    const aj = ajusteDe(det, q.id); const max = Number(q.puntos) > 0 ? Number(q.puntos) : 1; const q1 = esc(q.id);
-    const otros = aj ? [] : igualesA(it, q, r, id);
-    return `<div class="aj-bar" role="group" aria-label="Ajuste del profesor">${aj ? `<span class="aj-badge" title="Automática: ${esc(fmtNota(aj.a))} pt">${ic('user-check')} Ajustada por el profesor · antes ${esc(fmtNota(aj.a))} pt</span>` : ''}
-      ${p < max ? `<button type="button" class="btn small aj-ok" data-ap="ajValida" data-qid="${q1}">${ic('check')} Dar por válida</button>` : ''}
-      <button type="button" class="btn small" data-ap="ajPuntos" data-qid="${q1}" title="Guarda los puntos escritos en esta pregunta">${ic('pencil')} Aplicar puntos</button>
-      ${aj ? `<button type="button" class="btn small" data-ap="ajDeshacer" data-qid="${q1}">${ic('undo-2')} Deshacer</button>` : ''}
-      ${p < max && otros.length ? `<button type="button" class="btn small" data-ap="ajTodos" data-qid="${q1}" title="La misma respuesta, en este grupo">${ic('users')} Válida para todos los que respondieron igual (${otros.length + 1})</button>` : ''}</div>`;
+    const otros = ajusteDe(det, q.id) ? 0 : igualesA(it, q, r, id).length;
+    return barraAjusteHTML({ q, p, det, otros, prefijo: 'ap' });
   }
   async function ajustar(it, g, n, qid, pts, todos = false) {
     const ex = A.cargaEx.get(it.id); if (!ex) return;

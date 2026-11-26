@@ -1259,3 +1259,11 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Módulo puro `src/lms/concurso.js` + `concurso_test.mjs` (12/12). Iconos Lucide ya existentes (trophy, cpu, house, lock-open, info). Sin librerías nuevas.
 - E2E: `e2e/plataforma_f20.mjs` (35/35 con la preparación; añadida a FASES por defecto). `plataforma_f18` actualizada al nuevo orden de pestañas.
 - Capturas: /workspace/capturas-concurso/.
+
+## 26/11/2026 · PIP-6 follow-up · Corregir en el examen completo (t183u) — caché v5-20261126b
+- El botón del profesor pasa a **«Ver y corregir el examen completo»** (ya no dice «solo lectura»). Las respuestas del alumno siguen bloqueadas.
+- En esa vista, cada pregunta autocorregida tiene los mismos controles que el detalle del cuaderno: **Dar por válida**, recuadro de puntos + **Aplicar puntos**, **Deshacer** y **Válida para todos los que respondieron igual**. La lógica no se duplica: `src/portal/ajuste-ui.js` pinta la barra y `src/lms/ajustes.js` calcula la nota (`notas/{id}.detalle['aj:'+q]`).
+- La nota se ve en la cabecera fija y se actualiza en vivo al escribir puntos; al guardar coincide con la otra vista. Esc no cierra la ventana si hay un diálogo de confirmación.
+- Sin cambios de reglas ni de datos: no se tocan respuestas, exámenes antiguos ni notas si el profesor no aplica un ajuste. Las vistas del alumno siguen de solo lectura.
+- Pruebas: `plataforma_f15` actualizada; `plataforma_f16` ampliada (aplicar/deshacer/todos en pantalla completa y consistencia con el detalle) → 40/40. Fase 16 vuelve a estar en FASES por defecto.
+- Capturas: /workspace/capturas-validar/completa_*.png (escritorio, puntos, válida, móvil y móvil oscuro).

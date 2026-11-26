@@ -457,6 +457,9 @@ html[data-theme="dark"] .aj-bar .aj-ok { color: #6fdc9a; }
 html[data-theme="dark"] .aj-badge { background: #6f8aa6; color: #0b0d10; }
 html[data-theme="dark"] .rv-form .aj-bar { background: rgba(255,255,255,.05); }
 .aj-bar .btn.small { max-width: 100%; white-space: normal; text-align: left; }
+.aj-bar .aj-pts { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.aj-bar .ap-qpts { width: 4.6em; min-height: 32px; padding: 4px 8px; border-radius: 10px; border: .5px solid var(--glass-borde, rgba(60,60,67,.18)); background: var(--glass, rgba(255,255,255,.72)); color: inherit; font: inherit; font-weight: 650; -webkit-backdrop-filter: var(--blur, none); backdrop-filter: var(--blur, none); }
+html[data-theme="dark"] .aj-bar .ap-qpts { background: rgba(255,255,255,.08); }
 html[data-theme="dark"] .ap-resp li.ok { background: rgba(52,199,89,.16); }
 html[data-theme="dark"] .ap-resp li.ko { background: rgba(222,7,20,.18); }
 html[data-theme="dark"] .ap-resp li.med { background: rgba(255,159,10,.16); }

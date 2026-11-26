@@ -1,6 +1,7 @@
-// Fase 16 · Ajustes del profesor al corregir un examen (t174u): «Dar por válida», deshacer, «válida para todos».
-// Comprueba que la nota se recalcula en el detalle, el cuaderno, el examen completo y la vista del alumno; que deshacer
-// devuelve la nota original; que una nota antigua sin ajustes no cambia; y que las respuestas del alumno no se tocan.
+// Fase 16 · Ajustes del profesor al corregir un examen (t174u, t183u): «Dar por válida», deshacer, «válida para todos»
+// y los mismos controles en el examen completo. Comprueba que la nota se recalcula en el detalle, el cuaderno, el examen
+// completo (cabecera en vivo) y la vista del alumno; que deshacer devuelve la nota original; que una nota antigua sin
+// ajustes no cambia; y que las respuestas del alumno no se tocan.
 export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJSON, local, REST, owner }) {
   const pg = T.P.pg;
   const EX = { formato: 'superprofe/elemento@1', tipo: 'examen', titulo: 'Ajustes F16 · dar por válida', puntos: 10,
@@ -74,14 +75,35 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   await pg.click('.rv-modal [data-rv=valida][data-qid=c1]'); await pg.waitForSelector('.rv-modal .aj-badge', { timeout: 10000 });
   n21 = await docREST('notas/' + tid(21));
   ok('F16 · «Dar por válida» desde el examen completo (c1): 6,67 y marca en la ventana', nv(n21) === 6.67 && !!dm(n21)['aj:c1'], String(nv(n21)));
+  ok('F16 · la cabecera del examen completo muestra la nota 6,67 y 2 / 3', /6,67/.test(await pg.textContent('.rv-h-nota')) && /2 \/ 3/.test(await pg.textContent('.rv-res')), (await pg.textContent('.rv-h-nota')) + ' | ' + (await pg.textContent('.rv-res')));
+  await shot(pg, 'completa_valida');
   await pg.keyboard.press('Escape'); await pg.waitForSelector('.rv-modal', { state: 'detached' });
   await A.pg.waitForFunction(() => /6,67/.test(document.querySelector('.rb-nota')?.textContent || ''), null, { timeout: 10000 }).catch(() => { });
   ok('F16 · el alumno ve el cambio al momento', /6,67/.test(await A.pg.textContent('.rb-nota')));
-  // válida para todos los que respondieron igual (21 y 24) en t1
-  await pg.waitForSelector('#apDetalle [data-ap=ajTodos][data-qid=t1]', { timeout: 10000 });
-  await pg.click('#apDetalle [data-ap=ajTodos][data-qid=t1]');
+  // Aplicar puntos 0,5 en c1 desde el examen completo, y que coincida con la vista normal
+  await pg.click('[data-ap=verExamen]'); await pg.waitForSelector('.rv-modal .aj-bar .ap-qpts[data-qid=c1]', { timeout: 10000 });
+  await pg.fill('.rv-modal .aj-bar .ap-qpts[data-qid=c1]', '0.5');
+  await pg.waitForFunction(() => /(?:^|\D)5(?:\D|$)/.test((document.querySelector('.rv-h-nota')?.textContent || '').replace(/\s+/g, ' ')) && /1,5 \/ 3/.test(document.querySelector('.rv-res')?.textContent || ''), null, { timeout: 5000 });
+  ok('F16 · al escribir puntos en el examen completo, la cabecera se actualiza en vivo (nota 5, 1,5 / 3)', /(?:^|\D)5(?:\D|$)/.test((await pg.textContent('.rv-h-nota')).replace(/\s+/g, ' ')) && /1,5 \/ 3/.test(await pg.textContent('.rv-res')), (await pg.textContent('.rv-h-nota')) + ' | ' + (await pg.textContent('.rv-res')));
+  await pg.click('.rv-modal [data-rv=puntos][data-qid=c1]');
+  for (let i = 0; i < 20; i++) { n21 = await docREST('notas/' + tid(21)); const p = dm(n21)['aj:c1']?.mapValue?.fields?.p; if (Number(p?.doubleValue ?? p?.integerValue) === 0.5) break; await new Promise((r) => setTimeout(r, 300)); }
+  ok('F16 · «Aplicar puntos» 0,5 en c1 desde el examen completo: nota 5', nv(n21) === 5, String(nv(n21)));
+  await shot(pg, 'completa_puntos');
+  await pg.keyboard.press('Escape'); await pg.waitForSelector('.rv-modal', { state: 'detached' });
+  await pg.waitForFunction(() => document.querySelector('#apNota')?.value === '5', null, { timeout: 10000 });
+  ok('F16 · al cerrar, la vista normal coincide (nota 5, c1 ajustada)', (await pg.inputValue('#apNota')) === '5' && !!(await pg.$('#apDetalle [data-ap=ajDeshacer][data-qid=c1]')), await pg.inputValue('#apNota'));
+  // restaurar c1 a válida y «válida para todos» en t1 desde el examen completo
+  await pg.click('[data-ap=verExamen]'); await pg.waitForSelector('.rv-modal [data-rv=valida][data-qid=c1]', { timeout: 10000 });
+  await pg.click('.rv-modal [data-rv=valida][data-qid=c1]');
+  await pg.waitForFunction(() => /6,67/.test(document.querySelector('.rv-h-nota')?.textContent || ''), null, { timeout: 10000 });
+  await shot(pg, 'completa_escritorio');
+  ok('F16 · el examen completo ofrece «válida para todos» en t1 (21 y 24)', /\(2\)/.test(await pg.textContent('.rv-modal [data-rv=todos][data-qid=t1]')), await pg.textContent('.rv-modal [data-rv=todos][data-qid=t1]'));
+  await pg.click('.rv-modal [data-rv=todos][data-qid=t1]');
   let n24 = null; for (let i = 0; i < 20; i++) { n24 = await docREST('notas/' + tid(24)); n21 = await docREST('notas/' + tid(21)); if (n24.fields && dm(n21)['aj:t1']) break; await new Promise((r) => setTimeout(r, 300)); }
   ok('F16 · «Válida para todos»: el 21 (10) y el 24 (6,67, sin publicar) reciben el ajuste; el 22 no', nv(n21) === 10 && nv(n24) === 6.67 && n24.fields.publicada.booleanValue === false && !!dm(n24)['aj:t1'], `${nv(n21)} ${nv(n24)}`);
+  await pg.waitForFunction(() => /10/.test(document.querySelector('.rv-h-nota')?.textContent || ''), null, { timeout: 10000 }).catch(() => { });
+  ok('F16 · la cabecera del 21 pasa a 10 tras «válida para todos»', /10/.test(await pg.textContent('.rv-h-nota')), await pg.textContent('.rv-h-nota'));
+  await pg.keyboard.press('Escape'); await pg.waitForSelector('.rv-modal', { state: 'detached' });
   ok('F16 · la nota antigua del 22 (sin ajustes) está exactamente igual', JSON.stringify((await docREST('notas/' + tid(22))).fields) === viejo22);
   await pg.click(`td[data-celda="${id}"][data-n="22"]`); await pg.waitForSelector('#apDetalle .ap-resp li', { timeout: 15000 }); await pg.waitForTimeout(400);
   ok('F16 · el 22 se abre como siempre: sin marcas de ajuste, nota 6,67', !(await pg.$('#apDetalle .aj-badge')) && (await pg.inputValue('#apNota')) === '6.67');
@@ -99,6 +121,13 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   ok('F16 · móvil 390 px: sin scroll lateral', sw.sw <= sw.w + 1, JSON.stringify(sw));
   await pg.locator('#apDetalle .aj-bar').first().scrollIntoViewIfNeeded(); await shot(pg, 'f16_movil');
   await pg.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark')); await pg.waitForTimeout(200); await shot(pg, 'f16_movil_oscuro');
-  await pg.evaluate(() => document.documentElement.removeAttribute('data-theme')); await pg.setViewportSize({ width: 1440, height: 900 });
+  await pg.evaluate(() => document.documentElement.removeAttribute('data-theme'));
+  await pg.click('[data-ap=verExamen]'); await pg.waitForSelector('.rv-modal .aj-bar', { timeout: 10000 });
+  await pg.waitForTimeout(300); await shot(pg, 'completa_movil');
+  await pg.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark')); await pg.waitForTimeout(200); await shot(pg, 'completa_movil_oscuro');
+  const sw2 = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, m: document.querySelector('.rv-dlg')?.getBoundingClientRect().width, w: innerWidth }));
+  ok('F16 · examen completo en 390 px: sin scroll lateral', sw2.sw <= sw2.w + 1 && sw2.m <= sw2.w + 1, JSON.stringify(sw2));
+  await pg.evaluate(() => document.documentElement.removeAttribute('data-theme')); await pg.keyboard.press('Escape');
+  await pg.setViewportSize({ width: 1440, height: 900 });
   await A.ctx.close();
 }
