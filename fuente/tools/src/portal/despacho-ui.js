@@ -114,13 +114,13 @@ function incidenciaHTML(cont, emp, x, i) {
 }
 
 // ---------- Editor del alumno ----------
-export function crearEditorDespacho(it, { db, ses } = {}) {
+export function crearEditorDespacho(it, { db, ses, empresa = null } = {}) {
   const cont = it.contenido; const S = { D: null, emp: null, undo: [], sel: null, f: null, alCambiar: () => {}, ro: false, lanz: [], asign: {}, modal: null, unsub: null, tReg: null, drag: null };
   const vacio = () => !Object.keys(S.D.b).length && !S.D.h.length;
   function asegurarDoc(v) {
     const d = leerDoc(v?.doc);
     if (d && (!S.D || (d.h.length >= S.D.h.length))) S.D = d;
-    if (!S.D) { const e = empresaPara(cont, { itemId: it.id, numero: ses?.numero, asign: S.asign }); S.D = docVacio(e); }
+    if (!S.D) { const e = empresa && cont.empresas.some((x) => x.id === empresa) ? empresa : empresaPara(cont, { itemId: it.id, numero: ses?.numero, asign: S.asign }); S.D = docVacio(e); }
     if (!cont.empresas.some((e) => e.id === S.D.emp)) S.D.emp = cont.empresas[0].id;
     S.emp = empDe(cont, S.D.emp);
   }
@@ -324,6 +324,10 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
       setTimeout(revisarLlamadas, 50);
     },
     enlazarLectura(f) { S.f = f; },
+    // «Probar como alumno» del profesor (sin db: no se guarda nada): simular una llamada y cambiar de empresa.
+    simularLlamada(k) { S.lanz = [...S.lanz.filter((l) => l.k !== k), { e: '', k, n: 0, t: Date.now() }]; S.D.at = S.D.at.filter((a) => a.k !== k); S.D.inc = S.D.inc.filter((x) => x.k !== k); revisarLlamadas(); },
+    empresa: () => S.emp?.id,
+    cambiarEmpresa(id) { if (!cont.empresas.some((e) => e.id === id)) return; S.D = docVacio(id); S.emp = empDe(cont, id); S.undo = []; S.sel = null; S.lanz = []; pintar(); },
     pausaGuardado: 900,
     // Antes de entregar: resumen (trabajos colocados, avisos pendientes, llamadas atendidas)
     resumenEntrega() {

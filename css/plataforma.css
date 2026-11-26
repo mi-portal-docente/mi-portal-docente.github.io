@@ -1049,3 +1049,15 @@ html.glass-lite #apEditor .ed-card { -webkit-backdrop-filter: none; backdrop-fil
   #apEditor .cl-dlg-h, #apEditor .cl-dlg-f, #apEditor .ed-card-c, #apEditor details.ed-fold > summary.ed-h { padding-left: 12px; padding-right: 12px; }
   #apEditor .cl-dlg-b { padding: 10px; }
 }
+
+/* Despacho virtual · «Probar como alumno» del profesor (PIP-11) */
+.dv-prof { margin-top: 18px; padding: 14px 16px; border-radius: var(--r, 14px); background: var(--glass); -webkit-backdrop-filter: blur(var(--blur, 18px)) saturate(1.6); backdrop-filter: blur(var(--blur, 18px)) saturate(1.6); border: 1px solid var(--glass-borde); }
+.dv-prof h4 { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; color: #506C88; }
+.dv-pbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 12px 0 8px; padding: 8px 10px; border-radius: 12px; background: rgba(80, 108, 136, .10); border: 1px solid rgba(80, 108, 136, .25); }
+.dv-pbar label { display: inline-flex; align-items: center; gap: 6px; font-size: .95em; }
+.dv-pbar select { min-height: 36px; border-radius: 10px; }
+.dv-pchip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #DE0714; color: #fff; font-weight: 600; font-size: .9em; }
+.au-sin-grupo { border-left: 4px solid #DE0714; }
+html[data-theme="dark"] .dv-prof h4 { color: #a9bdd1; }
+html[data-theme="dark"] .dv-pbar { background: rgba(169, 189, 209, .10); border-color: rgba(169, 189, 209, .25); }
+html.glass-lite .dv-prof { -webkit-backdrop-filter: none; backdrop-filter: none; }

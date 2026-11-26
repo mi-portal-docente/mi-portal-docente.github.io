@@ -140,6 +140,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
   function itemHTML(it) {
     let h = cabeceraItem(it);
     if (rol === 'profesor') h += `<div class="au-prof">${!it.publicado ? '⚪ Borrador' : it.pub && it.pub > Date.now() ? '🕒 Programado para el ' + esc(fFecha(it.pub)) : '🟢 Publicado'} · ${esc((it.grupos || []).length)} grupo(s) <button class="btn small" data-au="editar">✏️ Editar</button></div>`;
+    if (rol === 'profesor' && !(it.grupos || []).length && it.tipo !== 'recuperacion') h += `<div class="au-aviso au-sin-grupo">${ic('triangle-exclamation-point')} <b>Ningún grupo la ve.</b> Ninguna clase tiene la asignatura ${esc(asignatura(it.asig)?.corto || it.asig)}. Añádela a la clase en <a href="#panel/grupos">Gestión › Grupos y códigos</a> (mismo código para todas sus asignaturas) y vuelve a publicar.</div>`;
     if (rol === 'profesor' && (it.pendiente || it.nota)) h += `<div class="cl-nota-v ${it.pendiente ? 'pend' : ''}">🔒 <b>${it.pendiente ? 'Pendiente de completar' : 'Nota privada'}</b>${it.nota ? ' · ' + esc(it.nota) : ''} <span class="muted small">(solo la ves tú)</span></div>`;
     if (it.pdf || it.interactivo || seccionesActivas(st.secConf, it.asig)) { const c = carasHTML(it); if (c) h += `<div class="au-caras">${c}</div>`; }
     if (it.fechaEntrega && it.tipo !== 'examen') h += `<div class="au-fecha">📅 Fecha de entrega: <b>${esc(fFecha(it.fechaEntrega))}</b></div>`;
@@ -151,13 +152,36 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (it.tipo === 'examen') h += examenInfoHTML(it);
     else if (it.contenido && montadorDe(it.tipo)) h += `${rol === 'alumno' && st.notas.get(it.id) ? notaHTML(it) : ''}<div id="auMotor" class="au-motor"></div>`;
     else if (TIPOS_ENTREGA.includes(it.tipo) && rol === 'alumno') h += entregaHTML(it);
+    if (rol === 'profesor' && it.tipo === 'despacho') h += despachoProfeHTML(it);
     return h;
   }
+  // «Despacho virtual» (profesor): el tablero tal y como lo ve el alumno, para probarlo sin guardar nada.
+  const dvP = { id: null, ed: null };
+  function despachoProfeHTML(it) {
+    const E = it.contenido?.empresas || [];
+    if (!E.length) return `<div class="au-aviso">${ic('triangle-exclamation-point')} Esta actividad no tiene empresas: vuelve a importar el JSON con «empresas».</div>`;
+    return `<section class="dv-prof" id="dvProf"><h4>${ic('briefcase')} Tablero del alumno</h4>
+      <p class="pn-small">Tus alumnos ven este tablero al abrir la tarea. Aquí puedes probarlo con cualquier empresa: <b>no se guarda nada</b>. Las empresas de cada alumno y las llamadas se manejan en la corrección de la tarea, en «Centralita y empresas».</p>
+      <div class="au-acts"><button class="btn primary" data-au="dvProbar">${ic('user-check')} Probar como alumno</button><span class="pn-small">${E.length} empresa${E.length === 1 ? '' : 's'} · ${E.reduce((n, e) => n + e.trabajos.length, 0)} trabajos</span></div><div id="dvPrueba"></div></section>`;
+  }
+  function probarDespacho(it, emp) {
+    const box = document.getElementById('dvPrueba'); if (!box) return;
+    const E = it.contenido.empresas; dvP.id = it.id;
+    dvP.ed = crearEditorDespacho(it, { empresa: emp || dvP.ed?.empresa?.() || E[0].id });
+    const e0 = dvP.ed; const html = e0.html(null, false); const empId = e0.empresa(); const emp0 = E.find((e) => e.id === empId) || E[0];
+    box.innerHTML = `<div class="dv-pbar" id="dvPruebaOn"><span class="dv-pchip">${ic('eye')} Vista de alumno · prueba sin guardar</span>
+      <label>Empresa <select data-au-dv="emp">${E.map((e) => `<option value="${esc(e.id)}" ${e.id === empId ? 'selected' : ''}>${esc(e.nombre)}</option>`).join('')}</select></label>
+      ${emp0.llamadas.map((l, k) => `<button type="button" class="btn small" data-au="dvLlamada" data-k="${k}" title="${esc(l.texto)}">${ic('radio')} Llamada ${k + 1}</button>`).join('')}
+      <span class="pn-grow"></span><button type="button" class="btn small" data-au="dvFin">${ic('x')} Cerrar la prueba</button></div><div class="dv-pf">${html}</div>`;
+    e0.enlazar(box.querySelector('.dv-pf'), () => { });
+  }
+  document.addEventListener('change', (e) => { const s = e.target.closest?.('[data-au-dv=emp]'); if (s && dvP.ed) { const it = st.items.get(dvP.id); if (it) probarDespacho(it, s.value); } });
   let pruebaM = null;
   function renderItem(el, id) {
     if (!el) return; actual = { el, tipo: 'item', id };
     if (ex.id === id && ex.examen && rol === 'alumno') return; // examen en marcha: no se repinta
     if (prueba.id === id && rol === 'profesor' && el.querySelector('#auProbar')) return; // «Probar como alumno» en marcha
+    if (dvP.id === id && rol === 'profesor' && el.querySelector('#dvPruebaOn')) return; // prueba del despacho en marcha
     if (prueba.id && prueba.id !== id) { prueba.reloj?.quitar(); prueba.reloj = null; clearInterval(prueba.timer); prueba.id = null; }
     let it = st.items.get(id); if (it && rol === 'alumno' && it.pub && it.pub > Date.now()) it = null;
     if (!it) { el.innerHTML = barraSup() + `<div class="au-page">${st.listo.items ? '<p class="au-vacio">Este elemento no existe o no está publicado para tu grupo.</p><a class="btn" href="#asignaturas">← Asignaturas</a>' : '<p class="au-small">Cargando…</p>'}</div>`; return; }
@@ -356,6 +380,9 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
     if (b.dataset.au === 'seguir') { const it = st.items.get(actual.id); b.disabled = true; pantallaObligatoria(it, null).then(() => abrirExamen(it)).catch(() => { b.disabled = false; alert('El examen ya no está abierto.'); }); }
     if (b.dataset.au === 'verPreguntas') verPreguntas();
     if (b.dataset.au === 'probar') probarComoAlumno();
+    if (b.dataset.au === 'dvProbar') { const it = st.items.get(actual.id); if (it) probarDespacho(it); }
+    if (b.dataset.au === 'dvLlamada') dvP.ed?.simularLlamada(+b.dataset.k);
+    if (b.dataset.au === 'dvFin') { dvP.id = null; dvP.ed = null; document.documentElement.classList.remove('dv-full-on'); renderItem(actual.el, actual.id); }
     if (b.dataset.au === 'probarFin') { prueba.reloj?.quitar(); clearInterval(prueba.timer); prueba.id = null; renderItem(actual.el, actual.id); }
     if (b.dataset.au === 'editar') window.PORTAL?.aula?.editar?.(actual.id);
     if (b.dataset.au === 'leer') leerEnVoz(b);
