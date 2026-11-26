@@ -130,8 +130,7 @@ export default async function ({ T, BASE, ok, docREST, pegarJSON, guardarJSON })
   await A.pg.click('.dv-modal [data-m=ok]'); await A.pg.waitForSelector('.dv-modal', { state: 'detached' });
   ok('F21 · tras guardar la incidencia desaparece el aviso de llamada pendiente', !(await A.pg.$('.dv-banner')));
   await A.pg.waitForFunction(() => /Guardado \d\d:\d\d/.test(document.querySelector('#enGuardado')?.textContent || ''), null, { timeout: 20000 });
-  await A.pg.waitForTimeout(1500);
-  tr = await docREST('trabajos/' + tid); D = JSON.parse(campo(tr, 'doc') || '{}');
+  for (let i = 0; i < 30; i++) { tr = await docREST('trabajos/' + tid); D = JSON.parse(campo(tr, 'doc') || '{}'); if (D.inc?.length) break; await A.pg.waitForTimeout(500); }
   const inc = D.inc?.[0];
   ok('F21 · la incidencia se guarda con hora, tipo y el tablero antes y después', inc && inc.k === 0 && inc.tipo === 'Urgencia del cliente' && inc.antes?.MT01?.s === 540 && inc.despues?.MT01?.s === 480 && inc.t > 0 && D.at.length === 1, JSON.stringify(inc || {}).slice(0, 300));
   // ---- un alumno que no estaba conectado ve la llamada al entrar
