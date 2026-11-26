@@ -167,7 +167,7 @@ export default async function ({ T, BASE, ok, docREST, pegarJSON, guardarJSON })
   // ---- Móvil en horizontal y modo oscuro (alumno nº 3)
   const M = await T.alumno(T.GE, 3, '4321', { width: 844, height: 390 });
   await M.pg.goto(BASE + '#trabajo/' + id); await M.pg.waitForSelector('.dv-board', { timeout: 20000 });
-  if (await M.pg.$('.dv-modal [data-m=ok]')) await M.pg.click('.dv-modal [data-m=ok]');
+  if (await M.pg.waitForSelector('.dv-modal [data-m=ok]', { timeout: 8000 }).catch(() => null)) { await foto(M.pg, '10b_movil_llamada'); await M.pg.click('.dv-modal [data-m=ok]'); }
   const anch = await M.pg.evaluate(() => ({ doc: document.documentElement.scrollWidth, vw: innerWidth }));
   ok('F21 · móvil en horizontal (844×390): la página no se sale de ancho (el tablero desplaza dentro)', anch.doc <= anch.vw + 1, JSON.stringify(anch));
   await M.pg.evaluate(() => document.querySelector('.dv')?.scrollIntoView()); await foto(M.pg, '10_movil_horizontal');

@@ -469,6 +469,36 @@ líneas) y tabla dinámica sencilla (agrupar por una columna y SUMA / PROMEDIO /
   mayúsculas) y, si se pone, `formula` (la celda tiene que usar esa función; no vale escribir el número a mano).
 - Al entregar se guarda la hoja (`doc`) y el resumen «Aciertos: a/t» de los retos, que «Poner notas» pasa a nota.
 
+## Despacho virtual (`"tipo": "despacho"`, PIAC SA1 T4 «Jefe por un día»)
+
+Tablero de planificación semanal: el alumno es el jefe de una empresa de servicios y arrastra trabajos al día y la hora,
+y encima del bloque las personas y los recursos. Avisos en vivo (no bloquean), centralita con llamadas que lanza el
+profesor, incidencias con el tablero antes/después, entrega y nota con la rúbrica del portal. Ejemplo completo:
+`despacho_ejemplo.json` (elemento) y `PIAC_SA1_T4_Despacho_datos_ejemplo.json` (solo datos; también se puede pegar tal cual).
+
+```json
+{ "tipo": "despacho", "titulo": "Despacho virtual · Jefe por un día", "puntos": 10,
+  "contenido": {
+    "dias": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"], "horario": "8:00-22:00", "viaje_min": 30,
+    "prioridad": ["Urgencias primero", "Clientes con hora fija"],
+    "empresas": [ { "id": "limpieza", "nombre": "Limpiezas Brillo",
+      "personal": [ { "codigo": "L1", "rol": "Limpiador/a", "turno": "Mañana" } ],
+      "recursos": [ "Furgoneta 1", "Pulidora" ],
+      "trabajos": [ { "id": "LT01", "cliente": "Bar La Esquina", "trabajo": "Limpieza de cocina", "perfil": "Limpiador/a",
+                      "personas": 1, "horas": 2, "ventana": "8:00-11:00", "dia": "Lunes", "recurso": "Furgoneta 1" } ],
+      "llamadas": [ { "cuando": "Lunes 10:30", "texto": "El cliente pide adelantar la limpieza.", "tipo": "Urgencia del cliente" } ] } ] } }
+```
+
+- `horas`: duración (1.5 = 1 h 30 min; el bloque ocupa filas de 30 min). `personas`: cuántas hacen falta. `perfil`: tiene que
+  coincidir con el `rol` de alguien del personal (sin mayúsculas ni tildes). `recurso`: uno de los `recursos` de la empresa (o null).
+- `ventana`: "9:00-13:00", "Mañana" (8-14) o "Tarde" (14-22). `turno` del personal: Mañana (hasta las 14:00), Tarde (desde las 14:00) o Flexible.
+- `dia`: el día en que cae el trabajo (se muestra en la etiqueta; el alumno puede moverlo).
+- Avisos: rojo (misma persona o recurso en dos bloques a la vez; falta el perfil), naranja (sin los `viaje_min` entre dos
+  bloques con la misma persona; fuera del horario o de la ventana; nº de personas distinto; falta el recurso), amarillo (fuera de turno).
+- Cada alumno recibe una empresa: la que le asigne el profesor en «Centralita y empresas» (al corregir) o, si no, una al azar
+  que siempre es la misma. Sin nombres de alumnos en los datos.
+- Lo del alumno se guarda en su trabajo (`doc`): tablero, historial, llamadas atendidas e incidencias. La nota la pone el profesor.
+
 ## Modelo 3D en una entrega (fase 13)
 
 En tareas, prácticas, proyectos, actividades y recuperaciones el alumno puede subir **un STL de hasta 600 KB**

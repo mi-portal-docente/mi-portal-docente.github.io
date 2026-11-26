@@ -1267,3 +1267,30 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Sin cambios de reglas ni de datos: no se tocan respuestas, exámenes antiguos ni notas si el profesor no aplica un ajuste. Las vistas del alumno siguen de solo lectura.
 - Pruebas: `plataforma_f15` actualizada; `plataforma_f16` ampliada (aplicar/deshacer/todos en pantalla completa y consistencia con el detalle) → 40/40. Fase 16 vuelve a estar en FASES por defecto.
 - Capturas: /workspace/capturas-validar/completa_*.png (escritorio, puntos, válida, móvil y móvil oscuro).
+
+## 26/11/2026 · PIP-9 · «Despacho virtual» (PIAC SA1 T4 «Jefe por un día», t184u) — rama `despacho-virtual` (sin tocar main)
+- **Tipo nuevo `despacho`** (motor registrado como los demás: `src/lms/motores/despacho.js`; lógica pura `src/lms/despacho.js`;
+  interfaz `src/portal/despacho-ui.js`). Se entrega como un trabajo: el tablero va en `trabajos/{id}.doc` (JSON `{"v":"dv1",…}`),
+  igual que la hoja de cálculo; se reutilizan el guardado automático, los borradores, la entrega, las versiones, la corrección y la rúbrica.
+- **Importador JSON** (el de siempre): acepta el elemento con `contenido` o el fichero de datos suelto (`{ "empresas": … }`).
+  Valida días, horario, viaje, personal (turnos), recursos, trabajos (perfil existente, recurso existente, horas, ventana, día) y llamadas.
+  Ejemplo: `src/lms/semilla/despacho_ejemplo.json` y `PIAC_SA1_T4_Despacho_datos_ejemplo.json` (4 empresas × 15 trabajos × 3 llamadas; inventado, sin alumnos).
+- **Alumno**: listas de Trabajos (#506C88), Personal (#DE0714) y Recursos (gris); tablero L-V × 8:00-22:00 en filas de 30 min;
+  arrastrar con eventos de puntero (ratón, dedo, lápiz) y alternativa por toque/teclado (elegir etiqueta → día y hora / trabajo);
+  etiquetas dentro del bloque con botón para quitar; avisos en vivo (rojo/naranja/amarillo) y contador «Trabajos colocados x/15 · Avisos n»;
+  Deshacer; guardado automático (~1 s tras cada cambio + copia local); pantalla completa; exportar imagen PNG y PDF (impresión).
+- **Centralita**: en la corrección del elemento, panel «Centralita y empresas»: empresa por nº (o reparto al azar equilibrado) y
+  «Lanzar llamada» a todo el grupo (cada uno la de su empresa), a una empresa o a un alumno. Al alumno le salta una ventana que no se
+  cierra hasta «Entendido» (si no estaba conectado, la ve al entrar); luego «Incidencia» (qué, por qué, trabajo movido; mínimo una frase)
+  guardada con hora, tipo y tablero antes/después. También incidencias propias (p. ej. justificar un trabajo fuera de ventana).
+- **Entrega**: resumen previo (colocados, avisos pendientes, llamadas atendidas, incidencias) y tablero congelado.
+- **Profesor**: tablero final (SVG), avisos que quedan, incidencias con antes/después, historial de movimientos con hora y registro
+  informativo (tiempo y cambios de pestaña). Nota manual con la rúbrica de siempre.
+- **Reglas** (`firebase/firestore.rules`): `despacho` en la lista de tipos de elementos y de trabajos; colección nueva
+  `despachos/{item}_{grupo}` {item, grupo, asign, llamadas, fecha} (escribe el profesor; lee el grupo). NO desplegadas.
+  Pruebas: `firebase/test/despacho.test.mjs` (4) y `npm run test:reglas` 162/162 (añadidos concurso y despacho al script).
+- Pruebas: `despacho_test.mjs` 50/50 (importador, solapes de personal y recurso, perfil, viaje, turnos, ventana, guardado, reparto, llamadas);
+  E2E `e2e/plataforma_f21.mjs` 39/39 (añadida a FASES). Capturas: /workspace/capturas-despacho/.
+- Sin librerías nuevas. Cambios pequeños fuera del módulo: `entrega-ui.js` (ganchos opcionales `pausaGuardado`, `resumenEntrega`, `guardarYa`),
+  `elemento.js` (atajo del fichero de datos), listas de tipos, `.dlg-txt` con saltos de línea, `.au-page:has(.dv)` más ancha.
+- Caché: al fusionar, `bash fuente/tools/subir-cache.sh v5-20261126c`.
