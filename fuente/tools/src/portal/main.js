@@ -31,7 +31,7 @@ const ACCESO_MS = 10 * 60000; // «último acceso» del nº de lista, como mucho
 const MIN_PAGINA_MS = 15000;  // al cambiar de página, como mucho un aviso cada 15 s
 const AVISOS = {
   expulsado: 'El profesor ha cerrado tu sesión.',
-  bloqueado: 'Tu número de lista está bloqueado por el profesor. Habla con él para que lo desbloquee.',
+  bloqueado: 'Tu número de lista está de baja (bloqueado por el profesor). Habla con él para que te dé de alta.',
   codigo_cambiado: 'El código del grupo ha cambiado. Pide el nuevo al profesor.',
   cerrado: 'El profesor ha cerrado el acceso de tu grupo.',
   horario: 'Tu grupo está fuera del horario de acceso.',
@@ -44,7 +44,7 @@ const ERR = {
   horario: 'Este grupo está fuera de su horario de acceso.',
   numero: 'Elige tu número de lista.',
   pin: 'Escribe tu PIN: de 4 a 8 cifras.',
-  bloqueado: 'Este número de lista está bloqueado por el profesor. Habla con él para que lo desbloquee.',
+  bloqueado: 'Este número de lista está de baja (bloqueado por el profesor). Habla con él para que lo dé de alta.',
   pinMal: 'Ese número de lista ya tiene otro PIN. Si lo has olvidado (o no eres tú), pide al profesor que lo reinicie.',
   red: 'No se puede conectar con el portal. Comprueba la conexión a Internet y vuelve a intentarlo.',
   limite: 'Demasiados intentos seguidos desde esta red. Espera unos minutos y vuelve a intentarlo.',

@@ -15,7 +15,7 @@ export function escribirGuiadas(apartados, ids) {
   return [...resto, PREFIJO + [...new Set(ids)].join(',')];
 }
 export const guiadaAbierta = (apartados, id) => { const s = leerGuiadas(apartados); return !s || s.has(id); };
-export const sinTokens = (apartados) => (Array.isArray(apartados) ? apartados : []).filter((x) => !esToken(x) && !esTokenEv(x) && !(typeof x === 'string' && (x.startsWith('vivienda:') || x.startsWith('vivev:'))));
+export const sinTokens = (apartados) => (Array.isArray(apartados) ? apartados : []).filter((x) => !esToken(x) && !esTokenEv(x) && !(typeof x === 'string' && (x.startsWith('vivienda:') || x.startsWith('vivev:') || x.startsWith('union:'))));
 // «Evaluación de circuitos»: los niveles (n1, n2…) van en otro token, «evaluacion:n1,n2». A diferencia de
 // las prácticas guiadas, sin token están TODOS cerrados para los alumnos: el profesor abre cada nivel.
 export const PREFIJO_EV = 'evaluacion:';

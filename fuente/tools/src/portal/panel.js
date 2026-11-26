@@ -13,6 +13,8 @@ import { PRACTICES } from '../circ/practices.js';
 import { leerGuiadas, escribirGuiadas, sinTokens, leerEvaluaciones, escribirEvaluaciones, leerViv, escribirViv, leerVivEv, escribirVivEv } from '../circ/guiadas.js';
 import { VIV_PR, VIV_EV, VIV_REGISTRO, progresoRegistro } from '../viv/indice.js';
 import { EVALS, idAutonoma } from '../circ/evaluaciones.js';
+import { crearClase } from './clase-ui.js';
+import { leerUnion, conUnion, esTokenUnion } from '../lms/union.js';
 import { resumenAlumno, sanear, iguales, clasificar, puntosDe, maxDe, LABS, MAX_CIRC, MAX_VIV } from '../lms/concurso.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
@@ -48,7 +50,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   const SEGUIMIENTO_AULA = ['notas', 'trabajos', 'tareas', 'test', 'examenes'];
   const DESC = {
     cursos: 'Cada curso escolar eliges qué asignaturas impartes. El curso activo es el que ves en «Curso»; la «Biblioteca» guarda todas las asignaturas, también las de otros años.',
-    grupos: 'Cada grupo tiene un código de clase que los alumnos usan para entrar (con su nº de lista y un PIN). Sin nombres.',
+    grupos: 'Una clase, un código: sus alumnos entran con el mismo código, su nº de lista y su PIN en todas las asignaturas de la clase. Sin nombres.',
     notas: 'Cuaderno por grupo y asignatura: tareas, cuestionarios, actividades y prácticas del laboratorio. Nota de cada actividad (la nota por criterios se calcula en SuperProfe y QE).',
     analitica: 'Cómo ha ido cada examen: % de acierto por pregunta y por criterio, de menor a mayor, y las preguntas más falladas. Sin nombres: solo cuenta las entregas del grupo.',
     trabajos: 'Ejercicios y actividades en clase de cada grupo: qué ha entregado cada nº de lista y su nota. Es el cuaderno filtrado por este tipo.',
@@ -62,6 +64,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   };
 
   // ------------------------------------------------------------ datos en tiempo real
+  const clase = crearClase({ db, st, repintar: () => pintarDatos() });
   function iniciar() {
     let raf = 0; const pintarLuego = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(pintarDatos); };
     st.unsubs.push(onSnapshot(collection(db, 'grupos'), (qs) => {
@@ -148,7 +151,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   const pintarContadores = () => { if ($('#pnTabs')) pintarTabs(); };
   function pintarTab() {
     const B = $('#pnBody'); if (!B) return;
-    if (st.sub === 'grupos') B.innerHTML = `<section class="pn-card"><h3 id="pnFormT">${st.editando ? 'Editar grupo' : 'Nuevo grupo'}</h3><div id="pnForm">${formHTML(st.editando ? st.grupos.get(st.editando) : null)}</div></section><div id="pnLista" class="pn-grupos"></div>`;
+    if (st.sub === 'grupos') B.innerHTML = `<section class="pn-card"><h3 id="pnFormT">${st.editando ? 'Editar grupo' : 'Nuevo grupo'}</h3><div id="pnForm">${formHTML(st.editando ? st.grupos.get(st.editando) : null)}</div></section><div id="pnLista" class="pn-grupos"></div><div id="pnUnir"></div>`;
     if (st.sub === 'conectados') B.innerHTML = `<div id="pnUsuRes" class="pn-usu-res"></div>
       <section class="pn-sec"><h3 class="pn-h3">Conectados ahora</h3>
       <div class="pn-bar"><label class="pn-chk"><input type="checkbox" id="pnVerTodos" ${st.verTodos ? 'checked' : ''}> Mostrar también desconectados</label><span class="pn-small">Se actualiza solo · señal cada 60 s mientras la página está abierta</span></div><div id="pnCon"></div></section>
@@ -164,7 +167,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   function pintarDatos() {
     if (!st.el || !$('#pnBody')) return;
     pintarTabs();
-    if (st.sub === 'grupos' && $('#pnLista')) $('#pnLista').innerHTML = listaGruposHTML();
+    if (st.sub === 'grupos' && $('#pnLista')) { const ae = document.activeElement; if (!($('#pnLista').contains(ae) && ae.tagName === 'SELECT')) $('#pnLista').innerHTML = listaGruposHTML(); clase.pintarUnir(); }
     if (st.sub === 'conectados' && $('#pnCon')) { $('#pnCon').innerHTML = conectadosHTML(); $('#pnUsuRes').innerHTML = resumenUsuariosHTML(); if (!$('#pnUsuBar').contains(document.activeElement)) $('#pnUsuBar').innerHTML = barraUsuariosHTML(); $('#pnUsu').innerHTML = usuariosHTML(); }
     if (st.sub === 'progreso' && $('#pnProg')) pintarProgreso(false);
     if (st.sub === 'entregas' && $('#pnTabla')) { $('#pnFiltros').innerHTML = filtrosHTML(); $('#pnTabla').innerHTML = tablaEntregasHTML(); }
@@ -179,7 +182,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const cursos = [...aula.st.cursos.values()].sort((a, b) => b.nombre.localeCompare(a.nombre));
     const cursoId = g ? (g.curso || '') : (st.cursoForm ?? aula.cursoActivo()?.id ?? '');
     const cursoObj = aula.st.cursos.get(cursoId);
-    const ofrecidas = cursoObj ? cursoObj.asignaturas : BIBLIOTECA.map(a => a.id);
+    const ofrecidas = [...new Set([...(cursoObj ? cursoObj.asignaturas : BIBLIOTECA.map(a => a.id)), ...(g?.asignaturas || [])])]; // las que ya tiene la clase no se pierden al editar
     const marcada = (id) => g ? (g.asignaturas || []).includes(id) : (ofrecidas.length === 1 || (!cursoObj && id === 'eee'));
     const conEee = g ? (g.asignaturas || []).includes('eee') : marcada('eee');
     return `<form id="pnGrupoForm" class="pn-form" autocomplete="off">
@@ -203,16 +206,17 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       const hor = g.horario ? `${g.horario.dias.map(d => DIAS[d - 1]).join(' ')} · ${hhmm(g.horario.desde)}–${hhmm(g.horario.hasta)}` : 'Sin límite de horario';
       return `<article class="pn-grupo ${g.activo ? '' : 'off'}" data-grupo="${esc(g.id)}">
         <div class="pn-gh"><h3>${esc(g.nombre)}</h3><span class="pn-est ${g.activo ? 'si' : 'no'}">${g.activo ? 'Acceso abierto' : 'Acceso cerrado'}</span></div>
-        <div class="pn-code" title="Código del grupo">${esc(g.codigo)}</div>
+        <div class="pn-code" title="Código del grupo">${esc(g.codigo)}</div>${leerUnion(g.apartados) ? `<div class="cl-unida">${lucide('link')} Unida a <b>${esc(st.grupos.get(leerUnion(g.apartados).principal)?.nombre || '—')}</b>: sus alumnos entran con el código de esa clase.</div>` : ''}
         <div class="pn-small">${aula.st.cursos.get(g.curso || '') ? '📅 ' + esc(aula.st.cursos.get(g.curso).nombre) + ' · ' : ''}${g.asignaturas.map(nAs).map(esc).join(', ')}${sinTokens(g.apartados).length ? ' · ' + sinTokens(g.apartados).map(nAp).map(esc).join(' + ') : ''}${leerGuiadas(g.apartados) ? ' · Guiadas: ' + leerGuiadas(g.apartados).size + ' de ' + PRACTICES.length + ' desbloqueadas' : ''} · ${esc(g.alumnos || 25)} alumnos<br>🕘 ${esc(hor)} · 🟢 ${vivos} conectado${vivos === 1 ? '' : 's'}</div>
         <div class="pn-acts">
           <button class="btn" data-pn="grande" title="Mostrar el código en grande para proyectarlo">🔍 En grande</button>
           <button class="btn" data-pn="reiniciar">🔄 Reiniciar código</button>
           <button class="btn" data-pn="activar">${g.activo ? '⏸ Cerrar acceso' : '▶ Abrir acceso'}</button>
           <button class="btn" data-pn="editar">✏️ Editar</button>
+          <button class="btn" data-pn="altas" aria-expanded="${clase.abiertoAltas() === g.id}">${lucide('users')} Alumnos: alta y baja</button>
           ${(g.asignaturas || []).includes('eee') ? `<a class="btn" href="#panel/progreso/${esc(g.id)}" title="Prácticas guiadas, progreso en Circuitos y Vivienda y concurso: ahora están en Seguimiento">${lucide('trophy')} Progreso de laboratorios</a>` : ''}
           <button class="btn pn-peligro" data-pn="borrar">🗑 Borrar</button>
-        </div></article>`;
+        </div>${clase.asigsHTML(g)}${clase.altasHTML(g)}</article>`;
     }).join('');
   }
   // Progreso de cada alumno (por nº de lista) en las prácticas de Circuitos: «Guiada completada» (entrega de la
@@ -362,6 +366,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
         v.apartados = escribirEvaluaciones(v.apartados, v.asignaturas.includes('eee') ? [...leerEvaluaciones(g.apartados)] : []);
         v.apartados = escribirViv(v.apartados, v.asignaturas.includes('eee') && leerViv(g.apartados) ? [...leerViv(g.apartados)] : null);
         v.apartados = escribirVivEv(v.apartados, v.asignaturas.includes('eee') ? [...leerVivEv(g.apartados)] : []);
+        v.apartados = conUnion(v.apartados, (g.apartados || []).find(esTokenUnion) || null);
         b.update(doc(db, 'grupos', g.id), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso, alumnos: v.alumnos });
         b.update(doc(db, 'codigos', g.codigo), { nombre: v.nombre, asignaturas: v.asignaturas, apartados: v.apartados, horario: v.horario, curso: v.curso });
         await b.commit(); st.editando = null; pintarTab(); return;
@@ -458,12 +463,12 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       const acc = st.accesos.get(id); const ult = Math.max(acc?.ultimo || 0, ...ss.map((s) => s.latido || 0));
       const disp = ss.sort((a, b) => b.latido - a.latido)[0]?.disp || acc?.disp || '';
       const bloq = st.bloqueos.has(id); const pin = st.pines.has(id);
-      const est = bloq ? '<span class="pn-est ko">⛔ Bloqueado</span>' : enLinea ? '<span class="pn-est ok">🟢 En línea</span>' : abiertas.length ? '<span class="pn-est">🟡 Sin señal</span>' : ult ? '<span class="pn-est off">Desconectado</span>' : '<span class="pn-est off">Sin entrar</span>';
+      const est = bloq ? '<span class="pn-est ko">⛔ De baja · Bloqueado</span>' : enLinea ? '<span class="pn-est ok">🟢 En línea</span>' : abiertas.length ? '<span class="pn-est">🟡 Sin señal</span>' : ult ? '<span class="pn-est off">Desconectado</span>' : '<span class="pn-est off">Sin entrar</span>';
       return `<tr data-usu="${esc(id)}" class="${bloq ? 'st-bloq' : enLinea ? 'st-vivo' : ''}"><td class="c"><b>${pad(n)}</b>${abiertas.length > 1 ? ' <span class="pn-rep" title="Más de una sesión abierta con este número">⚠ ' + abiertas.length + ' sesiones</span>' : ''}</td><td>${est}</td>
         <td>${ult ? `${fFecha(ult)} <span class="pn-small">(${hace(ult)})</span>` : '—'}</td><td class="pn-small">${esc(disp || '—')}</td><td>${pin ? 'Registrado' : '<span class="pn-small">Sin PIN</span>'}</td>
-        <td class="pn-acc">${abiertas.length && !bloq ? `<button class="btn small" data-pn="cerrarNum">Cerrar sesión</button>` : ''}${bloq ? '<button class="btn small" data-pn="desbloquear">🔓 Desbloquear</button>' : '<button class="btn small pn-peligro" data-pn="bloquear">⛔ Bloquear</button>'}${pin ? '<button class="btn small" data-pn="pinNum">🔑 Reiniciar PIN</button>' : ''}</td></tr>`;
+        <td class="pn-acc">${abiertas.length && !bloq ? `<button class="btn small" data-pn="cerrarNum">Cerrar sesión</button>` : ''}${bloq ? `<button class="btn small" data-pn="desbloquear">${lucide('user-check')} Dar de alta</button>` : `<button class="btn small pn-peligro" data-pn="bloquear">${lucide('ban')} Dar de baja</button>`}${pin ? '<button class="btn small" data-pn="pinNum">🔑 Reiniciar PIN</button>' : ''}</td></tr>`;
     }).join('')}</tbody></table>
-    <p class="pn-small">Bloquear un número lo saca del portal al momento y no le deja volver a entrar, ni leer ni entregar nada, hasta que lo desbloquees (lo comprueba el servidor). Reiniciar el PIN deja que la próxima vez elija uno nuevo.</p>`;
+    <p class="pn-small">Dar de baja (bloquear) un número lo saca del portal al momento y no le deja volver a entrar, ni leer ni entregar nada, hasta que lo desbloquees (lo comprueba el servidor). Reiniciar el PIN deja que la próxima vez elija uno nuevo.</p>`;
   }
   async function accionUsuario(acc, id, b) {
     const i = id.lastIndexOf('_'); const gid = id.slice(0, i); const n = +id.slice(i + 1); const g = st.grupos.get(gid); const quien = `el nº ${pad(n)} de ${g?.nombre || 'este grupo'}`;
@@ -474,7 +479,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
         const bt = writeBatch(db); abiertas.forEach((s) => bt.update(doc(db, 'sesiones', s.uid), { revocada: true })); await bt.commit();
       }
       if (acc === 'bloquear') {
-        if (!await confirmar(`¿Bloquear ${quien}?\n\nSe cerrarán sus sesiones al momento y no podrá entrar hasta que lo desbloquees.`)) return;
+        if (!await confirmar(`¿Dar de baja ${quien}?\n\nSe cerrarán sus sesiones al momento y no podrá entrar hasta que le des de alta. Conserva su número, su PIN y sus datos.`)) return;
         b.disabled = true; const bt = writeBatch(db); bt.set(doc(db, 'bloqueos', id), { desde: serverTimestamp() });
         abiertas.forEach((s) => bt.update(doc(db, 'sesiones', s.uid), { revocada: true })); await bt.commit();
       }
@@ -613,6 +618,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     if (acc === 'pg-vista') { st.pg.vista = b.dataset.v; pintarProgreso(true); return; }
     if (acc === 'alTodos') { const v = b.dataset.v === '1'; st.el.querySelectorAll('[data-al]').forEach(x => st.alAb.set(x.dataset.al, v)); pintarDatos(); return; }
     if (acc === 'quitarFiltros') { st.f.grupo = ''; st.f.alumno = ''; st.f.practica = ''; st.f.estado = ''; guardarFiltro(st.f); ponerHashEntregas(); pintarDatos(); return; }
+    if (clase.onClick(acc, b)) return;
     const usu = b.closest('[data-usu]')?.dataset.usu; if (usu) return accionUsuario(acc, usu, b);
     const g = st.grupos.get(b.closest('[data-grupo]')?.dataset.grupo || '');
     if (g) return accionGrupo(acc, g);
@@ -647,6 +653,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   }
   function onChange(ev) {
     const t = ev.target;
+    if (clase.onChange(t)) return;
     if (t.dataset.pnPg === 'grupo') { st.pg.grupo = t.value; try { history.replaceState(null, '', '#panel/progreso/' + t.value); } catch (e) { } pintarProgreso(true); return; }
     if (t.dataset.pnConc) { const g = st.grupos.get(t.dataset.pnConc); if (g) activarConcurso(g, t.checked, t); return; }
     if (t.dataset.gd) {
