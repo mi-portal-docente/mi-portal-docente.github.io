@@ -1354,3 +1354,30 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Pruebas: `union_test.mjs` 17/17; E2E `e2e/plataforma_f24.mjs` (unir con vista previa, alumno con el mismo código ve Proyecto y el
   tablero, duplicado cerrado y marcado, separar, añadir/quitar asignatura, alta/baja, PIN intactos; capturas móvil y oscuro).
 - Capturas: /workspace/capturas-clase/ (05-10).
+
+## PIP-11 (parte C) · Alta y baja de un nº de lista EN UNA asignatura de la clase
+Petición: «dentro de una asignatura, pueda dar de alta o baja un alumno del mismo grupo y diferentes asignaturas» (p. ej. un nº de la
+misma clase puede estar en EEE pero no en Proyecto).
+- **Modelo**: matrícula por (clase, nº de lista, asignatura). Por defecto todos los nº están de alta en todas las asignaturas de la
+  clase (los datos existentes no cambian). La baja en una asignatura es la marca `baja:<asig>:<nº>.<nº>…` dentro de `apartados`
+  (una por asignatura) del grupo y del código, que las reglas ya admiten (lista de textos cortos ≤ 20). **Sin reglas nuevas, no hay
+  que pegar nada en Firebase.** `src/lms/matricula.js` (puro, con `matricula_test.mjs` 13/13). `sinTokens()` oculta la marca de la
+  lista de apartados de laboratorio. La baja GLOBAL (`bloqueos`, «Alumnos: alta y baja» de siempre) no se toca.
+- **Dónde se cambia** (`src/portal/matricula-ui.js`, un solo manejador para las dos vistas; pide confirmación al dar de baja):
+  - Gestión › Grupos y códigos › tarjeta de la clase › «Alumnos: alta y baja» › «Alta y baja por asignatura»: tabla nº × asignatura.
+  - Dentro de la asignatura › Gestión › «Alumnos de esta asignatura» (y en «Grupos y seguimiento» de Trabajo de clase): por cada
+    grupo, un desplegable con los nº «De alta / De baja» solo para esa asignatura.
+  - Escribe en un lote `grupos/{id}` + `codigos/{código}` (apartados). Quitar una asignatura de la clase olvida sus bajas; editar la
+    clase las conserva (`conBajas`).
+- **Alumno** (`main.js`, `aula-datos.js`): el alumno ya escucha su documento de código; calcula `PORTAL_SESION.asignaturas`
+  (sin las asignaturas de baja) y `PORTAL_SESION.bajas`. No ve la asignatura en su lista/enlaces, ni sus tareas, avisos, trabajos y
+  notas (filtrado cliente por `asig`, también en directo sin recargar), ni entra en su Concurso si es de EEE. Con el mismo código,
+  nº y PIN sigue viendo el resto. Los datos NO se borran: al dar de alta vuelve todo.
+- **Profesor** (`aula-panel.js`, `correccion-ui.js`, `panel.js`, `concurso-ui.js`): en el cuaderno y la corrección de una asignatura
+  los nº de baja SIN trabajo ni nota no salen (tampoco en la centralita del despacho ni en el reparto de empresas, que usan `filas`);
+  los que ya tienen trabajo o nota se conservan, con la fila marcada y el icono «de baja». Progreso de laboratorios y concurso:
+  los nº de baja en EEE no cuentan (con entregas ya hechas siguen apareciendo en el progreso). Seguimiento › Usuarios no cambia.
+- Arreglo menor: `entrega-ui.js` fallaba al mostrar una tarea con nota pero sin entrega del alumno (`tr.fecha` de null).
+- Seguridad: el filtrado del alumno es del cliente (como `guiadas:`/`evaluacion:`); no hay datos personales en las marcas (solo
+  nº de lista). Reglas: nuevas pruebas en `firebase/test/clase.test.mjs` (4) → `npm run test:reglas` 173/173.
+- E2E `e2e/plataforma_f25.mjs` (26 comprobaciones). Capturas: /workspace/capturas-clase/c_*.png.
