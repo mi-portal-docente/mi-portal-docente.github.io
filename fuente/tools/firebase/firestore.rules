@@ -65,6 +65,7 @@ rules_version = '2';
 //   directo/{id}        pregunta en directo a un grupo                  profesor; alumno: leer las de su grupo
 //   respDirecto/{id}    respuesta anónima (recuento) de cada nº        el alumno la suya; leer: profesor
 //   --- concurso de laboratorios (solo nº de lista; nada de nombres) ---
+//   despachos/{item_grupo} {item, grupo, asign, llamadas, fecha}  centralita del Despacho virtual  profesor escribe; alumno del grupo lee
 //   concursos/{grupo}   {activo, grupo, fecha}  ¿el grupo ve el concurso?   profesor escribe; alumno del grupo lee
 //   clasificacion/{grupo_nº} {grupo, numero, cg, ca, vg, va, fecha}  resumen de puntos de cada nº (guiadas y
 //                       autónomas de Circuitos y de Vivienda)         el alumno escribe el suyo; lo leen los de su
@@ -528,7 +529,7 @@ service cloud.firestore {
           && (!('papelera' in d) || (d.papelera is bool && (d.papelera == false || (d.visible.size() == 0 && d.publicado == false))))
           && (!('tema' in d) || d.tema == null || textoCorto(d.tema, 40))
           && (!('unidad' in d) || textoCorto(d.unidad, 40))
-          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac', 'documento', 'interactiva', 'hoja']
+          && d.tipo in ['material', 'tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'examen', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac', 'documento', 'interactiva', 'hoja', 'despacho']
           && textoCorto(d.titulo, 150)
           && (!('texto' in d) || textoCorto(d.texto, 20000))
           && (!('enlaces' in d) || listaCorta(d.enlaces, 20))
@@ -786,6 +787,21 @@ service cloud.firestore {
       }
     }
 
+    // despachos/{item}_{grupo}: centralita del «Despacho virtual» (PIAC SA1 T4). El profesor asigna empresas por nº de
+    // lista (asign: { "7": "limpieza" }) y lanza llamadas (llamadas: [{ e: empresa o '', k: nº de llamada, n: nº de lista o 0, t: ms }]).
+    // Los alumnos del grupo solo lo leen. Sin nombres ni códigos: solo nº de lista e ids de empresa. Lo del alumno va en trabajos/{id}.doc.
+    match /despachos/{id} {
+      allow read: if esProfesor()
+        || (alumnoOk() && id.matches('^[A-Za-z0-9]{6,30}_.+$') && id == id.split('_')[0] + '_' + miSesion().grupo);
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9]{6,30}_[A-Za-z0-9_-]{1,40}$')
+        && request.resource.data.keys().hasOnly(['item', 'grupo', 'asign', 'llamadas', 'fecha'])
+        && request.resource.data.keys().hasAll(['item', 'grupo', 'asign', 'llamadas', 'fecha'])
+        && id == request.resource.data.item + '_' + request.resource.data.grupo
+        && request.resource.data.asign is map && request.resource.data.asign.size() <= 200
+        && request.resource.data.llamadas is list && request.resource.data.llamadas.size() <= 200
+        && request.resource.data.fecha == request.time;
+    }
     // concursos/{grupo}: interruptor del concurso de laboratorios de cada grupo (el id es el id del grupo, no su código).
     // Lo escribe solo el profesor; lo lee el alumno de ese grupo (para saber si debe mostrarlo).
     match /concursos/{id} {
@@ -882,7 +898,7 @@ service cloud.firestore {
       function pruebaBloqueada(id) { return item().get('sinExternos', false) == true && get(ruta('pruebas', id)).data.bloqueado != false; }
       function examen() { return get(ruta('examenes', request.resource.data.item)).data; }
       function tipoTarea() {
-        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'documento', 'interactiva', 'hoja'];
+        return request.resource.data.tipo == 'tarea' && item().tipo in ['tarea', 'pregunta', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'documento', 'interactiva', 'hoja', 'despacho'];
       }
       function tipoExamen() { return request.resource.data.tipo == 'examen' && item().tipo == 'examen'; }
       function trabajoBase(id) {
