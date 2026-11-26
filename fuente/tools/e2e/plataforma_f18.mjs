@@ -16,9 +16,9 @@ export default async function ({ T, BASE, ok, shot, pegarJSON, guardarJSON }) {
   }
   await pg.goto(BASE + '#panel/notas'); await pg.waitForSelector('#pnTabs .pn-g');
   const tabs = await pg.$$eval('#pnTabs .pn-g:nth-child(2) a', (L) => L.map((a) => a.dataset.pnTab));
-  ok('F18 · Seguimiento: Cuaderno · trabajos de clase · tareas · test · exámenes · laboratorio · analítica · usuarios', tabs.join() === 'notas,trabajos,tareas,test,examenes,entregas,analitica,conectados', tabs.join());
+  ok('F18 · Seguimiento: Cuaderno · trabajos de clase · tareas · test · exámenes · laboratorio · analítica · usuarios', tabs.join() === 'notas,trabajos,tareas,test,examenes,entregas,progreso,analitica,conectados', tabs.join());
   const nombres = await pg.$$eval('#pnTabs .pn-g:nth-child(2) a', (L) => L.map((a) => a.textContent.replace(/\s+/g, ' ').trim()));
-  ok('F18 · nombres de las pestañas', /^Cuaderno de calificaciones/.test(nombres[0]) && /^Trabajos de clase/.test(nombres[1]) && /^Tareas/.test(nombres[2]) && /^Test/.test(nombres[3]) && /^Exámenes/.test(nombres[4]) && /^Laboratorio/.test(nombres[5]) && /^Analítica/.test(nombres[6]) && /^Usuarios y conectados/.test(nombres[7]), nombres.join(' | '));
+  ok('F18 · nombres de las pestañas', /^Cuaderno de calificaciones/.test(nombres[0]) && /^Trabajos de clase/.test(nombres[1]) && /^Tareas/.test(nombres[2]) && /^Test/.test(nombres[3]) && /^Exámenes/.test(nombres[4]) && /^Laboratorio/.test(nombres[5]) && /^Progreso de laboratorios/.test(nombres[6]) && /^Analítica/.test(nombres[7]) && /^Usuarios y conectados/.test(nombres[8]), nombres.join(' | '));
   await shot(pg, 'f18_pestanas_seguimiento');
   // rutas antiguas y alias
   const ruta = async (h, esp) => { await pg.goto(BASE + h); await pg.reload(); await pg.waitForSelector('#pnTabs .pn-g a.on', { timeout: 15000 }); return (await pg.getAttribute('#pnTabs .pn-g a.on', 'data-pn-tab')) === esp; };

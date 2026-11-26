@@ -8,7 +8,7 @@ const FS = process.env.E2E_FS_PORT || '8080'; const AU = process.env.E2E_AUTH_PO
 const BASE = process.env.PORTAL_BASE || `http://127.0.0.1:${process.env.E2E_HTTP_PORT || '8765'}/index.html`;
 const PROJ = 'demo-portal';
 const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:${AU}',firestoreHost:'127.0.0.1',firestorePort:${FS}};`;
-const FASES = (process.env.FASES || '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18,19').split(',').map(Number);
+const FASES = (process.env.FASES || '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18,19,20').split(',').map(Number);
 const results = []; const errores = [];
 export const ok = (name, cond, info = '') => { results.push({ name, ok: !!cond, info }); console.log((cond ? 'OK  ' : 'FAIL') + ' ' + name + (info ? ' · ' + info : '')); };
 const benigno = (t) => /favicon|WebGL|GPU stall|swiftshader|GroupMarkerNotSet|Failed to load resource/i.test(t);

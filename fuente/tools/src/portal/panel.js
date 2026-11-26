@@ -1,7 +1,7 @@
 // Panel del profesor, en tres bloques: Clases (cursos escolares, grupos y códigos), Seguimiento (cuaderno de
 // calificaciones, entregas del laboratorio, conectados ahora) y Ajustes (cuenta, PIN y limpieza de datos).
 // El contenido de cada asignatura NO está aquí: se gestiona en la propia asignatura (Organización / Trabajo de clase).
-import { collection, doc, onSnapshot, writeBatch, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, onSnapshot, writeBatch, getDoc, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { esc, offsetLocal, hhmm, DIAS } from './util.js';
 import { nuevoCodigo } from './codigos.js';
 import { ic as lucide } from './ico.js';
@@ -13,6 +13,7 @@ import { PRACTICES } from '../circ/practices.js';
 import { leerGuiadas, escribirGuiadas, sinTokens, leerEvaluaciones, escribirEvaluaciones, leerViv, escribirViv, leerVivEv, escribirVivEv } from '../circ/guiadas.js';
 import { VIV_PR, VIV_EV, VIV_REGISTRO, progresoRegistro } from '../viv/indice.js';
 import { EVALS, idAutonoma } from '../circ/evaluaciones.js';
+import { resumenAlumno, sanear, iguales, clasificar, puntosDe, maxDe, LABS, MAX_CIRC, MAX_VIV } from '../lms/concurso.js';
 
 const VIVO_MS = 150e3, RECIENTE_MS = 15 * 60e3, ANTIGUA_MS = 2 * 3600e3;
 const pad = (n) => String(n).padStart(2, '0');
@@ -35,14 +36,14 @@ const guardarFiltro = (f) => { try { localStorage.setItem(CLAVE_FILTRO, JSON.str
 const nuevoId = () => 'g' + Math.random().toString(36).slice(2, 10);
 
 export function crearPanel({ db, PORTAL, email, aula }) {
-  const st = { grupos: new Map(), sesiones: [], entregas: [], pines: new Set(), accesos: new Map(), bloqueos: new Set(), uGrupo: '', uTodos: false, listo: { g: false, s: false, e: false }, sub: 'grupos', el: null, unsubs: [], tick: null, editando: null, abierta: null, verTodos: false, dstHecho: false, f: filtroGuardado(), alAb: new Map() };
+  const st = { grupos: new Map(), sesiones: [], entregas: [], pines: new Set(), accesos: new Map(), bloqueos: new Set(), uGrupo: '', uTodos: false, listo: { g: false, s: false, e: false }, sub: 'grupos', el: null, unsubs: [], tick: null, editando: null, abierta: null, verTodos: false, dstHecho: false, f: filtroGuardado(), alAb: new Map(), concursos: new Map(), clasif: new Map(), pg: { grupo: '', vista: 'concurso' } };
   const cat = () => window.PORTAL_CATALOGO || { practicas: [], proyectos: [], subjects: [], apartados: {} };
   const nombreGrupo = (id) => st.grupos.get(id)?.nombre || '(grupo borrado)';
   const tituloPractica = (id, fallback) => { if (id === 'v1') return 'Vivienda · Tablero eléctrico de la SA1'; if (id === 'v2') return 'Vivienda · Modo libre'; if (id === VIV_REGISTRO) return 'Vivienda · Registro de las prácticas del tablero'; const ve = VIV_EV.find(x => x.entrega === id); if (ve) return `Evaluación de vivienda · Nivel ${ve.nivel}: ${ve.title}`; const c = cat(); const p = c.practicas.find(x => x.id === id); if (p) return `Circuitos ${p.n} · ${p.titulo}`; const q = c.proyectos.find(x => x.id === id); if (q) return `ESP32 ${q.n} · ${q.titulo}`; return fallback || id; };
   const $ = (s) => st.el && st.el.querySelector(s);
   const ap = crearAulaPanel({ db, aula, ps: st, nombreGrupo, tituloPractica });
-  const TABS = ['cursos', 'grupos', 'notas', 'trabajos', 'tareas', 'test', 'examenes', 'entregas', 'analitica', 'conectados', 'ajustes'];
-  const ALIAS = { analítica: 'analitica', estadisticas: 'analitica', limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas', usuarios: 'conectados', laboratorio: 'entregas', 'trabajos-de-clase': 'trabajos', clase: 'trabajos', ejercicios: 'trabajos', cuestionarios: 'test', tests: 'test', examen: 'examenes', exámenes: 'examenes' };
+  const TABS = ['cursos', 'grupos', 'notas', 'trabajos', 'tareas', 'test', 'examenes', 'entregas', 'progreso', 'analitica', 'conectados', 'ajustes'];
+  const ALIAS = { analítica: 'analitica', estadisticas: 'analitica', limpieza: 'ajustes', cuaderno: 'notas', calificaciones: 'notas', usuarios: 'conectados', laboratorio: 'entregas', laboratorios: 'progreso', concurso: 'progreso', clasificacion: 'progreso', 'progreso-laboratorios': 'progreso', 'trabajos-de-clase': 'trabajos', clase: 'trabajos', ejercicios: 'trabajos', cuestionarios: 'test', tests: 'test', examen: 'examenes', exámenes: 'examenes' };
   const AULA = ['cursos', 'notas', 'trabajos', 'tareas', 'test', 'examenes', 'analitica'];
   const SEGUIMIENTO_AULA = ['notas', 'trabajos', 'tareas', 'test', 'examenes'];
   const DESC = {
@@ -54,6 +55,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     tareas: 'Tareas, proyectos y documentos de cada grupo: entregas, estado y nota por nº de lista. Es el cuaderno filtrado por este tipo.',
     test: 'Tests y cuestionarios autocorregidos: quién los ha hecho y con qué nota. Abre la casilla de un alumno para ver sus respuestas.',
     examenes: 'Exámenes y pruebas escritas de cada grupo: entregas, nota y corrección por nº de lista. Es el cuaderno filtrado por este tipo.',
+    progreso: 'Avance de cada nº de lista en Prácticas guiadas, Circuitos y Vivienda, y el concurso anónimo para que los alumnos vean cómo va su grupo (solo números de lista).',
     entregas: 'Prácticas entregadas desde los laboratorios 3D (ESP32, Circuitos y Vivienda): revisa el montaje y pon nota.',
     conectados: 'Quién está dentro ahora mismo y todos los números de lista de cada grupo, con su último acceso. Si entra alguien que no debe, cierra su sesión o bloquea el número mientras lo aclaras (solo grupo y nº, sin nombres).',
     ajustes: 'Tu cuenta, el PIN de los alumnos y la limpieza de datos al cerrar el curso.',
@@ -77,6 +79,10 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     }, (e) => errorDatos(e)));
     st.unsubs.push(onSnapshot(collection(db, 'pines'), (qs) => { st.pines = new Set(qs.docs.map((d) => d.id)); pintarLuego(); }, () => { }));
     st.unsubs.push(onSnapshot(collection(db, 'accesos'), (qs) => { st.accesos = new Map(); qs.forEach((d) => { const x = d.data({ serverTimestamps: 'estimate' }); st.accesos.set(d.id, { ultimo: ms(x.ultimo), disp: x.disp || '' }); }); pintarLuego(); }, () => { }));
+    // Concurso de laboratorios (solo números): ajuste por grupo y resumen que publica cada alumno. Si las reglas aún no
+    // están pegadas, estas lecturas fallan sin avisar y el panel sigue con las entregas.
+    st.unsubs.push(onSnapshot(collection(db, 'concursos'), (qs) => { st.concursos = new Map(); qs.forEach((d) => st.concursos.set(d.id, d.data())); pintarLuego(); }, () => { }));
+    st.unsubs.push(onSnapshot(collection(db, 'clasificacion'), (qs) => { st.clasif = new Map(); qs.forEach((d) => st.clasif.set(d.id, d.data())); pintarLuego(); }, () => { }));
     st.unsubs.push(onSnapshot(collection(db, 'bloqueos'), (qs) => { st.bloqueos = new Set(qs.docs.map((d) => d.id)); pintarLuego(); }, () => { }));
     st.tick = setInterval(() => { if (st.sub === 'conectados') pintarDatos(); else pintarContadores(); }, 15000);
   }
@@ -110,6 +116,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     sub = ALIAS[sub] || sub;
     st.el = el; st.sub = TABS.includes(sub) ? sub : 'grupos'; st.extra = extra;
     // #panel/entregas/<grupo>_<nº>: abre las entregas de ese alumno (el filtro se recuerda también en el navegador)
+    if (st.sub === 'progreso' && /^[A-Za-z0-9_-]{1,40}$/.test(extra)) st.pg.grupo = extra;
     if (st.sub === 'entregas' && /^[A-Za-z0-9]+_\d{1,2}$/.test(extra)) { st.f.alumno = extra; st.f.grupo = extra.slice(0, extra.lastIndexOf('_')); guardarFiltro(st.f); }
     if (!st.unsubs.length) iniciar();
     if (nuevo) {
@@ -132,7 +139,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     const sinNota = st.entregas.filter(e => e.nota == null).length;
     const cAct = aula.cursoActivo();
     const G = [['Clases', [['cursos', '📅', 'Cursos escolares', cAct ? cAct.nombre : ''], ['grupos', '👥', 'Grupos y códigos', st.grupos.size]]],
-      ['Seguimiento', [['notas', 'notebook-pen', 'Cuaderno de calificaciones', ''], ['trabajos', 'pencil', 'Trabajos de clase', ''], ['tareas', 'clipboard-list', 'Tareas', ''], ['test', 'list-checks', 'Test', ''], ['examenes', 'clipboard-check', 'Exámenes', ''], ['entregas', 'flask-conical', 'Laboratorio', sinNota ? `${sinNota} sin nota` : st.entregas.length], ['analitica', 'chart-column', 'Analítica', ''], ['conectados', 'users', 'Usuarios y conectados', vivos]]],
+      ['Seguimiento', [['notas', 'notebook-pen', 'Cuaderno de calificaciones', ''], ['trabajos', 'pencil', 'Trabajos de clase', ''], ['tareas', 'clipboard-list', 'Tareas', ''], ['test', 'list-checks', 'Test', ''], ['examenes', 'clipboard-check', 'Exámenes', ''], ['entregas', 'flask-conical', 'Laboratorio', sinNota ? `${sinNota} sin nota` : st.entregas.length], ['progreso', 'trophy', 'Progreso de laboratorios', ''], ['analitica', 'chart-column', 'Analítica', ''], ['conectados', 'users', 'Usuarios y conectados', vivos]]],
       ['Ajustes', [['ajustes', '⚙️', 'Ajustes y limpieza', '']]]];
     $('#pnTabs').innerHTML = G.map(([g, L]) => `<div class="pn-g"><div class="pn-gt">${g}</div>${L.map(([k, ic, t, n]) => `<a href="#panel/${k}" class="${k === st.sub ? 'on' : ''}" data-pn-tab="${k}" ${k === st.sub ? 'aria-current="page"' : ''}><span aria-hidden="true">${/^[a-z-]+$/.test(ic) ? lucide(ic) : ic}</span> ${t}${n !== '' ? ` <span class="pn-n">${esc(n)}</span>` : ''}</a>`).join('')}</div>`).join('');
     const act = G.flatMap((x) => x[1]).find((x) => x[0] === st.sub);
@@ -147,6 +154,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       <div class="pn-bar"><label class="pn-chk"><input type="checkbox" id="pnVerTodos" ${st.verTodos ? 'checked' : ''}> Mostrar también desconectados</label><span class="pn-small">Se actualiza solo · señal cada 60 s mientras la página está abierta</span></div><div id="pnCon"></div></section>
       <section class="pn-sec"><h3 class="pn-h3">Usuarios por grupo</h3><div class="pn-bar" id="pnUsuBar"></div><div id="pnUsu"></div></section>`;
     if (st.sub === 'entregas') B.innerHTML = `<div class="pn-bar" id="pnFiltros"></div><div class="pn-ent"><div id="pnTabla" class="pn-tabla"></div><aside id="pnDetalle" class="pn-det"></aside></div>`;
+    if (st.sub === 'progreso') { B.innerHTML = `<div class="pn-bar pn-pg-bar" id="pnProgBar"></div><div id="pnProg"></div>`; pintarProgreso(true); }
     if (st.sub === 'ajustes') B.innerHTML = `<section class="pn-card"><h3>Tu cuenta</h3><p>Has entrado como profesor con Google: <b>${esc(email || '')}</b>. Solo esta cuenta puede gestionar el portal.</p>
       <div class="pn-acts"><a class="btn" href="#asignaturas">📅 Curso</a><a class="btn" href="#biblioteca">🗂 Biblioteca de asignaturas</a><a class="btn" href="#panel/cursos">📅 Cursos escolares</a><button class="btn" data-portal="salir">Cerrar sesión</button></div></section><div id="pnLimp"></div><div id="apLimp"></div>`;
     if (AULA.includes(st.sub)) { ap.render(B, st.sub, st.extra); pintarTabs(); return; }
@@ -158,6 +166,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     pintarTabs();
     if (st.sub === 'grupos' && $('#pnLista')) $('#pnLista').innerHTML = listaGruposHTML();
     if (st.sub === 'conectados' && $('#pnCon')) { $('#pnCon').innerHTML = conectadosHTML(); $('#pnUsuRes').innerHTML = resumenUsuariosHTML(); if (!$('#pnUsuBar').contains(document.activeElement)) $('#pnUsuBar').innerHTML = barraUsuariosHTML(); $('#pnUsu').innerHTML = usuariosHTML(); }
+    if (st.sub === 'progreso' && $('#pnProg')) pintarProgreso(false);
     if (st.sub === 'entregas' && $('#pnTabla')) { $('#pnFiltros').innerHTML = filtrosHTML(); $('#pnTabla').innerHTML = tablaEntregasHTML(); }
     if (st.sub === 'ajustes' && $('#pnLimp')) { $('#pnLimp').innerHTML = limpiezaHTML(); $('#apLimp').innerHTML = ap.limpiezaHTML(); }
     if ((SEGUIMIENTO_AULA.includes(st.sub) || st.sub === 'analitica') && st.listo.g) ap.pintar();
@@ -201,9 +210,9 @@ export function crearPanel({ db, PORTAL, email, aula }) {
           <button class="btn" data-pn="reiniciar">🔄 Reiniciar código</button>
           <button class="btn" data-pn="activar">${g.activo ? '⏸ Cerrar acceso' : '▶ Abrir acceso'}</button>
           <button class="btn" data-pn="editar">✏️ Editar</button>
-          ${(g.asignaturas || []).includes('eee') ? `<button class="btn" data-pn="guiadas" aria-expanded="${st.guiadasDe === g.id}">${lucide('lock')} Prácticas guiadas</button><button class="btn" data-pn="progreso" aria-expanded="${st.progresoDe === g.id}">${lucide('chart-column')} Progreso en Circuitos</button><button class="btn" data-pn="progresoViv" aria-expanded="${st.progresoVivDe === g.id}">${lucide('house')} Progreso en Vivienda</button>` : ''}
+          ${(g.asignaturas || []).includes('eee') ? `<a class="btn" href="#panel/progreso/${esc(g.id)}" title="Prácticas guiadas, progreso en Circuitos y Vivienda y concurso: ahora están en Seguimiento">${lucide('trophy')} Progreso de laboratorios</a>` : ''}
           <button class="btn pn-peligro" data-pn="borrar">🗑 Borrar</button>
-        </div>${st.guiadasDe === g.id ? guiadasHTML(g) : ''}${st.progresoDe === g.id ? progresoHTML(g) : ''}${st.progresoVivDe === g.id ? progresoVivHTML(g) : ''}</article>`;
+        </div></article>`;
     }).join('');
   }
   // Progreso de cada alumno (por nº de lista) en las prácticas de Circuitos: «Guiada completada» (entrega de la
@@ -240,6 +249,57 @@ export function crearPanel({ db, PORTAL, email, aula }) {
     return `<section class="pn-progreso pn-progviv" aria-label="Progreso en Vivienda de ${esc(g.nombre)}">
       <p class="pn-small"><i class="pn-pg-k g on"></i> Guiada completada · <i class="pn-pg-k a on"></i> Autónoma completada (se guardan solas en el registro del alumno al pulsar «Comprobar» con todo bien). N1–N3: nota de cada nivel de la evaluación de vivienda (la automática o la tuya si la cambiaste en «Entregas»).</p>
       <div class="pn-pg-wrap"><table class="pn-pg"><thead><tr><th>Nº</th>${VIV_PR.map(p => `<th title="${esc(p.title)}">${p.n}</th>`).join('')}<th title="Guiadas · autónomas">G · A</th>${VIV_EV.map(e => `<th title="${esc(e.title)}">N${e.nivel}</th>`).join('')}</tr></thead><tbody>${filas || `<tr><td colspan="${VIV_PR.length + 5}">Sin alumnos.</td></tr>`}</tbody></table></div></section>`;
+  }
+  // ------------------------------------------------------------ Seguimiento · Progreso de laboratorios
+  // Antes vivía en «Grupos y códigos»: prácticas guiadas (desbloqueo), progreso en Circuitos y en Vivienda. Ahora, además,
+  // el concurso: un interruptor por grupo que muestra a los alumnos la clasificación anónima (solo nº de lista).
+  const gruposLab = () => [...st.grupos.values()].filter((g) => (g.asignaturas || []).includes('eee')).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const VISTAS_PG = [['concurso', 'trophy', 'Concurso'], ['circ', 'chart-column', 'Circuitos'], ['viv', 'house', 'Vivienda'], ['guiadas', 'lock-open', 'Prácticas guiadas']];
+  function grupoPg() { const L = gruposLab(); return L.find((g) => g.id === st.pg.grupo) || L[0] || null; }
+  function pintarProgreso(todo) {
+    const bar = $('#pnProgBar'), cuerpo = $('#pnProg'); if (!bar || !cuerpo) return;
+    const L = gruposLab(); const g = grupoPg();
+    if (todo || !bar.firstChild || bar.dataset.n !== String(L.length + ':' + (g?.id || '') + ':' + st.pg.vista)) {
+      bar.dataset.n = L.length + ':' + (g?.id || '') + ':' + st.pg.vista;
+      if (!g) { bar.innerHTML = ''; cuerpo.innerHTML = `<p class="pn-vacio">${st.listo.g ? 'No hay ningún grupo con Electricidad y electrónica (EEE). Crea uno en «Grupos y códigos».' : 'Cargando…'}</p>`; return; }
+      bar.innerHTML = `<label class="pn-f">Grupo <select data-pn-pg="grupo" aria-label="Grupo">${L.map((x) => `<option value="${esc(x.id)}" ${x.id === g.id ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select></label>
+        <div class="pn-pills" role="tablist" aria-label="Vista del progreso">${VISTAS_PG.map(([k, i, t]) => `<button type="button" role="tab" class="pn-pill ${k === st.pg.vista ? 'on' : ''}" aria-selected="${k === st.pg.vista}" data-pn="pg-vista" data-v="${k}">${lucide(i)} ${t}</button>`).join('')}</div>`;
+    } else if (!g) return;
+    if (!todo && cuerpo.contains(document.activeElement) && st.pg.vista === 'guiadas') return; // no pisar lo que se está tocando
+    const v = st.pg.vista;
+    cuerpo.innerHTML = `<div data-grupo="${esc(g.id)}">${v === 'circ' ? progresoHTML(g) : v === 'viv' ? progresoVivHTML(g) : v === 'guiadas' ? guiadasHTML(g) : concursoProfeHTML(g)}</div>`;
+  }
+  // Una fila por nº de lista con las entregas reales (la fuente fiable) y, si el alumno publicó otro resumen, un aviso.
+  function filasConcurso(g) {
+    const P = new Map(); for (const e of st.entregas) if (e.grupo === g.id) { if (!P.has(e.numero)) P.set(e.numero, []); P.get(e.numero).push(e); }
+    const nums = new Set([...P.keys()]);
+    for (const [id, d] of st.clasif) if (d.grupo === g.id && Number.isInteger(d.numero)) nums.add(d.numero);
+    return [...nums].map((numero) => {
+      const real = resumenAlumno(P.get(numero) || []); const d = st.clasif.get(`${g.id}_${numero}`);
+      return { numero, ...real, publicado: d ? !iguales(sanear(d), real) ? 'distinto' : 'igual' : 'no' };
+    });
+  }
+  function concursoProfeHTML(g) {
+    const c = st.concursos.get(g.id); const on = !!c?.activo;
+    const filas = filasConcurso(g); const avisos = new Map(filas.map((f) => [f.numero, f.publicado]));
+    const tabla = (lab) => { const R = clasificar(filas, lab); const mx = maxDe(lab);
+      return R.length ? `<div class="pn-pg-wrap"><table class="pn-pg pn-cl"><thead><tr><th>Puesto</th><th>Nº</th><th>Puntos</th><th>%</th><th>Circuitos</th><th>Vivienda</th></tr></thead><tbody>${R.map((f) => `<tr><td class="c"><b>${f.puesto}</b></td><th>${pad(f.numero)}</th><td class="pn-pg-t">${f.pts} / ${mx}</td><td><span class="pn-cl-b" style="--w:${f.rel}%"><i></i></span> ${f.pct}%</td><td>${f.cg + f.ca} / ${MAX_CIRC}</td><td>${f.vg + f.va} / ${MAX_VIV}</td></tr>`).join('')}</tbody></table></div>` : '<p class="pn-vacio">Todavía nadie ha completado una práctica en este laboratorio.</p>'; };
+    const raros = filas.filter((f) => f.publicado === 'distinto');
+    return `<section class="pn-card pn-conc">
+      <h3>${lucide('trophy')} Concurso de laboratorios</h3>
+      <p class="pn-small">Si lo activas, los alumnos de este grupo ven una clasificación con el avance de sus compañeros en Circuitos y Vivienda. Es <b>anónima</b>: solo aparece el nº de lista (y «Tú» en su fila), nunca nombres. Puntos: 1 por cada práctica guiada completada y 1 más por la autónoma. Está <b>${on ? 'activado' : 'desactivado'}</b> para ${esc(g.nombre)}.</p>
+      <label class="pn-chk pn-sw"><input type="checkbox" data-pn-conc="${esc(g.id)}" ${on ? 'checked' : ''}> <span class="pn-sw-t">${on ? 'Visible para los alumnos' : 'Oculto para los alumnos'}</span></label>
+      <span class="pn-msg" id="pnConcMsg" role="status"></span>
+      ${raros.length ? `<p class="pn-small pn-conc-av">${lucide('triangle-exclamation-point')} Nº ${raros.map((f) => pad(f.numero)).join(', ')}: el resumen que ven los demás no coincide con sus entregas. Aquí se cuenta lo que consta en las entregas.</p>` : ''}
+    </section>
+    <section class="pn-sec"><h3 class="pn-h3">Clasificación general</h3>${tabla('general')}</section>
+    <section class="pn-sec"><h3 class="pn-h3">Circuitos</h3>${tabla('circ')}</section>
+    <section class="pn-sec"><h3 class="pn-h3">Vivienda</h3>${tabla('viv')}</section>`;
+  }
+  async function activarConcurso(g, activo, input) {
+    const m = $('#pnConcMsg'); if (m) { m.textContent = 'Guardando…'; m.className = 'pn-msg'; }
+    try { await setDoc(doc(db, 'concursos', g.id), { activo: !!activo, grupo: g.id, fecha: serverTimestamp() }); }
+    catch (e) { if (input) input.checked = !activo; const mm = $('#pnConcMsg'); if (mm) { mm.textContent = 'No se ha podido guardar (' + (e?.code || e?.message || 'error') + '). Comprueba que has pegado las reglas de Firestore nuevas.'; mm.className = 'pn-msg ko'; } }
   }
   // Prácticas guiadas de Circuitos que el profesor desbloquea una a una para este grupo (se guarda en «apartados»).
   function guiadasHTML(g) {
@@ -315,9 +375,6 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   }
   async function accionGrupo(acc, g) {
     try {
-      if (acc === 'guiadas') { st.guiadasDe = st.guiadasDe === g.id ? null : g.id; pintarTab(); return; }
-      if (acc === 'progresoViv') { st.progresoVivDe = st.progresoVivDe === g.id ? null : g.id; pintarTab(); return; }
-      if (acc === 'progreso') { st.progresoDe = st.progresoDe === g.id ? null : g.id; pintarTab(); return; }
       if (acc === 'gd-sig') { const sel = leerGuiadas(g.apartados) || new Set(); const sig = PRACTICES.find(p => !sel.has(p.id)); if (sig) await guardarGuiadas(g, [...sel, sig.id]); return; }
       if (acc === 'editar') { st.editando = g.id; pintarTab(); $('#pnBody').scrollIntoView({ block: 'start' }); return; }
       if (acc === 'grande') return mostrarGrande(g);
@@ -553,6 +610,7 @@ export function crearPanel({ db, PORTAL, email, aula }) {
       if (acc === 'alSolo') { cambiarFiltro('alumno', id); return; }
       const ab = !sec.classList.contains('open'); st.alAb.set(id, ab); pintarDatos(); return;
     }
+    if (acc === 'pg-vista') { st.pg.vista = b.dataset.v; pintarProgreso(true); return; }
     if (acc === 'alTodos') { const v = b.dataset.v === '1'; st.el.querySelectorAll('[data-al]').forEach(x => st.alAb.set(x.dataset.al, v)); pintarDatos(); return; }
     if (acc === 'quitarFiltros') { st.f.grupo = ''; st.f.alumno = ''; st.f.practica = ''; st.f.estado = ''; guardarFiltro(st.f); ponerHashEntregas(); pintarDatos(); return; }
     const usu = b.closest('[data-usu]')?.dataset.usu; if (usu) return accionUsuario(acc, usu, b);
@@ -589,6 +647,8 @@ export function crearPanel({ db, PORTAL, email, aula }) {
   }
   function onChange(ev) {
     const t = ev.target;
+    if (t.dataset.pnPg === 'grupo') { st.pg.grupo = t.value; try { history.replaceState(null, '', '#panel/progreso/' + t.value); } catch (e) { } pintarProgreso(true); return; }
+    if (t.dataset.pnConc) { const g = st.grupos.get(t.dataset.pnConc); if (g) activarConcurso(g, t.checked, t); return; }
     if (t.dataset.gd) {
       const g = st.grupos.get(t.closest('[data-grupo]')?.dataset.grupo || ''); if (!g) return;
       if (t.dataset.gd === 'modo') return guardarGuiadas(g, t.checked ? [] : null);

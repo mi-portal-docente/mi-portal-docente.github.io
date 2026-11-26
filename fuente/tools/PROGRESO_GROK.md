@@ -1241,3 +1241,21 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
   Pastillas del panel en móvil también. En `html.glass-lite` sin desenfoque (como el resto).
 - Pruebas: e2e/plataforma_f19.mjs (21/21 con f17; compara los estilos calculados con los de `.scr-top`, claro y oscuro, 1280 y 390),
   contraste_oscuro 113/113, aula_e2e 126/126, plataforma 2,3,17,18,19 61/61.
+
+## 26/11/2026 · PIP-8 · Progreso de laboratorios en Seguimiento + Concurso anónimo (t182u) — caché v5-20261126a
+- **Movido**: «Prácticas guiadas», «Progreso en Circuitos» y «Progreso en Vivienda» salen de Gestión › Grupos y códigos › Acceso
+  (tarjeta de cada grupo con EEE) y pasan a **Seguimiento › Progreso de laboratorios** (`#panel/progreso/<grupo>`, alias
+  `laboratorios`, `concurso`), justo después de Laboratorio. Selector de grupo + pastillas: Concurso · Circuitos · Vivienda · Prácticas guiadas.
+  Las funciones no cambian (mismo `guiadasHTML`, `progresoHTML`, `progresoVivHTML`, mismos `guardarGuiadas`; tablas idénticas).
+  En la tarjeta del grupo queda un botón «Progreso de laboratorios» que enlaza. Sin cambios de datos.
+- **Concurso (alumnos)**: `#concurso` (enlace «Concurso» en la barra del alumno solo si el profesor lo activa). Pastillas General/Circuitos/Vivienda,
+  número grande = tu puesto, puntos y barra, «te faltan N puntos», lista de clasificación con «Nº 07» y «Tú» resaltado, top 10 + tu fila, «Ver todos».
+  Anónimo: nunca nombres, correos ni códigos. Empates con el mismo puesto. Puntos: 1 por guiada completada + 1 por autónoma (la autónoma cuenta también como guiada).
+- **Datos (solo añade)**: `concursos/{grupo}` {activo, grupo, fecha} (interruptor por grupo, apagado por defecto, lo escribe el profesor) y
+  `clasificacion/{grupo_nº}` {grupo, numero, cg, ca, vg, va, fecha}: resumen de cuatro números que cada alumno publica de SUS entregas
+  (`src/portal/concurso-ui.js`, solo si cambia). No se toca ninguna entrega, nota ni examen. Los compañeros lo leen solo con el concurso activo.
+  El profesor calcula su clasificación de las entregas reales y avisa si el resumen publicado de un nº no coincide (por si alguien lo manipula).
+- **Reglas**: `firebase/firestore.rules` (+ `firebase/test/concurso.test.mjs`, 6 pruebas; `npm run test:reglas` 152/152). NO desplegadas: Pablo debe pegarlas.
+- Módulo puro `src/lms/concurso.js` + `concurso_test.mjs` (12/12). Iconos Lucide ya existentes (trophy, cpu, house, lock-open, info). Sin librerías nuevas.
+- E2E: `e2e/plataforma_f20.mjs` (35/35 con la preparación; añadida a FASES por defecto). `plataforma_f18` actualizada al nuevo orden de pestañas.
+- Capturas: /workspace/capturas-concurso/.

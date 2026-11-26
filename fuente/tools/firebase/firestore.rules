@@ -64,6 +64,11 @@ rules_version = '2';
 //   items.contenido     contenido de los motores nuevos (explicación interactiva…), mapa
 //   directo/{id}        pregunta en directo a un grupo                  profesor; alumno: leer las de su grupo
 //   respDirecto/{id}    respuesta anónima (recuento) de cada nº        el alumno la suya; leer: profesor
+//   --- concurso de laboratorios (solo nº de lista; nada de nombres) ---
+//   concursos/{grupo}   {activo, grupo, fecha}  ¿el grupo ve el concurso?   profesor escribe; alumno del grupo lee
+//   clasificacion/{grupo_nº} {grupo, numero, cg, ca, vg, va, fecha}  resumen de puntos de cada nº (guiadas y
+//                       autónomas de Circuitos y de Vivienda)         el alumno escribe el suyo; lo leen los de su
+//                       grupo SOLO si el concurso está activo, y el profesor
 //   --- protección de evidencias (Claude, P1-P4) ---
 //   config/limpieza     ventana de limpieza de un curso cerrado hace > 180 días    profesor
 //   trabajos/{id}/copias/{c01..c20}  copias congeladas (bytes + SHA-256 comprobado) el alumno añade; nadie borra
@@ -777,6 +782,40 @@ service cloud.firestore {
           && d.al == idAlumno(s) && d.grupo == s.grupo && d.uid == request.auth.uid
           && q.grupo == s.grupo && q.abierta == true
           && d.r is int && d.r >= 0 && d.r < q.opciones.size()
+          && d.fecha == request.time;
+      }
+    }
+
+    // concursos/{grupo}: interruptor del concurso de laboratorios de cada grupo (el id es el id del grupo, no su código).
+    // Lo escribe solo el profesor; lo lee el alumno de ese grupo (para saber si debe mostrarlo).
+    match /concursos/{id} {
+      allow read: if esProfesor() || (alumnoOk() && id == miSesion().grupo);
+      allow delete: if esProfesor();
+      allow create, update: if esProfesor() && id.matches('^[A-Za-z0-9_-]{1,40}$')
+        && request.resource.data.keys().hasOnly(['activo', 'grupo', 'fecha'])
+        && request.resource.data.keys().hasAll(['activo', 'grupo', 'fecha'])
+        && request.resource.data.activo is bool
+        && request.resource.data.grupo == id
+        && request.resource.data.fecha == request.time;
+    }
+    // clasificacion/{grupo_nº}: resumen PÚBLICO de puntos de un nº de lista: solo números (prácticas guiadas y autónomas
+    // completadas en Circuitos y en Vivienda). Sin nombres, sin correos, sin código de grupo. El alumno solo escribe el
+    // suyo; los compañeros de su grupo lo leen únicamente mientras el profesor tenga el concurso activo.
+    match /clasificacion/{id} {
+      allow read: if esProfesor()
+        || (alumnoOk() && resource.data.grupo == miSesion().grupo
+            && exists(ruta('concursos', miSesion().grupo))
+            && get(ruta('concursos', miSesion().grupo)).data.activo == true);
+      allow delete: if esProfesor();
+      allow create, update: if alumnoOk() && clasifOk(id, request.resource.data);
+      function clasifOk(id, d) {
+        let s = miSesion();
+        return d.keys().hasOnly(['grupo', 'numero', 'cg', 'ca', 'vg', 'va', 'fecha'])
+          && d.keys().hasAll(['grupo', 'numero', 'cg', 'ca', 'vg', 'va', 'fecha'])
+          && id == idAlumno(s) && d.grupo == s.grupo && d.numero == s.numero
+          && d.cg is int && d.ca is int && d.vg is int && d.va is int
+          && d.cg >= 0 && d.cg <= 20 && d.vg >= 0 && d.vg <= 20
+          && d.ca >= 0 && d.ca <= d.cg && d.va >= 0 && d.va <= d.vg
           && d.fecha == request.time;
       }
     }

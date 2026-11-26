@@ -152,3 +152,15 @@ SUPERPROFE PABLO PARA ALUMNOS · v5 (secciones por asignatura, 19/11/2026)
   Al copiar un curso, «Reutilizar publicación» o duplicar, se copian sección, PDF, versión interactiva y origen;
   las secciones de la asignatura (config/secciones) no dependen del curso y se conservan.
 - Reglas de Firestore v5: hay que pegarlas en la consola (las genera prepara-reglas.mjs con el correo del profesor).
+
+PROGRESO DE LABORATORIOS Y CONCURSO (26/11/2026)
+- Panel del profesor › Seguimiento › «Progreso de laboratorios» (#panel/progreso/<grupo>): Prácticas guiadas (desbloqueo),
+  Progreso en Circuitos y Progreso en Vivienda, que antes estaban en «Grupos y códigos», más el Concurso. Mismos datos
+  y mismas funciones; en «Grupos y códigos» queda un enlace.
+- Concurso (alumnos de grupos con EEE): clasificación anónima por laboratorio (General, Circuitos, Vivienda). Solo se ve
+  «Nº xx» y «Tú»; nunca nombres, correos ni códigos. Lo activa o apaga el profesor por grupo (apagado por defecto).
+  Puntos: 1 por práctica guiada completada y 1 más por su autónoma. Datos nuevos (solo añaden, no tocan nada existente):
+  concursos/{grupo} {activo, grupo, fecha} y clasificacion/{grupo_nº} {grupo, numero, cg, ca, vg, va, fecha}.
+- Reglas nuevas en tools/firebase/firestore.rules (concursos y clasificacion), con pruebas en
+  tools/firebase/test/concurso.test.mjs. HAY QUE PEGARLAS en la consola de Firebase (prepara-reglas.mjs las genera con el correo).
+- Sin librerías nuevas (iconos Lucide ya incluidos: trophy, cpu, house, lock-open…).

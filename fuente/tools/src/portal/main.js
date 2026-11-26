@@ -17,6 +17,7 @@ import { iniciarTablasScroll } from './tablas-scroll.js';
 import { seccionesActivas, seccionesDe, seccionesVisibles, vistaNueva, pendientesPorSeccion, seccionDe } from '../lms/secciones.js';
 import { crearClase } from './aula-clase.js';
 import { crearDirectoAlumno } from './directo.js';
+import { crearConcurso } from './concurso-ui.js';
 
 // Laboratorio incrustado en una «Explicación interactiva» (index.html?incrustado=1#…): sin cabecera ni menús.
 try { if (new URLSearchParams(location.search).has('incrustado')) document.documentElement.classList.add('incrustado'); } catch (e) { /* nada */ }
@@ -52,6 +53,7 @@ const ERR = {
   dominio: 'Este sitio todavía no está autorizado para iniciar sesión con Google (falta añadirlo en Firebase).',
 };
 
+let concurso = null;
 let fb = null, rol = null, ses = null, codDoc = null, panel = null, aula = null, vistas = null, clase = null;
 const entregas = new Map();
 let unsubs = [], timer = null, ultimoLatido = 0, ultimoAcceso = 0, timerPagina = null, cerrando = false, chip = null;
@@ -82,9 +84,12 @@ const PORTAL = window.PORTAL = {
     const a = (href, k, t) => `<a class="top-nav-a ${activa === k ? 'on' : ''}" href="${href}" ${activa === k ? 'aria-current="page"' : ''}>${t}</a>`;
     const cal = a('#calendario', 'cal', `${ic('calendar-days')} Calendario`);
     const mis = rol !== 'profesor' ? a('#mis-trabajos', 'mis', `${ic('briefcase')} Mis trabajos`) : '';
-    if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${mis}${cal}</nav>`;
+    const con = concurso?.activo() ? a('#concurso', 'conc', `${ic('trophy')} Concurso`) : '';
+    if (rol !== 'profesor') return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${mis}${cal}${con}</nav>`;
     return `<nav class="top-nav" aria-label="Principal">${a('#asignaturas', 'asig', '📅 Curso')}${cal}${a('#biblioteca', 'biblio', '🗂 Biblioteca')}${a('#panel', 'panel', '⚙️ Panel del profesor')}</nav>`;
   },
+  // Concurso de laboratorios (alumno de un grupo con EEE): clasificación anónima. null para el profesor o sin sesión.
+  get concurso() { return concurso; },
   estadoEntrega(practica) { return entregas.get(practica) || null; },
   entregasLab() { return [...entregas.values()]; },
   entregar,
@@ -399,14 +404,26 @@ function entrarAlumno(uid, s, c) {
   };
   unsubs.push(onSnapshot(query(collection(db, 'entregas'), where('uid', '==', uid)), leerEnt(entUid, true), () => { }));
   unsubs.push(onSnapshot(query(collection(db, 'entregas'), where('al', '==', idAl(s.grupo, s.numero))), leerEnt(entAl, false), () => { }));
+  concurso = crearConcurso({ db, ses: s, entregas, ambito: () => PORTAL.ambito(), eee: (c.asignaturas || []).includes('eee') });
+  unsubs.push(() => { concurso?.parar(); concurso = null; });
   ultimoLatido = Date.now();
   timer = setInterval(() => { if (document.visibilityState !== 'hidden' && Date.now() - ultimoLatido >= LATIDO_MS) latido(); }, 5000);
   window.addEventListener('hashchange', alCambiarPagina);
+  window.addEventListener('portal-concurso', refrescarNavConcurso);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - ultimoLatido > LATIDO_MS / 2) latido(); });
   window.addEventListener('offline', () => banner('Sin conexión con el portal. Reintentando…'));
   window.addEventListener('online', () => { banner(''); latido(); });
 }
 
+// El enlace «Concurso» aparece o desaparece en las barras ya pintadas cuando el profesor activa o apaga el concurso.
+function refrescarNavConcurso() {
+  const on = !!concurso?.activo();
+  document.querySelectorAll('nav.top-nav').forEach((n) => {
+    const a = n.querySelector('a[href="#concurso"]');
+    if (!on && a) a.remove();
+    if (on && !a) n.insertAdjacentHTML('beforeend', `<a class="top-nav-a" href="#concurso">${ic('trophy')} Concurso</a>`);
+  });
+}
 function alCambiarPagina() {
   if (cerrando || rol !== 'alumno') return;
   clearTimeout(timerPagina);

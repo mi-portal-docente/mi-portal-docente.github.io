@@ -1,0 +1,25 @@
+// Pruebas del módulo puro del concurso (puntos y clasificación).
+import { resumenAlumno, clasificar, sanear, MAX_CIRC, MAX_VIV, N_CIRC } from './src/lms/concurso.js';
+import { PRACTICES } from './src/circ/practices.js';
+import { idAutonoma } from './src/circ/evaluaciones.js';
+let ok = 0, fallos = 0; const t = (n, c, i = '') => { if (c) { ok++; console.log('OK  ', n); } else { fallos++; console.log('FALLO', n, i); } };
+const e = (practica, okc = true) => ({ practica, datos: { comprobacion: { ok: okc } } });
+let r = resumenAlumno([]);
+t('sin entregas: todo a 0', r.cg === 0 && r.ca === 0 && r.vg === 0 && r.va === 0);
+r = resumenAlumno([e('c1'), e('c2', false), e('a3')]);
+t('guiada ok cuenta; guiada en rojo no; autónoma cuenta también como guiada', r.cg === 2 && r.ca === 1, JSON.stringify(r));
+const reg = { practica: 'v6', datos: { montaje: JSON.stringify({ practicas: { vp1: { guiada: true }, vp2: { autonoma: true }, vp3: {} } }) } };
+r = resumenAlumno([reg]);
+t('registro de vivienda: guiada y autónoma', r.vg === 2 && r.va === 1, JSON.stringify(r));
+t('registro corrupto no rompe', resumenAlumno([{ practica: 'v6', datos: { montaje: '{no' } }]).vg === 0);
+t('sanear recorta a los límites', sanear({ cg: 999, ca: -4, vg: 'x', va: 2.6 }).cg === N_CIRC && sanear({ cg: 999, ca: -4, vg: 'x', va: 2.6 }).ca === 0 && sanear({ vg: 'x', va: 2.6 }).va === 3);
+const todas = resumenAlumno(PRACTICES.flatMap((p) => [e(p.id), e(idAutonoma(p.id))]));
+t('máximo de circuitos', todas.cg + todas.ca === MAX_CIRC);
+const C = clasificar([{ numero: 5, cg: 3, ca: 1 }, { numero: 2, cg: 3, ca: 1 }, { numero: 9, cg: 6, ca: 0, vg: 1 }, { numero: 11 }, { numero: 7, cg: 1 }]);
+t('empates con el mismo puesto y el siguiente salta', C.map((x) => x.numero + ':' + x.puesto).join() === '9:1,2:2,5:2,7:4', C.map((x) => x.numero + ':' + x.puesto).join());
+t('quien tiene 0 puntos no sale', !C.some((x) => x.numero === 11));
+t('clasificación solo de vivienda', clasificar([{ numero: 1, cg: 5 }, { numero: 2, vg: 1 }], 'viv').length === 1);
+t('porcentaje', clasificar([{ numero: 1, vg: 7, va: 7 }], 'viv')[0].pct === 100 && MAX_VIV === 14);
+t('las filas no llevan nada más que números', Object.keys(C[0]).sort().join() === 'ca,cg,numero,pct,pts,puesto,rel,va,vg');
+t('barra relativa al primero', C[0].rel === 100 && C.find((x) => x.numero === 7).rel === Math.round(100 / C[0].pts));
+console.log(`\n${ok}/${ok + fallos} comprobaciones OK`); process.exit(fallos ? 1 : 0);

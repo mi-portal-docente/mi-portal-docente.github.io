@@ -616,6 +616,11 @@ function route() {
     if (!portal()?.aula?.activa?.()) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
     showScreen('aula'); portal().aula.renderMisTrabajos($('#aula')); return;
   }
+  if (h === '#concurso') {
+    if (portal()?.esProfesor) { history.replaceState(null, '', '#panel/progreso'); return route(); }
+    if (!portal()?.concurso?.disponible?.()) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
+    showScreen('aula'); portal().concurso.render($('#aula')); return;
+  }
   if (h === '#calendario') {
     if (!portal()?.aula?.activa?.()) { history.replaceState(null, '', '#asignaturas'); return showScreen('subjects'); }
     showScreen('aula'); portal().aula.renderCalendario($('#aula')); return;
