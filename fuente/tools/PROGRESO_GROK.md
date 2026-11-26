@@ -1311,3 +1311,16 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
   encaje y sin scroll horizontal a 1280, 1024 y 390 (claro y oscuro), URL larga, cambio a cuestionario y a material, y el mismo editor
   desde Proyecto › Tareas y desde EEE › Trabajo de clase.
 - Capturas: /workspace/capturas-crear-tarea/ (`antes_*` y `despues_*`). Caché v5-20261126d.
+
+## 26/11/2026 · PIP-11 (parte A) · Ver y probar el «Despacho virtual» (t196u) — caché v5-20261126e
+- **Diagnóstico**: (1) el profesor, al abrir una tarea `despacho`, solo veía la ficha (instrucciones y rúbrica): el tablero se monta
+  únicamente para el alumno y «Probar como alumno» solo existía en los exámenes. (2) Un elemento lo ven los grupos de `items.grupos`,
+  que al importar son los grupos que tienen esa asignatura (`gruposDe`). Si Proyecto está en otro grupo (otro código), los alumnos que
+  entran con el código de EEE no lo ven; si ningún grupo tiene Proyecto, `grupos = []` y no lo ve nadie aunque esté «Publicado».
+  En una asignatura con secciones (Proyecto › Tareas) el tablero del alumno funciona igual (comprobado).
+- **Profesor**: en la página de la tarea, bloque «Tablero del alumno» con **Probar como alumno**: el mismo tablero del alumno sin
+  `db` (no se guarda nada), selector de empresa (empieza vacío) y botones «Llamada 1/2/3» que simulan la centralita. No se cierra con
+  los repintados del aula; «Cerrar la prueba» vuelve a la ficha. `crearEditorDespacho(it, { empresa })` + `simularLlamada`, `cambiarEmpresa`.
+- **Aviso** (todas las tareas, solo profesor): «Ningún grupo la ve» cuando `grupos` está vacío, con enlace a Grupos y códigos.
+- Sin cambios de reglas ni de datos. E2E `e2e/plataforma_f23.mjs` (15/15; importa en Proyecto › Tareas, prueba del profesor sin escribir
+  en Firestore, alumno del grupo EEE+Proyecto ve la tarea y el tablero). Fases 21-23 65/65; aula 126/126. Capturas: /workspace/capturas-clase/.
