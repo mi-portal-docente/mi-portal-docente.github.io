@@ -10,4 +10,5 @@ import './piac.js';
 import './documento.js';
 import './interactiva.js';
 import './hoja.js';
+import './despacho.js';
 export { motor, motores } from '../elemento.js';

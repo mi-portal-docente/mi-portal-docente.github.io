@@ -35,6 +35,9 @@ export function deMs(t) {
 export function validarElemento(j) {
   const errores = []; const err = (ruta, texto) => errores.push({ ruta, texto });
   if (!j || typeof j !== 'object' || Array.isArray(j)) { err('', 'Tiene que ser un objeto JSON entre llaves { … }.'); return { errores, el: null }; }
+  // Despacho virtual: también vale pegar directamente el fichero de datos ({ "empresas": [ … ], "dias", "horario"… })
+  if (j.tipo == null && j.contenido == null && Array.isArray(j.empresas)) { const { titulo, instrucciones, puntos, ...datos } = j; j = { tipo: 'despacho', titulo: titulo || 'Despacho virtual', ...(instrucciones ? { instrucciones } : {}), ...(puntos != null ? { puntos } : {}), contenido: datos }; }
+  else if (j.tipo === 'despacho' && j.contenido == null && Array.isArray(j.empresas)) { const { formato, tipo, titulo, instrucciones, texto, puntos, rubrica, criterio, seccion, tema, fechaEntrega, enlaces, nota, categoria, ...datos } = j; j = { formato, tipo, titulo, instrucciones, texto, puntos, rubrica, criterio, seccion, tema, fechaEntrega, enlaces, nota, categoria, contenido: datos }; Object.keys(j).forEach((k) => j[k] === undefined && delete j[k]); }
   if (j.formato != null && j.formato !== FORMATO_EL) err('formato', `Formato desconocido «${j.formato}». Usa «${FORMATO_EL}» (o quita la línea).`);
   const tipo = String(j.tipo ?? '');
   if (!tipo) err('tipo', `Falta «tipo». Puede ser: ${tiposValidos().join(', ')}.`);

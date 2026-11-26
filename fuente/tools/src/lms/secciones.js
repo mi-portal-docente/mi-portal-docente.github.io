@@ -26,7 +26,7 @@ export const ACTIVAS_DEFECTO = ['eee', 'proy2'];
 // Tipo actual → sección (tabla del punto 2 del encargo).
 export const TIPO_A_SECCION = {
   material: 'teoria', explicacion: 'teoria',
-  actividad: 'clase', p5: 'clase', web: 'clase', info: 'clase', ciber: 'clase', bloques: 'clase', interactiva: 'clase',
+  actividad: 'clase', p5: 'clase', web: 'clase', info: 'clase', ciber: 'clase', bloques: 'clase', interactiva: 'clase', despacho: 'clase',
   tarea: 'tareas', pregunta: 'tareas', proyecto: 'tareas', piac: 'tareas', documento: 'tareas', hoja: 'tareas',
   cuestionario: 'test', examen: 'test',
   recuperacion: 'examenes',

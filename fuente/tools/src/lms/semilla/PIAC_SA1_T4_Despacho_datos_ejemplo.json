@@ -1,0 +1,922 @@
+{
+  "dias": [
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes"
+  ],
+  "horario": "8:00-22:00",
+  "viaje_min": 30,
+  "prioridad": [
+    "1. Urgencias (fugas, averías, sin luz)",
+    "2. Clientes con hora fija",
+    "3. Resto de trabajos por orden de llegada"
+  ],
+  "empresas": [
+    {
+      "id": "limpieza",
+      "nombre": "Limpiezas Brillo",
+      "personal": [
+        {
+          "codigo": "L1",
+          "rol": "Encargado/a de limpieza",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "L2",
+          "rol": "Limpiador/a",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "L3",
+          "rol": "Limpiador/a",
+          "turno": "Tarde"
+        },
+        {
+          "codigo": "L4",
+          "rol": "Limpiador/a",
+          "turno": "Flexible"
+        },
+        {
+          "codigo": "L5",
+          "rol": "Cristalero/a",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "L6",
+          "rol": "Cristalero/a",
+          "turno": "Tarde"
+        }
+      ],
+      "recursos": [
+        "Furgoneta 1",
+        "Furgoneta 2",
+        "Pulidora",
+        "Plataforma elevadora"
+      ],
+      "trabajos": [
+        {
+          "id": "LT01",
+          "cliente": "Bar La Esquina",
+          "trabajo": "Limpieza de cocina",
+          "perfil": "Limpiador/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "8:00-11:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "LT02",
+          "cliente": "Oficinas Norte",
+          "trabajo": "Limpieza general",
+          "perfil": "Limpiador/a",
+          "personas": 2,
+          "horas": 3,
+          "ventana": "14:00-20:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "LT03",
+          "cliente": "Comunidad Olivo",
+          "trabajo": "Escalera y portal",
+          "perfil": "Limpiador/a",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "9:00-13:00",
+          "dia": "Lunes",
+          "recurso": null
+        },
+        {
+          "id": "LT04",
+          "cliente": "Clínica Dental Sol",
+          "trabajo": "Desinfección de salas",
+          "perfil": "Encargado/a de limpieza",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "20:00-22:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "LT05",
+          "cliente": "Tienda Moda Ana",
+          "trabajo": "Cristales del escaparate",
+          "perfil": "Cristalero/a",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "8:00-10:00",
+          "dia": "Lunes",
+          "recurso": "Plataforma elevadora"
+        },
+        {
+          "id": "LT06",
+          "cliente": "Gimnasio Fuerza",
+          "trabajo": "Vestuarios",
+          "perfil": "Limpiador/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "14:00-17:00",
+          "dia": "Miércoles",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "LT07",
+          "cliente": "Colegio Arco Iris",
+          "trabajo": "Aulas de infantil",
+          "perfil": "Limpiador/a",
+          "personas": 3,
+          "horas": 2.5,
+          "ventana": "15:00-21:00",
+          "dia": "Miércoles",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "LT08",
+          "cliente": "Hotel Mirador",
+          "trabajo": "Suelos del vestíbulo",
+          "perfil": "Encargado/a de limpieza",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "8:00-12:00",
+          "dia": "Miércoles",
+          "recurso": "Pulidora"
+        },
+        {
+          "id": "LT09",
+          "cliente": "Academia Idiomas",
+          "trabajo": "Limpieza general",
+          "perfil": "Limpiador/a",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "8:00-14:00",
+          "dia": "Miércoles",
+          "recurso": null
+        },
+        {
+          "id": "LT10",
+          "cliente": "Banco Central",
+          "trabajo": "Cristales de la fachada",
+          "perfil": "Cristalero/a",
+          "personas": 2,
+          "horas": 3,
+          "ventana": "8:00-14:00",
+          "dia": "Miércoles",
+          "recurso": "Plataforma elevadora"
+        },
+        {
+          "id": "LT11",
+          "cliente": "Restaurante Mar",
+          "trabajo": "Campana extractora",
+          "perfil": "Limpiador/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "16:00-19:00",
+          "dia": "Viernes",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "LT12",
+          "cliente": "Farmacia Plaza",
+          "trabajo": "Limpieza general",
+          "perfil": "Limpiador/a",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "8:00-9:30",
+          "dia": "Viernes",
+          "recurso": null
+        },
+        {
+          "id": "LT13",
+          "cliente": "Oficinas Norte",
+          "trabajo": "Moquetas",
+          "perfil": "Encargado/a de limpieza",
+          "personas": 2,
+          "horas": 2.5,
+          "ventana": "14:00-20:00",
+          "dia": "Viernes",
+          "recurso": "Pulidora"
+        },
+        {
+          "id": "LT14",
+          "cliente": "Comunidad Pinar",
+          "trabajo": "Garaje",
+          "perfil": "Limpiador/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "9:00-14:00",
+          "dia": "Viernes",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "LT15",
+          "cliente": "Peluquería Rizos",
+          "trabajo": "Cristales y rótulo",
+          "perfil": "Cristalero/a",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "10:00-13:00",
+          "dia": "Viernes",
+          "recurso": "Plataforma elevadora"
+        }
+      ],
+      "llamadas": [
+        {
+          "cuando": "Lunes 10:30",
+          "texto": "Bar La Esquina llama: tienen una inspección de sanidad mañana y piden adelantar la limpieza de cocina a hoy por la tarde.",
+          "tipo": "Urgencia del cliente"
+        },
+        {
+          "cuando": "Miércoles 9:00",
+          "texto": "La Furgoneta 2 no arranca: está en el taller hasta el jueves.",
+          "tipo": "Avería de recurso"
+        },
+        {
+          "cuando": "Viernes 8:15",
+          "texto": "L3 avisa de que está enfermo y no viene hoy.",
+          "tipo": "Baja de personal"
+        }
+      ]
+    },
+    {
+      "id": "electricidad",
+      "nombre": "Voltio Instalaciones",
+      "personal": [
+        {
+          "codigo": "E1",
+          "rol": "Oficial electricista",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "E2",
+          "rol": "Oficial electricista",
+          "turno": "Tarde"
+        },
+        {
+          "codigo": "E3",
+          "rol": "Ayudante",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "E4",
+          "rol": "Ayudante",
+          "turno": "Tarde"
+        },
+        {
+          "codigo": "E5",
+          "rol": "Ayudante",
+          "turno": "Flexible"
+        },
+        {
+          "codigo": "E6",
+          "rol": "Técnico/a de telecomunicaciones",
+          "turno": "Flexible"
+        }
+      ],
+      "recursos": [
+        "Furgoneta 1",
+        "Furgoneta 2",
+        "Escalera grande",
+        "Medidor de aislamiento"
+      ],
+      "trabajos": [
+        {
+          "id": "ET01",
+          "cliente": "Vivienda C/ Luna 4",
+          "trabajo": "Cambiar enchufes de la cocina",
+          "perfil": "Oficial electricista",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "9:00-13:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "ET02",
+          "cliente": "Panadería Trigo",
+          "trabajo": "Revisión del cuadro eléctrico",
+          "perfil": "Oficial electricista",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "15:00-19:00",
+          "dia": "Lunes",
+          "recurso": "Medidor de aislamiento"
+        },
+        {
+          "id": "ET03",
+          "cliente": "Comunidad Olmo",
+          "trabajo": "Luces de la escalera",
+          "perfil": "Ayudante",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "10:00-13:00",
+          "dia": "Lunes",
+          "recurso": "Escalera grande"
+        },
+        {
+          "id": "ET04",
+          "cliente": "Oficina Gestoría",
+          "trabajo": "Puntos de red",
+          "perfil": "Técnico/a de telecomunicaciones",
+          "personas": 2,
+          "horas": 3,
+          "ventana": "8:00-14:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "ET05",
+          "cliente": "Vivienda C/ Sol 12",
+          "trabajo": "Instalar lámparas",
+          "perfil": "Ayudante",
+          "personas": 2,
+          "horas": 1.5,
+          "ventana": "16:00-20:00",
+          "dia": "Lunes",
+          "recurso": null
+        },
+        {
+          "id": "ET06",
+          "cliente": "Bar Paco",
+          "trabajo": "Avería en la cámara frigorífica",
+          "perfil": "Oficial electricista",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "8:00-11:00",
+          "dia": "Miércoles",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "ET07",
+          "cliente": "Colegio Arco Iris",
+          "trabajo": "Revisión de emergencias",
+          "perfil": "Oficial electricista",
+          "personas": 2,
+          "horas": 3,
+          "ventana": "15:00-21:00",
+          "dia": "Miércoles",
+          "recurso": "Escalera grande"
+        },
+        {
+          "id": "ET08",
+          "cliente": "Vivienda C/ Mar 3",
+          "trabajo": "Antena de televisión",
+          "perfil": "Técnico/a de telecomunicaciones",
+          "personas": 1,
+          "horas": 2,
+          "ventana": "9:00-14:00",
+          "dia": "Miércoles",
+          "recurso": "Escalera grande"
+        },
+        {
+          "id": "ET09",
+          "cliente": "Tienda Móviles",
+          "trabajo": "Rótulo luminoso",
+          "perfil": "Ayudante",
+          "personas": 2,
+          "horas": 1.5,
+          "ventana": "14:00-18:00",
+          "dia": "Miércoles",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "ET10",
+          "cliente": "Garaje Comunidad Pinar",
+          "trabajo": "Medir aislamiento",
+          "perfil": "Oficial electricista",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "9:00-12:00",
+          "dia": "Miércoles",
+          "recurso": "Medidor de aislamiento"
+        },
+        {
+          "id": "ET11",
+          "cliente": "Clínica Vet",
+          "trabajo": "Ampliar circuito",
+          "perfil": "Oficial electricista",
+          "personas": 2,
+          "horas": 3,
+          "ventana": "8:00-14:00",
+          "dia": "Viernes",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "ET12",
+          "cliente": "Vivienda C/ Río 7",
+          "trabajo": "Portero automático",
+          "perfil": "Técnico/a de telecomunicaciones",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "16:00-20:00",
+          "dia": "Viernes",
+          "recurso": null
+        },
+        {
+          "id": "ET13",
+          "cliente": "Gimnasio Fuerza",
+          "trabajo": "Focos de la sala",
+          "perfil": "Ayudante",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "14:00-18:00",
+          "dia": "Viernes",
+          "recurso": "Escalera grande"
+        },
+        {
+          "id": "ET14",
+          "cliente": "Oficina Gestoría",
+          "trabajo": "Revisar SAI",
+          "perfil": "Oficial electricista",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "18:00-21:00",
+          "dia": "Viernes",
+          "recurso": "Medidor de aislamiento"
+        },
+        {
+          "id": "ET15",
+          "cliente": "Academia Danza",
+          "trabajo": "Enchufes de los espejos",
+          "perfil": "Ayudante",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "10:00-14:00",
+          "dia": "Viernes",
+          "recurso": "Furgoneta 2"
+        }
+      ],
+      "llamadas": [
+        {
+          "cuando": "Lunes 9:15",
+          "texto": "Panadería Trigo: se ha ido la luz en todo el local. Necesitan a alguien antes de las 12:00.",
+          "tipo": "Urgencia del cliente"
+        },
+        {
+          "cuando": "Miércoles 13:00",
+          "texto": "El medidor de aislamiento se ha roto. El de repuesto llega el jueves.",
+          "tipo": "Avería de recurso"
+        },
+        {
+          "cuando": "Viernes 8:00",
+          "texto": "E2 tiene una cita médica y no puede trabajar el viernes por la tarde.",
+          "tipo": "Baja de personal"
+        }
+      ]
+    },
+    {
+      "id": "jardineria",
+      "nombre": "Jardines Verdeluz",
+      "personal": [
+        {
+          "codigo": "J1",
+          "rol": "Jardinero/a",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "J2",
+          "rol": "Jardinero/a",
+          "turno": "Tarde"
+        },
+        {
+          "codigo": "J3",
+          "rol": "Jardinero/a",
+          "turno": "Flexible"
+        },
+        {
+          "codigo": "J4",
+          "rol": "Podador/a",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "J5",
+          "rol": "Ayudante",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "J6",
+          "rol": "Ayudante",
+          "turno": "Tarde"
+        }
+      ],
+      "recursos": [
+        "Furgoneta",
+        "Remolque",
+        "Cortacésped grande",
+        "Motosierra"
+      ],
+      "trabajos": [
+        {
+          "id": "JT01",
+          "cliente": "Comunidad Olivo",
+          "trabajo": "Cortar el césped",
+          "perfil": "Jardinero/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "8:00-12:00",
+          "dia": "Lunes",
+          "recurso": "Cortacésped grande"
+        },
+        {
+          "id": "JT02",
+          "cliente": "Colegio Arco Iris",
+          "trabajo": "Poda de setos",
+          "perfil": "Podador/a",
+          "personas": 2,
+          "horas": 2.5,
+          "ventana": "8:00-14:00",
+          "dia": "Lunes",
+          "recurso": "Motosierra"
+        },
+        {
+          "id": "JT03",
+          "cliente": "Chalet Los Pinos",
+          "trabajo": "Riego automático",
+          "perfil": "Jardinero/a",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "16:00-20:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta"
+        },
+        {
+          "id": "JT04",
+          "cliente": "Hotel Mirador",
+          "trabajo": "Macetas de la terraza",
+          "perfil": "Ayudante",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "14:00-18:00",
+          "dia": "Lunes",
+          "recurso": null
+        },
+        {
+          "id": "JT05",
+          "cliente": "Parque Empresarial",
+          "trabajo": "Recoger hojas",
+          "perfil": "Ayudante",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "15:00-20:00",
+          "dia": "Lunes",
+          "recurso": "Remolque"
+        },
+        {
+          "id": "JT06",
+          "cliente": "Comunidad Pinar",
+          "trabajo": "Plantar flores",
+          "perfil": "Jardinero/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "9:00-13:00",
+          "dia": "Miércoles",
+          "recurso": "Furgoneta"
+        },
+        {
+          "id": "JT07",
+          "cliente": "Residencia Mayores",
+          "trabajo": "Cortar el césped",
+          "perfil": "Jardinero/a",
+          "personas": 2,
+          "horas": 2.5,
+          "ventana": "8:00-12:00",
+          "dia": "Miércoles",
+          "recurso": "Cortacésped grande"
+        },
+        {
+          "id": "JT08",
+          "cliente": "Chalet Las Rosas",
+          "trabajo": "Poda de árbol",
+          "perfil": "Podador/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "9:00-14:00",
+          "dia": "Miércoles",
+          "recurso": "Motosierra"
+        },
+        {
+          "id": "JT09",
+          "cliente": "Bar Terraza Sol",
+          "trabajo": "Jardineras",
+          "perfil": "Ayudante",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "16:00-19:00",
+          "dia": "Miércoles",
+          "recurso": null
+        },
+        {
+          "id": "JT10",
+          "cliente": "Parque Empresarial",
+          "trabajo": "Llevar restos al punto limpio",
+          "perfil": "Ayudante",
+          "personas": 2,
+          "horas": 1.5,
+          "ventana": "14:00-18:00",
+          "dia": "Miércoles",
+          "recurso": "Remolque"
+        },
+        {
+          "id": "JT11",
+          "cliente": "Hotel Mirador",
+          "trabajo": "Cortar el césped",
+          "perfil": "Jardinero/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "8:00-11:00",
+          "dia": "Viernes",
+          "recurso": "Cortacésped grande"
+        },
+        {
+          "id": "JT12",
+          "cliente": "Colegio Arco Iris",
+          "trabajo": "Huerto escolar",
+          "perfil": "Jardinero/a",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "15:00-18:00",
+          "dia": "Viernes",
+          "recurso": "Furgoneta"
+        },
+        {
+          "id": "JT13",
+          "cliente": "Comunidad Olmo",
+          "trabajo": "Poda de palmeras",
+          "perfil": "Podador/a",
+          "personas": 2,
+          "horas": 3,
+          "ventana": "8:00-14:00",
+          "dia": "Viernes",
+          "recurso": "Motosierra"
+        },
+        {
+          "id": "JT14",
+          "cliente": "Chalet Los Pinos",
+          "trabajo": "Abonar el jardín",
+          "perfil": "Ayudante",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "16:00-20:00",
+          "dia": "Viernes",
+          "recurso": null
+        },
+        {
+          "id": "JT15",
+          "cliente": "Residencia Mayores",
+          "trabajo": "Recoger ramas",
+          "perfil": "Ayudante",
+          "personas": 2,
+          "horas": 1.5,
+          "ventana": "14:00-19:00",
+          "dia": "Viernes",
+          "recurso": "Remolque"
+        }
+      ],
+      "llamadas": [
+        {
+          "cuando": "Lunes 11:00",
+          "texto": "Comunidad Olivo: el viernes hay una boda en el jardín y quieren el césped cortado el jueves, no el lunes.",
+          "tipo": "Cambio del cliente"
+        },
+        {
+          "cuando": "Miércoles 8:30",
+          "texto": "El cortacésped grande se ha averiado. Estará arreglado el jueves por la mañana.",
+          "tipo": "Avería de recurso"
+        },
+        {
+          "cuando": "Viernes 9:00",
+          "texto": "J4 se ha hecho daño en la mano y no puede usar la motosierra en toda la semana.",
+          "tipo": "Baja de personal"
+        }
+      ]
+    },
+    {
+      "id": "reparaciones",
+      "nombre": "Manitas Hogar",
+      "personal": [
+        {
+          "codigo": "M1",
+          "rol": "Fontanero/a",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "M2",
+          "rol": "Fontanero/a",
+          "turno": "Tarde"
+        },
+        {
+          "codigo": "M3",
+          "rol": "Pintor/a",
+          "turno": "Flexible"
+        },
+        {
+          "codigo": "M4",
+          "rol": "Carpintero/a",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "M5",
+          "rol": "Ayudante",
+          "turno": "Mañana"
+        },
+        {
+          "codigo": "M6",
+          "rol": "Ayudante",
+          "turno": "Tarde"
+        }
+      ],
+      "recursos": [
+        "Furgoneta 1",
+        "Furgoneta 2",
+        "Andamio",
+        "Desatascador eléctrico"
+      ],
+      "trabajos": [
+        {
+          "id": "MT01",
+          "cliente": "Vivienda C/ Luna 4",
+          "trabajo": "Fuga en el baño",
+          "perfil": "Fontanero/a",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "8:00-12:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "MT02",
+          "cliente": "Bar La Esquina",
+          "trabajo": "Desatascar fregadero",
+          "perfil": "Fontanero/a",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "15:00-18:00",
+          "dia": "Lunes",
+          "recurso": "Desatascador eléctrico"
+        },
+        {
+          "id": "MT03",
+          "cliente": "Academia Idiomas",
+          "trabajo": "Pintar un aula",
+          "perfil": "Pintor/a",
+          "personas": 2,
+          "horas": 3,
+          "ventana": "15:00-21:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "MT04",
+          "cliente": "Vivienda C/ Sol 12",
+          "trabajo": "Arreglar puerta",
+          "perfil": "Carpintero/a",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "9:00-13:00",
+          "dia": "Lunes",
+          "recurso": null
+        },
+        {
+          "id": "MT05",
+          "cliente": "Tienda Moda Ana",
+          "trabajo": "Montar estanterías",
+          "perfil": "Carpintero/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "8:00-11:00",
+          "dia": "Lunes",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "MT06",
+          "cliente": "Comunidad Olmo",
+          "trabajo": "Pintar el portal",
+          "perfil": "Pintor/a",
+          "personas": 2,
+          "horas": 3,
+          "ventana": "9:00-14:00",
+          "dia": "Miércoles",
+          "recurso": "Andamio"
+        },
+        {
+          "id": "MT07",
+          "cliente": "Vivienda C/ Mar 3",
+          "trabajo": "Cambiar grifo",
+          "perfil": "Fontanero/a",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "16:00-19:00",
+          "dia": "Miércoles",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "MT08",
+          "cliente": "Clínica Dental Sol",
+          "trabajo": "Atasco en el lavabo",
+          "perfil": "Fontanero/a",
+          "personas": 2,
+          "horas": 1.5,
+          "ventana": "8:00-10:00",
+          "dia": "Miércoles",
+          "recurso": "Desatascador eléctrico"
+        },
+        {
+          "id": "MT09",
+          "cliente": "Oficinas Norte",
+          "trabajo": "Arreglar persianas",
+          "perfil": "Carpintero/a",
+          "personas": 1,
+          "horas": 2,
+          "ventana": "8:00-14:00",
+          "dia": "Miércoles",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "MT10",
+          "cliente": "Vivienda C/ Río 7",
+          "trabajo": "Colgar cuadros",
+          "perfil": "Ayudante",
+          "personas": 1,
+          "horas": 1,
+          "ventana": "17:00-20:00",
+          "dia": "Miércoles",
+          "recurso": null
+        },
+        {
+          "id": "MT11",
+          "cliente": "Colegio Arco Iris",
+          "trabajo": "Pintar la valla",
+          "perfil": "Pintor/a",
+          "personas": 3,
+          "horas": 3,
+          "ventana": "15:00-21:00",
+          "dia": "Viernes",
+          "recurso": "Andamio"
+        },
+        {
+          "id": "MT12",
+          "cliente": "Gimnasio Fuerza",
+          "trabajo": "Ducha que gotea",
+          "perfil": "Fontanero/a",
+          "personas": 1,
+          "horas": 1.5,
+          "ventana": "8:00-11:00",
+          "dia": "Viernes",
+          "recurso": "Furgoneta 1"
+        },
+        {
+          "id": "MT13",
+          "cliente": "Hotel Mirador",
+          "trabajo": "Puertas de armarios",
+          "perfil": "Carpintero/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "9:00-14:00",
+          "dia": "Viernes",
+          "recurso": "Furgoneta 2"
+        },
+        {
+          "id": "MT14",
+          "cliente": "Comunidad Pinar",
+          "trabajo": "Bajante atascada",
+          "perfil": "Fontanero/a",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "15:00-19:00",
+          "dia": "Viernes",
+          "recurso": "Desatascador eléctrico"
+        },
+        {
+          "id": "MT15",
+          "cliente": "Vivienda C/ Luna 4",
+          "trabajo": "Montar muebles",
+          "perfil": "Ayudante",
+          "personas": 2,
+          "horas": 2,
+          "ventana": "16:00-20:00",
+          "dia": "Viernes",
+          "recurso": null
+        }
+      ],
+      "llamadas": [
+        {
+          "cuando": "Lunes 8:45",
+          "texto": "Vivienda C/ Luna 4: la fuga ha empeorado y está cayendo agua al piso de abajo. ¡Urgente!",
+          "tipo": "Urgencia del cliente"
+        },
+        {
+          "cuando": "Miércoles 10:00",
+          "texto": "Nos han robado el andamio de la Furgoneta 2. Hasta el viernes no tendremos otro.",
+          "tipo": "Avería de recurso"
+        },
+        {
+          "cuando": "Viernes 8:30",
+          "texto": "M3 tiene que llevar a su hijo al médico y no viene el viernes.",
+          "tipo": "Baja de personal"
+        }
+      ]
+    }
+  ]
+}
