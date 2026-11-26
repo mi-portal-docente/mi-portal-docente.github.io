@@ -86,7 +86,7 @@ function alumnoHTML(E, a) {
       <tr><th>Comentarios</th><td>${a.comentarios.map((c) => `${f(c.fecha)} ${esc(c.autor)}: ${esc(c.texto)}`).join('<br>') || '—'}</td></tr>
     </tbody></table>
     ${t?.respuestas ? `<h4>Respuestas</h4><ol>${(el.examen?.preguntas || []).map((q) => `<li>${esc(q.tipo === 'variables' && a.datosExamen?.[q.id] ? sustituir(q.enunciado, a.datosExamen[q.id]) : q.enunciado)}<br><b>${esc(respTxt(q, t.respuestas[q.id]))}</b>${n?.detalle?.[q.id] != null ? ` · ${esc(fmtNota(n.detalle[q.id]))} pt` : ''}</li>`).join('')}</ol>` : ''}
-    ${t?.doc ? `<h4>Documento entregado</h4><div class="ev-doc">${String(t.doc).startsWith('{"v":1') ? '<p class="pn-small">(hoja de cálculo: ver en el portal)</p>' : limpiarDoc(t.doc)}</div>` : t?.texto ? `<h4>Respuesta</h4><div class="ev-doc">${esc(t.texto).replace(/\n/g, '<br>')}</div>` : ''}
+    ${t?.doc ? `<h4>Documento entregado</h4><div class="ev-doc">${String(t.doc).startsWith('{"v":1') ? '<p class="pn-small">(hoja de cálculo: ver en el portal)</p>' : String(t.doc).startsWith('{"v":"dv1"') ? '<p class="pn-small">(tablero del despacho virtual: ver en el portal)</p>' : limpiarDoc(t.doc)}</div>` : t?.texto ? `<h4>Respuesta</h4><div class="ev-doc">${esc(t.texto).replace(/\n/g, '<br>')}</div>` : ''}
   </section>`;
 }
 export function abrirVisor(E) {

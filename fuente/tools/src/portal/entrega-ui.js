@@ -91,11 +91,13 @@ export function montarEntrega(nodo, it, ctx) {
   }
   function alCambiar() {
     S.sucio = true; S.error = ''; const v = valores(); if (v) guardarLocal(v); indicador();
-    clearTimeout(S.tDeb); S.tDeb = setTimeout(() => guardarBorrador('pausa'), 3000);
+    clearTimeout(S.tDeb); S.tDeb = setTimeout(() => guardarBorrador('pausa'), ctx.editor?.pausaGuardado || 3000);
   }
   async function entregar(btn) {
     const v = valores(); const msg = nodo.querySelector('#enMsg');
     if (!v.texto.trim() && !v.enlaces.length && !S.tr?.modelo && !(v.doc && String(v.doc).replace(/<[^>]*>/g, '').trim())) { msg.textContent = 'Escribe una respuesta, añade un enlace o sube un archivo.'; msg.className = 'au-msg ko'; return; }
+    // Despacho virtual (y otros editores): resumen antes de entregar
+    if (ctx.editor?.resumenEntrega && !await confirmar(ctx.editor.resumenEntrega())) return;
     const cont = it.contenido || {};
     if (v.doc != null && (cont.palabrasMin || cont.palabrasMax)) { const np = contarPalabras(v.doc); if ((cont.palabrasMin && np < cont.palabrasMin) || (cont.palabrasMax && np > cont.palabrasMax)) { if (!await confirmar(`Tu documento tiene ${np} palabras y se piden ${cont.palabrasMin ? 'al menos ' + cont.palabrasMin : ''}${cont.palabrasMin && cont.palabrasMax ? ' y ' : ''}${cont.palabrasMax ? 'como mucho ' + cont.palabrasMax : ''}. ¿Entregar igualmente?`)) return; } }
     if (pideCopia && v.enlaces.length) {
@@ -252,6 +254,7 @@ export function montarEntrega(nodo, it, ctx) {
   nodo.addEventListener('change', (ev) => { const i = ev.target.closest?.('.m3-file'); if (!i) return; const file = i.files?.[0]; i.value = ''; if (file) modelo(file, i); });
   window.addEventListener('pagehide', alSalir); window.addEventListener('hashchange', alSalir); document.addEventListener('visibilitychange', onVis); window.addEventListener('online', onOnline);
   S.tInt = setInterval(() => { if (S.sucio) guardarBorrador('intervalo'); }, 15000);
+  if (ctx.editor) ctx.editor.guardarYa = () => guardarBorrador('editor');
   pintar(); leerCopias();
   return {
     actualizar({ trabajo, nota }) {

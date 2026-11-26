@@ -20,6 +20,7 @@ import { montarInteractiva } from './interactiva-ui.js';
 import { montarEntrega } from './entrega-ui.js';
 import { crearEditorDoc } from './doc-editor.js';
 import { crearEditorHoja } from './hoja-ui.js';
+import { crearEditorDespacho } from './despacho-ui.js';
 import { estadoTrabajo, ESTADOS_TRABAJO } from '../lms/entrega.js';
 import { confirmar } from './dialogo.js';
 import { rubricaAlumnoHTML, notaAlumnoHTML } from './rubrica-ui.js';
@@ -187,7 +188,7 @@ export function crearVistas({ db, aula, rol, ses, uid }) {
       } else if (!modo.activo) { /* sin zona */ } else modo.empezar(it);
     }
     const nE = el.querySelector('#auEntregaM');
-    if (nE && rol === 'alumno') entM = { id, nodo: nE, api: montarEntrega(nE, it, { db, ses, uid, al, trabajo: st.trabajos.get(id), nota: st.notas.get(id), textoHTML, ...(it.tipo === 'documento' ? { editor: crearEditorDoc(it, { db, ses }) } : it.tipo === 'hoja' ? { editor: crearEditorHoja(it) } : {}) }) };
+    if (nE && rol === 'alumno') entM = { id, nodo: nE, api: montarEntrega(nE, it, { db, ses, uid, al, trabajo: st.trabajos.get(id), nota: st.notas.get(id), textoHTML, ...(it.tipo === 'documento' ? { editor: crearEditorDoc(it, { db, ses }) } : it.tipo === 'hoja' ? { editor: crearEditorHoja(it) } : it.tipo === 'despacho' && it.contenido?.empresas ? { editor: crearEditorDespacho(it, { db, ses }) } : {}) }) };
   }
   function repintar() {
     if (!actual || !actual.el.isConnected) return;

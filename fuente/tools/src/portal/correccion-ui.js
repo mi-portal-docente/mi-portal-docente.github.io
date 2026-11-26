@@ -10,6 +10,7 @@ import { estadoChipHTML } from './entrega-ui.js';
 import { leerResultado } from '../act/resultado.js';
 import { limpiarDoc, contarPalabras } from '../lms/doc-html.js';
 import { hojaLecturaHTML } from './hoja-ui.js';
+import { despachoLecturaHTML, montarCentralita } from './despacho-ui.js';
 import { botonModelo, botonesEnlaces3D, es3D } from './modelo3d-ui.js';
 import { rellenarImagenes, descargarDocx, imagenesParaDocx } from './doc-editor.js';
 import { confirmar, avisar } from './dialogo.js';
@@ -55,7 +56,8 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     const r = leerResultado(tr.texto); if (r) h += `<div class="pn-inf ap-act">${ic('puzzle')} Resultado de la actividad: <b>${r.aciertos}/${r.total}</b> aciertos → nota sugerida <b>${esc(fmtNota(r.nota))}</b></div>`;
     if (window.PORTAL_VISTA_TRABAJO) { const extra = window.PORTAL_VISTA_TRABAJO(C.it, tr); if (extra) h += extra; }
     if (tr.modelo || (tr.enlaces || []).some(es3D)) h += `<div class="co-3d pn-acts">${botonModelo(tr, tr.id || ids(C.n))}${botonesEnlaces3D(tr.enlaces)}</div>`;
-    if (tr.doc && C.it.tipo === 'hoja') h += `<div class="co-hoja">${hojaLecturaHTML(C.it, tr.doc)}</div>`;
+    if (tr.doc && C.it.tipo === 'despacho') h += `<div class="co-desp">${despachoLecturaHTML(C.it, tr.doc)}</div>`;
+    else if (tr.doc && C.it.tipo === 'hoja') h += `<div class="co-hoja">${hojaLecturaHTML(C.it, tr.doc)}</div>`;
     else if (tr.doc) h += `<div class="co-doc doc-ver">${limpiarDoc(tr.doc)}</div><div class="pn-acts"><span class="pn-small">${contarPalabras(tr.doc)} palabras</span><span class="pn-grow"></span><button type="button" class="btn small" data-co="docx">${ic('file-down')} Descargar .docx</button></div>`;
     else h += `<div class="co-texto">${tr.texto ? textoHTML(tr.texto) : '<span class="pn-small">(sin texto)</span>'}</div>`;
     h += enlacesVivosHTML(tr.enlaces || [], tr.enlacesT || []) + slotCopias(tr.id || ids(C.n));
@@ -96,6 +98,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
         <button class="btn" data-co="ant" ${pos <= 0 ? 'disabled' : ''} aria-label="Alumno anterior">${ic('chevron-left')}</button><span class="co-nn">nº <b>${pad(C.n)}</b> <span class="pn-small">${pos >= 0 ? `${pos + 1} de ${L.length}` : ''}</span></span><button class="btn" data-co="sig" ${pos < 0 || pos >= L.length - 1 ? 'disabled' : ''} aria-label="Alumno siguiente">${ic('chevron-right')}</button>
         <details class="co-mas"><summary class="btn" aria-label="Corregir con un archivo">${ic('file-text')} Archivo</summary><div class="co-mas-m"><button type="button" class="btn small" data-co="exportarCorr">${ic('download')} Exportar para corregir (JSON)</button><button type="button" class="btn small" data-co="importarCorr">${ic('upload')} Importar corrección (JSON)</button><p class="pn-small">Las notas importadas quedan en borrador: revísalas aquí y publícalas.</p></div></details>
         ${sinPub ? `<button class="btn primary" data-co="publicarTodas">${ic('megaphone')} Publicar ${sinPub}</button>` : ''}</div>
+      ${C.it.tipo === 'despacho' ? '<div id="dvCentral" class="dv-central-w"></div>' : ''}
       <div class="co-grid"><section class="co-izq pn-card" id="coTrabajo" aria-label="Trabajo del alumno">${trabajoHTML(tr, nt)}</section>
       <section class="co-der pn-card" aria-label="Calificación"><h4>${ic('list-checks')} Rúbrica</h4>${rubricaHTML(nt)}
         <form id="coForm" class="pn-form"><div class="co-nota"><label class="pn-f">Nota (0–10)<input name="nota" id="coNota" type="number" min="0" max="10" step="0.01" value="${esc(notaV)}"></label>${c ? `<span class="pn-small" id="coCalc">${esc(fmtNota(c.puntos))} / ${esc(fmtNota(c.max))} puntos</span>` : '<span id="coCalc"></span>'}
@@ -114,6 +117,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     const clave = `${C.it.id}|${C.g.id}|${C.n}`;
     if (!forzar && C.clave === clave && $('#coForm')) { const T = $('#coTrabajo'); if (T) { const id = ids(C.n); T.innerHTML = trabajoHTML(A.trabajos.get(id), A.notas.get(id)); rellenarImagenes(T, db, id); rellenarCopias(T, db); } return; }
     C.clave = clave; B.innerHTML = html(); rellenarImagenes($('#coTrabajo'), db, ids(C.n)); rellenarCopias($('#coTrabajo'), db);
+    if (C.it.tipo === 'despacho') montarCentralita($('#dvCentral'), { db, it: C.it, g: C.g, numeros: filas(C.g), trabajoDe: (n) => A.trabajos.get(ids(n)) });
   }
   function ir(d) { const L = lista(); const i = L.indexOf(C.n); const j = i < 0 ? 0 : i + d; if (j >= 0 && j < L.length) { C.n = L[j]; C.sel = {}; pintarTodo(true); } }
   function recalc() {
@@ -157,7 +161,7 @@ export function crearCorreccion({ db, st, A, grupoSel, filas, $, pintarTodo, tex
     const alumnos = filas(C.g).filter((n) => conEntrega(n) || A.notas.get(ids(n))).map((n) => {
       const tr = A.trabajos.get(ids(n)); const nt = A.notas.get(ids(n));
       const det = nt?.detalle || {};
-      return { n, entrega: tr ? { estado: tr.estado, fecha: tr.fecha ? new Date(tr.fecha).toISOString() : null, conRetraso: !!(C.it.fechaEntrega && tr.fecha > C.it.fechaEntrega), texto: tr.texto || '', documento: C.it.tipo === 'hoja' ? '' : textoPlano(tr.doc), enlaces: tr.enlaces || [] } : null,
+      return { n, entrega: tr ? { estado: tr.estado, fecha: tr.fecha ? new Date(tr.fecha).toISOString() : null, conRetraso: !!(C.it.fechaEntrega && tr.fecha > C.it.fechaEntrega), texto: tr.texto || '', documento: C.it.tipo === 'hoja' || C.it.tipo === 'despacho' ? '' : textoPlano(tr.doc), enlaces: tr.enlaces || [] } : null,
         notaActual: nt ? { nota: nt.nota ?? null, publicada: !!nt.publicada } : null,
         niveles: R.map((r, i) => (r.clase ? null : det['n' + i] ?? null)), comentario: nt?.comentario || '' };
     });
