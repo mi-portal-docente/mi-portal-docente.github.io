@@ -759,7 +759,10 @@ html[data-theme="dark"] .cc-t, html[data-theme="dark"] .cc-dato { color: #e5e5ea
 @media (max-width: 1000px) { .ap-libro { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 900px) { .pn-ent, .co-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 860px) { .cl-grid, .p5-grid { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 820px) { .cl-dlg-b { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 820px) {
+  .cl-dlg-b { grid-template-columns: minmax(0, 1fr); }
+  .cl-dlg-main, .cl-dlg-side, .cl-dlg-more { grid-column: auto; grid-row: auto; }
+}
 .rv-h { padding-right: calc(var(--esquina-w, 44px) + 28px); flex-wrap: wrap; gap: 8px 12px; }
 .rv-h h3 { min-width: 0; flex: 1 1 12rem; font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
 .rv-h .btn { flex: none; }
@@ -993,3 +996,56 @@ html[data-theme="dark"] .dv-mbox { background: #1c1c1e; }
 .dv.dv-full .dv-side, .dv.dv-full .dv-boardw { max-height: calc(100vh - 150px); }
 html.dv-full-on { overflow: hidden; }
 .dv.dv-full .dv-top { top: 0; }
+
+
+/* ---------- PIP-10 · Editor «Crear / Editar» al estilo Ajustes (t192u) ---------- */
+#apEditor.cl-dlg-ed, #apEditor form.cl-form { max-width: 100%; }
+#apEditor form.pn-form.cl-form { display: flex; flex-direction: column; gap: 0; }
+#apEditor .ed-card {
+  background: var(--card);
+  border: .5px solid var(--glass-borde, rgba(60,60,67,.18));
+  border-radius: var(--r, 12px);
+  box-shadow: var(--sh1, 0 1px 2px rgba(0,0,0,.06));
+  min-width: 0;
+  overflow: hidden;
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+#apEditor .ed-h {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0; padding: 12px 16px 0;
+  font-size: 13px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--gris); line-height: 1.3;
+}
+#apEditor .ed-h .ic { width: 16px; height: 16px; color: #506C88; flex: none; }
+#apEditor .ed-h > span:not(.ed-chev) { min-width: 0; overflow-wrap: anywhere; }
+#apEditor .ed-card-c { display: flex; flex-direction: column; gap: 12px; padding: 10px 16px 14px; min-width: 0; }
+#apEditor details.ed-fold > summary.ed-h {
+  padding: 14px 16px; margin: 0; cursor: pointer; list-style: none;
+  border-radius: var(--r, 12px);
+}
+#apEditor details.ed-fold > summary.ed-h::-webkit-details-marker { display: none; }
+#apEditor details.ed-fold > summary.ed-h::marker { content: ''; }
+#apEditor details.ed-fold .ed-chev { margin-left: auto; display: inline-flex; transition: transform .2s ease; }
+#apEditor details.ed-fold .ed-chev .ic { width: 16px; height: 16px; color: var(--gris); }
+#apEditor details.ed-fold[open] > summary.ed-h .ed-chev { transform: rotate(180deg); }
+#apEditor details.ed-fold[open] > summary.ed-h { border-radius: var(--r, 12px) var(--r, 12px) 0 0; }
+#apEditor details.ed-fold > summary.ed-h:hover { background: var(--fill2, rgba(118,118,128,.12)); }
+#apEditor details.ed-fold > summary.ed-h:focus-visible { outline: 2px solid #506C88; outline-offset: -2px; }
+#apEditor .ed-card .pn-f > input,
+#apEditor .ed-card .pn-f > textarea,
+#apEditor .ed-card .pn-f > select { width: 100%; max-width: 100%; }
+#apEditor textarea.js-ta { max-height: min(50vh, 28rem); overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.45; }
+#apEditor .pn-chk { overflow-wrap: anywhere; }
+#apEditor .cl-pend-aviso { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(255, 159, 10, .14); overflow-wrap: anywhere; }
+#apEditor .cl-dlg-f .btn.primary { margin-left: 0; }
+#apEditor .cl-dlg-ic { color: #506C88; }
+html[data-theme="dark"] #apEditor .ed-h .ic, html[data-theme="dark"] #apEditor .cl-dlg-ic { color: #9fb3c8; }
+html[data-theme="dark"] #apEditor details.ed-fold > summary.ed-h:hover { background: rgba(255,255,255,.06); color: var(--tinta); }
+html[data-theme="dark"] #apEditor .ed-h { color: #c7c7cc; }
+html.glass-lite #apEditor .ed-card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (prefers-reduced-motion: reduce) { #apEditor details.ed-fold .ed-chev { transition: none; } }
+@media (max-width: 520px) {
+  #apEditor .cl-dlg-h, #apEditor .cl-dlg-f, #apEditor .ed-card-c, #apEditor details.ed-fold > summary.ed-h { padding-left: 12px; padding-right: 12px; }
+  #apEditor .cl-dlg-b { padding: 10px; }
+}

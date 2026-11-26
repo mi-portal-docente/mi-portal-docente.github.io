@@ -21,6 +21,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
     const x = out.length; out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${off.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<</Size ${objs.length + 1}/Root 1 0 R>>\nstartxref\n${x}\n%%EOF\n`;
     return Buffer.from(out, 'latin1');
   })();
+  await pg.evaluate(() => { const d = document.querySelector('#apItemForm [data-ed-grupo=adjuntos]'); if (d) d.open = true; });
   await pg.setInputFiles('#apItemForm [name=adjF]', { name: 'Ficha Ohm.pdf', mimeType: 'application/pdf', buffer: pdfB });
   await pg.waitForFunction(() => /#archivo\//.test(document.querySelector('#apItemForm [name=enlaces]')?.value || ''), null, { timeout: 30000 });
   const uArch = (await pg.inputValue('#apItemForm [name=enlaces]')).match(/#archivo\/(\w+)/)[1];

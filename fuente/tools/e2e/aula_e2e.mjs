@@ -115,6 +115,7 @@ ok('el tema filtrado viene elegido en el editor', (await P.pg.inputValue('#apIte
 ok('el grupo del curso viene marcado por defecto', await P.pg.isChecked(`#apItemForm [name=grupos][value="${GA.id}"]`));
 await P.pg.fill('#apItemForm [name=titulo]', 'Desafío 1 (Documentos de Google)');
 await P.pg.fill('#apItemForm [name=texto]', 'Crea un documento con **portada**, índice automático y dos secciones.\nEntrega el enlace compartido.');
+await P.pg.evaluate(() => { for (const id of ['adjuntos', 'rubrica']) { const d = document.querySelector(`#apItemForm [data-ed-grupo="${id}"]`); if (d) d.open = true; } });
 await P.pg.fill('#apItemForm [name=adjT]', 'Guía de estilos'); await P.pg.fill('#apItemForm [name=adjU]', 'https://docs.google.com/document/d/guia');
 await P.pg.click('#apItemForm [data-ed=adj]');
 await P.pg.click('#apItemForm .rb-txt summary'); await P.pg.fill('#apItemForm [data-rb-texto]', 'Portada e índice | 4\nFormato y estilos | 6'); await P.pg.click('#apItemForm [data-ed=rbTexto]');

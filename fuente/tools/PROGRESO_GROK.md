@@ -1294,3 +1294,20 @@ Nada de lo de Claude se toca (ni preguntas, ni SVG, ni entregas). Todos los camp
 - Sin librerías nuevas. Cambios pequeños fuera del módulo: `entrega-ui.js` (ganchos opcionales `pausaGuardado`, `resumenEntrega`, `guardarYa`),
   `elemento.js` (atajo del fichero de datos), listas de tipos, `.dlg-txt` con saltos de línea, `.au-page:has(.dv)` más ancha.
 - Caché: al fusionar, `bash fuente/tools/subir-cache.sh v5-20261126c`.
+
+## 26/11/2026 · PIP-10 · Editor «Crear tarea»: ventana que cabe, márgenes y grupos (t192u) — caché v5-20261126d
+- La ventana de «＋ Crear» / «Editar» (#apEditor, src/portal/aula-editor.js) ya no se sale de la pantalla ni recorta el pie.
+  El diálogo cabe en el viewport (1280×800, 1024 y 390 px): cabecera y pie fijos, el cuerpo (`.cl-dlg-b`) es el que se desplaza.
+  El mismo encaje vale para el resto de ventanas `.cl-dlg` (importar, banco, duplicar…).
+- Estructura al estilo Ajustes: tarjetas de cristal con títulos cortos. Primero lo esencial (título, instrucciones, puntos, fecha, tema);
+  a la derecha (o debajo, en el móvil, justo después de «Entrega») van «Para» y «Estado». Lo demás va plegado: Adjuntos, PDF/interactivo/origen,
+  Rúbrica, Nota privada y Más opciones (tipo, sección, criterio, categoría, copia congelada, prueba sin externos).
+  El cuestionario, el JSON de un motor y la plantilla de documento siguen a la vista, porque son el contenido de ese tipo.
+- Todos los campos y funciones se conservan (mismos `name`, mismo guardado, mismas pruebas). Sin cambios de datos ni de reglas.
+  Iconos Lucide (sin emoji) en cabecera, grupos y el único botón principal («Crear» / «Guardar»). Colores #DE0714 / #506C88; contraste en oscuro
+  (los campos de texto llevan `type="text"` para heredar el fondo opaco del modo oscuro). Palabras y URL largas se parten (`overflow-wrap`).
+- Pruebas: aula_e2e 126/126; contraste + secciones 113/113 (el editor abre «Sección» y el origen); plataforma 1, 2, 8, 10 → 69/69
+  (criterio, tipos de pregunta, rúbrica, adjuntos y recuperación); fase nueva `e2e/plataforma_f22.mjs` 15/15 (añadida a FASES):
+  encaje y sin scroll horizontal a 1280, 1024 y 390 (claro y oscuro), URL larga, cambio a cuestionario y a material, y el mismo editor
+  desde Proyecto › Tareas y desde EEE › Trabajo de clase.
+- Capturas: /workspace/capturas-crear-tarea/ (`antes_*` y `despues_*`). Caché v5-20261126d.

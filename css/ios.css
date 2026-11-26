@@ -131,7 +131,7 @@ textarea { min-height: 80px; line-height: 1.45; }
 
 /* ---------- tarjetas agrupadas ---------- */
 .pn-card, .au-sec, .org-box, .ap-unidad, .cl-anuncio-f, .cl-post, .cl-prox, .pn-det, .pn-grupo, .au-texto, .au-form, .bib-prog, .ac-card, .ap-card, .subj,
-.pn-vacio, .as-vacio, .cl-vacio, .org-stat, .au-facts div, .au-q, .cl-h, .au-mia, .ac-lado, .esp-entrega, .pl-prog, .placa-cta, .cl-dlg-main, .bib-hits li {
+.pn-vacio, .as-vacio, .cl-vacio, .org-stat, .au-facts div, .au-q, .cl-h, .au-mia, .ac-lado, .esp-entrega, .pl-prog, .placa-cta, .bib-hits li {
   background: var(--card); border: .5px solid var(--glass-borde); border-radius: var(--r); box-shadow: var(--sh1); }
 .pn-vacio, .as-vacio, .cl-vacio { box-shadow: none; border: 1.5px dashed var(--claro); background: transparent; }
 .ap-q { background: var(--card); border: 1px solid var(--sep); border-radius: var(--r-sm); }
@@ -434,7 +434,7 @@ html.glass-lite .cl-modal { -webkit-backdrop-filter: none; backdrop-filter: none
 .cl-dlg-h { background: var(--glass); border-bottom: .5px solid var(--sep2); border-radius: 0; padding: 14px 20px; }
 .cl-dlg-h h3 { font-size: 17px; font-weight: 650; }
 .cl-dlg-f { background: var(--glass); border-top: .5px solid var(--sep2); border-radius: 0; }
-.cl-dlg-main { box-shadow: var(--sh1); border: 0; border-radius: var(--r); }
+.cl-dlg-main { box-shadow: none; border: 0; background: transparent; }
 .cl-reu { border: 0; background: var(--card); border-radius: 12px; box-shadow: var(--sh1); }
 .cl-imp-res { background: var(--fill2); border-radius: 12px; }
 @keyframes hojaSube { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }

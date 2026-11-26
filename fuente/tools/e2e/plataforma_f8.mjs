@@ -58,6 +58,7 @@ export default async function ({ T, BASE, ok, shot, docREST, pegarJSON, guardarJ
   const manana = Date.now() + 864e5;
   const idR = await importarYPublicar(pg, BASE, 'eee', REC, { pegarJSON, guardarJSON }, async (p) => {
     await p.fill('#apItemForm [name=para]', '3'); await p.fill('#apItemForm [name=fechaEntrega]', local(manana));
+    await p.evaluate(() => { const d = document.querySelector('#apItemForm [data-ed-grupo=rubrica]'); if (d) d.open = true; });
     await p.click('[data-ed=plantillaRubrica]');
     ok('plantilla de rúbrica: 5 criterios con autoría, sin pesos por defecto (2 puntos cada uno)', /Autoría.*\| 2\b/.test(await p.inputValue('#apItemForm [data-rb-texto]')) && (await p.$$('#apItemForm .rb-fila')).length === 5);
   });

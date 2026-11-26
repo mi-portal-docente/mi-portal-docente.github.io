@@ -26,6 +26,16 @@ const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' :
 export const TIPOS_CREAR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario'];
 const TIPOS_EDITOR = ['tarea', 'examen', 'pregunta', 'material', 'cuestionario', 'actividad', 'practica', 'proyecto', 'explicacion', 'p5', 'web', 'info', 'ciber', 'bloques', 'averia', 'recuperacion', 'piac', 'documento', 'interactiva', 'hoja', 'despacho'];
 const entregableDe = (t) => TIPOS_ENTREGA.includes(t) || t === 'examen' || !!motor(t)?.entregable;
+const ICO_TIPO = {
+  tarea: 'clipboard-list', examen: 'clipboard-check', pregunta: 'circle-question-mark',
+  material: 'file-text', cuestionario: 'list-checks', actividad: 'puzzle',
+  practica: 'wrench', proyecto: 'rocket', explicacion: 'graduation-cap',
+  p5: 'palette', web: 'globe', info: 'binary', ciber: 'shield-check',
+  bloques: 'blocks', averia: 'construction', recuperacion: 'rotate-ccw',
+  piac: 'users', documento: 'notebook-text', interactiva: 'target',
+  hoja: 'table-2', despacho: 'briefcase',
+};
+const iconoTipo = (t) => ic(ICO_TIPO[t] || 'file-text');
 export const PEND = 'Contenido pendiente de subir.';
 export const PEND_T = 'Pendiente de completar';
 const BASICAS = ['test', 'vf', 'corta'];
@@ -84,7 +94,7 @@ export function crearEditor({ db, aula, gruposDe }) {
       E.el.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') cerrar(); });
       document.body.appendChild(E.el); document.body.classList.add('cl-modal-abierto');
     }
-    E.el.innerHTML = `<div class="cl-dlg" id="apEditor">${html()}</div>`;
+    E.el.innerHTML = `<div class="cl-dlg cl-dlg-ed" id="apEditor">${html()}</div>`;
     pintarArch();
     E.el.querySelector('input[name=titulo]')?.focus();
   }
@@ -94,7 +104,7 @@ export function crearEditor({ db, aula, gruposDe }) {
     // v5 · origen en Drive (solo profesor, origenes/{id}): se carga aparte y se rellena al llegar
     if (it && st.reglasV5 === true) getDoc(doc(db, 'origenes', it.id)).then((d) => {
       if (E.edit?.id !== it.id) return; E.origenExiste = d.exists(); E.origen = d.exists() ? d.data() : null;
-      const f = E.el?.querySelector('#apItemForm'); if (f && E.origen) for (const [k, n] of [['drive', 'orDrive'], ['ruta', 'orRuta'], ['version', 'orVer']]) if (f.elements[n] && !f.elements[n].value) f.elements[n].value = E.origen[k] || '';
+      const f = E.el?.querySelector('#apItemForm'); if (f && E.origen) { for (const [k, n] of [['drive', 'orDrive'], ['ruta', 'orRuta'], ['version', 'orVer']]) if (f.elements[n] && !f.elements[n].value) f.elements[n].value = E.origen[k] || ''; const d = f.querySelector('[data-ed-grupo=caras]'); if (d && (E.origen.drive || E.origen.ruta || E.origen.version)) d.open = true; }
     }).catch(() => {});
     if (it) {
       E.edit = { ...it, tema: it.tema ?? null, estado: !it.publicado ? 'borrador' : it.pub && it.pub > Date.now() ? 'programar' : 'publicar' };
@@ -126,16 +136,15 @@ export function crearEditor({ db, aula, gruposDe }) {
   function carasEditorHTML(e) {
     const arch = (e.enlaces || []).map((x) => ({ t: x.t || x.u, m: String(x.u).match(/^#archivo\/([A-Za-z0-9]{6,40})/) })).filter((x) => x.m);
     const sel = e.pdf?.archivo || ''; const o = E.origen || {};
-    return `<details class="cl-v5" ${e.pdf || e.interactivo || E.origen ? 'open' : ''}><summary>${ic('file-text')} PDF oficial, versión interactiva y origen</summary>
-      <div class="ap-fila"><label class="pn-f">PDF oficial<select name="pdfArch">${opt('', arch.length ? 'El primer PDF adjunto' : 'Sube el PDF en «Adjuntos» y elígelo aquí', sel)}${sel && !arch.some((x) => 'archivos/' + x.m[1] === sel) ? opt(sel, e.pdf.nombre || sel, sel) : ''}${arch.map((x) => opt('archivos/' + x.m[1], x.t, sel)).join('')}</select></label>
+    return `<div class="ap-fila"><label class="pn-f">PDF oficial<select name="pdfArch">${opt('', arch.length ? 'El primer PDF adjunto' : 'Sube el PDF en «Adjuntos» y elígelo aquí', sel)}${sel && !arch.some((x) => 'archivos/' + x.m[1] === sel) ? opt(sel, e.pdf.nombre || sel, sel) : ''}${arch.map((x) => opt('archivos/' + x.m[1], x.t, sel)).join('')}</select></label>
       <label class="pn-chk"><input type="checkbox" name="pdfDesc" ${e.pdf?.descarga ? 'checked' : ''}> Permitir descargarlo</label></div>
       <div class="ap-fila"><label class="pn-f">Versión interactiva<select name="intTipo">${opt('', 'No tiene', e.interactivo?.tipo || '')}${Object.entries(TIPOS_INTERACTIVO).map(([k, n]) => opt(k, n, e.interactivo?.tipo || '')).join('')}</select></label>
-      <label class="pn-f">Elemento o enlace del portal<input name="intRef" maxlength="300" value="${esc(e.interactivo?.ref || '')}" placeholder="id de otro elemento o #eee/circuitos/c3"></label></div>
+      <label class="pn-f">Elemento o enlace del portal<input type="text" name="intRef" maxlength="300" value="${esc(e.interactivo?.ref || '')}" placeholder="id de otro elemento o #eee/circuitos/c3"></label></div>
       <fieldset class="cl-origen"><legend>${ic('lock')} Origen en Drive · solo lo ves tú</legend><div class="ap-fila">
-        <label class="pn-f">Id del archivo<input name="orDrive" maxlength="120" value="${esc(o.drive || '')}" autocomplete="off"></label>
-        <label class="pn-f">Ruta<input name="orRuta" maxlength="300" value="${esc(o.ruta || '')}" placeholder="1_PIAC_SA1/T3_Empresa_espejo"></label>
-        <label class="pn-f">Versión<input name="orVer" maxlength="30" value="${esc(o.version || '')}" placeholder="v3"></label></div>
-        <p class="pn-small">Para saber de qué archivo sale el PDF. Los alumnos no lo ven y el portal no abre Drive.</p></fieldset></details>`;
+        <label class="pn-f">Id del archivo<input type="text" name="orDrive" maxlength="120" value="${esc(o.drive || '')}" autocomplete="off"></label>
+        <label class="pn-f">Ruta<input type="text" name="orRuta" maxlength="300" value="${esc(o.ruta || '')}" placeholder="1_PIAC_SA1/T3_Empresa_espejo"></label>
+        <label class="pn-f">Versión<input type="text" name="orVer" maxlength="30" value="${esc(o.version || '')}" placeholder="v3"></label></div>
+        <p class="pn-small">Para saber de qué archivo sale el PDF. Los alumnos no lo ven y el portal no abre Drive.</p></fieldset>`;
   }
   function html() {
     const e = E.edit; const a = asignatura(e.asig);
@@ -143,59 +152,70 @@ export function crearEditor({ db, aula, gruposDe }) {
     const gs = gruposDe(e.curso, e.asig);
     const entregable = entregableDe(e.tipo); const M = motor(e.tipo);
     const temas = temasDe(e.curso, e.asig);
-    return `<form id="apItemForm" class="pn-form ap-form cl-form" autocomplete="off">
-    <header class="cl-dlg-h"><span class="cl-dlg-ic">${TIPOS[e.tipo]?.icon || '📄'}</span><h3>${e.id ? 'Editar' : 'Crear'}: ${esc(TIPOS[e.tipo]?.nombre || e.tipo)}</h3><span class="pn-small">${esc(a?.corto || e.asig)}</span><span class="pn-grow"></span>${e.id ? '<button class="btn small" type="button" data-ed="exportar" title="Exportar este elemento en JSON (lo guardado)">' + ic('download') + ' JSON</button>' : ''}<button class="btn" type="button" data-ed="cancelar" aria-label="Cerrar">✕</button></header>
-    <div class="cl-dlg-b"><div class="cl-dlg-main">
-      <label class="pn-f">Tipo<select name="tipo">${TIPOS_EDITOR.map((t) => opt(t, TIPOS[t].nombre, e.tipo)).join('')}</select></label>
-      ${st.reglasV5 === true ? carasEditorHTML(e) : ''}
-      ${conSecciones(e) ? (() => { const S = seccionesDe(st.secConf, e.asig); const nom = (id) => S.find((x) => x.id === id)?.nombre || id; return `<label class="pn-f">Sección<select name="seccion">${opt('', 'Según el tipo (' + nom(seccionDe({ ...e, seccion: null })) + ')', e.seccion || '')}${IDS_ELEMENTO.map((id) => opt(id, nom(id), e.seccion || '')).join('')}</select></label>`; })() : ''}
-      <label class="pn-f">${e.tipo === 'pregunta' ? 'Pregunta' : 'Título'}<input name="titulo" maxlength="150" required value="${esc(e.titulo)}"></label>
-      <label class="pn-f">Instrucciones${e.tipo === 'material' ? ' / descripción' : ''} (opcional)<textarea name="texto" rows="7" maxlength="20000" placeholder="Explica qué hay que hacer. **negrita** y los enlaces se ven como enlaces.">${esc(e.texto || '')}</textarea></label>
-      ${e.tipo === 'pregunta' ? `<label class="pn-f">Opciones (una por línea; vacío = respuesta corta)<textarea name="opciones" rows="3" maxlength="2000">${esc((e.opciones || []).join('\n'))}</textarea></label>` : ''}
-      <fieldset class="pn-f cl-adj"><legend>Adjuntos</legend>
-        <textarea name="enlaces" rows="3" maxlength="10000" placeholder="Título | https://drive.google.com/…  (uno por línea)">${esc(enlacesTexto(e.enlaces))}</textarea>
-        <div class="cl-adj-add"><input name="adjT" maxlength="120" placeholder="Título (opcional)"><input name="adjU" maxlength="500" placeholder="https://… (Drive, Docs, YouTube, cualquier web) o materiales/…">
-          <button type="button" class="btn small" data-ed="adj">➕ Añadir</button></div>
+    const hayAdj = !!(e.enlaces && e.enlaces.length);
+    const hayRubrica = !!(e.rubrica && e.rubrica.length);
+    const hayNota = !!(e.nota) || !!e.pendiente;
+    const hayCaras = !!(e.pdf || e.interactivo || E.origen);
+    const hayAvanzado = !!(e.seccion || e.criterio || e.sinExternos || e.examen?.sinExternos || (entregable && e.tipo !== 'examen' && e.copia === false));
+    const card = (titulo, ico, inner) => `<section class="ed-card"><h4 class="ed-h">${ic(ico)}<span>${esc(titulo)}</span></h4><div class="ed-card-c">${inner}</div></section>`;
+    const fold = (id, titulo, ico, inner, open) => `<details class="ed-card ed-fold${id === 'caras' ? ' cl-v5' : ''}" data-ed-grupo="${id}"${open ? ' open' : ''}><summary class="ed-h">${ic(ico)}<span>${esc(titulo)}</span><span class="ed-chev">${ic('chevron-down')}</span></summary><div class="ed-card-c">${inner}</div></details>`;
+    const adjuntosInner = `<textarea name="enlaces" rows="3" maxlength="10000" placeholder="Título | https://drive.google.com/…  (uno por línea)">${esc(enlacesTexto(e.enlaces))}</textarea>
+        <div class="cl-adj-add"><input type="text" name="adjT" maxlength="120" placeholder="Título (opcional)"><input type="text" name="adjU" maxlength="500" placeholder="https://… (Drive, Docs, YouTube, cualquier web) o materiales/…">
+          <button type="button" class="btn small" data-ed="adj">${ic('plus')} Añadir</button></div>
         <div class="cl-adj-sub"><button type="button" class="btn small primary" data-ed="subir">${ic('upload')} Subir archivo</button><input type="file" name="adjF" multiple hidden accept=".pdf,image/*,.doc,.docx,.odt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,.csv,.txt,.zip"><span class="pn-small" data-ed-sub></span></div>
         <div class="cl-adj-arch" data-ed-arch></div>
-        <p class="pn-small">Sube el PDF, la imagen o el documento (máx. 15 MB cada uno): se guarda en el portal y los alumnos lo ven dentro de la página, sin Drive ni cuentas. Por defecto es solo para ver: marca «Permitir descargar» en el archivo que quieras. PDF e imágenes se ven en el visor; el resto (Word, PowerPoint…) solo sirve si permites descargarlo: mejor súbelo en PDF. También puedes pegar enlaces (YouTube, Canva, cualquier web).</p></fieldset>
-      ${M?.documento ? `<fieldset class="pn-f ap-motor"><legend>${ic('file-text')} Documento · plantilla de partida (opcional)</legend>${plantillaHTML(e.contenidoTxt ? (() => { try { return JSON.parse(e.contenidoTxt); } catch (x) { return e.contenido || {}; } })() : e.contenido || M.ejemplo || {})}<p class="pn-small">El alumno empieza con esta plantilla y escribe en el portal: títulos, listas, tablas, enlaces, imágenes y código. Se guarda solo; puede imprimirlo o descargarlo en .docx.</p></fieldset>` : ''}
-      ${M && !M.documento ? `<fieldset class="pn-f ap-motor"><legend>${esc(M.nombre || TIPOS[e.tipo]?.nombre || e.tipo)} · contenido (JSON)</legend>
-        <textarea name="contenido" class="js-ta" rows="14" spellcheck="false" maxlength="400000">${esc(e.contenidoTxt ?? JSON.stringify((e.contenido && M.paraEditar ? M.paraEditar(e.contenido) : e.contenido) || M.ejemplo || {}, null, 2))}</textarea>
-        <div class="pn-acts"><button type="button" class="btn small" data-ed="ejemplo">Poner el ejemplo</button><span class="pn-small">Formato y ejemplos en «FORMATO_IMPORTAR.md». Se comprueba al guardar.</span></div>
-        ${M.entregable ? '<p class="pn-small">Al terminar, el alumno entrega su resultado («Aciertos: a/t»); en el cuaderno, «Poner notas» lo pasa a nota sobre 10.</p>' : ''}</fieldset>` : ''}
-      ${e.tipo === 'examen' ? `<fieldset class="pn-f ap-exam"><legend>Cuestionario del portal (autocorregido)</legend>
-        <div class="ap-fila"><label class="pn-f">Se abre<input type="datetime-local" name="desde" value="${esc(aLocal(ex.desde))}"></label><label class="pn-f">Se cierra<input type="datetime-local" name="hasta" value="${esc(aLocal(ex.hasta))}"></label>
+        <p class="pn-small">Sube el PDF, la imagen o el documento (máx. 15 MB cada uno): se guarda en el portal y los alumnos lo ven dentro de la página, sin Drive ni cuentas. Por defecto es solo para ver: marca «Permitir descargar» en el archivo que quieras. PDF e imágenes se ven en el visor; el resto (Word, PowerPoint…) solo sirve si permites descargarlo: mejor súbelo en PDF. También puedes pegar enlaces (YouTube, Canva, cualquier web).</p>`;
+    const notaInner = `${e.pendiente ? `<p class="cl-pend-aviso"><b>${ic('triangle-exclamation-point')} ${PEND_T}.</b> Al importarlo de Classroom no constaban todos los detalles. Añade instrucciones o adjuntos y guarda: el aviso desaparece solo.</p>` : ''}
+        <textarea name="nota" rows="2" maxlength="2000" placeholder="Recordatorios para ti; los alumnos no la ven.">${esc(e.nota || '')}</textarea>
+        ${e.pendiente ? '<label class="pn-chk"><input type="checkbox" name="quitarPend"> Ya está completo: quitar el aviso «Pendiente de completar»</label>' : ''}`;
+    const avanzadoInner = `<label class="pn-f">Tipo<select name="tipo">${TIPOS_EDITOR.map((t) => opt(t, TIPOS[t].nombre, e.tipo)).join('')}</select></label>
+      ${conSecciones(e) ? (() => { const S = seccionesDe(st.secConf, e.asig); const nom = (id) => S.find((x) => x.id === id)?.nombre || id; return `<label class="pn-f">Sección<select name="seccion">${opt('', 'Según el tipo (' + nom(seccionDe({ ...e, seccion: null })) + ')', e.seccion || '')}${IDS_ELEMENTO.map((id) => opt(id, nom(id), e.seccion || '')).join('')}</select></label>`; })() : ''}
+      ${entregable && e.tipo !== 'examen' ? `<label class="pn-f">Criterio (opcional)<input type="text" name="criterio" maxlength="60" placeholder="p. ej. eee_c1_1" value="${esc(e.criterio || '')}"></label>` : ''}
+      ${entregable ? `<label class="pn-f">Categoría en el cuaderno<select name="categoria">${CATEGORIAS.map((c) => opt(c.id, c.nombre, e.categoria || categoriaDe(e.tipo))).join('')}</select></label>` : ''}
+      ${entregable && e.tipo !== 'examen' ? `<label class="pn-chk" title="Si entrega un enlace (Canva, Drive, Tinkercad…), tiene que subir también un PDF, capturas o el archivo de ese momento. Queda con fecha y huella y no se puede cambiar."><input type="checkbox" name="copia" ${e.copia !== false ? 'checked' : ''}> ${ic('lock')} Pedir copia congelada si entrega un enlace</label>` : ''}
+      ${entregable ? `<label class="pn-chk" title="Pantalla completa obligatoria; si sale de la pantalla se bloquea y solo sigue con tu código de 4 cifras. Sin pegar texto."><input type="checkbox" name="sinExternos" ${e.sinExternos || e.examen?.sinExternos ? 'checked' : ''}> ${ic('shield-check')} Prueba sin elementos externos</label>` : ''}`;
+    const entregaInner = `${entregable ? `<label class="pn-f">Puntos<input type="number" name="puntos" min="1" max="1000" step="0.5" placeholder="Sin calificar" value="${e.puntos ?? ''}"></label>` : ''}
+      ${entregable && e.tipo !== 'examen' ? `<label class="pn-f">Fecha de entrega<input type="datetime-local" name="fechaEntrega" value="${esc(aLocal(e.fechaEntrega))}"></label>` : ''}
+      <label class="pn-f">Tema<select name="tema">${opt('', 'Sin tema', e.tema || '')}${temas.map((t) => opt(t.id, t.nombre, e.tema || '')).join('')}</select></label>`;
+    const examInner = `<div class="ap-fila"><label class="pn-f">Se abre<input type="datetime-local" name="desde" value="${esc(aLocal(ex.desde))}"></label><label class="pn-f">Se cierra<input type="datetime-local" name="hasta" value="${esc(aLocal(ex.hasta))}"></label>
         <label class="pn-f">Tiempo límite (min, vacío = sin límite)<input type="number" name="limiteMin" min="1" max="600" value="${ex.limiteMin || ''}"></label></div>
         <label class="pn-chk"><input type="checkbox" name="barajar" ${ex.barajar !== false ? 'checked' : ''}> Barajar preguntas y opciones para cada alumno</label>
         <label class="pn-chk"><input type="checkbox" name="pantallaCompleta" ${ex.pantallaCompleta ? 'checked' : ''}> ${ic('shield-check')} Modo examen: pantalla completa y registro de salidas de la pestaña (informativo, solo lo ves tú)</label>
         <p class="pn-small">Las soluciones se guardan aparte (solo las puede leer el profesor). Test y verdadero/falso se corrigen solos; las respuestas cortas se corrigen solas si coinciden con alguna aceptada (sin tildes ni mayúsculas) y si no, las revisas tú.</p>
         <div id="apPreguntas">${e.cargando ? '<p class="pn-small">Cargando preguntas…</p>' : preguntasHTML()}</div>
-        <div class="pn-acts"><button type="button" class="btn small" data-ed="q+test">${ic('plus')} Test</button><button type="button" class="btn small" data-ed="q+vf">${ic('plus')} Verdadero/falso</button><button type="button" class="btn small" data-ed="q+corta">${ic('plus')} Respuesta corta</button><button type="button" class="btn small" data-ed="q+emparejar">${ic('plus')} Emparejar</button><button type="button" class="btn small" data-ed="q+ordenar">${ic('plus')} Ordenar</button><button type="button" class="btn small" data-ed="q+huecos">${ic('plus')} Huecos</button><button type="button" class="btn small" data-ed="q+variables" title="Cada alumno recibe datos distintos">${ic('plus')} Numérica con datos por alumno</button><button type="button" class="btn small" data-ed="q+numerica">${ic('plus')} Numérica</button><button type="button" class="btn small" data-ed="q+zonas">${ic('plus')} Imagen con zonas</button><button type="button" class="btn small" data-ed="q+clasificar">${ic('plus')} Clasificar</button><button type="button" class="btn small" data-ed="q+tabla">${ic('plus')} Tabla</button><button type="button" class="btn small" data-ed="q+abierta">${ic('plus')} Respuesta abierta</button><button type="button" class="btn small" data-ed="banco">${ic('archive')} Del banco…</button></div></fieldset>` : ''}
-      <fieldset class="pn-f cl-nota ${e.pendiente ? 'pend' : ''}"><legend>🔒 Nota privada (solo la ves tú)</legend>
-        ${e.pendiente ? `<p class="cl-pend-aviso"><b>⚠ ${PEND_T}.</b> Al importarlo de Classroom no constaban todos los detalles. Añade instrucciones o adjuntos y guarda: el aviso desaparece solo.</p>` : ''}
-        <textarea name="nota" rows="2" maxlength="2000" placeholder="Recordatorios para ti; los alumnos no la ven.">${esc(e.nota || '')}</textarea>
-        ${e.pendiente ? '<label class="pn-chk"><input type="checkbox" name="quitarPend"> Ya está completo: quitar el aviso «Pendiente de completar»</label>' : ''}</fieldset>
-      ${entregable && e.tipo !== 'examen' ? editorRubricaHTML(e.rubrica) : ''}
+        <div class="pn-acts"><button type="button" class="btn small" data-ed="q+test">${ic('plus')} Test</button><button type="button" class="btn small" data-ed="q+vf">${ic('plus')} Verdadero/falso</button><button type="button" class="btn small" data-ed="q+corta">${ic('plus')} Respuesta corta</button><button type="button" class="btn small" data-ed="q+emparejar">${ic('plus')} Emparejar</button><button type="button" class="btn small" data-ed="q+ordenar">${ic('plus')} Ordenar</button><button type="button" class="btn small" data-ed="q+huecos">${ic('plus')} Huecos</button><button type="button" class="btn small" data-ed="q+variables" title="Cada alumno recibe datos distintos">${ic('plus')} Numérica con datos por alumno</button><button type="button" class="btn small" data-ed="q+numerica">${ic('plus')} Numérica</button><button type="button" class="btn small" data-ed="q+zonas">${ic('plus')} Imagen con zonas</button><button type="button" class="btn small" data-ed="q+clasificar">${ic('plus')} Clasificar</button><button type="button" class="btn small" data-ed="q+tabla">${ic('plus')} Tabla</button><button type="button" class="btn small" data-ed="q+abierta">${ic('plus')} Respuesta abierta</button><button type="button" class="btn small" data-ed="banco">${ic('archive')} Del banco…</button></div>`;
+    return `<form id="apItemForm" class="pn-form ap-form cl-form" autocomplete="off">
+    <header class="cl-dlg-h"><span class="cl-dlg-ic">${iconoTipo(e.tipo)}</span><div class="cl-dlg-ht"><h3>${e.id ? 'Editar' : 'Crear'}: ${esc(TIPOS[e.tipo]?.nombre || e.tipo)}</h3><span class="pn-small">${esc(a?.corto || e.asig)}</span></div><span class="pn-grow"></span>${e.id ? '<button class="btn small" type="button" data-ed="exportar" title="Exportar este elemento en JSON (lo guardado)">' + ic('download') + ' JSON</button>' : ''}<button class="btn" type="button" data-ed="cancelar" aria-label="Cerrar">${ic('x')}</button></header>
+    <div class="cl-dlg-b"><div class="cl-dlg-main">
+      ${card('Qué hay que hacer', 'pencil', `<label class="pn-f">${e.tipo === 'pregunta' ? 'Pregunta' : 'Título'}<input type="text" name="titulo" maxlength="150" required value="${esc(e.titulo)}"></label>
+      <label class="pn-f">Instrucciones${e.tipo === 'material' ? ' / descripción' : ''} (opcional)<textarea name="texto" rows="7" maxlength="20000" placeholder="Explica qué hay que hacer. **negrita** y los enlaces se ven como enlaces.">${esc(e.texto || '')}</textarea></label>
+      ${e.tipo === 'pregunta' ? `<label class="pn-f">Opciones (una por línea; vacío = respuesta corta)<textarea name="opciones" rows="3" maxlength="2000">${esc((e.opciones || []).join('\n'))}</textarea></label>` : ''}`)}
+      ${card('Entrega', 'calendar', entregaInner)}
     </div><aside class="cl-dlg-side">
-      ${e.tipo === 'recuperacion' ? `<label class="pn-f">${ic('user-check')} Solo para los nº de lista<input name="para" inputmode="numeric" maxlength="200" placeholder="p. ej. 3, 7, 12" value="${esc((e.para || []).join(', '))}"><span class="pn-small">Solo la ven estos alumnos de los grupos marcados. El resto del grupo no sabe que existe.</span></label>` : ''}
-      <fieldset class="pn-f"><legend>Para</legend>${gs.map((g) => `<label class="pn-chk"><input type="checkbox" name="grupos" value="${esc(g.id)}" ${(e.grupos || []).includes(g.id) ? 'checked' : ''}> ${esc(g.nombre)}</label>`).join('') || '<span class="pn-small">No hay grupos de esta asignatura en este curso: créalos en el panel → «Grupos y códigos».</span>'}</fieldset>
-      ${entregable ? `<label class="pn-f">Puntos<input type="number" name="puntos" min="1" max="1000" step="0.5" placeholder="Sin calificar" value="${e.puntos ?? ''}"></label>` : ''}
-      ${entregable && e.tipo !== 'examen' ? `<label class="pn-f">Fecha de entrega<input type="datetime-local" name="fechaEntrega" value="${esc(aLocal(e.fechaEntrega))}"></label>` : ''}
-      <label class="pn-f">Tema<select name="tema">${opt('', 'Sin tema', e.tema || '')}${temas.map((t) => opt(t.id, t.nombre, e.tema || '')).join('')}</select></label>
-      ${entregable && e.tipo !== 'examen' ? `<label class="pn-f">Criterio (opcional)<input name="criterio" maxlength="60" placeholder="p. ej. eee_c1_1" value="${esc(e.criterio || '')}"></label>` : ''}
-      ${entregable && e.tipo !== 'examen' ? `<label class="pn-chk" title="Si entrega un enlace (Canva, Drive, Tinkercad…), tiene que subir también un PDF, capturas o el archivo de ese momento. Queda con fecha y huella y no se puede cambiar."><input type="checkbox" name="copia" ${e.copia !== false ? 'checked' : ''}> ${ic('lock')} Pedir copia congelada si entrega un enlace</label>` : ''}
-      ${entregable ? `<label class="pn-chk" title="Pantalla completa obligatoria; si sale de la pantalla se bloquea y solo sigue con tu código de 4 cifras. Sin pegar texto."><input type="checkbox" name="sinExternos" ${e.sinExternos || e.examen?.sinExternos ? 'checked' : ''}> ${ic('shield-check')} Prueba sin elementos externos</label>` : ''}
-      ${entregable ? `<label class="pn-f">Categoría en el cuaderno<select name="categoria">${CATEGORIAS.map((c) => opt(c.id, c.nombre, e.categoria || categoriaDe(e.tipo))).join('')}</select></label>` : ''}
-      <fieldset class="pn-f cl-estado"><legend>Estado</legend>
+      ${e.tipo === 'recuperacion' ? card('Solo para estos nº', 'user-check', `<label class="pn-f">${ic('user-check')} Solo para los nº de lista<input type="text" name="para" inputmode="numeric" maxlength="200" placeholder="p. ej. 3, 7, 12" value="${esc((e.para || []).join(', '))}"></label><p class="pn-small">Solo la ven estos alumnos de los grupos marcados. El resto del grupo no sabe que existe.</p>`) : ''}
+      ${card('Para', 'users', `${gs.map((g) => `<label class="pn-chk"><input type="checkbox" name="grupos" value="${esc(g.id)}" ${(e.grupos || []).includes(g.id) ? 'checked' : ''}> ${esc(g.nombre)}</label>`).join('') || '<span class="pn-small">No hay grupos de esta asignatura en este curso: créalos en el panel → «Grupos y códigos».</span>'}`)}
+      ${card('Estado', 'eye', `<fieldset class="pn-f cl-estado"><legend class="sr-only">Estado</legend>
         <label class="pn-chk"><input type="radio" name="estado" value="publicar" ${e.estado === 'publicar' ? 'checked' : ''}> Publicar ahora</label>
         <label class="pn-chk"><input type="radio" name="estado" value="programar" ${e.estado === 'programar' ? 'checked' : ''}> Programar</label>
         <input type="datetime-local" name="pub" value="${esc(aLocal(e.pub || Date.now() + 864e5))}" aria-label="Fecha de publicación">
-        <label class="pn-chk"><input type="radio" name="estado" value="borrador" ${e.estado === 'borrador' ? 'checked' : ''}> Guardar borrador</label></fieldset>
-    </aside></div>
-    <footer class="cl-dlg-f"><span class="pn-msg" id="apItemMsg"></span><span class="pn-grow"></span><button class="btn" type="button" data-ed="cancelar">Cancelar</button><button class="btn primary" type="submit">${e.id ? '💾 Guardar' : '✔ Crear'}</button></footer>
+        <label class="pn-chk"><input type="radio" name="estado" value="borrador" ${e.estado === 'borrador' ? 'checked' : ''}> Guardar borrador</label></fieldset>`)}
+    </aside><div class="cl-dlg-more">
+      ${M?.documento ? `<section class="ed-card ap-motor"><h4 class="ed-h">${ic('file-text')}<span>Documento · plantilla de partida (opcional)</span></h4><div class="ed-card-c">${plantillaHTML(e.contenidoTxt ? (() => { try { return JSON.parse(e.contenidoTxt); } catch (x) { return e.contenido || {}; } })() : e.contenido || M.ejemplo || {})}<p class="pn-small">El alumno empieza con esta plantilla y escribe en el portal: títulos, listas, tablas, enlaces, imágenes y código. Se guarda solo; puede imprimirlo o descargarlo en .docx.</p></div></section>` : ''}
+      ${M && !M.documento ? `<section class="ed-card ap-motor"><h4 class="ed-h">${iconoTipo(e.tipo)}<span>${esc(M.nombre || TIPOS[e.tipo]?.nombre || e.tipo)} · contenido (JSON)</span></h4><div class="ed-card-c">
+        <textarea name="contenido" class="js-ta" rows="14" spellcheck="false" maxlength="400000">${esc(e.contenidoTxt ?? JSON.stringify((e.contenido && M.paraEditar ? M.paraEditar(e.contenido) : e.contenido) || M.ejemplo || {}, null, 2))}</textarea>
+        <div class="pn-acts"><button type="button" class="btn small" data-ed="ejemplo">Poner el ejemplo</button><span class="pn-small">Formato y ejemplos en «FORMATO_IMPORTAR.md». Se comprueba al guardar.</span></div>
+        ${M.entregable ? '<p class="pn-small">Al terminar, el alumno entrega su resultado («Aciertos: a/t»); en el cuaderno, «Poner notas» lo pasa a nota sobre 10.</p>' : ''}</div></section>` : ''}
+      ${e.tipo === 'examen' ? `<section class="ed-card ap-exam"><h4 class="ed-h">${ic('clipboard-check')}<span>Cuestionario del portal (autocorregido)</span></h4><div class="ed-card-c">${examInner}</div></section>` : ''}
+      ${fold('adjuntos', 'Adjuntos', 'paperclip', adjuntosInner, hayAdj)}
+      ${st.reglasV5 === true ? fold('caras', 'PDF, interactivo y origen', 'file-text', carasEditorHTML(e), hayCaras) : ''}
+      ${entregable && e.tipo !== 'examen' ? fold('rubrica', 'Rúbrica', 'list-checks', editorRubricaHTML(e.rubrica), hayRubrica) : ''}
+      ${fold('nota', 'Nota privada', 'lock', notaInner, hayNota)}
+      ${fold('avanzado', 'Más opciones', 'settings', avanzadoInner, hayAvanzado)}
+    </div></div>
+    <footer class="cl-dlg-f"><span class="pn-msg" id="apItemMsg"></span><span class="pn-grow"></span><button class="btn" type="button" data-ed="cancelar">Cancelar</button><button class="btn primary" type="submit">${e.id ? ic('save') + ' Guardar' : ic('plus') + ' Crear'}</button></footer>
     </form>`;
   }
+
   function preguntasHTML() {
     if (!E.preguntas.length) return '<p class="pn-small">Sin preguntas todavía.</p>';
     return E.preguntas.map((q, i) => `<div class="ap-q" data-qi="${i}"><div class="ap-qh"><b>${i + 1}.</b> ${esc(TIPOS_PREGUNTA[q.tipo]?.nombre || q.tipo)}
