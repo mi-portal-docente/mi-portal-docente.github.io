@@ -54,7 +54,7 @@ export default async function ({ T, BASE, ok, docREST, pegarJSON, guardarJSON })
     const a = await A.pg.$(sel); await a.scrollIntoViewIfNeeded(); const r = await a.boundingBox();
     await A.pg.mouse.move(r.x + r.width / 2, r.y + Math.min(14, r.height / 2)); await A.pg.mouse.down();
     await A.pg.mouse.move(r.x + r.width / 2 + 20, r.y + 20, { steps: 3 });
-    const p = await destino(); await A.pg.mouse.move(p.x, p.y, { steps: 8 }); await A.pg.mouse.up(); await A.pg.waitForTimeout(150);
+    const p = await destino(); if (process.env.DBG) console.log('CONSOLE p', JSON.stringify(p), await A.pg.evaluate((q) => { const e = document.elementFromPoint(q.x, q.y); return (e?.className || 'null') + ' ' + innerHeight; }, p)); await A.pg.mouse.move(p.x, p.y, { steps: 8 }); if (process.env.DBG && !globalThis.__f) { globalThis.__f = 1; await foto(A.pg, 'debug_drag'); } await A.pg.mouse.up(); await A.pg.waitForTimeout(150);
   };
   const celda = (d, hora) => async () => A.pg.evaluate(([d, hora]) => { const sc = document.querySelector('.dv-boardw'); const c = document.querySelector(`.dv-col[data-d="${d}"]`); const fh = c.getBoundingClientRect().height / 28; const y0 = ((hora - 8) * 2) * fh; sc.scrollTop = Math.max(0, y0 - 60); const r0 = sc.getBoundingClientRect(); if (r0.top < 0 || r0.bottom > innerHeight) sc.scrollIntoView({ block: 'end' }); const r = c.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + y0 + fh / 2 }; }, [d, hora]);
   const bloque = (tid) => async () => A.pg.evaluate((t) => { const b = document.querySelector(`.dv-blk[data-id="${t}"]`); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + Math.min(12, r.height / 2) }; }, tid);
@@ -113,7 +113,7 @@ export default async function ({ T, BASE, ok, docREST, pegarJSON, guardarJSON })
   await pg.click('#dvCentral [data-cv=lanzarTodos][data-k="0"]');
   await pg.waitForFunction(() => /lanzada a todo el grupo/.test(document.querySelector('#dvCentral .dv-cmsg')?.textContent || ''), null, { timeout: 15000 });
   await A.pg.waitForSelector('.dv-modal .dv-mh.rojo', { timeout: 20000 });
-  ok('F21 · al alumno le salta la llamada de SU empresa con hora y texto', /La fuga ha empeorado/.test(await A.pg.textContent('.dv-modal')) && /Lunes 8:45/.test(await A.pg.textContent('.dv-modal')));
+  ok('F21 · al alumno le salta la llamada de SU empresa con hora y texto', /la fuga ha empeorado/i.test(await A.pg.textContent('.dv-modal')) && /Lunes 8:45/.test(await A.pg.textContent('.dv-modal')));
   await A.pg.keyboard.press('Escape'); await A.pg.mouse.click(5, 5);
   ok('F21 · la llamada no se cierra hasta pulsar «Entendido»', !!(await A.pg.$('.dv-modal')));
   await foto(A.pg, '04_alumno_llamada');
@@ -143,11 +143,11 @@ export default async function ({ T, BASE, ok, docREST, pegarJSON, guardarJSON })
   await A2.pg.click('.dv-modal [data-m=ok]');
   await foto(A2.pg, '06_tablet_1180');
   // ---- Entregar: resumen antes de entregar y tablero congelado
-  await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('dialog.dlg-portal', { timeout: 10000 });
+  await A.pg.evaluate(() => { window.__dialogosNativos = false; }); await A.pg.click('[data-en=entregar]'); await A.pg.waitForSelector('dialog.dlg-portal', { timeout: 10000 });
   const res = await A.pg.textContent('dialog.dlg-portal .dlg-txt');
   ok('F21 · resumen antes de entregar: trabajos colocados, avisos pendientes y llamadas atendidas', /Trabajos colocados: 2 de 15/.test(res) && /Avisos pendientes/.test(res) && /Llamadas atendidas: 1/.test(res), res);
   await foto(A.pg, '07_alumno_resumen_entregar');
-  await A.pg.click('dialog.dlg-portal .dlg-ok'); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
+  await A.pg.click('dialog.dlg-portal .dlg-ok'); await A.pg.evaluate(() => { window.__dialogosNativos = true; }); await A.pg.waitForSelector('.en-chip.en-entregado', { timeout: 15000 });
   ok('F21 · entregado: el tablero queda congelado (solo lectura, sin etiquetas arrastrables)', !(await A.pg.$('[data-drag]')) && !!(await A.pg.$('.dv-ro svg.dv-svg')));
   tr = await docREST('trabajos/' + tid);
   ok('F21 · la entrega lleva el resumen en texto', /Trabajos colocados 2\/15/.test(campo(tr, 'texto')) && campo(tr, 'estado') === 'entregado', campo(tr, 'texto'));
@@ -156,9 +156,11 @@ export default async function ({ T, BASE, ok, docREST, pegarJSON, guardarJSON })
   if (!(await pg.$('#coTrabajo .dv-lect'))) { await pg.selectOption('#dvCentral select', { index: 0 }).catch(() => {}); }
   await pg.waitForSelector('#coTrabajo .dv-lect', { timeout: 15000 });
   const vt = await pg.textContent('#coTrabajo');
-  ok('F21 · profesor: tablero final, avisos que quedan, incidencia con antes/después, historial y registro', !!(await pg.$('#coTrabajo .dv-svgw svg')) && /Avisos que quedan/.test(vt) && /He adelantado la fuga/.test(vt) && (await pg.$$('#coTrabajo .dv-inc svg')).length === 2 && /Historial de movimientos/.test(vt) && /Cambios de pestaña/.test(vt), vt.slice(0, 300));
+  ok('F21 · profesor: tablero final y avisos que quedan', !!(await pg.$('#coTrabajo .dv-svgw svg')) && /Avisos que quedan/.test(vt));
+  ok('F21 · profesor: la incidencia con su tablero antes y después', /He adelantado la fuga/.test(vt) && (await pg.$$('#coTrabajo .dv-inc svg.dv-svg')).length === 2, String((await pg.$$('#coTrabajo .dv-inc svg.dv-svg')).length));
+  ok('F21 · profesor: historial de movimientos (hora de cada arrastre) y registro informativo (tiempo y cambios de pestaña)', /Historial de movimientos/.test(vt) && /Cambios de pestaña/.test(vt) && (await pg.$$('#coTrabajo .dv-hist tbody tr')).length >= 8);
   ok('F21 · la nota la pone el profesor con la rúbrica (la vista de corrección sigue igual)', !!(await pg.$('#coForm #coNota')));
-  ok('F21 · la centralita marca la llamada como lanzada', /Lanzada a todo el grupo/.test(await pg.textContent('#dvCentral')));
+  ok('F21 · la centralita marca la llamada como lanzada', await pg.waitForFunction(() => /Lanzada a todo el grupo/.test(document.querySelector('#dvCentral')?.textContent || ''), null, { timeout: 10000 }).then(() => true, () => false));
   await pg.click('#coTrabajo .dv-inc summary'); await pg.click('#coTrabajo details.dv-det summary');
   await foto(pg, '08_profesor_correccion');
   await pg.evaluate(() => { document.documentElement.dataset.theme = 'dark'; }); await foto(pg, '09_profesor_oscuro'); await pg.evaluate(() => { document.documentElement.dataset.theme = 'light'; });

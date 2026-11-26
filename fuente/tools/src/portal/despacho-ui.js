@@ -247,7 +247,7 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
     if (!g.on) return; g.ghost?.remove(); document.body.classList.remove('dv-arrastrando'); S.f.querySelectorAll('.dv-drop').forEach((x) => x.classList.remove('dv-drop'));
     g.fin = true; S.ignorarClic = Date.now();
     if (e.type === 'pointercancel') return;
-    const t = destino(e); if (!t) return;
+    const t = destino(e, g); if (!t) return;
     if (t.tipo === 'celda') { const yaEstaba = !!S.D.b[g.id]; cambio((b) => colocar(cont, S.emp, b, g.id, t.d, t.s), yaEstaba ? 'mover' : 'colocar', g.id, `${diaTxt(t.d)} ${hhmm(Math.max(cont.horario.ini, t.s))}`); }
     else if (t.tipo === 'fuera') cambio((b) => quitarTrabajo(b, g.id), 'quitar', g.id, '');
     else if (t.tipo === 'bloque') cambio((b) => asignar(S.emp, b, t.id, g.k, g.id), 'asignar', t.id, g.id);
@@ -260,9 +260,9 @@ export function crearEditorDespacho(it, { db, ses } = {}) {
     if ((g.k === 't' || g.k === 'b') && t) { const fh = parseFloat(getComputedStyle(S.f.querySelector('.dv-board')).getPropertyValue('--fila')) || 26; el.style.height = `${slots(t.horas) * fh}px`; }
     document.body.appendChild(el); return el;
   }
-  function destino(e) {
-    const g = S.drag || {}; const el = document.elementFromPoint(e.clientX, e.clientY); if (!el || !S.f.contains(el)) return null;
-    const k = S.drag ? S.drag.k : e.k;
+  function destino(e, g = S.drag || {}) {
+    const el = document.elementFromPoint(e.clientX, e.clientY); if (!el || !S.f.contains(el)) return null;
+    const k = g.k;
     if (k === 't' || k === 'b') {
       if (k === 'b' && el.closest('.dv-side')) return { tipo: 'fuera', el: el.closest('.dv-side') };
       const col = el.closest('.dv-col') || el.closest('.dv-blk')?.closest('.dv-col'); if (!col) return null;
