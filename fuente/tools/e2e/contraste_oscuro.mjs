@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const SITE = resolve(__dir, '../..', '..'); // raíz del sitio (css/, index.html)
-const BASE = process.env.PORTAL_BASE || 'http://127.0.0.1:8765/index.html';
+const BASE = process.env.PORTAL_BASE || `http://127.0.0.1:${process.env.E2E_HTTP_PORT || '8765'}/index.html`;
 const ORIGIN = BASE.replace(/\/index\.html.*$/, '');
 const CAP = (process.env.CAPTURAS_OSCURO || '/workspace/capturas-oscuro').replace(/\/?$/, '/');
 const ETAPA = process.env.CONTRASTE_ETAPA || 'despues'; // 'antes' | 'despues'

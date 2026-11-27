@@ -364,6 +364,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
   }
   async function ajustar(it, g, n, qid, pts, todos = false) {
     const ex = A.cargaEx.get(it.id); if (!ex) return;
+    await Promise.resolve(A.autoP).catch(() => { }); // un guardado automático en curso termina antes
     const id = idTrabajo(it.id, g.id, n); const tr = A.trabajos.get(id); if (!tr) return;
     const q = (ex.examen?.preguntas || []).find((x) => x.id === qid);
     const lista = [tr, ...(todos && q ? igualesA(it, q, tr.respuestas || {}, id) : [])];
@@ -377,6 +378,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       A.notas.set(t.id, { id: t.id, ...datos }); // se ve al momento; el snapshot lo confirma
       ops.push({ db, fn: (b) => b.set(doc(db, 'notas', t.id), datos) });
     }
+    pintar(); // la tabla (Exámenes y Cuaderno) cambia al momento
     await enLotes(ops);
   }
   async function accionAjuste(acc, qid) {
@@ -403,7 +405,38 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     }
     if (nota != null) $('#apNota').value = nota;
   }
-  async function guardarNota(f) {
+  // PIP-6: los puntos que el profesor escribe (o los niveles de la rúbrica que pulsa) en un examen se guardan solos al salir de la
+  // casilla; antes eran un borrador que solo se guardaba con «Guardar nota» y el cuaderno no cambiaba. Se encadenan para que dos
+  // guardados seguidos (o un «Dar por válida» justo después) no se pisen.
+  function autoGuardar() {
+    const f = $('#apNotaForm'); const ab = A.abierta; const it = ab && st.items.get(ab.k); if (!f || !it || it.tipo !== 'examen') return Promise.resolve();
+    return (A.autoP = Promise.resolve(A.autoP).catch(() => { }).then(() => guardarNota(f, true)));
+  }
+  // Puntos escritos en una pregunta de un examen al salir de la casilla: en las de respuesta abierta (rúbrica) se guarda la nota con
+  // «Guardar nota» automático; en las demás es «Aplicar puntos» (con su marca de ajuste y su «Deshacer»). El foco vuelve a la casilla
+  // que el profesor estaba tocando para poder seguir corrigiendo con el teclado.
+  function puntosEscritos(t) {
+    const ab = A.abierta; const it = ab && st.items.get(ab.k); if (!it || it.tipo !== 'examen') return;
+    const qid = t.dataset.qid; const q = (A.cargaEx.get(it.id)?.examen?.preguntas || []).find((x) => x.id === qid);
+    setTimeout(() => {
+      const d = descFoco(document.activeElement);
+      if (t.matches('.ap-qpts') && q && q.tipo !== 'abierta') {
+        const v = String(t.value ?? '').replace(',', '.'); if (v === '' || Number.isNaN(+v) || +v === Number(t.defaultValue)) return;
+        A.autoP = accionAjuste('ajPuntos', qid).then(() => volverAFoco(d)).catch(() => { });
+      } else autoGuardar();
+    }, 0);
+  }
+  function descFoco(e) {
+    const D = $('#apDetalle'); if (!e || !D || !D.contains(e) || !e.matches?.('input, textarea')) return null;
+    return { cls: e.classList.contains('ap-qpts') ? '.ap-qpts' : e.classList.contains('ap-qr') ? '.ap-qr' : null, qid: e.dataset?.qid, ri: e.dataset?.ri, name: e.name, id: e.id };
+  }
+  function volverAFoco(d) {
+    const D = $('#apDetalle'); if (!d || !D) return; let el = null;
+    if (d.cls) el = D.querySelector(`${d.cls}[data-qid="${CSS.escape(d.qid)}"]${d.ri != null ? `[data-ri="${d.ri}"]` : ''}`);
+    else if (d.id) el = D.querySelector('#' + CSS.escape(d.id)); else if (d.name) el = D.querySelector(`[name="${CSS.escape(d.name)}"]`);
+    el?.focus();
+  }
+  async function guardarNota(f, auto = false) {
     const ab = A.abierta; const g = grupoSel(); const it = st.items.get(ab.k); const msg = $('#apNotaMsg');
     const fd = new FormData(f); const raw = String(fd.get('nota') || '').trim().replace(',', '.');
     const nota = raw === '' ? null : redondea(+raw);
@@ -418,10 +451,17 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
       Object.assign(detalle, soloAjustes(A.notas.get(idTrabajo(it.id, g.id, ab.n))?.detalle)); // los ajustes del profesor se conservan
     } else if (it.rubrica?.length) { const r = notaRubrica(it.rubrica, Object.fromEntries(Object.entries(detalle).map(([k, v]) => [k.slice(1), v]))); puntos = r.puntos; max = r.max; }
     msg.textContent = 'Guardando…'; msg.className = 'pn-msg';
+    const nid = idTrabajo(it.id, g.id, ab.n);
+    const datos = { item: it.id, curso: it.curso, asig: it.asig, al: `${g.id}_${ab.n}`, grupo: g.id, numero: ab.n, nota, puntos, max, detalle, comentario: String(fd.get('comentario') || '').slice(0, 2000), publicada: !!fd.get('publicada'), fecha: Date.now() };
+    const antes = A.notas.get(nid);
+    A.notas.set(nid, { id: nid, ...datos }); pintar(); // el cuaderno cambia al momento; el snapshot lo confirma
     try {
-      await setDoc(doc(db, 'notas', idTrabajo(it.id, g.id, ab.n)), { item: it.id, curso: it.curso, asig: it.asig, al: `${g.id}_${ab.n}`, grupo: g.id, numero: ab.n, nota, puntos, max, detalle, comentario: String(fd.get('comentario') || '').slice(0, 2000), publicada: !!fd.get('publicada'), fecha: Date.now() });
-      msg.textContent = '✔ Guardado'; msg.className = 'pn-msg ok';
-    } catch (e) { msg.textContent = '❌ No se ha podido guardar (' + (e?.code || 'error') + ').'; msg.className = 'pn-msg ko'; }
+      await setDoc(doc(db, 'notas', nid), datos);
+      msg.textContent = auto ? '✔ Guardado automáticamente' : '✔ Guardado'; msg.className = 'pn-msg ok';
+    } catch (e) {
+      if (antes) A.notas.set(nid, antes); else A.notas.delete(nid); pintar();
+      msg.textContent = '❌ No se ha podido guardar (' + (e?.code || 'error') + ').'; msg.className = 'pn-msg ko';
+    }
   }
   async function autocorregir(itemId) {
     const g = grupoSel(); const it = st.items.get(itemId);
@@ -552,7 +592,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     const t = ev.target;
     if (A.sub === 'notas' && A.corr && corr.onClick(ev)) return;
     const cel = t.closest('[data-celda]'); if (cel && A.sub === 'notas') { A.abierta = { k: cel.dataset.celda, n: +cel.dataset.n }; A.el.querySelectorAll('.ap-c.sel').forEach((x) => x.classList.remove('sel')); cel.classList.add('sel'); pintarDetalle(); return; }
-    const qn = t.closest('[data-ap-qn]'); if (qn) { const [qid, ri, v] = qn.dataset.apQn.split('|'); const i = A.el.querySelector(`#apDetalle .ap-qr[data-qid="${CSS.escape(qid)}"][data-ri="${ri}"]`); if (i) { i.value = redondea(+v); sumarRubricaQ(qid); recalcular(); } return; }
+    const qn = t.closest('[data-ap-qn]'); if (qn) { const [qid, ri, v] = qn.dataset.apQn.split('|'); const i = A.el.querySelector(`#apDetalle .ap-qr[data-qid="${CSS.escape(qid)}"][data-ri="${ri}"]`); if (i) { i.value = redondea(+v); sumarRubricaQ(qid); recalcular(); autoGuardar(); } return; }
     const b = t.closest('[data-ap]'); if (!b) return;
     // En «Ajustes y limpieza» el bloque del aula se pinta sin render(): A.el puede no estar puesto (al entrar directamente).
     if (!A.el?.contains(b)) { const pn = b.closest('.pn'); if (!pn) return; A.el = pn; }
@@ -606,6 +646,7 @@ export function crearAulaPanel({ db, aula, ps, nombreGrupo, tituloPractica }) {
     if (t.dataset.apF === 'gGrupo') { A.gGrupo = t.value; A.abierta = null; A.anEx = ''; pintar(); }
     if (t.dataset.apF === 'gAsig') { A.gAsig = t.value; A.abierta = null; A.anEx = ''; pintar(); }
     if (t.dataset.apF === 'anEx') { A.anEx = t.value; pintar(); }
+    if (A.sub === 'notas' && t.matches?.('#apDetalle .ap-qpts, #apDetalle .ap-qr')) puntosEscritos(t);
   }
   function onInput(ev) {
     if (A.sub === 'notas' && A.corr && corr.onInput(ev)) return;

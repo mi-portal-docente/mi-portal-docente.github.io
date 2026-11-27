@@ -7,7 +7,7 @@ import { readFileSync } from 'fs';
 import { SHOTS } from '../rutas.mjs';
 const FSP = process.env.E2E_FS_PORT || '8080', AUP = process.env.E2E_AUTH_PORT || '9099'; // puertos de los emuladores (ALT: otros puertos si otro proyecto usa los de siempre)
 
-const BASE = process.env.PORTAL_BASE || 'http://127.0.0.1:8765/index.html';
+const BASE = process.env.PORTAL_BASE || `http://127.0.0.1:${process.env.E2E_HTTP_PORT || '8765'}/index.html`;
 const PROJ = 'demo-portal';
 const CFG = `window.PORTAL_FIREBASE={apiKey:'demo-key',authDomain:'${PROJ}.firebaseapp.com',projectId:'${PROJ}',appId:'1:1:web:1'};window.PORTAL_FIREBASE_EMU={auth:'http://127.0.0.1:${AUP}',firestoreHost:'127.0.0.1',firestorePort:${FSP}};`;
 const results = [];

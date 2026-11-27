@@ -66,6 +66,15 @@ export function abrirRevisionExamen({ titulo, quien, examen, V, K, resp, auto, e
   const tecla = (e) => { if (e.key === 'Escape' && !document.querySelector('.ex-visor, dialog[open], .dlg-portal')) cerrar(); };
   document.addEventListener('keydown', tecla, true); window.addEventListener('hashchange', cerrar);
   m.addEventListener('input', (e) => { if (ajustar && e.target.closest?.('.ap-qpts')) previsualizar(); });
+  // PIP-6: los puntos escritos se aplican solos al salir de la casilla (antes había que pulsar «Aplicar puntos» y, si no, la nota no
+  // cambiaba en el cuaderno aunque la cabecera ya mostrara la nueva). «Deshacer» sigue disponible.
+  m.addEventListener('change', (e) => {
+    const i = ajustar && e.target.closest?.('.aj-bar .ap-qpts'); if (!i) return;
+    const v = String(i.value ?? '').replace(',', '.'); if (v === '' || Number.isNaN(+v) || +v === Number(i.defaultValue)) return;
+    const b = i.closest('.aj-bar')?.querySelector(`[data-rv=puntos][data-qid="${CSS.escape(i.dataset.qid)}"]`); if (!b || b.disabled) return;
+    setTimeout(() => { const a = document.activeElement; foco = a?.classList?.contains('ap-qpts') ? a.dataset.qid : null; b.click(); }, 0);
+  });
+  let foco = null; // casilla de puntos que el profesor estaba tocando al aplicar solos los puntos escritos
   m.addEventListener('click', (e) => {
     if (e.target === m || e.target.closest('[data-rv=cerrar]')) return cerrar();
     const acc = e.target.closest('[data-rv=valida], [data-rv=deshacer], [data-rv=puntos], [data-rv=todos]');
@@ -82,7 +91,7 @@ export function abrirRevisionExamen({ titulo, quien, examen, V, K, resp, auto, e
       }
       acc.disabled = true;
       const y = m.querySelector('.rv-body')?.scrollTop || 0;
-      Promise.resolve(ajustar(acc.dataset.qid, pts, acc.dataset.rv === 'todos')).then(() => { const b = document.querySelector('.rv-modal .rv-body'); if (b) b.scrollTop = y; });
+      Promise.resolve(ajustar(acc.dataset.qid, pts, acc.dataset.rv === 'todos')).then(() => { const b = document.querySelector('.rv-modal .rv-body'); if (b) b.scrollTop = y; if (foco) document.querySelector(`.rv-modal .ap-qpts[data-qid="${CSS.escape(foco)}"]`)?.focus(); foco = null; });
       return;
     }
     const z = e.target.closest('[data-zoom]'); if (z) { e.preventDefault(); abrirVisor(z.dataset.zoom, z.dataset.alt || ''); }

@@ -1381,3 +1381,24 @@ misma clase puede estar en EEE pero no en Proyecto).
 - Seguridad: el filtrado del alumno es del cliente (como `guiadas:`/`evaluacion:`); no hay datos personales en las marcas (solo
   nº de lista). Reglas: nuevas pruebas en `firebase/test/clase.test.mjs` (4) → `npm run test:reglas` 173/173.
 - E2E `e2e/plataforma_f25.mjs` (26 comprobaciones). Capturas: /workspace/capturas-clase/c_*.png.
+
+## PIP-6 (bug t198u/t199u) · «corrijo preguntas de exámenes de EEE y no se actualiza en las notas»
+- Diagnóstico (sin tocar datos): los ajustes con botón («Dar por válida», «Aplicar puntos», «Deshacer», «Válida para todos») SÍ
+  actualizan `notas/{id}` y todas las vistas (Exámenes, Cuaderno por actividad y por criterio, Analítica, alumno): comprobado con
+  E2E nuevo F26. Lo que NO se guardaba era lo escrito a mano: los puntos de una pregunta (casilla «Puntos») o los niveles de la
+  rúbrica de una respuesta abierta solo cambiaban la casilla «Nota» del detalle (borrador) hasta pulsar «Guardar nota»; y en el
+  examen completo la cabecera mostraba «Nota X» en vivo (parecía corregido) pero la nota guardada no cambiaba hasta «Aplicar puntos».
+  El cuaderno, la pestaña Exámenes y Seguimiento solo leen lo guardado, así que no cambiaban.
+- Arreglo (`aula-panel.js`, `revision-examen.js`):
+  - Al salir de la casilla de puntos (o con Intro/Tab) de una pregunta de examen: test/vf/corta/etc. → «Aplicar puntos» automático
+    (con su marca de ajuste y «Deshacer»); respuesta abierta con rúbrica → «Guardar nota» automático (también al pulsar un nivel).
+    Mismo cálculo y mismas reglas que antes; el foco vuelve a la casilla siguiente.
+  - Los guardados se encadenan (`A.autoP`) para no pisarse con un «Dar por válida» inmediato.
+  - El cuaderno repinta al instante (nota optimista, se deshace si falla el guardado) y no solo con el snapshot.
+  - Sin reglas nuevas, sin migración, sin tocar `trabajos`. Las notas ya guardadas no cambian. Lo que se escribió y no se guardó
+    antes no estaba en ningún sitio: hay que volver a escribirlo (ahora se guarda solo).
+- E2E `e2e/plataforma_f26.mjs`: examen EEE en Exámenes con criterios; tras cada ajuste (vista normal y examen completo), puntos
+  escritos sin pulsar botón, «válida para todos» y rúbrica abierta, comprueba Exámenes, Cuaderno, Por criterio, Analítica, alumno y
+  tras recargar.
+- Aviso de pruebas: un `http.server` huérfano en 8765 servía /workspace/portal-clase; usar `E2E_HTTP_PORT=8777` (los run_*.sh lo
+  respetan ya).

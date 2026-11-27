@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 export JAVA_HOME=${JAVA_HOME:-$(ls -d "$HOME"/jdk/jdk-21* 2>/dev/null | head -1)}; export PATH="$JAVA_HOME/bin:$PATH"
 (cd firebase && node prepara-reglas.mjs profe@test.es)
-(cd "${SITE:-../..}" && python3 -m http.server 8765 --bind 127.0.0.1 >"${TMPDIR:-/tmp}/http-e2e.log" 2>&1) & HTTP=$!
+(cd "${SITE:-../..}" && python3 -m http.server ${E2E_HTTP_PORT:-8765} --bind 127.0.0.1 >"${TMPDIR:-/tmp}/http-e2e.log" 2>&1) & HTTP=$!
 trap 'kill $HTTP 2>/dev/null || true' EXIT
 export CONTRASTE=1
 export CONTRASTE_ETAPA=${CONTRASTE_ETAPA:-despues}
